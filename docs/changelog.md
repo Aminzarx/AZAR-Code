@@ -1277,3 +1277,53 @@ Phase 5 has not begun.
 **Status**: Documentation updated and consistent. Implementation
 (Phase 5) remains paused pending explicit project-owner approval to
 begin, per this task's explicit instruction not to proceed automatically.
+
+## 2026-08-08 — Implementation session handoff document
+
+**What changed**: Created `/docs/implementation/00-session-handoff.md`,
+the single entry point for a new Claude Code session picking up
+implementation without the benefit of this conversation's history. No
+application code was written, no dependency was installed, Phase 5 was
+not started, and no new product or architecture decision was made — this
+document consolidates and cross-references decisions already recorded
+elsewhere, it does not create new ones.
+
+The handoff covers: the non-negotiable project constitution (platform,
+connectivity boundary, database, backup, security, matching, notifications,
+UI/UX, and human-writing rules); the Android 8/API 26 and Xiaomi
+compatibility requirements in full, including the explicit statement that
+successful compilation is not evidence of Xiaomi compatibility; an
+architecture map naming exactly which document governs each subsystem;
+summaries of the data model, matching engine, security checklist, UI/UX
+implementation plan (with its three known, already-documented design
+gaps restated rather than silently resolved), testing strategy, and the
+full Phase 5-16 implementation roadmap; three explicit decision-status
+lists (FINAL, PROPOSED, OPEN) drawn directly from
+`unresolved-decisions.md`; and a numbered startup protocol a new session
+should follow before writing any code.
+
+A documentation-wide consistency scan was performed as part of creating
+this handoff, checking specifically for: stale Electron references
+presented as current, stale Capacitor references presented as a live
+option, cloud-sync assumptions, AI-based-matching assumptions, push/email
+notification assumptions, Android minimum-version contradictions, Xiaomi
+compatibility contradictions, offline/online boundary contradictions, and
+FINAL-vs-OPEN decision contradictions. **No contradictions were found**,
+and no other document required correction as a result.
+
+**Reason**: Explicit project-owner instruction to prepare a
+self-contained handoff before moving to a new Claude Code session for
+implementation, so that session does not need this conversation's history
+to understand the project correctly.
+
+**Affected modules**: Documentation only
+(`/docs/implementation/00-session-handoff.md`, new). No application code,
+dependencies, or database schema were touched. The Electron scaffold
+remains in place; Phase 5 has not begun.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet (no application code exists).
+
+**Status**: Handoff complete. Implementation remains paused pending
+explicit approval to begin Phase 5 in the next session.
