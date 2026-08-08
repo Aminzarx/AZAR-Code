@@ -82,25 +82,27 @@ testing.** They are a defensible, standards-aligned starting point (OWASP's
 Argon2id recommendations), not a guess pulled from nowhere — but the actual
 derivation time on the lowest-spec device this product commits to
 supporting must be measured before these numbers are locked in for
-implementation. **[OPEN — requires empirical validation, procedure below.]**
-The platform question this used to depend on is now settled (`ADR-001`:
-React Native, FINAL); what's still needed is a minimum-supported-OS-version
-and minimum-device-tier decision, which is a product/release-planning
-question, not a cryptographic one.
+implementation. **[OPEN — requires empirical validation, procedure
+below; the device-tier question this used to also depend on is now
+resolved.]** The platform question is settled (`ADR-001`: React Native,
+FINAL), and the minimum-supported-OS-version/device-tier question is now
+also settled (`ADR-010-minimum-android-version-and-xiaomi-compatibility.md`:
+Android 8.0 / API 26 minimum, Xiaomi devices first-class) — what remains
+is running the procedure below against that now-concrete device target,
+not waiting on a further product decision.
 
 ### 3.1 Argon2id benchmarking procedure (defined, not yet executed)
 
 Before the parameters in the table above are moved from PROPOSED to FINAL,
 run this procedure:
 
-1. **Choose a representative low-end device.** The slowest device the
-   product commits to supporting (not the median device the team happens
-   to develop on) — e.g. a several-year-old, budget-tier Android phone at
-   or near the minimum OS version the product will support, since that is
-   the device where a too-slow KDF is most likely to feel broken to a
-   real user, and where a too-fast KDF is most dangerous if that same
-   device class represents what a lot of real users' backups were made
-   with.
+1. **Choose a representative low-end device.** Per `ADR-010`, this is now
+   concrete: a Xiaomi low/mid-range device running at or near Android 8.0
+   / API 26 — the actual floor this product commits to supporting, not a
+   generic "old phone." This is the device where a too-slow KDF is most
+   likely to feel broken to a real user, and where a too-fast KDF is most
+   dangerous if that same device class represents what a lot of real
+   users' backups were made with.
 2. **Implement the exact native Argon2id binding intended for
    production** (per §12's note that the specific library is not fixed in
    this document) — do not benchmark against a different implementation

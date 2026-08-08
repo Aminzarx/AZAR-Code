@@ -128,5 +128,8 @@ above is that dedicated review of the *design*, and it found the design
 sound, but a review of the actual *implementation* (once written) is still
 required before FINAL. Requires empirical KDF-parameter validation against
 a real minimum-device baseline, per the benchmarking procedure now defined
-in `backup-encryption-design.md` §3.1 — platform (`ADR-001`) is resolved;
-a minimum-OS-version/device-tier decision remains open.
+in `backup-encryption-design.md` §3.1 — platform (`ADR-001`) is resolved,
+and the minimum-OS-version/device-tier question is now also resolved
+(`ADR-010`: Android 8.0 / API 26, Xiaomi first-class). What remains before
+this ADR moves to FINAL is running the benchmark against that now-defined
+device target, not a further product decision.

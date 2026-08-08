@@ -96,6 +96,16 @@ experience says otherwise once real screens exist, that's exactly the
 kind of implementation-phase finding `unresolved-decisions.md` exists to
 capture.
 
+**Every dependency selected in this phase, and in every phase after it,
+is checked against API 26 compatibility before adoption** — per
+`ADR-010`. This applies to the navigation library, the state-management
+library, and every native module introduced from Phase 6 onward. Where a
+library's own documentation doesn't state a minimum API level explicitly,
+this phase's tooling setup should include a way to verify it directly
+(e.g. building against `minSdkVersion 26` and running on a real or
+emulated API 26 device), not assuming compatibility from a library's
+popularity or recency.
+
 ### Security considerations
 
 None specific to this phase — no business data, no cryptography, no
@@ -106,13 +116,24 @@ backup orchestration) from the start, per `ADR-001`'s consequences
 section, so security-sensitive code isn't scattered across UI components
 later.
 
+**[FINAL, `ADR-010-minimum-android-version-and-xiaomi-compatibility.md`]**
+The Android project's `minSdkVersion` is set to **26** in this phase's
+Gradle configuration, and `targetSdkVersion`/`compileSdkVersion` are set
+to the latest stable Android SDK available at the time this phase runs.
+This is not a placeholder value to revisit later — it's the floor every
+subsequent phase's dependency choices must respect, so it belongs in the
+project configuration from the very first commit, not adjusted after
+something built against a newer API by accident.
+
 ### Performance considerations
 
 Cold-start baseline should be measured on a real low-end device as soon
 as the placeholder app exists, before any feature weight is added — this
 gives every later phase an honest baseline to compare against rather than
 discovering in Phase 14 that the app was already slow before any business
-logic existed.
+logic existed. Per `ADR-010`, this baseline device should be at or near
+the API 26 / Xiaomi low-mid-range floor, not the team's own development
+hardware, which is very likely faster than what real users carry.
 
 ### UX considerations
 
@@ -640,6 +661,23 @@ reminder") rather than exposing tenant/owner names or addresses on a
 locked device, pending the still-open UX decision on whether full detail
 is ever shown pre-unlock.
 
+**[FINAL, `ADR-010`]** This phase's local-notification scheduling must be
+built and tested against Xiaomi's MIUI/HyperOS background-restriction
+behavior from the start, not patched afterward — this is the single area
+`ADR-010` calls out as having the most-documented real-world failure
+history across the Android ecosystem. Concretely: the device-restart
+recovery routine (re-deriving outstanding notifications from `Reminder`
+records) must also run when the app is foregrounded normally, not only
+after a detected reboot, since MIUI's autostart restrictions can prevent
+an app from receiving the boot-completed broadcast reliably in the first
+place — relying solely on a reboot-triggered rescheduling path would be
+exactly the kind of assumption that holds on stock Android and silently
+fails on Xiaomi. Whether the app should proactively guide the user to
+grant MIUI's autostart permission (a Xiaomi-specific settings screen
+outside standard Android permission flows) is a UX question for Phase 12,
+not resolved here, but the underlying scheduling logic in this phase must
+not assume that permission is granted.
+
 ### Performance considerations
 
 Reminder evaluation is a lightweight per-contract check backed by an
@@ -1012,6 +1050,17 @@ hardware, not just a development machine or simulator — simulators
 routinely misrepresent real-device performance, especially for
 cryptographic operations and large-list rendering.
 
+**[FINAL, `ADR-010`]** This phase is also where the Android
+version/device compatibility matrix (`testing-strategy.md` §"Android
+version and device compatibility matrix") is executed in full — every
+mandatory Android version tier from API 26 through the current release,
+and the priority real-device set (Xiaomi low/mid-range, Xiaomi mid/high-
+range, a non-Xiaomi low/mid-range device, and a Google/stock-like
+device). A build succeeding on a given version or device is not, by
+itself, evidence of compatibility — the release-blocking failure
+categories in `testing-strategy.md`'s Xiaomi stability requirement must
+each be actively checked for, not merely assumed absent.
+
 ### UX considerations
 
 Accessibility testing (screen-reader labels, focus order, contrast —
@@ -1021,19 +1070,23 @@ app (not just individual screens) both happen here as dedicated passes.
 ### Tests
 
 This phase *is* the tests — see `testing-strategy.md` for the full
-breakdown by category.
+breakdown by category, including the Android/Xiaomi compatibility matrix.
 
 ### Acceptance Criteria
 
 Every catastrophic scenario in the testing strategy's list has a passing
 test demonstrating correct, safe behavior (data preserved, clear error
-shown, no partial state) — not just "doesn't crash."
+shown, no partial state) — not just "doesn't crash." Every release-
+blocking Xiaomi failure category has been actively tested for on the
+priority real-device set and found absent, not merely untested.
 
 ### Exit Gate
 
 The full test suite (unit, integration, E2E, security, performance,
 accessibility, RTL) passes, with any known gaps explicitly documented as
-named risks, not silently accepted.
+named risks, not silently accepted, **and** the Android version/device
+compatibility matrix shows no release-blocking failure on any mandatory
+version tier or priority real device.
 
 ---
 
@@ -1195,7 +1248,13 @@ practical test of `migration-strategy.md`'s central promise).
 
 Signed builds install and run correctly on real devices for both
 platforms; the version-upgrade migration test passes; store listings are
-accurate and complete.
+accurate and complete. **[FINAL, `ADR-010`]** Xiaomi stability sign-off
+(no release-blocking failure across `testing-strategy.md`'s Xiaomi
+category, on the priority real-device set) is a hard release-blocking
+criterion for this phase, on the same footing as the security audit
+sign-off from Phase 15 — a release candidate does not proceed to
+distribution with an open, unresolved Xiaomi stability failure, the same
+way it would not proceed with an open CRITICAL security finding.
 
 ### Exit Gate
 
@@ -1203,7 +1262,10 @@ A release candidate build is approved for whatever distribution channel
 comes first (internal testing, beta, or production, per the pipeline
 `/mobile-release-engineer` defines) — this is the natural end of the
 implementation roadmap as scoped by this document; ongoing release
-cadence afterward is operational, not a one-time "phase."
+cadence afterward is operational, not a one-time "phase." This approval
+requires both Phase 15's security sign-off and Phase 14's Xiaomi
+stability sign-off; neither is optional or a "nice to have alongside" the
+other.
 
 ---
 

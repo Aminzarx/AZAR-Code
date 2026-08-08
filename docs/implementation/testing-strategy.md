@@ -89,6 +89,81 @@ where it's actually run by an independent reviewer, which matters
 specifically because the person who wrote a piece of code is a poor judge
 of whether they've tested it adversarially enough.
 
+## Android version and device compatibility matrix
+
+**[FINAL, `ADR-010-minimum-android-version-and-xiaomi-compatibility.md`]**
+Android 8.0 (API 26) is the minimum supported version, and Xiaomi devices
+are a first-class, non-negotiable compatibility target — restated here as
+the concrete test matrix that decision requires, since a policy statement
+without a test plan attached to it doesn't actually verify anything.
+
+| Android version | Status | Notes |
+|---|---|---|
+| Android 8 / API 26 | **Mandatory — this is the floor** | The version every release-blocking test in this document must pass on, not just "should probably work on." |
+| Android 9+ | Mandatory | |
+| Android 10+ | Mandatory | Scoped storage changes begin here — relevant to backup export/import and restore staging file handling (`backup-encryption-design.md` §11.3-§11.4). |
+| Android 11+ | Mandatory | Further scoped-storage tightening. |
+| Android 12+ | Mandatory | Notification permission model changes begin around this range depending on target SDK — relevant to `ADR-007`'s notification-permission-denied handling. |
+| Android 13+ | Mandatory | Runtime notification permission (`POST_NOTIFICATIONS`) becomes an explicit runtime grant — this changes how NOTIF-03's "in-app history exists regardless of permission state" requirement is actually exercised in testing, since the denial path is now a normal runtime permission flow rather than a settings-only toggle. |
+| Android 14+ | Mandatory | |
+| Android 15+ | Mandatory | |
+| Current Android version at implementation time | Mandatory | Whatever is the latest stable release when Phase 14 actually runs — named as "current," not pinned to a specific number in this document, since a version-numbered document written before implementation starts would otherwise go stale the moment a new Android version ships. |
+
+**Xiaomi is a mandatory test category, tested on real devices, at every
+Android version tier where a real Xiaomi device running that version is
+reasonably obtainable** — not simulated, and not considered verified
+merely because a build succeeds or an emulator runs it. MIUI/HyperOS's
+behavioral deviations from stock Android (`ADR-010`'s checklist) are
+precisely the kind of thing an emulator, which runs closer to stock
+AOSP behavior, will not surface.
+
+### Priority real-device test set
+
+Where real devices are available (required, not optional, before a
+release is considered Xiaomi-verified):
+
+1. One Xiaomi low/mid-range device.
+2. One Xiaomi mid/high-range device.
+3. One non-Xiaomi low/mid-range Android device (for a comparison baseline
+   — confirms a given failure is genuinely Xiaomi-specific rather than a
+   general low-end-hardware issue).
+4. One Google/stock-like Android device (the closest thing to a "clean"
+   AOSP reference point, useful for isolating manufacturer-specific
+   behavior from Android-version-specific behavior).
+
+Emulators and CI-based automated testing remain valuable for the broader
+version matrix above and for fast iteration during development — they are
+not a substitute for the real-device set for the specific Xiaomi
+behaviors named in `ADR-010`, several of which (aggressive background
+process killing, MIUI's autostart permission model) either don't
+reproduce in an emulator at all or behave differently enough to be
+misleading if treated as equivalent.
+
+## Xiaomi stability non-functional requirement
+
+**"Application stability on Xiaomi devices is a release-blocking
+requirement."** Restated here as a formal non-functional requirement,
+with an explicit definition of what counts as a release-blocking failure
+— so "stability" isn't left as a vague aspiration nobody can actually
+check a release against:
+
+| Release-blocking failure | Why it blocks release |
+|---|---|
+| Unexpected app termination/crash | Basic reliability floor — no app-defect-driven crash is acceptable, and this is the single most user-visible failure category. |
+| Repeated startup crash loop | Worse than an ordinary crash — the app becomes entirely unusable, potentially requiring an uninstall to recover. |
+| Database corruption | Directly threatens the sole copy of a user's business data, per this product's local-first model — the single highest-stakes failure category in the entire testing strategy. |
+| Inability to open the encrypted local database | Functionally equivalent to data loss from the user's perspective, even if the underlying file is intact. |
+| Backup/restore failure caused by device/platform behavior (not user error) | Undermines the one recovery path this product's local-first model depends on — if backup/restore itself is unreliable on Xiaomi, the "no safety net without a backup" risk `local-data-architecture.md` already names becomes materially worse for a large share of real users. |
+| Scheduled local reminders silently failing | A reminder that doesn't fire and gives no indication it didn't is worse than an app that visibly tells the user something went wrong — silent failure of the contract-reminder system directly undermines the product's core value proposition for its stated use case. |
+| Data loss after process death/restart | The exact failure mode MIUI's aggressive process management makes more likely than on stock Android — must be verified as *not* occurring, not assumed safe because it doesn't occur on other devices. |
+| Migration failure | Same consequence as database corruption if it leaves the database in an uncertain state — `migration-strategy.md`'s fail-closed requirement must hold on Xiaomi specifically, not just in a controlled test environment. |
+| UI becoming unusable after lifecycle recreation | Xiaomi's process/activity recreation behavior can differ from stock Android's; a screen that loses its state or renders incorrectly after recreation is a real, testable failure, not a theoretical one. |
+
+A release candidate exhibiting any failure in this table, on any device in
+the priority real-device test set (above), does not ship until the
+failure is fixed and re-verified — this is a hard gate on Phase 16
+(Release Preparation), not a "known issue" to document and ship anyway.
+
 ## RTL and accessibility testing
 
 - Every screen in `ui-screen-mapping.md` with an RTL counterpart is tested

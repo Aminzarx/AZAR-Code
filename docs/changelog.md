@@ -1197,3 +1197,83 @@ supported-device decision (needed for Argon2id benchmarking), and Phase 9
 still-open scoring-weight values — both carried forward from Phase 4B,
 not new gaps introduced by this pass. See the full final report delivered
 alongside this entry for the complete list.
+
+## 2026-08-08 — FINAL product decisions: minimum Android version, Xiaomi compatibility
+
+**What changed**: Before Phase 5 implementation begins, recorded two
+product-owner decisions that directly unblock work Phase 4B left open,
+plus their concrete test-plan consequences. No application code was
+written, no dependency was installed, and Phase 5 was not started.
+
+1. **Minimum Android version: 8.0 / API 26, FINAL.** Target/compile SDK
+   tracks the latest stable Android SDK at build time. The minimum does
+   not move for convenience, a library default, or a newer platform API
+   — every dependency is checked for API 26 compatibility before
+   adoption, and an incompatible dependency is replaced, not
+   accommodated by raising the floor.
+2. **Xiaomi device compatibility: first-class and non-negotiable, FINAL.**
+   MIUI/HyperOS-specific behavior (aggressive background/battery
+   management, notification scheduling and delivery, database stability
+   under process recreation, scoped storage, reboot/force-stop behavior,
+   and more) must be designed for and tested against from the start, not
+   patched in after a bug report. Xiaomi problems must never be solved by
+   weakening the security model already finalized in `ADR-004`/`ADR-005`
+   or the restore state machine.
+
+Recorded in a new `ADR-010-minimum-android-version-and-xiaomi-compatibility.md`.
+
+This also resolves the "minimum-device-tier" gap Phase 4B's security
+review flagged as blocking the Argon2id benchmarking procedure
+(`backup-encryption-design.md` §3.1) — the benchmark now has a concrete
+target (a Xiaomi low/mid-range device at or near API 26) and only needs
+to be run, not further decided. `unresolved-decisions.md`, `ADR-004`, and
+`04-final-architecture.md` were updated to reflect this.
+
+`implementation-roadmap.md` and `testing-strategy.md` were extended with
+the concrete consequences of both decisions: Phase 5's Gradle
+configuration now specifies `minSdkVersion 26` explicitly; Phase 10's
+notification-scheduling work must account for MIUI's autostart/background
+restrictions rather than assuming stock-Android reboot-recovery behavior
+is sufficient; a full Android version compatibility matrix (API 26
+through the current release) and a priority real-device test set (Xiaomi
+low/mid-range, Xiaomi mid/high-range, non-Xiaomi low/mid-range, and a
+Google/stock-like device) were added to the testing strategy; an explicit
+Xiaomi stability non-functional requirement was added, naming nine
+release-blocking failure categories (crashes, startup crash loops,
+database corruption, inability to open the encrypted database,
+platform-caused backup/restore failure, silently-failing reminders, data
+loss after process death, migration failure, and UI breakage after
+lifecycle recreation); and Phase 16's release gate now requires Xiaomi
+stability sign-off on the same footing as Phase 15's security sign-off.
+
+A consistency scan across the full documentation set found no existing
+reference to an Android version higher than API 26, no assumption of a
+newer-Android-only API presented as unconditional, and no contradiction
+with the offline-first boundary (`04-final-architecture.md` §4) — that
+boundary is unchanged by this pass and is restated, not altered, by this
+entry: business data still never depends on network connectivity; the
+same five operations (registration, OTP, referral validation, recording
+the registration/referral relationship, session establishment/
+revalidation) remain the only online-dependent surface; a network failure
+still never causes local data loss or blocks offline operation.
+
+**Reason**: Explicit project-owner instruction to record the minimum
+Android version and Xiaomi compatibility as final decisions before Phase
+5 begins, since both affect dependency selection and project
+configuration from the very first commit of implementation.
+
+**Affected modules**: Documentation only
+(`ADR-010-minimum-android-version-and-xiaomi-compatibility.md`, new;
+`unresolved-decisions.md`, `backup-encryption-design.md`, `ADR-004`,
+`04-final-architecture.md`, `implementation-roadmap.md`,
+`testing-strategy.md`, updated). No application code, dependencies, or
+database schema were touched. The Electron scaffold remains in place;
+Phase 5 has not begun.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet (no application code exists).
+
+**Status**: Documentation updated and consistent. Implementation
+(Phase 5) remains paused pending explicit project-owner approval to
+begin, per this task's explicit instruction not to proceed automatically.

@@ -326,9 +326,13 @@ must not silently destroy existing local data.
 - **No real data volumes exist yet** to validate the performance
   expectations in §8 against — those expectations are targets, not
   measurements.
-- **KDF parameter tuning (`backup-encryption-design.md` §3) depends on a
-  minimum-device baseline**, which in turn depends on the platform
-  decision and a minimum-OS-version target, both open.
+- ~~KDF parameter tuning depends on a minimum-device baseline~~ —
+  **resolved**: both the platform decision (`ADR-001`, FINAL) and the
+  minimum-OS-version/device-tier decision (`ADR-010`, FINAL: Android 8.0
+  / API 26, Xiaomi first-class) are now settled. What remains is running
+  the benchmarking procedure (`backup-encryption-design.md` §3.1) against
+  that now-concrete target, which is implementation work, not an open
+  architectural question.
 
 ## 12. Document map (Phase 4)
 
@@ -344,6 +348,7 @@ must not silently destroy existing local data.
 | `ADR-007-local-notifications.md` | CONFIRMED | Reminder/notification architecture |
 | `ADR-008-offline-session-lifecycle.md` | CONFIRMED | NETWORK FAILURE vs. AUTHENTICATION FAILURE |
 | `ADR-009-authentication-boundary.md` | CONFIRMED shape / several OPEN items | Online surface boundary |
+| `ADR-010-minimum-android-version-and-xiaomi-compatibility.md` | **FINAL** | Android 8.0/API 26 minimum, Xiaomi first-class compatibility |
 | `/docs/database/conceptual-data-model.md` | Extended | Entities, relationships, shared field model |
 | `/docs/matching/matching-architecture.md` | Extended | Pipeline + conditional criteria |
 | `/docs/architecture/migration-strategy.md` | **FINAL** (Phase 4B, backup window) | DB/backup versioning and migration |

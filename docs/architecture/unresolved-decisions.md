@@ -3,10 +3,12 @@
 Status: DRAFT — consolidates every open item flagged across the full
 document set into one place, so nothing gets lost between documents.
 Update this file whenever an item below is resolved elsewhere.
-Date: 2026-08-08 (revised in the Phase 4B product-decisions + security-gate
-pass — platform, backup version-compatibility window, and referral reuse
-policy are now FINAL; the dedicated cryptographic security review required
-before ADR-004/ADR-005 could be considered has been performed
+Date: 2026-08-08 (revised again in the pre-Phase-5 pass — minimum Android
+version and Xiaomi compatibility are now FINAL, ADR-010; previously
+revised in the Phase 4B product-decisions + security-gate pass — platform,
+backup version-compatibility window, and referral reuse policy are now
+FINAL; the dedicated cryptographic security review required before
+ADR-004/ADR-005 could be considered has been performed
 (`/docs/security/phase-4-security-review.md`), strengthening both designs
 without changing their core algorithm choices; both remain PROPOSED,
 pending an implementation-level review, not a design-level one)
@@ -17,6 +19,19 @@ pending an implementation-level review, not a design-level one)
   Native. Confirmed by the project owner in the Phase 4B pass; no
   previously undocumented blocker was found against the full requirement
   list. Capacitor is no longer under consideration.
+- ~~Minimum supported Android version~~ (ADR-010) — **resolved, FINAL**:
+  Android 8.0 / API 26, latest stable SDK as target/compile SDK. No
+  silent increase permitted; every dependency is checked for API 26
+  compatibility before adoption, and an incompatible dependency is
+  replaced, not accommodated by raising the floor.
+- ~~Xiaomi device compatibility~~ (ADR-010) — **resolved, FINAL**: Xiaomi
+  (MIUI/HyperOS) is a first-class, non-negotiable supported platform, not
+  a best-effort target. A full compatibility test matrix and an explicit
+  release-blocking stability requirement are recorded in
+  `/docs/implementation/testing-strategy.md`.
+- **[OPEN, not addressed by ADR-010]** Minimum supported iOS version —
+  ADR-010 resolved the Android side of this question specifically; iOS's
+  minimum version remains a separate, still-open product-owner decision.
 
 ## Local data
 
@@ -52,9 +67,16 @@ pending an implementation-level review, not a design-level one)
   implementation not yet written. See
   `backup-encryption-design.md` §11.2-§11.4 and
   `phase-4-security-review.md` §7/§9.
-- **[PRODUCT OWNER DECISION REQUIRED]** Minimum supported OS version /
-  device tier — needed before the Argon2id benchmarking procedure can be
-  executed against a real device.
+- ~~Minimum supported OS version / device tier~~ — **resolved, FINAL**:
+  Android 8.0 / API 26 minimum, latest stable SDK as target/compile SDK,
+  Xiaomi devices first-class and non-negotiable. See
+  `ADR-010-minimum-android-version-and-xiaomi-compatibility.md`. The
+  Argon2id benchmarking procedure (`backup-encryption-design.md` §3.1)
+  can now be executed against a concrete device target (a Xiaomi
+  low/mid-range device at or near API 26) — only the benchmark run itself
+  remains outstanding, not a further product decision. iOS's own minimum
+  supported version was not addressed by this decision and remains
+  **[OPEN — product owner decision still required for iOS specifically]**.
 - ~~Restore-onto-existing-data behavior (block vs. overwrite)~~ — **resolved,
   FINAL product decision**: restore must never silently overwrite existing
   local business data. Mandatory sequence: detect existing data → warn →
