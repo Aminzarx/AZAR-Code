@@ -1,34 +1,62 @@
-# azar-crm
+# AZAR CRM
 
-An Electron application with React and TypeScript
+Offline-first, local-first mobile CRM for a single-agent real-estate user
+(owner/applicant file management, deterministic matching, contract and
+reminder tracking), built with React Native.
 
-## Recommended IDE Setup
+Documentation is authoritative and lives in `/docs`; UI/UX source is
+`/design/stitch/stitch_elite_real_estate_crm/`. Start with
+`docs/implementation/00-session-handoff.md` before making architecture or
+UI decisions.
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+## Status
 
-## Project Setup
+Phase 5 — Project Foundation. No product features are implemented yet;
+this is the React Native project shell (navigation, TypeScript, lint,
+test harness) the rest of the roadmap builds on
+(`docs/implementation/implementation-roadmap.md`).
 
-### Install
+## Requirements
+
+- Node.js >= 22.11
+- Android: Android Studio / SDK (API 26 minimum, latest stable as
+  target/compile SDK) for `npm run android`
+- iOS: Xcode + CocoaPods (macOS only) for `npm run ios`
+
+## Project setup
 
 ```bash
-$ npm install
+npm install
 ```
 
-### Development
+## Development
 
 ```bash
-$ npm run dev
+npm start        # Metro bundler
+npm run android  # run on Android emulator/device
+npm run ios      # run on iOS simulator/device (macOS only)
 ```
 
-### Build
+## Quality checks
 
 ```bash
-# For windows
-$ npm run build:win
+npm run typecheck  # TypeScript, strict mode
+npm run lint        # ESLint
+npm run format       # Prettier (write)
+npm test              # Jest
+```
 
-# For macOS
-$ npm run build:mac
+## Source layout
 
-# For Linux
-$ npm run build:linux
+```
+src/
+├── app/            # App root component, providers
+├── navigation/      # Navigation container and route trees
+├── core/             # Local Application Core: matching engine, contract/
+│                      # reminder logic, backup orchestration (Phase 6+,
+│                      # platform-agnostic, no React import)
+├── features/          # One directory per product feature (screens only)
+├── shared/              # Reusable design-system components and utilities
+└── infrastructure/       # Platform adapters: SQLite, secure storage,
+                            # crypto, notifications (Phase 6+)
 ```
