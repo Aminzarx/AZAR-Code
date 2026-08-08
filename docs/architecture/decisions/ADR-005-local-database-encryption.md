@@ -1,5 +1,13 @@
 # ADR-005 — Local Database Encryption at Rest
 
+> **Scope narrowed by `ADR-012-simplified-security-posture.md`
+> (approved).** The core mechanism below — SQLCipher/AES-256, key
+> generated at first launch, held in platform secure storage — is
+> **unchanged and implemented** (`src/infrastructure/database/connection.ts`,
+> `src/infrastructure/security/`). Dropped: the native-binding key-
+> zeroization requirement and the dedicated implementation-level
+> security-review gate. See ADR-012 for the current scope.
+
 Status: **PROPOSED** — a concrete design, not yet run through a dedicated
 security review.
 Date: 2026-08-08

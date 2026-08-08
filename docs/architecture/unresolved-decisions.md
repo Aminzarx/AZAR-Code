@@ -53,20 +53,21 @@ pending an implementation-level review, not a design-level one)
   `backup-encryption-design.md` §3.1). See `ADR-004-backup-encryption.md`
   and `/docs/security/phase-4-security-review.md` §7 for the full status
   table.
-- ~~Final key-management model~~ — **resolved, FINAL**: the two-tier
-  DEK/KEK hierarchy, independent of the local database's own at-rest
-  encryption key. Confirmed sound by the Phase 4B security review with no
-  changes to the structure itself (one specification-precision correction
-  to the AAD scope, `backup-encryption-design.md` §11.1).
+- ~~Final key-management model~~ — **resolved, FINAL, revised by
+  `ADR-012-simplified-security-posture.md` (approved)**: single-tier —
+  a password-derived Argon2id key encrypts the backup payload directly
+  with AES-256-GCM. The two-tier DEK/KEK hierarchy analyzed here and
+  confirmed by the Phase 4B review is superseded, not in effect.
+  Implemented: `src/infrastructure/backup/backupFile.ts`.
 - ~~Backup version-compatibility policy~~ — **resolved, FINAL**: CURRENT +
   2 previous backup format generations. See
   `/docs/architecture/migration-strategy.md` §"Backup compatibility."
-- **[NEW, Phase 4B security review]** Encrypted staging for restore/
-  migration temp files, native-binding key zeroization, and OS-backup
-  exclusion for staging paths — all now **[FINAL as requirements]**,
-  implementation not yet written. See
-  `backup-encryption-design.md` §11.2-§11.4 and
-  `phase-4-security-review.md` §7/§9.
+- ~~Encrypted staging for restore/migration temp files, native-binding
+  key zeroization, and OS-backup exclusion for staging paths~~ —
+  **dropped by `ADR-012-simplified-security-posture.md` (approved)**.
+  No longer required. Staging still uses a temp file (restore cannot
+  safely operate on the live database directly) but is not held to the
+  Phase 4B hardening bar.
 - ~~Minimum supported OS version / device tier~~ — **resolved, FINAL**:
   Android 8.0 / API 26 minimum, latest stable SDK as target/compile SDK,
   Xiaomi devices first-class and non-negotiable. See
@@ -103,14 +104,18 @@ pending an implementation-level review, not a design-level one)
   Success/Failure → Cancellation. Only the technical staging/atomic-swap
   implementation mechanics remain open, not the design or the policy.
 - ~~Whether the local database itself should be encrypted at rest~~ —
-  **resolved at the policy level**: at-rest encryption of sensitive local
-  business data is a **[CONFIRMED REQUIRED]** security requirement. ~~The
-  mechanism~~ is now also **resolved to [PROPOSED]**: SQLCipher / AES-256,
-  key generated on first launch and held exclusively in platform secure
+  **resolved, FINAL**: at-rest encryption of sensitive local business
+  data is a **[CONFIRMED REQUIRED]** security requirement. ~~The
+  mechanism~~ is also **resolved, implemented**: SQLCipher / AES-256, key
+  generated on first launch and held exclusively in platform secure
   storage (Keychain/Keystore), never in the database file itself. See
-  `ADR-005-local-database-encryption.md`. Not yet FINAL — requires the
-  same dedicated security review named above. Key rotation is explicitly
-  out of scope for this pass, not designed.
+  `ADR-005-local-database-encryption.md` and
+  `ADR-012-simplified-security-posture.md` (which dropped the dedicated
+  implementation-review gate this bullet previously pointed to — normal
+  code review applies). Implemented:
+  `src/infrastructure/database/connection.ts`,
+  `src/infrastructure/security/`. Key rotation remains out of scope, not
+  designed.
 - **[NEW, Phase 4]** Root/jailbreak detection tooling, app-tamper-
   resistance tooling, and notification lock-screen content visibility
   remain **[OPEN-ARCH]** in `/docs/security/threat-model.md`'s Phase 4

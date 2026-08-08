@@ -1,5 +1,15 @@
 # ADR-004 — Backup Encryption Scheme
 
+> **Partially superseded by `ADR-012-simplified-security-posture.md`
+> (approved).** The two-tier DEK/KEK key hierarchy below (and the
+> Phase 4B hardening list — encrypted staging, native key zeroization,
+> OS-backup exclusion, crash-remnant cleanup) is replaced by a
+> single-tier design: a password-derived Argon2id key encrypts the
+> backup payload directly with AES-256-GCM. **The algorithm choices
+> themselves (AES-256-GCM, Argon2id) and the CURRENT+2 format-version
+> window are unchanged.** See ADR-012 for the current design and
+> rationale; implementation is `src/infrastructure/backup/backupFile.ts`.
+
 Status: **PROPOSED** — a concrete, standards-based design, not yet run
 through a dedicated security review. See
 `/docs/architecture/backup-encryption-design.md` for the full analysis;

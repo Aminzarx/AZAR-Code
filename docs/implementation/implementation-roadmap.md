@@ -276,6 +276,14 @@ migration chain.
 
 ## PHASE 7 — Security & Cryptography
 
+> **Scope revised by `ADR-012-simplified-security-posture.md` (approved)
+> and implemented under that revised scope.** The DEK/KEK two-tier
+> backup key hierarchy, native key zeroization, mandatory encrypted
+> staging, and OS-backup exclusion described below are dropped — see
+> ADR-012. The core mechanisms (SQLCipher local DB encryption, AES-256-
+> GCM + Argon2id backup encryption) are unchanged and implemented in
+> `src/infrastructure/security/` and `src/infrastructure/backup/`.
+
 ### Objective
 
 Implement the two cryptographic subsystems `ADR-004`
@@ -1091,6 +1099,11 @@ version tier or priority real device.
 ---
 
 ## PHASE 15 — Security Audit
+
+> **Dropped as a dedicated gate by `ADR-012-simplified-security-posture.md`
+> (approved).** Normal code review applies to the Phase 7 cryptographic
+> code instead of a separate implementation security-audit phase. This
+> section is kept for historical context; do not block a release on it.
 
 ### Objective
 

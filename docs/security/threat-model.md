@@ -1,5 +1,13 @@
 # Threat Model
 
+> **Superseded by `ADR-012-simplified-security-posture.md` (approved).**
+> This document's adversarial framing (rooted-device forensics, memory
+> extraction, nation-state-tier scenarios) no longer governs
+> implementation — AZAR is scoped as a single-agent real-estate CRM, not
+> enterprise/financial software. ADR-012 §"Threat model → replaced by a
+> short, practical risk list" is the current, authoritative risk model.
+> Kept below as historical record only.
+
 Status: DRAFT — extended in the Phase 4 final-architecture pass. Identifies
 threats and required mitigations at an architectural level. As of Phase 4,
 the encryption **mechanisms** for at-rest data and backups are no longer

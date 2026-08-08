@@ -1,5 +1,13 @@
 # Phase 4B — Dedicated Security Review
 
+> **Superseded by `ADR-012-simplified-security-posture.md` (approved).**
+> This review's enterprise-tier findings (native key zeroization,
+> mandatory encrypted staging, OS-backup exclusion, crash-remnant
+> cleanup, AAD-scope hardening) no longer govern implementation — AZAR's
+> security scope was deliberately reduced to match a single-agent
+> real-estate CRM. Kept below as historical record only; do not treat its
+> requirements as current.
+
 Status: Independent security review of the cryptographic and
 restore-safety architecture proposed in Phase 4. This document is the
 review itself, not a new architecture proposal — where it finds a real

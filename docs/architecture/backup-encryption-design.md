@@ -1,5 +1,14 @@
 # Backup Encryption Design
 
+> **Partially superseded by `ADR-012-simplified-security-posture.md`
+> (approved).** §4 (the DEK/KEK two-tier key hierarchy) and §11.2-§11.6
+> (native key zeroization, mandatory encrypted staging, OS-backup
+> exclusion, crash-remnant cleanup, the implementation security-review
+> gate) no longer govern implementation — replaced by the single-tier
+> design in ADR-012. The rest of this document (format layout §5,
+> validation ordering §6, version-compatibility handling) still applies.
+> See ADR-012 and `src/infrastructure/backup/backupFile.ts`.
+
 Status: **PROPOSED — the dedicated security design step referenced by
 `/docs/backup/backup-architecture-analysis.md` and
 `/docs/architecture/unresolved-decisions.md`.** This document makes concrete
