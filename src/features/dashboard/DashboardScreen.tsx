@@ -1,6 +1,8 @@
 import React from 'react'
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { Avatar, ErrorState, LoadingIndicator } from '@shared/components'
@@ -9,21 +11,23 @@ import { StatCard } from './components/StatCard'
 import { QuickActions, type QuickAction } from './components/QuickActions'
 import { RecentActivityList } from './components/RecentActivityList'
 
+type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
+
 function announceComingSoon(featureLabel: string): void {
   Alert.alert(featureLabel, 'این قابلیت در فاز بعدی اضافه می‌شود.')
 }
 
-export function DashboardScreen(): React.JSX.Element {
+export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session, logout } = useAuth()
-  const { data, isLoading, error, refetch } = useDashboardData()
+  const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
 
   const quickActions: QuickAction[] = [
     {
       id: 'add-property',
       label: 'افزودن پرونده ملکی',
-      onPress: () => announceComingSoon('افزودن پرونده ملکی')
+      onPress: () => navigation.navigate('CreateProperty')
     },
     {
       id: 'add-applicant',
@@ -71,7 +75,15 @@ export function DashboardScreen(): React.JSX.Element {
             <>
               <View style={styles.statsRow}>
                 {data.stats.map((stat) => (
-                  <StatCard key={stat.id} stat={stat} />
+                  <StatCard
+                    key={stat.id}
+                    stat={stat}
+                    onPress={
+                      stat.id === 'properties'
+                        ? () => navigation.navigate('PropertyList')
+                        : undefined
+                    }
+                  />
                 ))}
               </View>
 

@@ -2,10 +2,16 @@ import React from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { BasicProfileScreen } from '@features/auth/screens/BasicProfileScreen'
 import { DashboardScreen } from '@features/dashboard/DashboardScreen'
+import { PropertyListScreen } from '@features/property/screens/PropertyListScreen'
+import { CreatePropertyScreen } from '@features/property/screens/CreatePropertyScreen'
+import { PropertyDetailScreen } from '@features/property/screens/PropertyDetailScreen'
 
 export type MainStackParamList = {
   BasicProfile: undefined
   Home: undefined
+  PropertyList: undefined
+  CreateProperty: undefined
+  PropertyDetail: { propertyId: string }
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -20,6 +26,9 @@ export function MainNavigator(): React.JSX.Element {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="BasicProfile" component={BasicProfileScreen} />
       <Stack.Screen name="Home" component={DashboardScreen} />
+      <Stack.Screen name="PropertyList" component={PropertyListScreen} />
+      <Stack.Screen name="CreateProperty" component={CreatePropertyScreen} />
+      <Stack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
     </Stack.Navigator>
   )
 }

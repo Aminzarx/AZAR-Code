@@ -1,29 +1,34 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchDashboardData } from '../services/dashboardDataService'
-import type { DashboardData } from '../types'
+import type { Property } from '../types'
+import { usePropertyService } from './usePropertyService'
 
-type DashboardDataState = {
-  data: DashboardData | null
+type UsePropertiesResult = {
+  properties: Property[] | null
   isLoading: boolean
   error: Error | null
   refetch: () => void
 }
 
-export function useDashboardData(ownerId: string): DashboardDataState {
-  const [data, setData] = useState<DashboardData | null>(null)
+export function useProperties(ownerId: string, search: string): UsePropertiesResult {
+  const service = usePropertyService()
+  const [properties, setProperties] = useState<Property[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
+    if (!service) {
+      return
+    }
     let cancelled = false
     setIsLoading(true)
     setError(null)
 
-    fetchDashboardData(ownerId)
+    service
+      .listProperties(ownerId, search)
       .then((result) => {
         if (!cancelled) {
-          setData(result)
+          setProperties(result)
           setIsLoading(false)
         }
       })
@@ -37,9 +42,9 @@ export function useDashboardData(ownerId: string): DashboardDataState {
     return () => {
       cancelled = true
     }
-  }, [ownerId, attempt])
+  }, [service, ownerId, search, attempt])
 
   const refetch = useCallback(() => setAttempt((current) => current + 1), [])
 
-  return { data, isLoading, error, refetch }
+  return { properties, isLoading, error, refetch }
 }

@@ -1,24 +1,41 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Card } from '@shared/components'
 import type { DashboardStat } from '../types'
 
 type Props = {
   stat: DashboardStat
+  onPress?: () => void
 }
 
-export function StatCard({ stat }: Props): React.JSX.Element {
+export function StatCard({ stat, onPress }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
+  const label = `${stat.label}: ${stat.value}`
 
-  return (
+  const content = (
     <Card style={styles.card}>
-      <View accessible accessibilityLabel={`${stat.label}: ${stat.value}`}>
+      <View accessible={!onPress} accessibilityLabel={onPress ? undefined : label}>
         <Text style={[theme.typography('headlineMd'), styles.value]}>{stat.value}</Text>
         <Text style={[theme.typography('bodySm'), styles.label]}>{stat.label}</Text>
       </View>
     </Card>
+  )
+
+  if (!onPress) {
+    return content
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={styles.card}
+    >
+      {content}
+    </Pressable>
   )
 }
 
