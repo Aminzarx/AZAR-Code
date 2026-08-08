@@ -912,3 +912,105 @@ was changed — this pass touched language only.
 
 **Tests**: None yet. The three corrected screens were re-rendered through
 the established real-render pipeline; screenshots are not stale.
+
+## 2026-08-08 — Phase 4: final architecture and data design
+
+**What changed**: With the UI/UX design system gated READY FOR PHASE 4,
+this pass reconciled the full Phase 3 document set against the approved
+design system and the actual repository state, closed several previously
+deferred architectural gaps with concrete (though still security-review-
+pending, where cryptographic) proposals, and produced the documentation
+Phase 4 requires before implementation can begin. No application code was
+written; the repository remains the unmodified Electron starter scaffold,
+as expected at this stage.
+
+Key decisions and documents:
+
+1. **Local database technology finalized.** `ADR-002` moves from PROPOSED
+   to **FINAL**: SQLite, independent of the still-open platform choice,
+   since SQLite is available as a mature binding on both React Native and
+   Capacitor.
+2. **Platform decision explicitly flagged as still requiring product-owner
+   approval**, not silently finalized. `ADR-001`'s React Native
+   recommendation stands, but no approval has been recorded anywhere in
+   this document set — restated as **PRODUCT OWNER DECISION REQUIRED** in
+   `04-final-architecture.md` and `unresolved-decisions.md`.
+3. **Backup encryption scheme designed concretely** for the first time:
+   AES-256-GCM (AEAD) + Argon2id (KDF), a two-tier DEK/KEK key hierarchy
+   independent of the local database's own key, and a strict
+   validation-before-trust order for restore. Documented in the new
+   `/docs/architecture/backup-encryption-design.md` and `ADR-004`. Marked
+   PROPOSED, pending the dedicated security review the project has
+   consistently required before finalizing cryptography — this is that
+   review's starting point, not a replacement for it.
+4. **Local database at-rest encryption scheme designed concretely**:
+   SQLCipher / AES-256, key held exclusively in platform secure storage,
+   independent of the backup's own key. Documented in the new `ADR-005`.
+   Same PROPOSED status and same caveat as above.
+5. **Matching engine extended** with a structured mechanism for
+   conditional requirements (e.g. "if the property has a pool, ignore
+   bedroom count, floor area, and price") that does not depend on natural-
+   language processing — a criterion can name other criteria it suppresses
+   when satisfied, evaluated per-candidate within the existing four-stage
+   pipeline. Documented in `/docs/matching/matching-architecture.md`. The
+   scoring-weight values themselves remain explicitly unresolved, with the
+   constraints any eventual values must satisfy now fixed instead.
+6. **Conceptual data model extended** with the entities the Phase 4 brief
+   named that Phase 3's version left implicit: `PropertyAttributes` and
+   `RequirementCriterion` clarified as the same concept the brief calls
+   "Applicant Preferences" and "Matching Criteria" (not duplicated as
+   separate entities), plus new `ReminderSchedule`, `ApplicationSettings`,
+   and a formalized `Notes` entity. A full Owner/Applicant shared field
+   model (common / owner-specific / applicant-specific / optional-
+   extensible / notes) was added to `/docs/database/conceptual-data-model.md`.
+7. **Migration strategy documented for the first time** in the new
+   `/docs/architecture/migration-strategy.md`: schema versioning,
+   transactional migrations with fail-closed behavior, backup
+   compatibility keyed off the same version number, and the governing
+   principle that a future app update must never silently destroy
+   existing local data. The backup-version support-window policy remains
+   a product-owner decision.
+8. **Restore safety enforced as an explicit state machine**, added to the
+   new `/docs/architecture/04-final-architecture.md` §7 — mapped
+   state-for-state to the ten-state UI flow already built and audited in
+   the design system, making the "safety backup must succeed before
+   replace confirmation, and validation must complete before any write to
+   the live database" invariants structurally explicit rather than only
+   narratively described.
+9. **Threat model extended** with explicit coverage for rooted/jailbroken
+   devices, app tampering/repackaging, replay attacks, notification
+   lock-screen leakage, and insecure temporary files during restore
+   staging — none block the rest of the architecture; all are recorded as
+   real, currently open items rather than silently assumed away.
+10. **Four new ADRs** recording decisions already implicit elsewhere in
+    standard ADR form: `ADR-006` (matching engine), `ADR-007` (local
+    notifications), `ADR-008` (offline session lifecycle — the NETWORK
+    FAILURE vs. AUTHENTICATION FAILURE rule), and `ADR-009` (authentication
+    boundary — the shape of the online surface, distinct from `ADR-003`'s
+    narrower OTP-vendor-selection question).
+
+**Reason**: Explicit project-owner instruction to complete Phase 4 —
+architecture and data design only, no implementation — now that the UI/UX
+design system has passed its final gate.
+
+**Affected modules**: Documentation only
+(`/docs/architecture/04-final-architecture.md`,
+`/docs/architecture/backup-encryption-design.md`,
+`/docs/architecture/migration-strategy.md`,
+`/docs/architecture/decisions/ADR-001` through `ADR-009`,
+`/docs/database/conceptual-data-model.md`,
+`/docs/matching/matching-architecture.md`,
+`/docs/security/threat-model.md`,
+`/docs/architecture/unresolved-decisions.md`). No application code,
+dependencies, or database schema were touched.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet (no application code exists).
+
+**Final architecture gate**: **ARCHITECTURE READY WITH PRODUCT DECISIONS
+REQUIRED.** See the full final report delivered alongside this entry for
+the complete list of what's finalized, what's proposed, and what needs a
+product-owner call — the two decisions with the broadest downstream
+impact are the mobile platform choice (`ADR-001`) and the backup-version
+support window (`migration-strategy.md`).

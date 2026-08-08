@@ -150,6 +150,10 @@ happens to be able to work without.
 | `/docs/database/conceptual-data-model.md` | Conceptual entities/relationships (not final schema) |
 | `/docs/architecture/ux-dependencies.md` | What waits for the Stitch UI designs |
 | `/docs/architecture/unresolved-decisions.md` | Consolidated open-decision tracker across all Phase 3 docs |
+| `/docs/architecture/04-final-architecture.md` | **Phase 4** — consolidation, reconciliation against the UI design system and repo state, restore-safety state machine, performance/indexing strategy, final report |
+| `/docs/architecture/backup-encryption-design.md` | **Phase 4** — concrete backup crypto design (AES-256-GCM + Argon2id) |
+| `/docs/architecture/migration-strategy.md` | **Phase 4** — DB/backup versioning and migration policy |
+| `/docs/architecture/decisions/ADR-004` through `ADR-009` | **Phase 4** — backup encryption, local DB encryption, matching engine, local notifications, offline session lifecycle, authentication boundary |
 
 ## Revised implementation order
 

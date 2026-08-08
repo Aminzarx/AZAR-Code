@@ -1,10 +1,13 @@
-# Conceptual Data Model (Phase 3)
+# Conceptual Data Model (Phase 3, extended in Phase 4)
 
 Status: DRAFT — conceptual entities and relationships only. **This is
 explicitly not the final production schema.** Field-level types, exact
-indexes, and migration DDL are Phase 4 work, to be done once this conceptual
-model and the rest of Phase 3 are reviewed. No code, no schema files created.
-Date: 2026-08-08
+indexes, and migration DDL are implementation work, to be done once this
+conceptual model is reviewed and approved. No code, no schema files
+created. Extended in the Phase 4 final-architecture pass (§"Entities added
+in Phase 4" and §"Owner/Applicant shared field model" below) to cover
+entities the Phase 3 version left implicit.
+Date: 2026-08-08 (extended)
 
 ## Purpose
 
@@ -21,20 +24,24 @@ before schema-level commitment.
 | User | An agent/broker account (Phase 1 §2 — the sole user type, pending validation). |
 | ReferralRelationship | Records who referred whom, distinct from the User entity itself (see rationale below). |
 | Session | A logical login session for a User (supports revocation, Phase 1 §18). |
-| OwnerFile | A property/owner record (Phase 1 §7). |
-| ApplicantFile | An applicant/requirement record (Phase 1 §8). |
-| RequirementCriterion | One structured, prioritized matching criterion belonging to an ApplicantFile (or, for two-way matching purposes, conceptually mirrored for OwnerFile attributes being matched against). |
+| OwnerFile | A property/owner record (Phase 1 §7). Carries the owner's contact/identity fields plus the property's structured attributes (see `PropertyAttributes`, below — modeled as a set of fields on `OwnerFile` conceptually, not a separate table, since a property has exactly one attribute set for its lifetime; called out as its own row here only because the Phase 4 brief names it explicitly). |
+| PropertyAttributes *(conceptual grouping, not a separate table — see OwnerFile note above)* | The structured, queryable property characteristics that matching runs against: type, transaction type, price, area, bedrooms, bathrooms, location, amenities, condition/age, and any other MUST_HAVE/IMPORTANT/PREFERRED-matchable field. These live on `OwnerFile` itself. Named separately here purely to make explicit that this field group is what `RequirementCriterion` (below) references — matching a requirement means comparing it against exactly these fields, never against free text. |
+| ApplicantFile | An applicant/requirement record (Phase 1 §8). Carries the applicant's contact/identity fields plus their structured preferences (see `RequirementCriterion`, which *is* the applicant's preference model — see the note below on why this document does not also model a separate, redundant "ApplicantPreferences" table). |
+| RequirementCriterion *(this is the "Applicant Preferences" / "Matching Criteria" entity the Phase 4 brief names separately — they are the same entity, not two)* | One structured, prioritized matching criterion belonging to an ApplicantFile: a reference to a specific `PropertyAttributes` field, a target value/range/tolerance, and a priority (MUST_HAVE / IMPORTANT / PREFERRED / IGNORE). An applicant's full "preference set" is simply the collection of their `RequirementCriterion` rows — modeling a separate `ApplicantPreferences` entity on top of this would either duplicate the same data under a second name or become the kind of vague, loosely-typed field Phase 0 §11a already warned against. See §"Conditional criteria" below for how conditional requirements (e.g. "if pool, ignore price") extend this entity. |
 | Restriction | An exclusion rule attached to an ApplicantFile, distinct from a MUST_HAVE criterion (Phase 1 §8.1). |
 | Amenity | A structured, reusable amenity/feature (pool, elevator, parking, etc.) referenced by both OwnerFile and RequirementCriterion. |
 | Location | A structured location/neighborhood/area reference, reusable across OwnerFile and RequirementCriterion. |
 | Match | A computed match result between one ApplicantFile and one OwnerFile, with a score. |
 | MatchExplanation | The structured matched/mismatched/ignored/critical breakdown for a Match (Phase 0 Decision 3's explainability requirement). |
 | Contract | Links an OwnerFile, a tenant (ApplicantFile or minimally recorded), and a property, with dates and status (Phase 1 §11). |
-| ContractHistoryEntry | An immutable record of a status change on a Contract (Phase 1 §11's "history is retained, not overwritten"). |
-| Reminder | A generated reminder for a Contract at a specific offset (Phase 1 §12). |
+| ContractEvent *(Phase 3's `ContractHistoryEntry`, same entity)* | An immutable record of a status/date change on a Contract (Phase 1 §11's "history is retained, not overwritten"). Renamed in this document to match the terminology the Phase 4 architecture brief uses ("Contract Events") — no structural change, see the note in §"Entities added in Phase 4." |
+| ReminderSchedule *(new in Phase 4)* | The **configuration** of which offsets apply — either the global default (90/60/30/14/7/3/0 days) or a per-contract override, if per-contract configurability is ever confirmed (currently open, Phase 1 §12/§19.6). Distinct from `Reminder` below: this is "what offsets should generate reminders," not "a reminder that has actually been generated." |
+| Reminder | A generated reminder **instance** for a Contract at a specific offset (Phase 1 §12) — the durable, idempotent record produced by evaluating `ReminderSchedule` against a Contract's expiration date, per `ADR-007-local-notifications.md`. |
 | Notification | An in-app/local notification record, referencing its source (Reminder, or a system event). |
 | BackupMetadata | Records about backups created/restored on this device (not the backup file's contents themselves). |
 | AuditLogEntry | A record of a security/data-relevant action (Phase 1 §18). |
+| ApplicationSettings *(new in Phase 4)* | Device-local, non-business-data app preferences — reminder-schedule defaults (before any per-contract override), notification permission state cache, UI preferences. Lives outside the encrypted business-data tables per `ADR-005-local-database-encryption.md`'s "what is not encrypted" note, since it contains no business data or secrets. |
+| Notes *(formalized in Phase 4)* | Free-text notes attached to an `OwnerFile` or `ApplicantFile`. Phase 3 treated this as a field; formalized here as its own entity (§"Owner/Applicant shared field model" below) so multiple, timestamped notes per file are representable, not just one overwritable text blob. |
 
 ## Relationships (conceptual)
 
@@ -116,6 +123,77 @@ User ──1───< BackupMetadata   (records of this user's own backup activ
   originating Reminder (or a well-defined, closed set of system-event types)
   through an explicit, typed relationship, not a generic/untyped pointer.
 
+## Owner/Applicant shared field model (new in Phase 4)
+
+The Phase 4 brief asks for one shared field philosophy across
+`OwnerFile` and `ApplicantFile` rather than two unrelated field systems —
+this section defines it. The structured fields must stay queryable by the
+matching engine; free text must never become the only representation of a
+matching requirement (Phase 0 Decision 3).
+
+**COMMON FIELDS** (present on both, same shape):
+- Identity/contact: full name, phone number, email (optional), preferred
+  contact method.
+- File metadata: created date, last-updated date, status (active/
+  archived), owning `User` (the agent).
+- `Notes`: one or more free-text, timestamped notes (see the `Notes`
+  entity above) — never a matching input, always supplementary.
+
+**OWNER-SPECIFIC FIELDS** (only on `OwnerFile`):
+- The property's structured `PropertyAttributes` (type, transaction type,
+  price, area, bedrooms, bathrooms, location, amenities, condition/age).
+- Property media references (photos), if/when that feature exists —
+  **[OPEN, out of scope for this pass]**.
+- Listing status distinct from file status (e.g. "available," "under
+  contract," "rented/sold") — feeds `Contract` linkage.
+
+**APPLICANT-SPECIFIC FIELDS** (only on `ApplicantFile`):
+- The applicant's `RequirementCriterion` collection (their structured
+  preference set, each with a priority).
+- Budget range, if modeled separately from a `RequirementCriterion` on
+  price for UX convenience — **[OPEN-ARCH]**, a schema-design-time choice
+  that doesn't change the matching-engine contract either way, since
+  budget is still just a price-field `RequirementCriterion` under the
+  hood.
+
+**OPTIONAL / EXTENSIBLE FIELDS**: both file types should support a small
+set of structured-but-not-universally-required fields (e.g. a specific
+amenity that only matters for some property types) without requiring a
+schema migration for every new field. **[OPEN-ARCH]** whether this is
+implemented as a narrow EAV (entity-attribute-value) side table scoped
+only to genuinely optional/extensible attributes, or as a versioned JSON
+column with an enforced schema-per-version — either can satisfy "stays
+queryable by the matching engine" as long as the extensible fields are
+still exposed to Stage 1/2 of the matching pipeline as first-class,
+typed values, not opaque blobs. This is explicitly *not* the same
+mechanism as `Notes` — an extensible field is still structured and
+matchable; a note never is.
+
+**NOTES / FREE-TEXT FIELDS**: exist for context a structured field
+doesn't capture ("owner prefers showings after 5pm," "applicant mentioned
+they're relocating for a new job") and are never read by the matching
+engine. This separation is the direct data-model expression of Phase 0
+Decision 3's prohibition on free text silently becoming a matching input,
+and of `/docs/matching/matching-architecture.md`'s conditional-criteria
+design (§ below) existing specifically so a *user-confirmed* structured
+equivalent is always available instead of relying on free text.
+
+## Conditional criteria (new in Phase 4)
+
+To support requirements users might otherwise only express in prose (e.g.
+"if it has a pool, I don't care about bedrooms, size, or price"),
+`RequirementCriterion` gains an optional **conditional-suppression**
+relationship: a criterion can name one or more other criteria on the same
+`ApplicantFile` that become `IGNORE` when it is satisfied. This is a
+structured mechanism, not NLP — see
+`/docs/matching/matching-architecture.md` §"Conditional / free-text-derived
+requirements" for the full design, including how the matching pipeline
+evaluates it. Modeled here as a self-referencing relationship on
+`RequirementCriterion` (a criterion → the set of criteria it suppresses),
+kept intentionally simple (no arbitrary boolean logic across multiple
+conditions in this pass) so it stays implementable without inventing a
+general rules engine.
+
 ## Indexing considerations (carried from local-data-architecture.md)
 
 - OwnerFile/ApplicantFile: structured matching fields (type, transaction
@@ -126,6 +204,12 @@ User ──1───< BackupMetadata   (records of this user's own backup activ
   lookup index for "reminders due around today" (scheduling evaluation).
 - Match: indexes supporting both directions of two-way matching (by
   ApplicantFile, and by OwnerFile).
+- RequirementCriterion: index by ApplicantFile (fetching an applicant's
+  full criteria set is the common access pattern) and by the
+  `PropertyAttributes` field it targets (supports Stage 1's SQL-pushable
+  hard-constraint filtering, per `matching-architecture.md`).
+- Notes: index by owning file (OwnerFile or ApplicantFile) and creation
+  date, for chronological display; never indexed for matching purposes.
 
 ## Risks (carried and expanded from Phase 0 §11a)
 

@@ -1,19 +1,24 @@
-# Unresolved Architectural Decisions (Phase 3 Consolidated Tracker)
+# Unresolved Architectural Decisions (Consolidated Tracker)
 
-Status: DRAFT — consolidates every open item flagged across the Phase 3
-document set into one place, so nothing gets lost between documents. Update
-this file whenever an item below is resolved elsewhere.
-Date: 2026-08-08 (revised — four items now resolved at the policy level:
-local-DB-encryption requirement, session-lifecycle network-vs-auth-failure
-rule, default reminder schedule (FINAL), and restore-onto-existing-data
-(FINAL); mechanism/implementation details for the first two remain open, see
-notes below)
+Status: DRAFT — consolidates every open item flagged across the full
+document set into one place, so nothing gets lost between documents.
+Update this file whenever an item below is resolved elsewhere.
+Date: 2026-08-08 (revised in the Phase 4 final-architecture pass — the
+local-database-technology decision is now FINAL; the backup and
+local-database encryption *mechanisms* are now PROPOSED, concrete designs,
+no longer fully DEFERRED, though both still require a dedicated security
+review before FINAL; several items below are newly marked **PRODUCT OWNER
+DECISION REQUIRED** rather than left as generic "open" items, since Phase 4
+is architecture's last stop before implementation)
 
 ## Platform
 
-- **React Native vs. Capacitor** (ADR-001) — [PROPOSED] React Native, pending
-  project-owner confirmation, with team-composition and code-reuse-intent
-  called out as inputs this document can't see.
+- **React Native vs. Capacitor** (ADR-001) — **[PRODUCT OWNER DECISION
+  REQUIRED]**. [PROPOSED] React Native, with a documented rationale
+  (`ADR-001`), but no project-owner approval has been recorded anywhere in
+  this document set. This is the single decision nothing else in
+  implementation can proceed past — flagged explicitly, not silently
+  carried forward as though it were settled.
 
 ## Local data
 
@@ -27,17 +32,23 @@ notes below)
 
 ## Backup / encryption
 
-- Final encryption algorithm and KDF selection — explicitly deferred to a
-  dedicated security design step. **[CONFIRMED constraint on this choice]**:
-  because a stolen backup file can be brute-forced entirely offline with no
-  rate limiting the app can enforce, the KDF must be deliberately slow/
-  memory-hard (e.g. Argon2id-class, per
-  `/docs/security/threat-model.md`'s brute-force analysis) — this narrows the
-  eventual choice without finalizing it.
-- Final key-management model — this document [PROPOSED] a hybrid approach
-  (device-held key for local at-rest protection + user password-derived key
-  for portable backup) but did not finalize it.
-- Backup version-compatibility policy (migrate-forward vs. reject window).
+- ~~Final encryption algorithm and KDF selection~~ — **resolved to
+  [PROPOSED], pending dedicated security review** in the Phase 4 pass:
+  AES-256-GCM (AEAD) + Argon2id (KDF, 64 MiB / 3 iterations / parallelism 1
+  as a starting point). See `ADR-004-backup-encryption.md` and
+  `/docs/architecture/backup-encryption-design.md`. Not yet FINAL —
+  requires the dedicated security review both documents name, and the KDF
+  parameters specifically require empirical validation against a real
+  minimum-device baseline.
+- ~~Final key-management model~~ — **resolved to [PROPOSED]**: the hybrid
+  approach this tracker previously proposed is now concrete — a two-tier
+  DEK/KEK hierarchy, independent of the local database's own at-rest
+  encryption key. See `backup-encryption-design.md` §4.
+- **[PRODUCT OWNER DECISION REQUIRED]** Backup version-compatibility policy
+  (how many prior schema versions remain restorable before a backup is
+  rejected as too old) — analyzed in
+  `/docs/architecture/migration-strategy.md` §"Backup compatibility," which
+  proposes a default but does not finalize it.
 - ~~Restore-onto-existing-data behavior (block vs. overwrite)~~ — **resolved,
   FINAL product decision**: restore must never silently overwrite existing
   local business data. Mandatory sequence: detect existing data → warn →
@@ -65,12 +76,18 @@ notes below)
   implementation mechanics remain open, not the design or the policy.
 - ~~Whether the local database itself should be encrypted at rest~~ —
   **resolved at the policy level**: at-rest encryption of sensitive local
-  business data is now a **[CONFIRMED REQUIRED]** security requirement
-  (`/docs/security/threat-model.md`, "Local data protection"), not an open
-  yes/no question. What remains open is the **mechanism**: the specific
-  algorithm and key-management architecture, both **[DEFERRED]** to the
-  dedicated security design step (item above, "Final encryption algorithm
-  and KDF selection" / "Final key-management model").
+  business data is a **[CONFIRMED REQUIRED]** security requirement. ~~The
+  mechanism~~ is now also **resolved to [PROPOSED]**: SQLCipher / AES-256,
+  key generated on first launch and held exclusively in platform secure
+  storage (Keychain/Keystore), never in the database file itself. See
+  `ADR-005-local-database-encryption.md`. Not yet FINAL — requires the
+  same dedicated security review named above. Key rotation is explicitly
+  out of scope for this pass, not designed.
+- **[NEW, Phase 4]** Root/jailbreak detection tooling, app-tamper-
+  resistance tooling, notification lock-screen content visibility, and
+  insecure-temporary-file handling during restore staging — all flagged
+  as [OPEN-ARCH] in `/docs/security/threat-model.md`'s Phase 4 additions,
+  none blocking the rest of the architecture, none decided here.
 
 ## Authentication / OTP
 
@@ -98,12 +115,22 @@ notes below)
 
 ## Matching
 
-- Exact scoring formula and weight values (IMPORTANT vs. PREFERRED, partial-
-  match tapering) — explicitly deferred pending Phase 4's data model.
+- **[PRODUCT OWNER DECISION REQUIRED, or data-driven tuning at
+  implementation time]** Exact scoring formula and weight values
+  (IMPORTANT vs. PREFERRED, partial-match tapering) — the *constraints*
+  any eventual values must satisfy are now fixed
+  (`/docs/matching/matching-architecture.md` §"Scoring-weight decision
+  status"), but the numbers themselves are not, and are deliberately not
+  defaulted to placeholder values in this pass.
 - Approximate-value tolerance definition.
 - Score normalization/presentation scale.
 - Whether/how an optional natural-language input layer is eventually built
-  (out of core-engine scope regardless of the answer).
+  (out of core-engine scope regardless of the answer). **Note**: this is no
+  longer a prerequisite for supporting conditional requirements like "if
+  pool, ignore bedrooms/area/price" — that's now supported by structured
+  conditional criteria (`matching-architecture.md` §"Conditional /
+  free-text-derived requirements"), independent of whether NL input is
+  ever built.
 
 ## Contracts / reminders / notifications
 
@@ -139,7 +166,10 @@ notes below)
 ## Product-level (carried from Phase 1/2, still open — not re-opened by Phase 3, listed for completeness)
 
 - Single-agent tool vs. team/admin accounts (Phase 1 §2/§19.6).
-- Referral code single-use vs. reusable (Phase 1 §5.1/§19.2/§19.6).
+- **[PRODUCT OWNER DECISION REQUIRED]** Referral code single-use vs.
+  reusable (Phase 1 §5.1/§19.2/§19.6) — restated in
+  `ADR-009-authentication-boundary.md` as still open; whatever is decided
+  must be enforced server-side.
 - Account-deletion/deactivation data-retention behavior (Phase 1 §5.4/§19.6).
 - Target accessibility standard (Phase 1 §16/§19.6).
 - Reminder schedule configurability: global-only vs. per-contract (Phase 1

@@ -1,9 +1,14 @@
 # ADR-002 — Local Database as Source of Truth
 
-Status: **PROPOSED** (technology candidates analyzed, not finalized). The
-principle "local database is the source of truth" is **[CONFIRMED]** (Phase 0
-Decision 4); the specific technology is not.
-Date: 2026-08-08
+Status: **FINAL (technology decision), confirmed in the Phase 4 final
+architecture pass.** The principle "local database is the source of truth"
+was already **[CONFIRMED]** (Phase 0 Decision 4); this update finalizes
+SQLite as the specific technology. This decision does not depend on
+ADR-001 (mobile platform): SQLite is available as a mature, well-supported
+binding on both React Native and Capacitor, so finalizing it does not
+require the platform question to be resolved first, and does not
+prejudge it.
+Date: 2026-08-08 (updated)
 
 ## Context
 
@@ -70,20 +75,20 @@ the technology-level decision and its rationale.
 
 ## Recommendation
 
-**[PROPOSED]** SQLite (via a platform-appropriate native binding, chosen once
-ADR-001 is settled) as the primary local database — the direct source of
-truth for all business entities — optionally paired with a lightweight
-key-value store for simple settings/preferences that don't need relational
-structure. SQLCipher (or an equivalent SQLite encryption extension) is noted
-here as the natural pairing for at-rest encryption, but the actual encryption
-approach is analyzed and left open in
-`/docs/backup/backup-architecture-analysis.md` and
-`/docs/security/threat-model.md` per the explicit instruction not to finalize
-encryption/key management in this phase. **[CONFIRMED, updated after Phase 3
-review]** At-rest encryption of this database is a **required** security
-requirement, not optional (`/docs/security/threat-model.md`, "Local data
-protection") — only the specific algorithm/key-management mechanism remains
-open, not whether encryption happens at all.
+**[FINAL]** SQLite (via a platform-appropriate native binding, selected once
+ADR-001 is settled — the binding is platform-specific, the database engine
+choice is not) as the primary local database — the direct source of truth
+for all business entities — optionally paired with a lightweight key-value
+store for simple settings/preferences that don't need relational
+structure. SQLCipher is confirmed as the at-rest encryption mechanism in
+`ADR-005-local-database-encryption.md`, which supersedes this document's
+earlier "noted as natural pairing, not finalized" language — the
+encryption *mechanism* is now decided (though still PROPOSED pending
+security review, per `ADR-005`); only its specific key-rotation and
+implementation-library details remain open. **[CONFIRMED, updated after
+Phase 3 review]** At-rest encryption of this database is a **required**
+security requirement, not optional (`/docs/security/threat-model.md`,
+"Local data protection").
 
 ## Consequences
 
@@ -103,5 +108,7 @@ open, not whether encryption happens at all.
 
 ## Status of this decision
 
-**Not finalized as an implementation commitment** — recorded as [PROPOSED]. No
-dependency has been installed; no code has been written.
+**FINAL** as of the Phase 4 final architecture pass. No dependency has been
+installed and no code has been written — "FINAL" here means the
+architectural decision is settled and implementation may build on it once
+Phase 4 implementation begins, not that implementation has started.

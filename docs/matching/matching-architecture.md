@@ -144,6 +144,70 @@ and scored as zero, genuinely skipped, so they can never appear as
   property. This is the same pipeline, invoked with roles swapped, not a
   second implementation.
 
+## Conditional / free-text-derived requirements (new in Phase 4)
+
+Agents sometimes think about requirements conditionally — the Phase 4 brief
+gives a concrete example: "اگر استخر داشته باشه تعداد خواب و زیربنا و
+قیمت مهم نیست" ("if it has a pool, bedroom count, floor area, and price
+don't matter"). The wrong way to support this is to depend on natural-
+language processing to interpret sentences like that at matching time —
+that would put an unreliable, unexplainable step in the critical path of a
+system whose entire value proposition is determinism and explainability.
+The right way, and the one this architecture adopts, is to give the
+**structured** requirement model enough expressiveness that a user (or a
+future, clearly-bounded NL-assist layer per the section below) can
+represent the same idea directly:
+
+```
+RequirementCriterion(field=pool, priority=MUST_HAVE)
+RequirementCriterion(field=bedrooms, priority=IMPORTANT,
+                      suppressedBy=[pool-criterion])
+RequirementCriterion(field=area, priority=IMPORTANT,
+                      suppressedBy=[pool-criterion])
+RequirementCriterion(field=price, priority=MUST_HAVE,
+                      suppressedBy=[pool-criterion])
+```
+
+- **Mechanism**: each `RequirementCriterion` may optionally name one or
+  more *other* criteria on the same applicant that it suppresses when its
+  own condition is satisfied for a given candidate. "Satisfied" here means
+  the same evaluation Stage 1/2 would already perform for that criterion
+  on its own (e.g. the pool criterion evaluates true for this candidate
+  property) — there is no separate condition-evaluation language to build;
+  suppression reuses the pipeline's existing per-criterion evaluation.
+- **Where this runs in the pipeline**: conditional suppression is resolved
+  **before** Stage 1/2 evaluate the suppressed criteria for a given
+  candidate — for each candidate, the engine first evaluates any criterion
+  that has dependents, and if it's satisfied, treats the criteria it
+  suppresses as `IGNORE` *for that candidate specifically*, not globally
+  for the applicant. This matters: a property without a pool still has its
+  bedroom/area/price criteria evaluated normally, exactly as the worked
+  example implies (the suppression only kicks in *when the condition
+  holds*).
+- **A suppressed criterion is explained as suppressed, not silently
+  dropped.** `MatchExplanation`'s "ignored criteria" section (Stage 4)
+  distinguishes a criterion the applicant explicitly marked `IGNORE` from
+  one that was conditionally suppressed for this specific candidate — the
+  user should be able to see *why* bedroom count didn't factor into this
+  particular match ("ignored because this property has a pool"), which a
+  bare `IGNORE` label would not communicate.
+- **Deliberately bounded scope for this pass**: suppression is a simple
+  "criterion → set of criteria it suppresses" relationship, evaluated once
+  the suppressing criterion is known true/false for a candidate — not a
+  general boolean-expression or rules engine (no AND/OR/NOT trees across
+  arbitrary combinations of criteria). This keeps the feature
+  implementable and testable without building more machinery than the
+  actual product requirement calls for; if richer conditional logic is
+  needed later, that's a deliberate future extension, not an oversight
+  here.
+- **This is what makes an eventual optional NL-assist layer (below) safe to
+  add later without weakening determinism**: the sentence in the example
+  above would, if that layer is ever built, be *proposed* as exactly the
+  four structured criteria shown, for the user to review and confirm —
+  the matching engine itself never sees or interprets the sentence; it only
+  ever sees confirmed, structured `RequirementCriterion` rows, conditional
+  or not.
+
 ## Optional natural-language input (explicitly bounded)
 
 - **[CONFIRMED, Phase 0 Decision 3]** If ever built, natural-language input
@@ -184,10 +248,45 @@ and scored as zero, genuinely skipped, so they can never appear as
   flagged for careful attention when Phase 4/the scoring formula is
   finalized.
 
+## Scoring-weight decision status (new in Phase 4)
+
+Per the explicit instruction not to finalize arbitrary weights without
+documented rationale: **no specific weight values are set by this
+document, and none are silently assumed elsewhere in this document set.**
+What Phase 4 *does* fix is the constraint set any eventual weight values
+must satisfy, so implementation isn't free to pick numbers that violate
+the priority model's meaning:
+
+1. MUST_HAVE contributes zero score weight (already a Stage 1 gate, not a
+   Stage 3 input) — not a number to tune, a structural fact.
+2. IGNORE contributes zero score weight — same.
+3. IMPORTANT's weight must be strictly greater than PREFERRED's weight,
+   for every candidate and every applicant, with no configuration path
+   that could invert this — the priority model's ordering is a product
+   guarantee, not a default that a bad configuration could quietly break.
+4. Partial/approximate matches must contribute a fractional score between
+   0 and that criterion's full weight, never negative and never exceeding
+   the full weight of an exact match on the same criterion.
+
+**[PRODUCT OWNER DECISION REQUIRED, or DEFERRED TO IMPLEMENTATION-TIME
+DATA-DRIVEN TUNING]**: the actual numeric weights (e.g. "IMPORTANT = 3x
+PREFERRED" vs. some other ratio), the approximate-value tolerance bands,
+and the score normalization/presentation scale (0-100? a star rating?) are
+not decided here, consistent with the Phase 3 analysis this document
+carries forward. This is intentionally *not* silently defaulted to a
+plausible-looking number in this pass — doing so would create the
+appearance of a finalized formula where none has actually been reviewed.
+Recommended path: define these weights alongside the Phase 4 schema
+implementation, informed by a small internal review (the project owner
+and whoever implements the matching engine) rather than fixed
+speculatively in a documentation pass with no real data to validate
+against.
+
 ## Unresolved questions carried to `/docs/architecture/unresolved-decisions.md`
 
 - Exact scoring formula and weight values (IMPORTANT vs. PREFERRED, partial-
-  match tapering).
+  match tapering) — see "Scoring-weight decision status" above for the
+  constraints any eventual values must satisfy.
 - Approximate-value tolerance definition.
 - Score normalization/presentation scale.
 - Whether/how a natural-language input layer is eventually built (optional,

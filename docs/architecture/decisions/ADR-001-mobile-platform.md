@@ -103,6 +103,18 @@ cannot see and must not assume are explicitly flagged for the project owner:
 
 ## Status of this decision
 
-**Not finalized.** Awaiting explicit project-owner confirmation before any
-implementation-phase work assumes React Native. Recorded as [PROPOSED] per
-instruction not to silently finalize it.
+**PRODUCT OWNER DECISION REQUIRED.** This document's analysis has not
+changed since it was written, and the Phase 4 final-architecture pass does
+not add new technical information that would change the recommendation —
+it is restated here, explicitly, because Phase 4 is architecture's last
+stop before implementation, and this is the one foundational decision nothing
+downstream can proceed past without: implementation cannot begin, native
+module choices cannot be locked in, and CI/release tooling cannot be set
+up until a platform is chosen. No project-owner approval of the React
+Native recommendation has been recorded anywhere in this document set as
+of this pass. Per explicit instruction, this is not silently converted to
+FINAL by default or by the passage of time — it stays PROPOSED, flagged
+as **PRODUCT OWNER DECISION REQUIRED**, until an explicit confirmation is
+recorded (the natural place to record it is a dated entry in
+`/docs/changelog.md`, the same pattern used for every other product-owner
+decision in this project).
