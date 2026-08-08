@@ -1,8 +1,9 @@
 # 00 — Project Overview (Phase 0 Discovery)
 
-Status: DRAFT — Phase 0 findings reviewed; confirmed decisions recorded in §2a.
-Phase 1 (product requirements) not yet started, pending final project-owner
-go-ahead.
+Status: DRAFT — Phase 0 findings reviewed; confirmed decisions recorded in §2a;
+final Phase 0 validation pass completed (§8a, §11a added; no contradictions found
+in existing decisions). Phase 1 (product requirements) not yet started, pending
+project-owner go-ahead.
 Date: 2026-08-08 (updated)
 
 ## 2a. Confirmed Project Decisions
@@ -22,13 +23,49 @@ load-bearing for the CRM itself. OTP/SMS-based registration, offline
 resilience, and one-handed mobile UX (per PRODUCT.md) are first-class
 requirements, not stretch goals.
 
+**React Native vs. Capacitor — preliminary trade-off (final choice deferred to
+Phase 3, not decided here):**
+
+| Concern | React Native | Capacitor (wraps a web app) |
+|---|---|---|
+| UI performance / native feel | Native UI components, generally better for "extremely fast", one-handed, gesture-heavy UX (swipe actions, bottom sheets) | WebView-rendered UI; can feel close with careful work, but has a lower performance ceiling on list-heavy, animation-heavy screens |
+| Offline-first local storage | Mature ecosystem (e.g. `op-sqlite`/`react-native-sqlite`, WatermelonDB) for structured local data the matching engine needs | Also viable via SQLite plugins, but the web-runtime boundary adds overhead for a data-heavy matching engine |
+| Code reuse from current repo | None of the existing Electron/React renderer code reuses directly (different runtime), though React knowledge and component logic patterns transfer | The existing React/TS renderer code is structurally closer to reusable (same DOM-based React), lowering initial migration effort |
+| Native device integration (secure storage/Keychain-Keystore, SMS/OTP affordances) | First-class native module access | Possible via plugins, one layer removed from native APIs |
+| Long-term maintainability for a "minimal, professional" CRM | Larger but very standard mobile ecosystem; more mobile-specific hiring/knowledge required | Smaller conceptual jump for a team already in web/React; still ships as a real installable mobile app, not a desktop app |
+| Team fit | Unknown — depends on whether mobile-native experience exists | Unknown — favors teams staying closer to web-dev skills |
+
+**Preliminary read**: React Native is architecturally the stronger candidate for
+this product specifically because of the stated "extremely fast", offline-first,
+one-handed, gesture-rich UX bar and the amount of local structured data the
+deterministic matching engine must read/write quickly — those are exactly the
+conditions where a WebView-based runtime is most likely to become a performance
+and native-integration liability. This is a **recommendation to carry into Phase
+3, not a final decision** — Phase 3 must still document it explicitly, including
+how much (if any) of the current React renderer code and team skill set factors
+in, before it is treated as settled.
+
 ### Decision 2 — OTP/SMS provider: to be designed/recommended
 
 No SMS/OTP provider is mandated yet. Phase 3 architecture must propose a
 concrete provider and backend approach (e.g., a small auth service fronting an
 SMS gateway) for project-owner confirmation before implementation begins.
-Referral-code validation must happen server-side regardless of provider choice
-(per PRODUCT.md's authentication requirements).
+
+**Authentication requirements confirmed from PRODUCT.md (restated here so Phase
+1 does not have to re-derive them):**
+
+- Registration requires all three of: (1) mobile number, (2) OTP verification,
+  (3) a valid referral code. No referral code means no registration — there is
+  no path around this.
+- Referral-code validation **must be enforced server-side**. Client-side-only
+  validation is explicitly disallowed by PRODUCT.md and is treated as a
+  security defect, not a shortcut.
+- Every new user receives a unique referral code; the system must prevent
+  duplicate referral codes, self-referral, invalid codes, referral
+  manipulation, and (if business rules say so) reused codes.
+- The concrete OTP/SMS provider and backend implementation remain an open
+  Phase 3 architectural decision requiring explicit project-owner approval —
+  confirming the *requirements* above does not pre-select a vendor.
 
 ### Decision 3 — Matching engine must be deterministic and AI-independent (critical)
 
@@ -182,8 +219,40 @@ the platform decision (§9) confirms a desktop app is in fact wanted.
 
 - Not yet applicable — no real UI exists. Baseline startup is the stock Electron
   cold-start (~unoptimized, single window, no code-splitting configured beyond
-  Vite defaults).
+  Vite defaults); irrelevant once the platform moves to mobile per Decision 1.
 - No offline story, no local persistence, no loading/error/empty states anywhere.
+- **Architecture risk (offline/performance)**: PRODUCT.md requires the app to be
+  "extremely fast," resilient to offline/poor network, and to use skeleton
+  loading/optimistic UI. §10's proposed local-database-as-source-of-truth
+  approach addresses the *storage* half of this, but two things are not yet
+  addressed anywhere and must be picked up in Phase 3, not assumed: (1) a
+  sync/conflict-resolution strategy for whatever server communication exists
+  (referral validation, OTP, any future multi-device backup sync) when
+  connectivity is intermittent, and (2) a caching/pagination strategy for list
+  rendering (owner files, applicant files, match results) so the matching
+  engine's output stays fast as data volume grows. Neither blocks Phase 1, but
+  both must be explicit in Phase 3.
+
+## 8a. Backup & Security Architecture Considerations — Gap Identified
+
+PRODUCT.md specifies an extensive Backup/Encryption section (encrypted local
+backup, integrity protection, portability, export/import/restore, cross-device
+support, wrong-password handling, corruption detection, versioning/migration) and
+a Security section (threat model, authentication, referral abuse, local storage,
+secrets, logs, injection, tampering, replay, rate limiting, brute force, session
+handling). **None of this is currently represented anywhere in this Phase 0
+document or in any decision recorded to date.** This is a real gap, not a
+decision — it has not been designed, deferred with a reason, or rejected; it
+simply has not been addressed yet.
+
+This is flagged here as **non-blocking for Phase 1** (product requirements and
+user stories can and should still capture backup/export/import/restore/security
+user stories, per PRODUCT.md's own Phase 2 instructions), but it is a **blocking
+item for Phase 3 and Phase 4**: system architecture and database schema cannot be
+considered complete without an explicit encryption/key-management design
+(`/docs/security/encryption.md`) and backup format spec
+(`/docs/backup/backup-specification.md`), and the database's `BackupMetadata`
+and `AuditLog` entities (Phase 4) depend on that design existing first.
 
 ## 9. Resolved Assumptions (formerly open questions)
 
@@ -242,11 +311,56 @@ mobile stack is a Phase 3 decision, not assumed here.
   nondeterminism to account for.
 - No secrets-management convention exists — must be defined before OTP
   provider keys or encryption keys are introduced (Phase: Security/Backup docs).
+- Backup/encryption and security architecture are entirely undesigned so far
+  (§8a) — non-blocking for Phase 1, but must be resolved before Phase 3/4 are
+  considered complete.
+
+## 11a. Database Entity & Relationship Risks to Watch in Phase 4
+
+Phase 4 (database design) has not started — this is a forward-looking risk list,
+not a schema. Relationships across PRODUCT.md's suggested entities (User,
+Referral, File, Property, ApplicantRequirement, Requirement, Amenity, Location,
+Match, MatchRule, Contract, Reminder, FollowUp, Notification, BackupMetadata,
+AuditLog) that are easy to under-specify and should be explicitly resolved rather
+than left implicit:
+
+- **User ↔ Referral**: needs both "referred-by" (inbound, one referral consumed
+  at registration) and "referrer-of-many" (outbound, one user's code used by
+  many others) relationships modeled distinctly, with the self-referral and
+  duplicate-code constraints (§2a Decision 2 restated) enforced at the schema
+  level, not just in application code.
+- **File/Property/ApplicantRequirement ↔ Requirement/Amenity/Location**: per
+  PRODUCT.md's File Model section, structured searchable data, preferences,
+  business rules, and free-form notes must be **separable** fields/tables, not
+  collapsed into one JSON blob — otherwise the matching engine (Decision 3) has
+  nothing reliable to query against.
+- **Match ↔ MatchRule ↔ Requirement**: the schema must be able to reconstruct,
+  per match, which specific criteria were MUST_HAVE/IMPORTANT/PREFERRED/IGNORE
+  and why the result was matched/mismatched/ignored (§2a Decision 3's
+  explainability requirement) — this implies a join/result table, not just a
+  stored aggregate score.
+- **Contract ↔ Property ↔ Owner/Tenant(User or File) ↔ Reminder ↔ FollowUp**:
+  reminders are generated from contract expiration dates on a fixed schedule
+  (90/60/30/14/7/3/0 days, configurable) and must be idempotent (PRODUCT.md
+  Contract Management section) — this implies a Reminder needs a durable
+  identity (e.g. contract ID + offset) so a duplicate background-job run cannot
+  create a second reminder for the same (contract, offset) pair.
+- **Notification**: needs a clear source-entity reference (which Reminder,
+  Match, or system event triggered it) — a generic/polymorphic reference here is
+  a common place for an "isolated field that cannot correctly relate to
+  existing entities" (PRODUCT.md's explicit warning) if not modeled carefully.
+- **BackupMetadata ↔ AuditLog**: both currently have zero design (§8a) — until
+  the encryption/backup spec exists, their fields (version, integrity hash, key
+  derivation reference, actor/action/entity for audit) cannot be finalized.
 
 ## 12. Next Steps
 
 Per PRODUCT.md, Phase 0 documentation is created first. Platform, OTP-approach, and
 matching-engine-determinism decisions are now confirmed (§2a) and will constrain
-Phases 1-4 and the security/matching/backup docs once they begin. Per explicit
-instruction, **implementation has not started** and Phase 1 (product requirements)
-will not begin until the project owner gives further approval.
+Phases 1-4 and the security/matching/backup docs once they begin. A final Phase 0
+validation pass (this update) cross-checked §2a against the rest of the document,
+found no internal contradictions, and added two gaps that were previously
+undocumented: backup/security architecture (§8a) and database
+entity/relationship risks to watch (§11a). Per explicit instruction,
+**implementation has not started** and Phase 1 (product requirements) will not
+begin until the project owner gives further approval.

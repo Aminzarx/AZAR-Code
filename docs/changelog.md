@@ -93,3 +93,32 @@ AI-dependent version because one was never built.
 `/docs/matching/*.md` — matching engine tests must validate deterministic behavior
 without any AI dependency, including edge cases such as "pool is essential, ignore
 price/area/bedrooms."
+
+---
+
+## 2026-08-08 — Final Phase 0 validation pass
+
+**Change**: Reviewed `/docs/00-project-overview.md` against the three confirmed
+decisions (§2a) for internal consistency. Added: a React Native vs. Capacitor
+trade-off comparison (§Decision 1, still deferred to Phase 3 for the final call);
+an explicit restatement of the mobile-number + OTP + mandatory-referral-code
+registration requirements and server-side referral validation (§Decision 2); a new
+§8a documenting that backup/encryption and security architecture are entirely
+undesigned so far (a real gap, not a decision); an offline/performance
+architecture-risk note on sync/conflict-resolution and list caching strategy
+(§8); and a new §11a listing database entity/relationship risks to resolve
+explicitly in Phase 4 (referral direction modeling, structured-vs-free-text
+separation, match explainability storage, reminder idempotency keys,
+notification source references, backup/audit metadata dependence on the
+not-yet-designed encryption spec).
+
+**Reason**: Explicit project-owner request for a final Phase 0 validation pass
+before Phase 1 begins, to confirm decisions are correctly reflected throughout
+the document and to surface any remaining gaps or risks.
+
+**Affected modules**: Documentation only (`/docs/00-project-overview.md`). No
+application code exists yet; no code changed.
+
+**Migration requirements**: None.
+
+**Tests**: N/A.
