@@ -160,3 +160,84 @@ conflict) without committing to a sync/conflict-resolution architecture.
 **Tests**: None yet; MATCH-03, MATCH-05, and REM-03 are flagged in
 02-user-stories.md as required regression-test scenarios for when the matching
 engine and reminder scheduler are implemented in a later phase.
+
+---
+
+## 2026-08-08 — Confirmed decision: local-first / offline-first (Phase 1/2 amendment)
+
+**Change**: Recorded a new confirmed product decision (Phase 0 Decision 4 in
+`/docs/00-project-overview.md` §2a) and amended the already-approved Phase 1 and
+Phase 2 documents in place — **not** a restart of either phase:
+
+- The application is local-first/offline-first: normal daily business operation
+  (owner/applicant file management, search, filtering, matching and match
+  explanations, contract tracking and expiration calculations, reminder
+  scheduling, local notifications, notes, settings, and encrypted backup
+  creation/import/validation/restore) requires no internet access.
+- Business data (owner/applicant/property information, requirements, notes,
+  contracts, matches, match explanations, reminders, local business history) is
+  not uploaded to a server during normal operation and remains local by
+  default. No cloud database, cloud matching, cloud sync, or cloud backup is
+  required.
+- Network access for this version is limited to the account/referral surface:
+  mobile number registration, OTP/SMS verification, referral code validation,
+  and recording the registered number/referral relationship.
+- Contract reminders use local device notifications, not push notifications —
+  push delivery infrastructure is not required for v1.
+- There is no requirement for multi-device cloud synchronization. Cross-device
+  data movement is only the explicit, user-controlled manual backup
+  export/transfer/import/restore flow. CRDTs, real-time sync, cloud
+  replication, and automatic conflict-resolution infrastructure are explicitly
+  out of scope unless a future product decision requires them.
+- The encryption algorithm and key-management architecture remain
+  **explicitly deferred** to the architecture/security phase — this decision
+  clarifies what the backup/local-storage design must support (a fully
+  offline, non-cloud-dependent store), not how it will be implemented.
+
+**Reason**: Explicit project-owner clarification, provided after Phase 1/2 were
+already documented and approved. The instruction was to amend the existing
+documents in place, preserving all prior work, rather than recreate them.
+
+**Affected modules**:
+- `/docs/00-project-overview.md` — added Decision 4 in §2a; corrected the
+  offline/performance architecture-risk note (§8) and the recommended
+  architecture's local-storage description (§10), which had previously implied
+  outward syncing, to reflect that local storage is the sole source of truth
+  for business data with no required cloud counterpart.
+- `/docs/01-product-requirements.md` — added §4a (Connectivity Classification:
+  OFFLINE / ONLINE_REQUIRED / ONLINE_OPTIONAL, covering every workflow);
+  rewrote §13 (Notifications) to specify local device notifications instead of
+  push; rewrote §14 (Backup) to state no cloud backup is required; rewrote §15
+  (Offline) to remove the sync/conflict-resolution framing that assumed a
+  cloud business-data counterpart and replace it with the local-first model;
+  updated §5 (Authentication) with explicit ONLINE_REQUIRED framing and
+  graceful-failure requirements; updated §18 (Security) to scope network
+  security to the account/referral surface only; updated §19 (Summary) to
+  record the new confirmed decision and mark the previously open
+  multi-device-sync question (§19.6, former question 4) as resolved. Also
+  fixed several pre-existing cross-reference errors (stray "§16" references
+  that should have pointed to §19's open-decisions/open-questions
+  subsections) found during this pass.
+- `/docs/02-user-stories.md` — added a connectivity tag
+  (OFFLINE/ONLINE_REQUIRED/ONLINE_OPTIONAL) to every story; added AUTH-06
+  (registration/login blocked offline with clear messaging), REF-06 (referral
+  validation requires connectivity), and RST-05 (explicit user-controlled
+  restore on another device); rewrote NOTIF-01 and NOTIF-03 for local
+  notifications instead of push; rewrote the Offline Behavior section (OFF-01
+  through OFF-03) to describe offline as the normal mode rather than a
+  fallback; renamed and rewrote the Synchronization section to
+  "Network-Dependent Operation Behavior," replacing SYNC-01's business-data
+  auto-sync premise and SYNC-02's conflict-resolution premise (both no longer
+  applicable) with SYNC-01 (retrying the account/referral surface),
+  SYNC-02 (multi-device sync is now a confirmed **non-goal**, tested as a
+  regression), and SYNC-03 (no false-success state for network-dependent
+  operations); updated the Summary section accordingly. Story count: 70 (up
+  from 67).
+
+**Migration requirements**: None — documentation only; no application code
+exists yet.
+
+**Tests**: None yet. SYNC-02 is newly flagged as a required regression test
+once implementation begins: no future change may introduce implicit
+multi-device sync behavior. AUTH-06 and REF-06 are flagged as required
+graceful-degradation tests for the account/referral online surface.

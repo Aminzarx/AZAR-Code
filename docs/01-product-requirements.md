@@ -1,11 +1,14 @@
 # 01 — Product Requirements
 
-Status: DRAFT — Phase 1. Builds on the approved Phase 0 findings in
-`/docs/00-project-overview.md` (§2a confirmed decisions). No application code
-has been written. No implementation-level decisions (RN vs. Capacitor, OTP
-provider, encryption algorithm, matching engine internals, final DB schema) are
-made in this document — see §16 for what remains explicitly open.
-Date: 2026-08-08
+Status: DRAFT — Phase 1, amended. Builds on the approved Phase 0 findings in
+`/docs/00-project-overview.md` (§2a confirmed decisions, including Decision 4:
+local-first/offline-first, added after this document's initial sign-off). No
+application code has been written. No implementation-level decisions (RN vs.
+Capacitor, OTP provider, encryption algorithm, matching engine internals, final
+DB schema, local storage technology) are made in this document — see §19.3 for
+what remains explicitly open, and §4a for the connectivity classification that
+resulted from Decision 4.
+Date: 2026-08-08 (amended)
 
 ## How to read this document
 
@@ -59,7 +62,7 @@ decision:
   (owners and applicants are *data* — files — not authenticated users) are in
   scope for the first production version. This must be validated — PRODUCT.md
   does not explicitly rule out multi-agent teams or an admin role, but nothing
-  in it requires one either. Flagged in §16.
+  in it requires one either. Flagged in §19.6.
 
 ## 3. Core Workflows
 
@@ -76,11 +79,14 @@ decision:
    automatic, configurable, idempotent reminders as expiration approaches.
 6. **[CONFIRMED]** Search/filter across owner files, applicant files, and
    contracts, quickly, including while offline against locally available data.
-7. **[CONFIRMED]** Back up data (manual and automatic), export/transfer it to
-   another device, and restore it, with encryption and integrity protection
-   whose exact mechanism is still open (§16).
+7. **[CONFIRMED]** Back up data locally (manual and automatic), export/transfer
+   it to another device, and restore it — no cloud backup required (Phase 0
+   Decision 4) — with encryption and integrity protection whose exact
+   mechanism is still open (§19.3).
 8. **[CONFIRMED]** Receive and manage notifications (reminders, system events)
-   in-app and via push, with read/unread state and a history.
+   in-app and via local device notifications, with read/unread state and a
+   history (Phase 0 Decision 4 — push notifications are not required for
+   reminders).
 
 ## 4. Business Rules (cross-cutting)
 
@@ -103,24 +109,73 @@ decision:
 - **[BUSINESS RULE]** The application must remain fully functional — including
   full matching functionality — with zero AI API configured, at every stage of
   the product's life (Phase 0 Decision 3), not only at initial launch.
+- **[CONFIRMED — added after initial Phase 1 documentation]** The application
+  is local-first/offline-first: normal daily business operations must not
+  require internet access, business data is not uploaded to a server during
+  normal operation, and network access is limited to a small account/referral
+  surface (Phase 0 Decision 4). See §4a for the full workflow classification.
+
+## 4a. Connectivity Classification — OFFLINE / ONLINE_REQUIRED / ONLINE_OPTIONAL
+
+**[CONFIRMED — Phase 0 Decision 4]** Every workflow in this document is
+classified below so no later phase has to guess which parts of the product may
+depend on connectivity. This classification is authoritative; where a
+workflow's section below repeats or elaborates on it, the section defers to
+this table in case of any apparent conflict.
+
+| Workflow | Classification | Notes |
+|---|---|---|
+| Owner file create/edit/view (§7) | **OFFLINE** | No connectivity required at any point. |
+| Applicant file create/edit/view (§8) | **OFFLINE** | No connectivity required at any point. |
+| Search (§10) | **OFFLINE** | Operates against local data only; there is no cloud data to be "incomplete" against. |
+| Filtering / sorting (§10) | **OFFLINE** | Same as search. |
+| Matching / match scoring (§9) | **OFFLINE** | Deterministic engine operates entirely on local structured data (Phase 0 Decision 3 + Decision 4 together). |
+| Match explanations (§9) | **OFFLINE** | Generated locally alongside the score. |
+| Contract creation/editing/tracking (§11) | **OFFLINE** | No connectivity required. |
+| Contract expiration calculations (§11, §12) | **OFFLINE** | Pure local date/state computation. |
+| Reminder scheduling (§12) | **OFFLINE** | Computed locally from local contract data. |
+| Local (device) notifications (§13) | **OFFLINE** | Delivered by the device's local notification mechanism, not a push server. |
+| Notes (structured and free-form, §7/§8) | **OFFLINE** | Stored locally. |
+| Settings / preferences (§6) | **OFFLINE** | Stored locally; take effect without a network call. |
+| Encrypted backup creation (§14) | **OFFLINE** | Local operation; no cloud upload. |
+| Backup import / validation / restore (§14) | **OFFLINE** | Local operation; works from a file the user provides, regardless of connectivity. |
+| Mobile number registration (§5.1) | **ONLINE_REQUIRED** | Cannot be queued or deferred — must fail clearly if offline. |
+| OTP/SMS verification (§5.2) | **ONLINE_REQUIRED** | Delivery and verification both require connectivity. |
+| Referral code validation (§5.1) | **ONLINE_REQUIRED** | Must be validated server-side (Phase 0 Decision 2); cannot be validated offline. |
+| Login (mobile number + OTP) on a new/unrecognized session (§5.3) | **ONLINE_REQUIRED** | Same OTP dependency as registration. |
+| Recording the registered mobile number / referral relationship (§5.1, §6) | **ONLINE_REQUIRED** | Happens as part of the registration call. |
+| Continued use of an already-authenticated session (§5.3) | **OFFLINE** | Once logged in, staying logged in and using the app does not require connectivity. |
+| In-app notification history (§13) | **OFFLINE** | Local history, independent of delivery mechanism. |
+| Manual backup transfer to another device (§14) | **OFFLINE / ONLINE_OPTIONAL** | The transfer mechanism itself (e.g. cable, local file share, a cloud drive the user personally chooses) is the user's choice and outside the app's control; the app's own create/import/restore steps are OFFLINE regardless of how the file physically moved. |
+
+**[BUSINESS RULE]** No workflow classified OFFLINE above may be silently
+downgraded to require connectivity by a later implementation decision without
+this document being amended first.
 
 ## 5. Authentication — Functional Requirements
 
 ### 5.1 Registration
+- **[CONFIRMED — ONLINE_REQUIRED, §4a]** Registration as a whole requires
+  connectivity — mobile number recording, OTP verification, and referral
+  validation are all part of the account/referral online surface (Phase 0
+  Decision 4). If the device is offline, registration must fail with a clear,
+  specific message identifying that connectivity is required — never a
+  generic or misleading error, and never a silently queued "will register
+  later" state.
 - **[CONFIRMED]** Registration requires exactly three inputs: mobile number, a
   verified OTP, and a valid referral code. All three are mandatory; none may be
   skipped or bypassed.
 - **[BUSINESS RULE]** The referral code must belong to an existing, active user
   account at the time of use. An unknown, expired, revoked, or malformed code is
   rejected with a clear, specific error (distinguish "invalid format" from
-  "not found" from "already used," per §16 reuse policy).
+  "not found" from "already used," per §19.2 reuse policy).
 - **[BUSINESS RULE]** Self-referral (a code referring the same identity that is
   registering) is rejected. **[OPEN-ARCH]** the exact identity signal used to
   detect "same identity" before an account exists (e.g. matching mobile number
   against the referrer's own number) is a Phase 3 design detail.
 - **[OPEN-ARCH]** Whether a referral code may be reused by multiple new
   registrants, or is single-use, is a business-rule decision PRODUCT.md leaves
-  open ("if business rules prohibit reuse"). Flagged in §16 for a product
+  open ("if business rules prohibit reuse"). Flagged in §19.2 for a product
   decision before Phase 4 schema work.
 - **[BUSINESS RULE]** Abuse/manipulation prevention: the system must resist
   scripted mass-registration using a single leaked referral code (rate limiting
@@ -130,8 +185,10 @@ decision:
   self-correct a typo.
 
 ### 5.2 OTP Verification
-- **[CONFIRMED]** A one-time code is sent to the provided mobile number and must
-  be verified before registration/login completes.
+- **[CONFIRMED — ONLINE_REQUIRED, §4a]** A one-time code is sent to the
+  provided mobile number and must be verified before registration/login
+  completes; both delivery and verification require connectivity by nature —
+  there is no offline OTP path.
 - **[BUSINESS RULE]** OTP codes expire after a short, product-defined window and
   are single-use. **[ASSUMPTION]** default expiry of 5 minutes and a maximum of
   5 verification attempts per issued code before requiring a new code — to be
@@ -142,6 +199,10 @@ decision:
   explicit open decision (Phase 0 Decision 2) — not selected here.
 
 ### 5.3 Login / Session
+- **[CONFIRMED — OFFLINE, §4a]** Once a session exists on a device, continued
+  use of the app (all business-data workflows) does not require connectivity
+  again. Only establishing a *new* session (login with OTP, e.g. after
+  explicit logout or on a new device) is ONLINE_REQUIRED.
 - **[CONFIRMED]** Returning users authenticate with mobile number + OTP
   (no separate password is introduced anywhere in PRODUCT.md; none is assumed
   here). **[ASSUMPTION]** — if a lower-friction re-login method (e.g. device
@@ -160,7 +221,7 @@ decision:
   **[OPEN-ARCH]** exact data-retention behavior (immediate hard delete vs.
   soft-delete/grace period, and what happens to that user's outstanding
   referral relationships and any data other users' files reference) is not
-  specified in PRODUCT.md and must be confirmed — flagged in §16.
+  specified in PRODUCT.md and must be confirmed — flagged in §19.6.
 - **[BUSINESS RULE]** Logging out must not destroy locally stored encrypted
   data needed for the next login on the same device unless the user explicitly
   chooses to clear local data (distinct action from logout).
@@ -343,13 +404,17 @@ internally.
 
 ## 12. Reminders — Functional Requirements
 
+- **[CONFIRMED — OFFLINE, §4a]** Reminder scheduling and expiration
+  calculations are computed entirely from locally stored contract data and
+  require no connectivity; delivery uses local device notifications (§13,
+  Phase 0 Decision 4), not push.
 - **[CONFIRMED]** Automatic reminders are generated as a contract approaches
   expiration, on a default schedule of **90, 60, 30, 14, 7, 3 days before, and
   on the expiration day itself.**
 - **[CONFIRMED]** This schedule is configurable — the product must allow the
   default offsets to be changed (globally and/or per contract —
   **[ASSUMPTION]**: global default configurable in settings, with
-  per-contract override left as an open scope question for §16).
+  per-contract override left as an open scope question for §19.2).
 - **[BUSINESS RULE]** Reminders are idempotent: a background job that runs
   more than once for the same contract/offset must never create or deliver a
   duplicate reminder to the user.
@@ -361,33 +426,55 @@ internally.
 
 ## 13. Notifications — Functional Requirements
 
-- **[CONFIRMED]** In-app notifications (visible within the app, e.g. a
-  notification center/inbox) and push notifications (delivered to the device
-  even when the app is not open) are both supported.
+- **[CONFIRMED — OFFLINE, §4a]** In-app notifications (visible within the app,
+  e.g. a notification center/inbox) are supported and require no connectivity.
+- **[CONFIRMED — OFFLINE, §4a — updated after initial Phase 1 documentation]**
+  Contract expiration reminders (§12) are delivered via the device's **local
+  notification mechanism**, not push notifications requiring a server
+  round-trip (Phase 0 Decision 4). This removes push-delivery infrastructure
+  as a dependency for the reminder workflow specifically — a local
+  notification is scheduled on-device from locally computed reminder dates
+  and fires even with no connectivity at all.
 - **[CONFIRMED]** Reminder notifications (from §12) are one category; the
   product must support other system notification categories as they arise
-  (e.g. backup completed/failed) without assuming a closed, fixed list.
+  (e.g. backup completed/failed) without assuming a closed, fixed list. Any
+  category tied purely to local events (reminders, backup completed/failed,
+  restore completed/failed) is OFFLINE by the same reasoning as reminders. A
+  category that would only make sense in response to a server-side event does
+  not exist in this version, since there is no server-side business-data
+  event source (Phase 0 Decision 4) — **push notifications are not required
+  for v1** and are not assumed to exist as infrastructure.
 - **[CONFIRMED]** Notification preferences (per §6) let a user control which
-  categories they receive and through which channel(s).
+  categories they receive, consistent with the local-only delivery mechanism
+  above.
 - **[CONFIRMED]** Each notification has read/unread state, and a history of
   past notifications is retained and browsable, not just the most recent one.
-- **[BUSINESS RULE]** Failure to deliver a notification (e.g. push delivery
-  failure) must be handled with a defined retry expectation — the product
-  must not silently drop a reminder notification because a single delivery
-  attempt failed. **[OPEN-ARCH]** exact retry count/backoff and provider are
-  not selected here (PRODUCT.md's explicit instruction).
+- **[BUSINESS RULE]** Failure to deliver a local notification (e.g. the OS
+  denies notification permission, or a scheduled local notification is missed
+  because the device was off) must be handled with a defined fallback — at
+  minimum, the notification must still appear in the in-app history (§NOTIF
+  stories) so the user is not solely dependent on the local notification
+  firing successfully. **[OPEN-ARCH]** exact OS-level scheduling mechanism is
+  a Phase 3 detail; this requirement only establishes the fallback behavior.
 
 ## 14. Backup — Functional Requirements
 
+- **[CONFIRMED — OFFLINE, §4a]** Backup creation, import, validation, and
+  restore are all local operations requiring no connectivity (Phase 0
+  Decision 4). **No cloud backup is required** — the product does not depend
+  on any remote storage service to create, hold, or restore a backup.
 - **[CONFIRMED]** Backups are encrypted and integrity-protected — a corrupted
   or tampered backup must be detectable, not silently restored as if valid.
 - **[CONFIRMED]** Both automatic (product-scheduled, per user's backup
   preference from §6) and manual (user-triggered, on demand) backup are
-  supported.
-- **[CONFIRMED]** Export produces a portable backup file the user can move off
-  the device (e.g. to transfer to a new phone); import/restore consumes that
-  file back into the app, including on a different device than it was created
-  on.
+  supported, both entirely local operations.
+- **[CONFIRMED]** Export produces a portable backup file the user can store
+  anywhere and move off the device by any means of their choosing (e.g. cable
+  transfer, local file share, or a cloud drive the user personally selects —
+  the app itself does not require or manage any such destination);
+  import/restore consumes that file back into the app, including on a
+  different device than it was created on, as an **explicit, user-initiated**
+  action — never an assumed or automatic transfer.
 - **[CONFIRMED]** Restoring a backup validates it first (integrity check,
   version compatibility) before applying it, and clearly reports:
   - a corrupted/tampered backup (cannot be restored),
@@ -409,33 +496,46 @@ internally.
 
 ## 15. Offline — Functional Requirements
 
-- **[CONFIRMED]** Previously loaded/synced data (owner files, applicant files,
-  contracts, match results, notifications) remains viewable while offline.
-- **[CONFIRMED]** Creating and editing data that doesn't inherently require a
-  live server round-trip (e.g. adding/editing an owner file, running matching
-  against locally available data) works offline and is saved locally, to be
-  synchronized when connectivity returns.
-- **[BUSINESS RULE]** Actions that inherently require connectivity (e.g. OTP
-  delivery, backup upload to a remote destination if one exists) must fail
-  clearly and be retryable, not appear to silently succeed.
-- **[CONFIRMED]** When connectivity returns, locally saved changes
-  synchronize automatically without requiring the user to remember to trigger
-  it manually.
-- **[BUSINESS RULE]** If the same record was changed both locally (offline)
-  and elsewhere (e.g. a prior sync, or — depending on later architecture —
-  another device) such that a conflict exists, the product must have a defined
-  behavior instead of silently discarding one side's change. **[OPEN-ARCH]**
-  the exact conflict-resolution strategy (last-write-wins, user-prompted
-  merge, field-level merge, or "single-device only, no conflict possible") is
-  explicitly not decided here — this requirement only establishes that
-  conflicts must never silently lose data.
-- **[ASSUMPTION]** Whether this product supports multiple devices per user
-  syncing the same data (which is what makes true conflicts possible in the
-  first place) is not yet confirmed — if the initial version is genuinely
-  single-device-per-user with cross-device transfer only via explicit
-  backup/restore (§14), then "conflict resolution" reduces to "sync between
-  the app and any future server component," which is a smaller problem. This
-  must be confirmed before Phase 3. Flagged in §16.
+**[CONFIRMED — Phase 0 Decision 4, added after initial Phase 1 documentation]**
+This section was originally framed as "resilience to poor connectivity" for an
+otherwise server-dependent app. It has since been sharpened: the application is
+**local-first/offline-first by design**, not merely tolerant of connectivity
+loss. Business data has no required server counterpart at all (§4a). The
+distinction matters: this is not "the app degrades gracefully when offline," it
+is "the app's normal operating mode is offline, with a small, clearly bounded
+online surface for account/referral operations."
+
+- **[CONFIRMED]** All locally stored data (owner files, applicant files,
+  contracts, match results, notifications, settings) remains fully viewable,
+  searchable, and editable while offline — this is not a degraded or
+  read-only mode, it is the application's normal mode of operation.
+- **[CONFIRMED]** Creating and editing business data (owner/applicant files,
+  contracts, notes, running matching) works fully offline and is saved
+  locally — there is no "will sync later" pending state for business data,
+  because business data has no required remote counterpart to sync to (§4a).
+- **[BUSINESS RULE]** The only actions that inherently require connectivity
+  are the account/referral operations in §4a's ONLINE_REQUIRED row (mobile
+  number registration, OTP verification/delivery, referral code validation,
+  and establishing a new login session). These must fail clearly, explain
+  specifically that they require connectivity, and be retryable — never
+  appear to silently succeed, and never be silently queued as if they could
+  complete offline.
+- **[CONFIRMED]** There is **no requirement for multi-device cloud
+  synchronization**. The product must not assume records are synchronized
+  between devices. If a user moves to another device, that is handled solely
+  via the explicit, user-controlled manual backup export/transfer/restore
+  flow in §14 — a one-time, user-initiated data transfer, not continuous
+  background sync.
+- **[BUSINESS RULE]** Because there is no assumed multi-device sync of
+  business data, there is correspondingly **no requirement for automatic
+  conflict resolution, CRDTs, real-time sync, or cloud replication
+  infrastructure** for business data. A restore from a backup on a new device
+  is expected to establish that device's local dataset from the backup (an
+  explicit, user-understood operation, not a silent merge) — the exact
+  behavior when a device already has local data at restore time (e.g.
+  overwrite vs. block-until-user-confirms) is an **[OPEN-ARCH]** detail for
+  Phase 3, but "silently and invisibly merge two divergent datasets" is
+  explicitly out of scope unless a future product decision requires it.
 
 ## 16. UX Requirements
 
@@ -528,11 +628,16 @@ and `/docs/security/authentication.md` (later phase):
 - **[CONFIRMED]** Local data protection: data stored on-device must not be
   trivially readable outside the application (e.g. as a plain readable file by
   another app or a casual inspection of device storage) — exact mechanism is
-  open (§16).
+  open (§19.3). This matters more, not less, under the local-first model
+  (Phase 0 Decision 4), since business data lives exclusively on-device with
+  no server-side copy.
 - **[CONFIRMED]** Backup protection: encrypted and integrity-checked per §14.
-- **[CONFIRMED]** Network security: all network communication (OTP delivery
-  trigger, any future sync/server calls) uses transport encryption (HTTPS/TLS)
-  — no plaintext transmission of sensitive data.
+- **[CONFIRMED]** Network security: all network communication is limited to
+  the account/referral surface (§4a) — OTP delivery/verification and referral
+  validation — and uses transport encryption (HTTPS/TLS), with no plaintext
+  transmission of sensitive data. There is no other network communication to
+  secure, since business data is never transmitted over the network in normal
+  operation (Phase 0 Decision 4).
 - **[CONFIRMED]** Session security: sessions can be revoked (§5.3); session
   material is protected consistently with other sensitive data above.
 - **[CONFIRMED]** Auditability: security- and data-relevant actions (login,
@@ -564,9 +669,22 @@ and `/docs/security/authentication.md` (later phase):
   configurable, and must be idempotent (§12).
 - Backups must be encrypted, integrity-protected, portable, and support
   export/import/restore/cross-device transfer; encryption algorithm and key
-  management are explicitly deferred (§14).
-- Offline viewing/editing of locally available data with sync-on-reconnect is
-  required; exact sync/conflict architecture is explicitly deferred (§15).
+  management are explicitly deferred (§14). Backup is a **local, exportable**
+  feature — no cloud backup is required (Phase 0 Decision 4).
+- **[Added after initial Phase 1 documentation]** The application is
+  local-first/offline-first: normal business operation (all of §7–§15 except
+  the account/referral surface) requires no connectivity at all, not merely
+  "resilience" to poor connectivity. Network access is limited to mobile
+  number registration, OTP verification, and referral code validation (§4a,
+  Phase 0 Decision 4).
+- **[Added after initial Phase 1 documentation]** There is no cloud
+  synchronization of business data, no cloud database for business data, no
+  cloud matching, and no cloud backup requirement. No CRDT/real-time-sync/
+  cloud-replication infrastructure is required unless a future product
+  decision changes this (§15).
+- **[Added after initial Phase 1 documentation]** Contract reminders are
+  delivered via local device notifications, not push notifications — push
+  infrastructure is not required for v1 (§13).
 
 ### 19.2 Open product decisions
 - Whether referral codes are single-use or reusable (§5.1).
@@ -574,16 +692,22 @@ and `/docs/security/authentication.md` (later phase):
 - Whether reminder schedule configurability is global-only or also
   per-contract (§12).
 - Whether multi-agent/team accounts or an admin role are in scope (§2).
-- Whether multiple devices per user (and thus true sync conflicts) are
-  supported in v1, vs. single-device-plus-backup-transfer only (§15).
 - Target accessibility standard (§16).
+- ~~Whether multiple devices per user (and thus true sync conflicts) are
+  supported in v1~~ — **resolved** by Phase 0 Decision 4: v1 does not assume
+  multi-device cloud sync; cross-device movement is via explicit manual
+  backup transfer only (§15).
 
 ### 19.3 Open architectural decisions
 - React Native vs. Capacitor (Phase 0 §Decision 1 addendum) — Phase 3.
 - OTP/SMS provider and backend (Phase 0 Decision 2) — Phase 3.
 - Encryption algorithm, key derivation, key management (§14) —
   `/docs/security/encryption.md`.
-- Offline sync and conflict-resolution mechanism (§15) — Phase 3.
+- Local storage technology and on-device data-protection mechanism (§15, §18)
+  — Phase 3, now the sole data store rather than a cache (Phase 0 Decision 4).
+- Behavior when restoring a backup onto a device that already has local data
+  (overwrite vs. block-until-confirmed) — Phase 3 (§15).
+- Local notification scheduling mechanism for reminders (§13) — Phase 3.
 - Matching engine's internal scoring formula (§9) — `/docs/matching/*.md`.
 - Final database schema (all entities) — Phase 4.
 
@@ -595,8 +719,9 @@ and `/docs/security/authentication.md` (later phase):
 - Tenant-without-applicant-file minimal recording is allowed on a contract
   (§11).
 - Illustrative, non-binding performance targets (§17).
-- Single-device-per-user as the default assumption pending §19.2's open
-  decision.
+- ~~Single-device-per-user as the default assumption pending §19.2's open
+  decision~~ — **resolved**: no multi-device cloud sync is assumed by design
+  (Phase 0 Decision 4), not merely as a default pending confirmation.
 
 ### 19.5 Risks
 - If multi-agent/team data sharing turns out to be required, the
@@ -607,19 +732,26 @@ and `/docs/security/authentication.md` (later phase):
 - Backup/security requirements here are deliberately implementation-free;
   until `/docs/security/encryption.md` exists, "encrypted and
   integrity-protected" is a promise, not a verified design (carried from Phase
-  0 §8a).
-- Offline requirements as written do not yet resolve whether real multi-device
-  conflicts are possible — writing detailed conflict-resolution user stories
-  in Phase 2 is riskier before §19.2's device-count question is answered.
+  0 §8a). This risk is unchanged by Decision 4, and arguably higher priority
+  now: since business data lives exclusively on-device with no server-side
+  copy, the local encryption/key-management design is the primary protection
+  for that data, not a secondary layer in front of a server-side one.
+- If a future product decision does introduce multi-device cloud sync, the
+  offline requirements in §15 will need to be revisited — this document
+  deliberately does not build in unused conflict-resolution infrastructure
+  ahead of that need, so adding it later is new work, not a reactivation of
+  something already designed.
 
 ### 19.6 Questions requiring product-owner input
 1. Is this a single-agent tool, or must it support teams/admins sharing data?
 2. Should referral codes be single-use or reusable?
 3. What should happen to a user's data and outstanding referral relationships
    on account deletion?
-4. Is multi-device use (same account, two phones, syncing) in scope for v1, or
-   is cross-device movement handled only via explicit backup/restore?
-5. Is there a target accessibility standard (e.g. WCAG 2.1 AA) to design
+4. Is there a target accessibility standard (e.g. WCAG 2.1 AA) to design
    against?
-6. Should the reminder schedule be configurable per contract, or only as a
+5. Should the reminder schedule be configurable per contract, or only as a
    single global default?
+
+~~Is multi-device use (same account, two phones, syncing) in scope for v1~~ —
+**answered** by the local-first/offline-first decision: no, not for v1;
+cross-device movement is via explicit manual backup/restore only.

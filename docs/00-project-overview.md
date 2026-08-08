@@ -2,8 +2,10 @@
 
 Status: DRAFT — Phase 0 findings reviewed; confirmed decisions recorded in §2a;
 final Phase 0 validation pass completed (§8a, §11a added; no contradictions found
-in existing decisions). Phase 1 (product requirements) not yet started, pending
-project-owner go-ahead.
+in existing decisions). Phase 1 (product requirements) and Phase 2 (user
+stories) are documented and were subsequently amended with Decision 4
+(local-first/offline-first, §2a) after initial Phase 1 sign-off. Phase 3 has
+not started.
 Date: 2026-08-08 (updated)
 
 ## 2a. Confirmed Project Decisions
@@ -106,6 +108,60 @@ Implication for architecture (Phase 3) and database design (Phase 4): the
 requirement/criterion data model must be rich enough to represent priority
 levels, ranges, exact/approximate matching, and exclusions natively — there is
 no fallback to "let the AI figure it out" if the schema is under-specified.
+
+### Decision 4 — Local-first / offline-first: normal operation requires no internet (added after initial Phase 1 documentation)
+
+**The application is primarily a completely offline application.** Normal daily
+business operations — owner file and applicant file creation/editing/viewing,
+search, filtering, matching, match scoring and explanations, contract
+creation/editing/tracking and expiration calculations, reminder scheduling,
+local notifications, notes, settings, and encrypted backup
+creation/import/validation/restore — **must all work fully offline**, with no
+dependency on server connectivity once the app is running.
+
+- The application must **not** upload business data (owner information,
+  applicant information, property information, requirements, notes, contracts,
+  matches, match explanations, reminders, local business history) to a server
+  during normal operation. This data remains local by default.
+- Network access for the current version is limited to a small, controlled
+  **account/referral surface**: mobile number registration, OTP/SMS
+  verification, referral code validation, recording the registered mobile
+  number, and recording the referral relationship/referral usage. Nothing else
+  requires connectivity.
+- If the user loses connectivity after registration, the core application must
+  continue working normally. Network-dependent operations (registration,
+  login/OTP, referral validation) must fail gracefully with a clear
+  explanation of what specifically requires connectivity — never a generic or
+  confusing error.
+- **No cloud synchronization of business data, no cloud database for business
+  data, no cloud matching, and no cloud backup are required.** Backup remains a
+  local/exportable feature: create an encrypted backup, store it anywhere,
+  transfer it to another device, import/validate/restore it — always as an
+  explicit, user-controlled action, never an assumed background sync.
+- There is **no requirement for multi-device cloud synchronization**. The
+  product must not assume records are synchronized between devices. This
+  resolves the multi-device question left open after the Phase 1 validation
+  pass (§19.6, question 4, in `/docs/01-product-requirements.md`): the answer
+  is that v1 is local-first per device, with cross-device movement handled
+  only via explicit manual backup transfer, not continuous sync.
+- **Do not introduce CRDTs, real-time sync, cloud replication, or
+  conflict-resolution infrastructure** unless a future product decision
+  requires it — none of that is needed once there is no assumed multi-device
+  sync of business data.
+- Contract reminders use **local device notifications**, not push
+  notifications requiring a server round-trip — this removes push-delivery
+  infrastructure as a dependency for the reminder workflow specifically (it
+  does not rule out push for other, optional notification categories later).
+- This decision **does not** select the final local storage technology,
+  encryption algorithm, or key-management architecture — those remain Phase
+  3/4 (`/docs/security/encryption.md`, `/docs/backup/backup-specification.md`)
+  decisions, unaffected in *how* they'll be chosen, only clarified in *what*
+  they must support (a fully offline, non-cloud-dependent business data
+  store).
+
+This is a **binding correction** to the Phase 1 product requirements and user
+stories, made after their initial documentation — see the Phase 1/2 amendment
+recorded in `/docs/changelog.md` for the specific document changes.
 
 ## 1. Purpose
 
@@ -224,10 +280,13 @@ the platform decision (§9) confirms a desktop app is in fact wanted.
 - **Architecture risk (offline/performance)**: PRODUCT.md requires the app to be
   "extremely fast," resilient to offline/poor network, and to use skeleton
   loading/optimistic UI. §10's proposed local-database-as-source-of-truth
-  approach addresses the *storage* half of this, but two things are not yet
-  addressed anywhere and must be picked up in Phase 3, not assumed: (1) a
-  sync/conflict-resolution strategy for whatever server communication exists
-  (referral validation, OTP, any future multi-device backup sync) when
+  approach addresses the *storage* half of this. Following Decision 4
+  (local-first/offline-first, added after initial Phase 1 documentation), the
+  sync/conflict-resolution concern originally flagged here no longer applies to
+  business data — there is no cloud business-data store to reconcile with, and
+  no multi-device sync is assumed. What remains open for Phase 3 is narrower:
+  (1) graceful, clearly explained failure handling for the small
+  account/referral online surface (registration, OTP, referral validation) when
   connectivity is intermittent, and (2) a caching/pagination strategy for list
   rendering (owner files, applicant files, match results) so the matching
   engine's output stays fast as data volume grows. Neither blocks Phase 1, but
@@ -270,6 +329,12 @@ original draft as an open question but has since been settled explicitly and
 strongly: see **Decision 3** in §2a. It is now a hard constraint carried into every
 later phase, not a recommendation.
 
+The application's offline/online posture was originally framed as "resilient to
+poor connectivity"; it has since been sharpened to a hard local-first constraint
+— see **Decision 4** in §2a, added after initial Phase 1 documentation. Business
+data has no required cloud counterpart at all; only the account/referral surface
+needs connectivity.
+
 ## 10. Recommended Architecture (updated for confirmed decisions)
 
 Full detail belongs in `/docs/architecture/system-architecture.md` (Phase 3). At a
@@ -279,10 +344,14 @@ high level, informed by §2a:
   scaffold. Final framework choice to be justified in Phase 3 against the "fast,
   offline-resilient, one-handed" requirements.
 - **Local storage**: on-device database (e.g. SQLite via a mobile-appropriate
-  driver) as the source of truth for offline-first behavior, syncing outward where
-  applicable.
+  driver) as the **sole** source of truth for business data (Decision 4) — not a
+  cache in front of a cloud store. No outward sync of business data is required;
+  cross-device movement is via explicit, user-controlled encrypted backup
+  transfer only (§14 of `/docs/01-product-requirements.md`), never an assumed
+  background sync.
 - **Auth/OTP**: thin backend service validating mobile number + OTP + referral code
-  server-side, fronting an SMS gateway (provider TBD per Decision 2).
+  server-side, fronting an SMS gateway (provider TBD per Decision 2) — this is the
+  entire online surface of the application (Decision 4).
 - **Matching engine**: a self-contained, deterministic, rule-based scoring module
   with zero runtime dependency on any AI API (Decision 3). It must be designed and
   testable in complete isolation from the mobile app shell and from any network
