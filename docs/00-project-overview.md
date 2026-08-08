@@ -1,7 +1,74 @@
 # 00 — Project Overview (Phase 0 Discovery)
 
-Status: DRAFT — awaiting project owner review before large-scale implementation.
-Date: 2026-08-08
+Status: DRAFT — Phase 0 findings reviewed; confirmed decisions recorded in §2a.
+Phase 1 (product requirements) not yet started, pending final project-owner
+go-ahead.
+Date: 2026-08-08 (updated)
+
+## 2a. Confirmed Project Decisions
+
+These decisions have been made by the project owner and supersede the open
+questions raised in the original Phase 0 draft. They are binding constraints on
+every subsequent phase (requirements, user stories, architecture, database,
+matching engine, security, testing).
+
+### Decision 1 — Target platform: real mobile app
+
+The application will be built as a genuine mobile app (React Native or
+Capacitor — to be finalized in Phase 3 architecture), **not** a desktop
+Electron app. The existing Electron/React/TS scaffold does not match this
+direction and will need to be replaced; nothing in it should be treated as
+load-bearing for the CRM itself. OTP/SMS-based registration, offline
+resilience, and one-handed mobile UX (per PRODUCT.md) are first-class
+requirements, not stretch goals.
+
+### Decision 2 — OTP/SMS provider: to be designed/recommended
+
+No SMS/OTP provider is mandated yet. Phase 3 architecture must propose a
+concrete provider and backend approach (e.g., a small auth service fronting an
+SMS gateway) for project-owner confirmation before implementation begins.
+Referral-code validation must happen server-side regardless of provider choice
+(per PRODUCT.md's authentication requirements).
+
+### Decision 3 — Matching engine must be deterministic and AI-independent (critical)
+
+**The core matching engine MUST NOT depend on any external AI API or paid AI
+service.** This is a hard architectural constraint, not a preference:
+
+- The first production version must be a **deterministic, rule-based,
+  configurable scoring engine** operating on structured fields — not an LLM
+  call, not a hosted AI matching API, not a "black box" score.
+- The engine must support priority levels **MUST_HAVE, IMPORTANT, PREFERRED,
+  IGNORE** per requirement criterion (already specified in PRODUCT.md's
+  Matching Engine section — now confirmed as the actual design, not just an
+  example).
+- The engine must support: hard constraints, exclusions, numeric ranges, exact
+  values, approximate values, locations, amenities, preferences, and weighted
+  scoring — all evaluated deterministically from structured data.
+- Every match result must be explainable: matched criteria, mismatched
+  criteria, ignored criteria, and critical (MUST_HAVE) requirements must all be
+  surfaced to the user, with no unexplained aggregate score.
+- **AI is explicitly out of scope for the core engine.** If AI is introduced
+  later, it may only be an *optional enhancement layer* sitting in front of the
+  deterministic engine — e.g. converting free-text natural-language applicant
+  input into structured, user-confirmed requirements, which are then scored by
+  the same deterministic engine. AI must never be in the critical path of
+  producing a match score itself.
+- **The application must remain fully functional with zero AI API
+  configured** — no degraded mode, no missing core feature, no matching-quality
+  cliff when AI is absent. This must hold true at every phase of
+  implementation, not just at "launch."
+
+Implication for later docs: `/docs/matching/matching-engine.md`,
+`/docs/matching/scoring.md`, `/docs/matching/priorities.md`, and
+`/docs/matching/natural-language-rules.md` (Phase-appropriate, created later)
+must all be written against this constraint. `natural-language-rules.md`
+specifically must document natural language as an **optional, replaceable
+input-normalization step**, never a dependency of the scoring algorithm.
+Implication for architecture (Phase 3) and database design (Phase 4): the
+requirement/criterion data model must be rich enough to represent priority
+levels, ranges, exact/approximate matching, and exclusions natively — there is
+no fallback to "let the AI figure it out" if the schema is under-specified.
 
 ## 1. Purpose
 
@@ -118,63 +185,68 @@ the platform decision (§9) confirms a desktop app is in fact wanted.
   Vite defaults).
 - No offline story, no local persistence, no loading/error/empty states anywhere.
 
-## 9. Assumptions Requiring Confirmation
+## 9. Resolved Assumptions (formerly open questions)
 
-The single biggest gap between PRODUCT.md and the current repository is the
-**target platform**:
+The gap identified in the original Phase 0 draft between PRODUCT.md's mobile-first
+language and the Electron desktop scaffold has been resolved by the project owner:
+see **Decision 1** in §2a. The app will be a real mobile app; the current Electron
+scaffold will not be the foundation going forward.
 
-- PRODUCT.md repeatedly specifies a **mobile-first**, "one-handed use" application
-  with OTP/SMS-based registration, offline resilience, and mobile UX patterns
-  (bottom sheets, swipe actions, skeleton loading, etc.).
-- The existing scaffold is an **Electron desktop app** (Windows/macOS/Linux), which
-  has no meaningful concept of "mobile", no on-device SMS/OTP channel, and a
-  fundamentally different input/navigation model (mouse+keyboard, resizable
-  windows) than a phone.
+OTP/SMS provider selection was also open; see **Decision 2** in §2a — Phase 3
+architecture must propose an approach for confirmation, rather than defaulting to
+any specific vendor.
 
-This is not a detail I can resolve by assumption — it changes the recommended
-architecture, the database technology, the UI component library, and the
-authentication delivery mechanism. See the Questions section in the Phase 0 report
-for the decision this requires.
+The matching engine's dependence (or non-dependence) on AI was not raised in the
+original draft as an open question but has since been settled explicitly and
+strongly: see **Decision 3** in §2a. It is now a hard constraint carried into every
+later phase, not a recommendation.
 
-## 10. Recommended Architecture (pending platform decision)
+## 10. Recommended Architecture (updated for confirmed decisions)
 
-Documented at a high level here; full detail belongs in
-`/docs/architecture/system-architecture.md` (Phase 3) once the platform question is
-resolved. Two credible paths:
+Full detail belongs in `/docs/architecture/system-architecture.md` (Phase 3). At a
+high level, informed by §2a:
 
-**Path A — Keep Electron, reframe as a "mobile-first-feeling" desktop app**
-Keep the current stack, constrain the UI to a narrow, phone-like responsive layout,
-and treat "mobile-first" as a design constraint rather than a platform choice. OTP
-delivery would go through a backend SMS provider (Twilio/local gateway) reached over
-HTTPS. Local storage via `better-sqlite3` or similar in the main process. Fastest
-path forward since it reuses 100% of the existing scaffold.
+- **Shell**: React Native (or Capacitor) mobile app, replacing the Electron
+  scaffold. Final framework choice to be justified in Phase 3 against the "fast,
+  offline-resilient, one-handed" requirements.
+- **Local storage**: on-device database (e.g. SQLite via a mobile-appropriate
+  driver) as the source of truth for offline-first behavior, syncing outward where
+  applicable.
+- **Auth/OTP**: thin backend service validating mobile number + OTP + referral code
+  server-side, fronting an SMS gateway (provider TBD per Decision 2).
+- **Matching engine**: a self-contained, deterministic, rule-based scoring module
+  with zero runtime dependency on any AI API (Decision 3). It must be designed and
+  testable in complete isolation from the mobile app shell and from any network
+  connectivity, since it operates purely on locally stored structured data.
+  Natural-language input parsing (if built) is a strictly optional, separable
+  pre-processing step feeding the same structured requirement schema a user can
+  edit by hand.
 
-**Path B — Replace shell with an actual mobile stack**
-Rebuild on React Native (or Capacitor wrapping the existing React codebase) so the
-app installs on iOS/Android, gets native SMS/OTP affordances, native secure storage
-(Keychain/Keystore), and true offline-first mobile UX. This discards the Electron
-scaffold entirely and is a much larger Phase 0→1 jump.
-
-I recommend **Path A only if this is genuinely meant to be used on desktop by
-staff** (e.g., an office CRM), and **Path B if end users are expected to run this
-on their phones**, which the "one-handed use", "offline/poor network", and OTP
-mobile-number registration language in PRODUCT.md strongly implies. This is exactly
-the kind of large architectural assumption the governing instructions say must not
-be made without explicit sign-off — flagged for the project owner, not decided here.
+The prior Electron scaffold is no longer treated as a foundation; whether any of
+its tooling choices (Vite, ESLint config, TypeScript conventions) carry over to the
+mobile stack is a Phase 3 decision, not assumed here.
 
 ## 11. Risks Carried Forward
 
-- Building the full data model, matching engine, and auth system on the wrong
-  platform primitive (desktop vs. mobile) would require significant rework later.
+- Replacing the desktop scaffold with a mobile stack is a larger initial lift than
+  continuing on Electron would have been — expected and accepted per Decision 1,
+  but worth naming as the cost of the corrected direction.
+- The matching engine's data model (priorities, ranges, exact/approximate
+  matching, exclusions) must be fully specified in Phase 4 database design — there
+  is no AI fallback to compensate for an under-specified schema (Decision 3), so
+  errors here are more consequential than they would be in an AI-assisted design.
 - No CI/tests currently gate changes — as soon as real code lands, a test runner
-  (Vitest, given the Vite toolchain) and a minimal CI workflow should be introduced
-  early, not deferred.
+  and a minimal CI workflow should be introduced early, not deferred. The matching
+  engine in particular needs extensive deterministic edge-case tests (PRODUCT.md
+  Testing section), which is easier to guarantee given it has no AI-induced
+  nondeterminism to account for.
 - No secrets-management convention exists — must be defined before OTP
   provider keys or encryption keys are introduced (Phase: Security/Backup docs).
 
 ## 12. Next Steps
 
-Per PRODUCT.md, Phase 0 documentation is created first; Phases 1-4 (product
-requirements, user stories, architecture, database) and the security/matching/
-backup docs are **not yet started**, pending the platform decision in §9-10 and
-project-owner review of this document.
+Per PRODUCT.md, Phase 0 documentation is created first. Platform, OTP-approach, and
+matching-engine-determinism decisions are now confirmed (§2a) and will constrain
+Phases 1-4 and the security/matching/backup docs once they begin. Per explicit
+instruction, **implementation has not started** and Phase 1 (product requirements)
+will not begin until the project owner gives further approval.
