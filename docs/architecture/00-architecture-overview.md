@@ -151,5 +151,37 @@ happens to be able to work without.
 | `/docs/architecture/ux-dependencies.md` | What waits for the Stitch UI designs |
 | `/docs/architecture/unresolved-decisions.md` | Consolidated open-decision tracker across all Phase 3 docs |
 
-See the end of this document set for the consolidated A–G report delivered to
+## Revised implementation order
+
+**[CONFIRMED — corrected after Phase 3 review]** The order below replaces the
+prior draft's ordering, which placed UI implementation too late. UI/UX design
+and review must happen **before** production implementation, not after
+architecture and data-layer work — the project owner's product workflow is
+authoritative here:
+
+1. Phase 3 architecture analysis (this document set).
+2. UI/UX design in Stitch.
+3. UI/UX review and approval.
+4. Finalize architecture decisions affected by the approved UX (per
+   `/docs/architecture/ux-dependencies.md`'s "WAIT FOR STITCH" rows).
+5. Final database/data architecture (Phase 4 — builds on
+   `/docs/database/conceptual-data-model.md`).
+6. Final security/encryption/key-management design (a dedicated step,
+   resolving the [DEFERRED] items in the backup and threat-model documents).
+7. Authentication/OTP architecture finalized (provider selection, ADR-003;
+   session-lifecycle mechanism per the corrected rule in
+   `/docs/security/authentication-otp-architecture.md`).
+8. Matching engine implementation/design validation (scoring formula
+   finalized against the Phase 4 schema, per
+   `/docs/matching/matching-architecture.md`).
+9. Contracts/reminders/notifications implementation.
+10. Production implementation.
+11. Testing/security audit.
+12. Release preparation.
+
+This order may be refined as later phases surface new information, but the
+constraint that UI/UX must be designed and reviewed **before** production
+implementation begins is fixed, not subject to later reordering.
+
+See the end of this document set for the consolidated A–H report delivered to
 the project owner alongside this phase.

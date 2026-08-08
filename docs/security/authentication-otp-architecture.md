@@ -106,29 +106,66 @@ until the next time a *new* session must be established.
   ONLINE_REQUIRED moment beyond initial registration (a returning user
   logging in again, e.g. after logout or on a new device, per AUTH-02).
   Once established, the session credential is used purely locally to gate
-  access to the local database — **[OPEN-ARCH]** whether continued app use
-  requires periodically re-validating the session with the backend (e.g. a
-  background token refresh) or is purely local until an explicit new-session
-  event is a real architectural fork:
-  - **Option A — purely local after establishment**: once logged in, the
-    session credential (and the local data it unlocks) remains valid
-    indefinitely on-device until explicit logout, with no further network
-    contact required. Maximizes offline-first purity (Decision 4) but means
-    "revoke this session remotely" (e.g. a stolen device scenario) has no
-    teeth unless the device later happens to come online and check.
-  - **Option B — periodic background re-validation when online**: the app
-    opportunistically re-checks session validity with the backend when
-    connectivity happens to be available, without *requiring* it to keep
-    working offline. Preserves offline-first (still fully functional with
-    zero connectivity, per Decision 4) while giving remote revocation some
-    practical effect for a user who does eventually reconnect.
-  - **[PROPOSED]** Option B is recommended as more consistent with the
-    security requirement that sessions "can be revoked" (Phase 1 §18)
-    actually meaning something, while still fully satisfying "the app remains
-    functional offline" — the check is opportunistic, never blocking. Not
-    finalized; a genuine trade-off the project owner may want to weigh in on
-    given it's the one place session security and pure-offline purity are in
-    tension.
+  access to the local database.
+
+### The critical local-first rule: NETWORK FAILURE ≠ AUTHENTICATION FAILURE
+
+**[CONFIRMED — critical rule, corrected after Phase 3 review]** A prior draft
+of this document treated "purely local sessions" and "background
+re-validation" as two competing options in tension with offline-first purity.
+That framing was wrong: it's not actually a trade-off if the two failure
+modes below are kept strictly separate, which is now a hard architectural
+rule, not a preference.
+
+- **An already-authenticated user MUST be able to continue using the core
+  application when the internet is unavailable.** This is non-negotiable and
+  follows directly from Decision 4 — it is not weighed against anything else
+  below.
+- **Background session re-validation MAY be used when connectivity happens to
+  be available**, but its outcome must be interpreted according to a strict
+  distinction between two categories of result:
+
+  | Event | Interpretation | Effect on local session |
+  |---|---|---|
+  | No connectivity at all | **NETWORK FAILURE** | Session remains valid and usable. App continues fully offline. No re-validation attempt is even made. |
+  | Request times out | **NETWORK FAILURE** | Same as above — a timeout carries no information about session validity, only that the check itself didn't complete. |
+  | Server unreachable / temporarily unavailable (5xx, connection refused, DNS failure, etc.) | **NETWORK FAILURE** | Same as above — an unreachable server cannot be assumed to mean "revoked"; it means "unknown," and unknown must never be treated as revoked. |
+  | Server reachable and responds "this session is invalid / expired / revoked" | **AUTHENTICATION FAILURE** | The defined security response applies: the local session is ended and the user must re-authenticate (AUTH-02). This is the *only* row in this table that ends a session. |
+
+- **[BUSINESS RULE, non-negotiable]**: failed network access must NOT log the
+  user out. Timeout must NOT log the user out. Temporary server
+  unavailability must NOT log the user out. Offline state must NOT block any
+  core application functionality (per §4a: all business-data workflows are
+  OFFLINE regardless of session-revalidation state). The local authenticated
+  session remains usable according to the security/session policy defined
+  here — anything short of an explicit, successfully-delivered
+  "session is invalid" response from the server is treated as "no new
+  information," not as a revocation signal.
+- **What remains genuinely open** (an implementation-mechanics question, not
+  the policy above, which is now fixed): *when* and *how often* the app
+  opportunistically attempts a background re-validation check while online
+  (e.g. on app foreground, on a timer, on specific sensitive actions), and
+  what specific local session representation (token, expiry metadata, etc.)
+  it uses. **[OPEN-ARCH]** — this is a cadence/mechanism detail for
+  implementation, not a security-policy question, since the policy above
+  applies identically no matter how often the check runs.
+
+### Remaining security trade-off (explicitly identified, not resolved here)
+
+Because a revocation can only take effect once the device happens to be
+online and successfully reach the server, **a stolen or compromised device
+that is kept offline (or on a network the attacker controls to block the
+re-validation call) retains local access to that session for as long as it
+stays offline.** This is an inherent property of any local-first,
+offline-capable system — the alternative (requiring connectivity to use the
+app at all, so revocation is always enforceable) is explicitly ruled out by
+Decision 4. This trade-off is not resolved by this document; it is named so
+the project owner is not surprised by it later. Mitigations that reduce (but
+do not eliminate) its impact, without violating the offline-first rule above,
+include: shorter opportunistic re-validation intervals when online (a
+cadence detail, not a policy change), and app-level protections like a local
+device unlock/PIN gate on the app itself — **[OPEN-ARCH, UX-dependent]**, not
+designed here.
 
 ## Referral validation
 
@@ -163,17 +200,26 @@ until the next time a *new* session must be established.
   thing that becomes unavailable offline post-authentication is establishing
   a brand-new session (e.g. after an explicit logout, or on a new device),
   which is expected and already handled gracefully per AUTH-06.
-- If session-lifecycle Option B (background re-validation) is adopted, its
-  explicit design constraint is that it must never block or degrade offline
-  use — a failed or skipped background re-validation check (because the
-  device is offline) must be silently deferred, not surfaced as an error or a
-  forced logout.
+- **[CONFIRMED — restated from the Session Lifecycle section above]**
+  Background re-validation's explicit design constraint is that it must never
+  block or degrade offline use, and must never treat a NETWORK FAILURE as a
+  reason to log the user out — a failed, timed-out, or skipped background
+  re-validation check (because the device is offline, or the server is
+  temporarily unreachable) is silently deferred, full stop, not surfaced as
+  an error and never a forced logout. Only an explicit AUTHENTICATION FAILURE
+  response from a reachable server triggers the defined security response.
 
 ## Risks
 
-- Session-lifecycle Option A vs. B (above) is the main open architectural
-  tension in this document and should be resolved before implementation,
-  since it affects how "revoked session" is even representable.
+- The remaining trade-off named in the Session Lifecycle section (a stolen
+  device kept offline retains local session access until it reconnects) is
+  inherent to any offline-first system and is not resolved by this document —
+  named explicitly so it is a known, accepted property rather than a
+  surprise.
+- The re-validation cadence/mechanism (when/how often the opportunistic check
+  runs) remains an open implementation detail — unlike the policy governing
+  its outcome, which is now fixed (NETWORK FAILURE vs. AUTHENTICATION
+  FAILURE, above).
 - OTP/referral abuse-prevention thresholds are currently only qualitatively
   specified — real values need tuning against expected usage patterns once
   those are better understood, and against whatever the eventual OTP
@@ -181,7 +227,11 @@ until the next time a *new* session must be established.
 
 ## Unresolved questions carried to `/docs/architecture/unresolved-decisions.md`
 
-- Session-lifecycle Option A vs. B.
+- Background re-validation cadence/mechanism (the policy governing its
+  outcome — NETWORK FAILURE vs. AUTHENTICATION FAILURE — is now confirmed,
+  not open).
 - Exact OTP expiry/attempt-limit values (currently illustrative only).
 - Exact rate-limiting thresholds.
 - OTP provider selection (ADR-003, explicitly deferred).
+- Local device unlock/PIN gate as a mitigation for the offline-stolen-device
+  trade-off — open and UX-dependent.

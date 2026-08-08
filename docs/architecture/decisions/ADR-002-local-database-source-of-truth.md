@@ -79,7 +79,11 @@ here as the natural pairing for at-rest encryption, but the actual encryption
 approach is analyzed and left open in
 `/docs/backup/backup-architecture-analysis.md` and
 `/docs/security/threat-model.md` per the explicit instruction not to finalize
-encryption/key management in this phase.
+encryption/key management in this phase. **[CONFIRMED, updated after Phase 3
+review]** At-rest encryption of this database is a **required** security
+requirement, not optional (`/docs/security/threat-model.md`, "Local data
+protection") — only the specific algorithm/key-management mechanism remains
+open, not whether encryption happens at all.
 
 ## Consequences
 

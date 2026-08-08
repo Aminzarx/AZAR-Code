@@ -3,7 +3,8 @@
 Status: DRAFT — consolidates every open item flagged across the Phase 3
 document set into one place, so nothing gets lost between documents. Update
 this file whenever an item below is resolved elsewhere.
-Date: 2026-08-08
+Date: 2026-08-08 (revised — two items newly resolved at the policy level,
+mechanism still open, see notes below)
 
 ## Platform
 
@@ -23,21 +24,45 @@ Date: 2026-08-08
 ## Backup / encryption
 
 - Final encryption algorithm and KDF selection — explicitly deferred to a
-  dedicated security design step.
+  dedicated security design step. **[CONFIRMED constraint on this choice]**:
+  because a stolen backup file can be brute-forced entirely offline with no
+  rate limiting the app can enforce, the KDF must be deliberately slow/
+  memory-hard (e.g. Argon2id-class, per
+  `/docs/security/threat-model.md`'s brute-force analysis) — this narrows the
+  eventual choice without finalizing it.
 - Final key-management model — this document [PROPOSED] a hybrid approach
   (device-held key for local at-rest protection + user password-derived key
   for portable backup) but did not finalize it.
 - Backup version-compatibility policy (migrate-forward vs. reject window).
 - Restore-onto-existing-data behavior (block vs. overwrite).
-- Whether the local database itself should be encrypted at rest (ties to
-  threat-model.md's local data protection item).
+- ~~Whether the local database itself should be encrypted at rest~~ —
+  **resolved at the policy level**: at-rest encryption of sensitive local
+  business data is now a **[CONFIRMED REQUIRED]** security requirement
+  (`/docs/security/threat-model.md`, "Local data protection"), not an open
+  yes/no question. What remains open is the **mechanism**: the specific
+  algorithm and key-management architecture, both **[DEFERRED]** to the
+  dedicated security design step (item above, "Final encryption algorithm
+  and KDF selection" / "Final key-management model").
 
 ## Authentication / OTP
 
 - OTP/SMS provider selection (ADR-003) — explicitly deferred by instruction.
-- Session-lifecycle Option A (purely local) vs. Option B (opportunistic
-  background re-validation when online) — this document [PROPOSED] Option B
-  but flagged it as a genuine trade-off worth project-owner input.
+- ~~Session-lifecycle Option A (purely local) vs. Option B (opportunistic
+  background re-validation)~~ — **resolved at the policy level**:
+  background re-validation MAY be used when online, but a NETWORK FAILURE
+  (no connectivity, timeout, temporary server unavailability) must never log
+  the user out or block core functionality — only an explicit
+  AUTHENTICATION FAILURE response from a reachable server triggers the
+  defined security response (`/docs/security/authentication-otp-architecture.md`,
+  "The critical local-first rule"). What remains open is the **cadence/
+  mechanism**: when and how often the opportunistic check runs, and the local
+  session representation used — both **[OPEN-ARCH]**, implementation-phase
+  details, not policy questions.
+- A remaining, explicitly named (not resolved) security trade-off: a stolen/
+  compromised device kept offline retains local session access until it
+  reconnects — inherent to any offline-first system, mitigations
+  (re-validation cadence, local device unlock/PIN gate) are open and partly
+  UX-dependent.
 - Exact OTP expiry/attempt-limit values (currently illustrative only, carried
   from Phase 1).
 - Exact rate-limiting thresholds for OTP requests/verification/referral

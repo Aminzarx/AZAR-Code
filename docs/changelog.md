@@ -324,3 +324,71 @@ Electron scaffold in `src/` is untouched.
 reminder scheduler, backup system, or auth flow — it establishes the
 conceptual architecture and constraints those future implementations, and
 their tests, must satisfy.
+
+---
+
+## 2026-08-08 — Phase 3 corrections: encryption requirement, session lifecycle rule, UX dependency expansion, implementation order
+
+**Change**: Conditionally-approved Phase 3 review produced four required
+corrections, applied across the existing Phase 3 documents (not a restart):
+
+1. **Local database encryption** — `/docs/security/threat-model.md`'s "Local
+   data protection" section previously framed at-rest encryption as an open
+   yes/no question. Corrected: encryption of sensitive local business data at
+   rest is now a **[CONFIRMED REQUIRED]** security requirement, explicitly
+   separated from the still-**[DEFERRED]** algorithm and key-management
+   implementation choices. `/docs/architecture/decisions/ADR-002-local-database-source-of-truth.md`
+   updated to reflect the same distinction. Local device compromise and
+   stolen/lost device (including forensic extraction) are now named
+   explicitly as the threats this requirement addresses.
+2. **Session lifecycle — critical offline-first rule** —
+   `/docs/security/authentication-otp-architecture.md`'s session lifecycle
+   section rewritten. The prior "Option A vs. Option B" framing incorrectly
+   treated offline-first purity and session security as competing
+   alternatives. Corrected: background re-validation may run when online, but
+   a strict distinction is now confirmed policy — **NETWORK FAILURE** (no
+   connectivity, timeout, temporary server unavailability) never logs the
+   user out or blocks core functionality; only an explicit
+   **AUTHENTICATION FAILURE** response from a reachable server triggers the
+   defined security response. The remaining trade-off (a stolen, kept-offline
+   device retains local session access until it reconnects) is named
+   explicitly rather than resolved. `/docs/security/threat-model.md` updated
+   to reference this distinction under Authentication/session protection.
+3. **UX dependencies expanded** — `/docs/architecture/ux-dependencies.md`
+   rewritten with a three-way classification (FINALIZE NOW / WAIT FOR STITCH
+   / INDEPENDENT OF UI) applied to all 16 requested areas (navigation,
+   one-handed interaction, form architecture, shared owner/applicant fields,
+   search/filtering, matching workflow, match explanation presentation,
+   contract workflow, reminder management, backup/export/import UX, restore
+   workflow, offline/loading/empty/error states, destructive-action
+   confirmation, notification permission UX), separating what's
+   architecturally settled now from what genuinely waits for Stitch.
+4. **Implementation order corrected** — `/docs/architecture/00-architecture-overview.md`
+   gained a "Revised implementation order" section placing Stitch UI/UX
+   design and review immediately after Phase 3 architecture analysis and
+   before final data/security/auth/matching design work and production
+   implementation, per the project owner's specified product workflow.
+
+Additionally, `/docs/security/threat-model.md` was expanded with explicit
+threat entries for brute-force backup password attempts (offline,
+un-rate-limitable — establishing a slow/memory-hard KDF as a confirmed
+constraint on the still-deferred KDF choice) and OTP abuse, and
+`/docs/architecture/unresolved-decisions.md` was updated to move the local-DB-
+encryption and session-lifecycle-policy items from "open" to "policy
+resolved, mechanism open."
+
+**Reason**: Explicit project-owner correction after conditional Phase 3
+approval — implementation still not authorized to begin.
+
+**Affected modules**: Documentation only. No application code was written, no
+dependencies were installed. React Native remains the proposed (not final)
+platform candidate; encryption algorithm, KDF, key management, OTP provider,
+final scoring formula/weights, final database schema, migration tooling, and
+exact rate limits all remain explicitly unresolved, per instruction.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet. The corrected session-lifecycle rule (NETWORK FAILURE vs.
+AUTHENTICATION FAILURE) and the required at-rest encryption are both flagged
+as behaviors that will need dedicated tests once implementation begins —
+recorded here so they aren't lost between this phase and the testing phase.
