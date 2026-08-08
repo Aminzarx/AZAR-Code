@@ -864,3 +864,51 @@ database schema were touched. Phase 4 implementation was not started.
 new/changed screens were regenerated through the established real-render
 pipeline (compiled Tailwind CSS, real fonts, headless Chromium) — none are
 placeholders or stale copies.
+
+## 2026-08-08 — Human writing & language quality standard; new content style guide
+
+**What changed**: Established a project-wide language-quality standard so
+all user-facing copy (and product documentation) reads as natural,
+professional writing rather than machine-generated or literally-translated
+text. Created `/docs/ui/content-style-guide.md` as the authoritative
+source for terminology, Persian writing rules, punctuation, and
+error/confirmation/button-label conventions going forward.
+
+As part of establishing the standard, an editorial pass over the existing
+Stitch package found and fixed three genuine issues (not a full rewrite —
+the existing copy was largely already sound):
+
+1. `applicant_smart_requirements`: the screen title ("Smart Requirements")
+   and description ("Configure the smart matching algorithm... This
+   ensures high-precision recommendations") implied AI/algorithmic
+   intelligence for what is actually a user-configured, deterministic
+   priority list. Retitled to "Applicant Requirements" with copy that
+   describes what the feature does without overclaiming.
+2. `settings_backup_management`: a progress message read "Encrypting local
+   database..." — implementation detail (the word "database") leaking into
+   user-facing copy. Changed to "Encrypting your data..."
+3. `restore_progress`: a progress message read "Decrypting and writing to
+   the local database. Do not close the app." — same technical leak, plus
+   an abrupt second sentence. Changed to "Decrypting and applying your
+   backup. Please don't close the app while this is running."
+
+The restore safety-backup flow's Persian copy (added in the prior
+"FINAL UI correction pass" entry) was reviewed against the new standard
+and found already compliant — natural sentence structure, correct ZWNJ
+usage, consistent terminology, no literal translation from English.
+
+**Reason**: Explicit project-owner instruction that all user-facing text
+must read as if written by an experienced human UX writer, with a durable
+style guide so future copy stays consistent rather than drifting screen by
+screen.
+
+**Affected modules**: Documentation (`/docs/ui/content-style-guide.md`,
+new) and three Stitch screens' `code.html`/`screen.png`
+(`applicant_smart_requirements`, `settings_backup_management`,
+`restore_progress`). No product logic, design system, or application code
+was changed — this pass touched language only.
+
+**Migration requirements**: None — documentation and copy only.
+
+**Tests**: None yet. The three corrected screens were re-rendered through
+the established real-render pipeline; screenshots are not stale.
