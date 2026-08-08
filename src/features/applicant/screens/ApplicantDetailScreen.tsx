@@ -5,6 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Card, ErrorState, LoadingIndicator } from '@shared/components'
+import { SuggestedPropertiesSection } from '@features/matching/components/SuggestedPropertiesSection'
 import { useApplicantDetail } from '../hooks/useApplicantDetail'
 import { useApplicantService } from '../hooks/useApplicantService'
 import { ApplicantForm } from '../components/ApplicantForm'
@@ -228,6 +229,13 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
             />
           </Card>
         )}
+
+        {applicant && !isEditing ? (
+          <SuggestedPropertiesSection
+            applicant={applicant}
+            onSelectProperty={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
+          />
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   )

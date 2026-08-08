@@ -5,6 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Card, ErrorState, LoadingIndicator } from '@shared/components'
+import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
 import { usePropertyDetail } from '../hooks/usePropertyDetail'
 import { usePropertyService } from '../hooks/usePropertyService'
 import { PropertyForm } from '../components/PropertyForm'
@@ -27,7 +28,7 @@ function toFormValues(property: Property): PropertyFormValues {
   }
 }
 
-export function PropertyDetailScreen({ route }: Props): React.JSX.Element {
+export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { propertyId } = route.params
@@ -176,6 +177,15 @@ export function PropertyDetailScreen({ route }: Props): React.JSX.Element {
             />
           </Card>
         )}
+
+        {property && !isEditing ? (
+          <SuggestedApplicantsSection
+            property={property}
+            onSelectApplicant={(applicantId) =>
+              navigation.navigate('ApplicantDetail', { applicantId })
+            }
+          />
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   )
