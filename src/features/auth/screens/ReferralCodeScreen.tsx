@@ -1,17 +1,18 @@
 import React, { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '@navigation/AuthNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
-import { AuthTextField } from '@shared/components/AuthTextField'
-import { PrimaryButton } from '@shared/components/PrimaryButton'
+import { useTheme, type Theme } from '@shared/theme'
+import { Button, TextInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
-import { colors, spacing, typography } from '@shared/tokens'
+import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ReferralCode'>
 
 export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
   const { phoneNumber } = route.params
   const { register } = useAuth()
   const [referralCode, setReferralCode] = useState('')
@@ -38,64 +39,48 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>کد معرف</Text>
-          <Text style={styles.subtitle}>
-            برای تکمیل ثبت‌نام، کد معرفِ فرد دعوت‌کننده را وارد کنید.
-          </Text>
-        </View>
-        <View style={styles.form}>
-          <AuthTextField
-            label="کد معرف"
-            value={referralCode}
-            onChangeText={setReferralCode}
-            placeholder="ABCD1234"
-            maxLength={8}
-            errorMessage={error ?? undefined}
-            autoFocus
-          />
-          <PrimaryButton
-            label="تکمیل ثبت‌نام"
-            onPress={handleSubmit}
-            loading={isSubmitting}
-            disabled={referralCode.length < 8}
-          />
-        </View>
+    <AuthScreenContainer>
+      <View style={styles.header}>
+        <Text style={[theme.typography('titleMd'), styles.headerTitle]}>کد معرف</Text>
+        <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>
+          برای تکمیل ثبت‌نام، کد معرفِ فرد دعوت‌کننده را وارد کنید.
+        </Text>
       </View>
-    </SafeAreaView>
+      <View style={styles.form}>
+        <TextInput
+          label="کد معرف"
+          value={referralCode}
+          onChangeText={setReferralCode}
+          placeholder="ABCD1234"
+          maxLength={8}
+          errorMessage={error ?? undefined}
+          autoFocus
+        />
+        <Button
+          label="تکمیل ثبت‌نام"
+          onPress={handleSubmit}
+          loading={isSubmitting}
+          disabled={referralCode.length < 8}
+        />
+      </View>
+    </AuthScreenContainer>
   )
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background
-  },
-  container: {
-    flex: 1,
-    padding: spacing.space6,
-    gap: spacing.space8
-  },
-  header: {
-    gap: spacing.space2
-  },
-  title: {
-    fontSize: typography.titleMd.fontSize,
-    fontWeight: typography.titleMd.fontWeight,
-    lineHeight: typography.titleMd.lineHeight,
-    color: colors.primary,
-    textAlign: 'right',
-    writingDirection: 'rtl'
-  },
-  subtitle: {
-    fontSize: typography.bodyMd.fontSize,
-    color: colors.onSurfaceVariant,
-    textAlign: 'right',
-    writingDirection: 'rtl'
-  },
-  form: {
-    gap: spacing.space6
-  }
-})
+function createStyles(theme: Theme) {
+  return StyleSheet.create({
+    header: {
+      gap: theme.spacing.space2,
+      marginBottom: theme.spacing.space8
+    },
+    headerTitle: {
+      color: theme.colors.primary
+    },
+    headerSubtitle: {
+      color: theme.colors.onSurfaceVariant
+    },
+    form: {
+      gap: theme.spacing.space6
+    }
+  })
+}

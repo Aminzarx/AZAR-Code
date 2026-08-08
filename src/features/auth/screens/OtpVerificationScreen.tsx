@@ -1,17 +1,18 @@
 import React, { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '@navigation/AuthNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
-import { AuthTextField } from '@shared/components/AuthTextField'
-import { PrimaryButton } from '@shared/components/PrimaryButton'
+import { useTheme, type Theme } from '@shared/theme'
+import { Button, TextInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
-import { colors, spacing, typography } from '@shared/tokens'
+import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'OtpVerification'>
 
 export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
   const { phoneNumber } = route.params
   const { verifyOtp } = useAuth()
   const [code, setCode] = useState('')
@@ -36,63 +37,49 @@ export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.E
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>کد تأیید را وارد کنید</Text>
-          <Text style={styles.subtitle}>کد ارسال‌شده به {phoneNumber} را وارد کنید.</Text>
-        </View>
-        <View style={styles.form}>
-          <AuthTextField
-            label="کد تأیید"
-            value={code}
-            onChangeText={setCode}
-            placeholder="123456"
-            keyboardType="number-pad"
-            maxLength={6}
-            errorMessage={error ?? undefined}
-            autoFocus
-          />
-          <PrimaryButton
-            label="تأیید کد"
-            onPress={handleSubmit}
-            loading={isSubmitting}
-            disabled={code.length < 4}
-          />
-        </View>
+    <AuthScreenContainer>
+      <View style={styles.header}>
+        <Text style={[theme.typography('titleMd'), styles.headerTitle]}>کد تأیید را وارد کنید</Text>
+        <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>
+          کد ارسال‌شده به {phoneNumber} را وارد کنید.
+        </Text>
       </View>
-    </SafeAreaView>
+      <View style={styles.form}>
+        <TextInput
+          label="کد تأیید"
+          value={code}
+          onChangeText={setCode}
+          placeholder="123456"
+          keyboardType="number-pad"
+          maxLength={6}
+          errorMessage={error ?? undefined}
+          autoFocus
+        />
+        <Button
+          label="تأیید کد"
+          onPress={handleSubmit}
+          loading={isSubmitting}
+          disabled={code.length < 4}
+        />
+      </View>
+    </AuthScreenContainer>
   )
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background
-  },
-  container: {
-    flex: 1,
-    padding: spacing.space6,
-    gap: spacing.space8
-  },
-  header: {
-    gap: spacing.space2
-  },
-  title: {
-    fontSize: typography.titleMd.fontSize,
-    fontWeight: typography.titleMd.fontWeight,
-    lineHeight: typography.titleMd.lineHeight,
-    color: colors.primary,
-    textAlign: 'right',
-    writingDirection: 'rtl'
-  },
-  subtitle: {
-    fontSize: typography.bodyMd.fontSize,
-    color: colors.onSurfaceVariant,
-    textAlign: 'right',
-    writingDirection: 'rtl'
-  },
-  form: {
-    gap: spacing.space6
-  }
-})
+function createStyles(theme: Theme) {
+  return StyleSheet.create({
+    header: {
+      gap: theme.spacing.space2,
+      marginBottom: theme.spacing.space8
+    },
+    headerTitle: {
+      color: theme.colors.primary
+    },
+    headerSubtitle: {
+      color: theme.colors.onSurfaceVariant
+    },
+    form: {
+      gap: theme.spacing.space6
+    }
+  })
+}

@@ -1,11 +1,11 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
-import { PrimaryButton } from '@shared/components/PrimaryButton'
-import { colors, spacing, typography } from '@shared/tokens'
+import { useTheme, type Theme } from '@shared/theme'
+import { Button } from '@shared/components'
+import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'BasicProfile'>
 
@@ -16,54 +16,42 @@ type Props = NativeStackScreenProps<MainStackParamList, 'BasicProfile'>
  * confirmation the Phase 8 flow asks for.
  */
 export function BasicProfileScreen({ navigation }: Props): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
   const { session } = useAuth()
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>ثبت‌نام شما تکمیل شد</Text>
-          <Text style={styles.subtitle}>کد معرف اختصاصی شما:</Text>
-          <Text style={styles.referralCode}>{session?.referralCode}</Text>
-        </View>
-        <PrimaryButton label="ورود به اپلیکیشن" onPress={() => navigation.navigate('Home')} />
+    <AuthScreenContainer justify="space-between">
+      <View style={styles.header}>
+        <Text style={[theme.typography('headlineLgMobile'), styles.title]}>
+          ثبت‌نام شما تکمیل شد
+        </Text>
+        <Text style={[theme.typography('bodyMd'), styles.subtitle]}>کد معرف اختصاصی شما:</Text>
+        <Text style={[theme.typography('headlineLgMobile'), styles.code]}>
+          {session?.referralCode}
+        </Text>
       </View>
-    </SafeAreaView>
+      <Button label="ورود به اپلیکیشن" onPress={() => navigation.navigate('Home')} />
+    </AuthScreenContainer>
   )
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'space-between',
-    padding: spacing.space6
-  },
-  header: {
-    gap: spacing.space3
-  },
-  title: {
-    fontSize: typography.headlineLgMobile.fontSize,
-    fontWeight: typography.headlineLgMobile.fontWeight,
-    lineHeight: typography.headlineLgMobile.lineHeight,
-    color: colors.primary,
-    textAlign: 'right',
-    writingDirection: 'rtl'
-  },
-  subtitle: {
-    fontSize: typography.bodyMd.fontSize,
-    color: colors.onSurfaceVariant,
-    textAlign: 'right',
-    writingDirection: 'rtl'
-  },
-  referralCode: {
-    fontSize: typography.headlineLgMobile.fontSize,
-    fontWeight: '700',
-    color: colors.primary,
-    textAlign: 'center',
-    letterSpacing: 4
-  }
-})
+function createStyles(theme: Theme) {
+  return StyleSheet.create({
+    header: {
+      gap: theme.spacing.space3
+    },
+    title: {
+      color: theme.colors.primary
+    },
+    subtitle: {
+      color: theme.colors.onSurfaceVariant
+    },
+    code: {
+      color: theme.colors.primary,
+      fontWeight: '700',
+      textAlign: 'center',
+      letterSpacing: 4
+    }
+  })
+}
