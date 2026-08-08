@@ -93,4 +93,32 @@ describe('DashboardScreen', () => {
     fireEvent.press(await findByLabelText('پرونده‌های ملکی: 3'))
     expect(mockNavigate).toHaveBeenCalledWith('PropertyList')
   })
+
+  it('navigates to CreateApplicant when the add-applicant quick action is pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [{ id: 'applicants', label: 'متقاضیان', value: '0' }],
+      recentActivity: []
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('افزودن متقاضی'))
+    expect(mockNavigate).toHaveBeenCalledWith('CreateApplicant')
+  })
+
+  it('navigates to ApplicantList when the applicants stat card is pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [{ id: 'applicants', label: 'متقاضیان', value: '5' }],
+      recentActivity: []
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('متقاضیان: 5'))
+    expect(mockNavigate).toHaveBeenCalledWith('ApplicantList')
+  })
 })

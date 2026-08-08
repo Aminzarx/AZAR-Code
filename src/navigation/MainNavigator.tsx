@@ -5,6 +5,9 @@ import { DashboardScreen } from '@features/dashboard/DashboardScreen'
 import { PropertyListScreen } from '@features/property/screens/PropertyListScreen'
 import { CreatePropertyScreen } from '@features/property/screens/CreatePropertyScreen'
 import { PropertyDetailScreen } from '@features/property/screens/PropertyDetailScreen'
+import { ApplicantListScreen } from '@features/applicant/screens/ApplicantListScreen'
+import { CreateApplicantScreen } from '@features/applicant/screens/CreateApplicantScreen'
+import { ApplicantDetailScreen } from '@features/applicant/screens/ApplicantDetailScreen'
 
 export type MainStackParamList = {
   BasicProfile: undefined
@@ -12,6 +15,9 @@ export type MainStackParamList = {
   PropertyList: undefined
   CreateProperty: undefined
   PropertyDetail: { propertyId: string }
+  ApplicantList: undefined
+  CreateApplicant: undefined
+  ApplicantDetail: { applicantId: string }
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -29,6 +35,9 @@ export function MainNavigator(): React.JSX.Element {
       <Stack.Screen name="PropertyList" component={PropertyListScreen} />
       <Stack.Screen name="CreateProperty" component={CreatePropertyScreen} />
       <Stack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
+      <Stack.Screen name="ApplicantList" component={ApplicantListScreen} />
+      <Stack.Screen name="CreateApplicant" component={CreateApplicantScreen} />
+      <Stack.Screen name="ApplicantDetail" component={ApplicantDetailScreen} />
     </Stack.Navigator>
   )
 }

@@ -32,7 +32,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
     {
       id: 'add-applicant',
       label: 'افزودن متقاضی',
-      onPress: () => announceComingSoon('افزودن متقاضی')
+      onPress: () => navigation.navigate('CreateApplicant')
     },
     {
       id: 'contracts',
@@ -81,7 +81,9 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                     onPress={
                       stat.id === 'properties'
                         ? () => navigation.navigate('PropertyList')
-                        : undefined
+                        : stat.id === 'applicants'
+                          ? () => navigation.navigate('ApplicantList')
+                          : undefined
                     }
                   />
                 ))}
