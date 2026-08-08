@@ -1121,3 +1121,79 @@ report delivered alongside this entry — the conditions are the remaining
 open items (Argon2id parameter benchmarking, a future implementation-level
 crypto review, and the still-open UX-dependent items), none of which are
 CRITICAL or unresolved HIGH findings.
+
+## 2026-08-08 — Phase 5: implementation master plan
+
+**What changed**: With the architecture and security design gated
+`SECURITY GATE PASSED WITH CONDITIONS`, this pass produced the complete
+implementation roadmap — twelve phases (Phase 5 through Phase 16) taking
+the project from the current Electron scaffold to a released React
+Native application. No application code was written, the Electron
+scaffold was not touched, and no production dependency was installed;
+this remains a planning pass.
+
+Three documents created:
+
+1. **`/docs/implementation/implementation-roadmap.md`** — Project
+   Foundation, Local Database, Security & Cryptography, Authentication &
+   Referral, Matching Engine, Contracts & Reminders, UI Foundation,
+   Feature UI Implementation, Integration, Testing & Quality, Security
+   Audit, and Release Preparation, each with an objective, inputs,
+   outputs, expected files, dependencies, security/performance/UX
+   considerations, tests, acceptance criteria, and an exit gate. A
+   dependency graph identifies exactly two safe parallelization
+   opportunities (authentication, matching, and contracts/reminders can
+   proceed in parallel once the encrypted database exists; UI foundation
+   work can start alongside them) and explicitly declines to recommend
+   parallelizing anything else, since every later phase genuinely depends
+   on the one before it.
+2. **`/docs/implementation/ui-screen-mapping.md`** — every one of the 44
+   Stitch screens/states mapped to a React Native screen, route, data
+   source, and its loading/empty/error/success behavior. The restore
+   safety-backup flow's ten states are mapped directly onto
+   `04-final-architecture.md`'s restore state machine, state for state,
+   specifically flagged as the highest-risk wiring in the whole mapping.
+   Three genuine design gaps were found and documented rather than
+   silently designed around: no empty-state pattern yet exists for the
+   file list, match results, or contract timeline screens (or a true
+   first-run dashboard), and no skeleton/loading-state visual pattern has
+   been designed at all — both need a short, focused design addition
+   before or during the UI implementation phase.
+3. **`/docs/implementation/testing-strategy.md`** — the full test
+   taxonomy, a catastrophic-scenario table (corrupted backup, wrong
+   password, interrupted restore, insufficient storage, app crash during
+   restore, database corruption, failed migration, network failure,
+   authentication failure, duplicate reminder, duplicate referral,
+   malicious backup — each with its required correct behavior, not just
+   "doesn't crash"), a security testing matrix covering backup and
+   database confidentiality/integrity, key storage, temporary-file and
+   logging leakage, device-compromise behavior, and referral/OTP abuse,
+   plus RTL/accessibility and performance testing plans against the
+   100/1,000/10,000/50,000-record dataset tiers already established in
+   the architecture phase.
+
+**Reason**: Explicit project-owner instruction to produce the complete
+implementation roadmap now that architecture and security design have
+passed their respective gates, so implementation can begin from a
+reviewed plan rather than ad hoc phase-by-phase improvisation.
+
+**Affected modules**: Documentation only
+(`/docs/implementation/implementation-roadmap.md`,
+`/docs/implementation/ui-screen-mapping.md`,
+`/docs/implementation/testing-strategy.md`, all new). No application
+code, dependencies, or database schema were touched. The Electron
+scaffold remains in place, to be retired at the start of actual Phase 5
+execution, not during this planning pass.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet (no application code exists).
+
+**Implementation plan gate**: **IMPLEMENTATION PLAN REQUIRES DECISIONS.**
+The plan itself is complete and internally consistent, but Phase 7
+(Security & Cryptography) cannot fully complete without a minimum-
+supported-device decision (needed for Argon2id benchmarking), and Phase 9
+(Matching Engine) cannot be considered production-ready without the
+still-open scoring-weight values — both carried forward from Phase 4B,
+not new gaps introduced by this pass. See the full final report delivered
+alongside this entry for the complete list.
