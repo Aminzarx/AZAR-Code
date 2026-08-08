@@ -443,3 +443,57 @@ modified and were not copied into the git repository as part of this review.
 **Tests**: None yet. The blocking findings above must be resolved (by
 project-owner/design decision) before the affected screens can be treated as
 ready for implementation.
+
+---
+
+## 2026-08-08 — Stitch UI/UX Revision 2: final validation
+
+**Change**: Performed a file-by-file (SHA-256 hash) diff of the revised
+Stitch design package (16 screen folders, up from 9) against Revision 1, and
+validated it against the approved requirements, Phase 3 architecture, and the
+prior UI review. Created `/docs/ui/01-stitch-final-validation.md`. Review
+only — no application code written or modified, no dependencies installed, no
+database schema created.
+
+**Reason**: Explicit project-owner request for final UI/UX validation before
+implementation.
+
+**Findings summary**: Of the four Revision 1 blockers — Cloud Sync (Blocker
+1) and premature encryption/server-custody claims (Blocker 2) are **resolved
+at the code level** in `settings_backup_security/code.html` and the new
+`settings_backup_management/code.html`; the AI-implication issue (Blocker 3)
+remains **unresolved** — the only match-detail screen in this revision
+(`smart_matching_match_analysis_persian_rtl`) still carries the same "Smart
+Analysis" sparkle-icon presentation flagged previously; the team/brokerage
+assumption (Blocker 4) is **partially resolved** (removed from the referral
+screen, but "Global Realty Group"/"Team Directory" persist in the navigation
+shell across most other screens, still pending the underlying open product
+decision). Two new blocking issues were found: a "60 Days Before" reminder
+row on the new `settings_contract_reminders` screen includes an "Email Alert
+/ Edit Recipients" control, reintroducing an unapproved, network-dependent
+notification channel into a workflow required to be entirely local; and that
+same screen represents only 5 of the confirmed 7 default reminder offsets
+(missing 7-day and 3-day), with no way to add them. A packaging-level
+blocking issue was also found: `settings_backup_security/screen.png` is
+byte-identical to the pre-fix Revision 1 image and still visually shows the
+removed Cloud Sync toggle, even though its corresponding code was correctly
+fixed — the screenshot asset needs regenerating. Positive additions this
+revision: a ranked match-results list screen (filling a Revision 1 gap), an
+owner file detail screen (filling another gap), a backup-creation flow with
+password/confirm-password entry and a genuine progress state, and partial
+RTL/Persian coverage (2 of 16 screens) — though with inconsistent numeral
+systems and an untranslated narrative paragraph on the Persian match-analysis
+screen. The border-radius design-token mismatch from Revision 1 remains
+unresolved.
+
+**Affected modules**: Documentation only
+(`/docs/ui/01-stitch-final-validation.md`). No application code,
+dependencies, or database schema were touched. The Stitch design files
+themselves were not modified and were not copied into the git repository.
+
+**Migration requirements**: None.
+
+**Tests**: None yet. Final gate classification: **NOT READY — BLOCKING
+ISSUES**. Five blocking issues documented with exact file paths and
+recommended corrections in `/docs/ui/01-stitch-final-validation.md`; none
+resolved silently by this review.
