@@ -1,16 +1,20 @@
 import React from 'react'
-import { fireEvent, render } from '@testing-library/react-native'
+import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { SuggestedApplicantsSection } from '../SuggestedApplicantsSection'
 import { useApplicantMatchesForProperty } from '../../hooks/useApplicantMatchesForProperty'
+import { useDealService } from '@features/deal/hooks/useDealService'
 import type { Applicant } from '@features/applicant/types'
 import type { Property } from '@features/property/types'
 
 jest.mock('../../hooks/useApplicantMatchesForProperty')
+jest.mock('@features/deal/hooks/useDealService')
 
 const mockedUseApplicantMatches = useApplicantMatchesForProperty as jest.MockedFunction<
   typeof useApplicantMatchesForProperty
 >
+const mockedUseDealService = useDealService as jest.MockedFunction<typeof useDealService>
+const mockCreateDeal = jest.fn()
 
 const APPLICANT: Applicant = {
   id: 'app-1',
@@ -53,6 +57,8 @@ const PROPERTY: Property = {
 describe('SuggestedApplicantsSection', () => {
   beforeEach(() => {
     mockedUseApplicantMatches.mockReset()
+    mockCreateDeal.mockReset()
+    mockedUseDealService.mockReturnValue({ createDeal: mockCreateDeal } as never)
   })
 
   it('shows the empty state when there are no matches', async () => {
@@ -64,7 +70,13 @@ describe('SuggestedApplicantsSection', () => {
     })
 
     const { findByText } = await render(
-      withTheme(<SuggestedApplicantsSection property={PROPERTY} onSelectApplicant={jest.fn()} />)
+      withTheme(
+        <SuggestedApplicantsSection
+          property={PROPERTY}
+          onSelectApplicant={jest.fn()}
+          onDealCreated={jest.fn()}
+        />
+      )
     )
 
     expect(await findByText('فعلاً پیشنهادی وجود ندارد')).toBeTruthy()
@@ -80,7 +92,13 @@ describe('SuggestedApplicantsSection', () => {
     })
 
     const { findByText } = await render(
-      withTheme(<SuggestedApplicantsSection property={PROPERTY} onSelectApplicant={jest.fn()} />)
+      withTheme(
+        <SuggestedApplicantsSection
+          property={PROPERTY}
+          onSelectApplicant={jest.fn()}
+          onDealCreated={jest.fn()}
+        />
+      )
     )
 
     expect(await findByText('محاسبه پیشنهادها با مشکل مواجه شد')).toBeTruthy()
@@ -99,7 +117,11 @@ describe('SuggestedApplicantsSection', () => {
 
     const { findByText, findByLabelText } = await render(
       withTheme(
-        <SuggestedApplicantsSection property={PROPERTY} onSelectApplicant={onSelectApplicant} />
+        <SuggestedApplicantsSection
+          property={PROPERTY}
+          onSelectApplicant={onSelectApplicant}
+          onDealCreated={jest.fn()}
+        />
       )
     )
 
@@ -109,5 +131,32 @@ describe('SuggestedApplicantsSection', () => {
 
     fireEvent.press(await findByLabelText('علی رضایی'))
     expect(onSelectApplicant).toHaveBeenCalledWith('app-1')
+  })
+
+  it('creates a deal and calls onDealCreated when "ایجاد پیگیری" is pressed', async () => {
+    mockCreateDeal.mockResolvedValue({ id: 'deal-1' })
+    const onDealCreated = jest.fn()
+    mockedUseApplicantMatches.mockReturnValue({
+      matches: [{ applicant: APPLICANT, score: 25, matchedCriteria: ['city'] }],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText, getByText } = await render(
+      withTheme(
+        <SuggestedApplicantsSection
+          property={PROPERTY}
+          onSelectApplicant={jest.fn()}
+          onDealCreated={onDealCreated}
+        />
+      )
+    )
+
+    await findByText('ایجاد پیگیری')
+    await waitFor(() => fireEvent.press(getByText('ایجاد پیگیری')))
+
+    await waitFor(() => expect(mockCreateDeal).toHaveBeenCalledWith('user-1', 'prop-1', 'app-1'))
+    await waitFor(() => expect(onDealCreated).toHaveBeenCalledWith('deal-1'))
   })
 })

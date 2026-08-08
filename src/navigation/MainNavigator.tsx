@@ -8,6 +8,8 @@ import { PropertyDetailScreen } from '@features/property/screens/PropertyDetailS
 import { ApplicantListScreen } from '@features/applicant/screens/ApplicantListScreen'
 import { CreateApplicantScreen } from '@features/applicant/screens/CreateApplicantScreen'
 import { ApplicantDetailScreen } from '@features/applicant/screens/ApplicantDetailScreen'
+import { DealListScreen } from '@features/deal/screens/DealListScreen'
+import { DealDetailScreen } from '@features/deal/screens/DealDetailScreen'
 
 export type MainStackParamList = {
   BasicProfile: undefined
@@ -18,6 +20,8 @@ export type MainStackParamList = {
   ApplicantList: undefined
   CreateApplicant: undefined
   ApplicantDetail: { applicantId: string }
+  DealList: undefined
+  DealDetail: { dealId: string }
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -38,6 +42,8 @@ export function MainNavigator(): React.JSX.Element {
       <Stack.Screen name="ApplicantList" component={ApplicantListScreen} />
       <Stack.Screen name="CreateApplicant" component={CreateApplicantScreen} />
       <Stack.Screen name="ApplicantDetail" component={ApplicantDetailScreen} />
+      <Stack.Screen name="DealList" component={DealListScreen} />
+      <Stack.Screen name="DealDetail" component={DealDetailScreen} />
     </Stack.Navigator>
   )
 }

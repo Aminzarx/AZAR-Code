@@ -5,17 +5,20 @@ import { Card, EmptyState, ErrorState, LoadingIndicator } from '@shared/componen
 import type { Applicant } from '@features/applicant/types'
 import { usePropertyMatchesForApplicant } from '../hooks/usePropertyMatchesForApplicant'
 import { MatchScoreBadge } from './MatchScoreBadge'
+import { CreateDealButton } from './CreateDealButton'
 import { CRITERION_LABELS } from '../services/matchingService'
 
 type Props = {
   applicant: Applicant
   onSelectProperty: (propertyId: string) => void
+  onDealCreated: (dealId: string) => void
 }
 
 /** Rendered inside ApplicantDetailScreen — this applicant's owner's properties, ranked by match score. */
 export function SuggestedPropertiesSection({
   applicant,
-  onSelectProperty
+  onSelectProperty,
+  onDealCreated
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -44,13 +47,12 @@ export function SuggestedPropertiesSection({
       ) : (
         <View style={styles.list}>
           {matches?.map((match) => (
-            <Pressable
-              key={match.property.id}
-              accessibilityRole="button"
-              accessibilityLabel={match.property.title}
-              onPress={() => onSelectProperty(match.property.id)}
-            >
-              <Card>
+            <Card key={match.property.id}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={match.property.title}
+                onPress={() => onSelectProperty(match.property.id)}
+              >
                 <Text style={[theme.typography('titleSm'), styles.title]}>
                   {match.property.title}
                 </Text>
@@ -61,8 +63,14 @@ export function SuggestedPropertiesSection({
                 <Text style={[theme.typography('labelSm'), styles.reason]}>
                   {match.matchedCriteria.map((criterion) => CRITERION_LABELS[criterion]).join('، ')}
                 </Text>
-              </Card>
-            </Pressable>
+              </Pressable>
+              <CreateDealButton
+                userId={applicant.userId}
+                propertyId={match.property.id}
+                applicantId={applicant.id}
+                onCreated={onDealCreated}
+              />
+            </Card>
           ))}
         </View>
       )}

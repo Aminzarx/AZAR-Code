@@ -184,6 +184,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
             onSelectApplicant={(applicantId) =>
               navigation.navigate('ApplicantDetail', { applicantId })
             }
+            onDealCreated={(dealId) => navigation.navigate('DealDetail', { dealId })}
           />
         ) : null}
       </ScrollView>
