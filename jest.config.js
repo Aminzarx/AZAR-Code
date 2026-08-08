@@ -15,5 +15,6 @@ module.exports = {
     '^react-native-keychain$': '<rootDir>/testutils/reactNativeKeychainNodeShim.js'
   },
   setupFiles: ['react-native-gesture-handler/jestSetup'],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js']
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  globalTeardown: '<rootDir>/testutils/globalTeardown.js'
 }

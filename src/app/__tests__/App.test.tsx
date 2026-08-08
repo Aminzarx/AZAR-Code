@@ -5,7 +5,7 @@ import { render } from '@testing-library/react-native'
 import { closeDatabase } from '@infrastructure/database/connection'
 import { App } from '../App'
 
-const DB_FILE = path.join(process.cwd(), 'azar.db')
+const DB_FILE = path.join(process.cwd(), `azar.test-${process.env.JEST_WORKER_ID}.db`)
 
 describe('App', () => {
   afterEach(() => {

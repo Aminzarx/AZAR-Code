@@ -7,7 +7,7 @@ import { DealRepository } from '@infrastructure/database/repositories/DealReposi
 import { ContractRepository } from '@infrastructure/database/repositories/ContractRepository'
 import { fetchDashboardData } from '../dashboardDataService'
 
-const DB_FILE = path.join(process.cwd(), 'azar.db')
+const DB_FILE = path.join(process.cwd(), `azar.test-${process.env.JEST_WORKER_ID}.db`)
 const USER_ID = 'user-1'
 const OTHER_USER_ID = 'user-2'
 

@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { getDatabase, closeDatabase } from '../connection'
 
-const DB_FILE = path.join(process.cwd(), 'azar.db')
+const DB_FILE = path.join(process.cwd(), `azar.test-${process.env.JEST_WORKER_ID}.db`)
 
 describe('connection', () => {
   afterEach(() => {

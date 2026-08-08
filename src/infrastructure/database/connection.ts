@@ -3,7 +3,18 @@ import { getOrCreateDatabaseKey } from '../security/databaseKey'
 import { keychainSecureStorage } from '../security/keychainSecureStorage'
 import { runMigrations } from './migrationRunner'
 
-const DATABASE_NAME = 'azar.db'
+// Under Jest, multiple test files call getDatabase() directly (connection,
+// dashboard, App tests) to exercise the real singleton/migration/encryption
+// path rather than an in-memory stand-in. Jest runs those files in separate
+// worker processes, and a shared 'azar.db' path in process.cwd() let two
+// workers race on the same file — one truncating or deleting it mid-open in
+// another, producing intermittent "file is not a database" failures. Jest
+// sets JEST_WORKER_ID per worker, so suffixing the filename with it keeps
+// each worker's tests on an isolated file without touching production
+// behavior (the env var is never set outside Jest).
+const DATABASE_NAME = process.env.JEST_WORKER_ID
+  ? `azar.test-${process.env.JEST_WORKER_ID}.db`
+  : 'azar.db'
 
 let instance: DB | null = null
 
