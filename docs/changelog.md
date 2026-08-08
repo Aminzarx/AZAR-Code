@@ -693,3 +693,71 @@ regression-test scenario for this decision once backup/restore is
 implemented: no code path may exist where existing local business data is
 modified before both a validated safety backup exists and the user has
 explicitly confirmed the replacement.
+
+---
+
+## 2026-08-08 — Material 3-founded AZAR Design System standardization
+
+**Change**: Created the authoritative UI design system for implementation,
+using Material Design 3 as the structural foundation reconciled against the
+existing Stitch design set (32 screens) rather than a generic Material
+clone. No application code, dependencies, or schema were touched; no screens
+were redesigned.
+
+- `/docs/ui/design-system.md` — the authoritative specification: typography
+  (LTR Geist/Inter scale + a parallel RTL Vazirmatn scale with an explicit
+  +15-17% line-height uplift rule and a mixed-direction/numeral-system
+  rule), spacing (`space-0`…`space-16`, grounded in the 4px-increment scale
+  already in consistent use rather than a newly invented one), a
+  Compact/Medium/Expanded adaptive grid, layout tokens, a full component
+  specification (buttons through date pickers, including two new
+  Material-3-sourced components — Snackbars and Date Pickers — that had no
+  existing product usage to reconcile against), touch-target rules (48dp
+  minimum, documented against every existing interactive element), shape/
+  radius tokens (keeping the prior radius-mismatch fix as final), an
+  elevation system (5 steps, deliberately narrower than Material 3's full
+  range to preserve the "minimal, premium, calm, professional" brand
+  direction), a semantic color system (reconciling `DESIGN.md`'s prose color
+  descriptions against the actually-implemented token hex values, which did
+  not match each other), iconography rules (explicit RTL mirroring
+  guidance, and a permanent, standing prohibition on AI/cloud-implying
+  iconography — not just a one-time fix), a motion system, interaction-state
+  rules, and dedicated Matching UI (§18) and Offline-First Visual Language
+  (§19) sections directly enforcing the confirmed deterministic-matching and
+  local-first product decisions at the visual-design level.
+- `/docs/ui/design-tokens.json` — the machine-readable numeric source of
+  truth mirroring every token in `design-system.md`, validated as parseable
+  JSON, with dark-mode color values explicitly left unpopulated (flagged,
+  not guessed) since no dark palette has actually been designed yet.
+- `/docs/ui/design-system-audit.md` — a screen-by-screen audit of all 32
+  Stitch screens, classifying each as Compliant / Minor deviation /
+  Documented exception / Must correct. 24 screens fully compliant, 6 with
+  minor deviations (mostly the ad hoc icon-size vocabulary and one screen —
+  `dashboard_home_persian_rtl` — still on Latin-font fallback rather than
+  the now-formalized Vazirmatn typeface), and one substantive finding
+  restated directly against its screens: `restore_existing_data_warning`
+  and its RTL counterpart do not yet show the mandatory pre-replace
+  safety-backup step as its own distinct step, per the restore-onto-
+  existing-data decision finalized earlier in this session — already
+  tracked in `/docs/architecture/unresolved-decisions.md` and
+  `/docs/ui/02-stitch-final-correction.md`, restated here as a direct
+  per-screen audit finding rather than left implicit.
+
+**Reason**: Explicit project-owner instruction to formalize a Material
+3-founded design system before Phase 4 implementation begins, so future UI
+work has one authoritative specification rather than per-screen ad hoc
+decisions.
+
+**Affected modules**: Documentation only
+(`/docs/ui/design-system.md`, `/docs/ui/design-tokens.json`,
+`/docs/ui/design-system-audit.md`). No application code, dependencies, or
+database schema were touched. No Stitch design file was modified as part of
+this pass — this was an audit and specification exercise, not a correction
+pass.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet. The audit's Category D findings (missing focus-ring
+states, missing `aria-label`s, the restore safety-backup step, missing
+empty/loading states) are the concrete follow-up items for the next design-
+correction or implementation pass.

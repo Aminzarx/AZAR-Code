@@ -1,0 +1,202 @@
+{
+  "$schema": "AZAR Design System — machine-readable tokens. Authoritative numeric source; see /docs/ui/design-system.md for rationale and usage rules. Do not edit values here without updating design-system.md to match.",
+  "meta": {
+    "name": "AZAR Design System",
+    "version": "1.0.0",
+    "foundation": "Material Design 3 (https://m3.material.io/)",
+    "date": "2026-08-08",
+    "status": "draft-authoritative"
+  },
+  "color": {
+    "light": {
+      "primary": "#000101",
+      "on-primary": "#ffffff",
+      "primary-container": "#1a1c1e",
+      "on-primary-container": "#838486",
+      "inverse-primary": "#c6c6c9",
+      "primary-fixed": "#e2e2e5",
+      "primary-fixed-dim": "#c6c6c9",
+      "on-primary-fixed": "#1a1c1e",
+      "on-primary-fixed-variant": "#454749",
+      "secondary": "#3b6934",
+      "on-secondary": "#ffffff",
+      "secondary-container": "#b9eeab",
+      "on-secondary-container": "#3f6d38",
+      "secondary-fixed": "#bcf0ae",
+      "secondary-fixed-dim": "#a1d494",
+      "on-secondary-fixed": "#002201",
+      "on-secondary-fixed-variant": "#23501e",
+      "tertiary": "#000000",
+      "on-tertiary": "#ffffff",
+      "tertiary-container": "#001f26",
+      "on-tertiary-container": "#618a96",
+      "tertiary-fixed": "#bfe9f7",
+      "tertiary-fixed-dim": "#a3cdda",
+      "on-tertiary-fixed": "#001f26",
+      "on-tertiary-fixed-variant": "#224c57",
+      "error": "#ba1a1a",
+      "on-error": "#ffffff",
+      "error-container": "#ffdad6",
+      "on-error-container": "#93000a",
+      "success": "#3b6934",
+      "on-success": "#ffffff",
+      "success-container": "#b9eeab",
+      "on-success-container": "#3f6d38",
+      "warning": "#93000a",
+      "on-warning": "#ffffff",
+      "warning-container": "#ffdad6",
+      "on-warning-container": "#93000a",
+      "info": "#001f26",
+      "on-info": "#ffffff",
+      "info-container": "#001f26",
+      "on-info-container": "#618a96",
+      "background": "#f8f9fa",
+      "on-background": "#191c1d",
+      "surface": "#f8f9fa",
+      "surface-dim": "#d9dadb",
+      "surface-bright": "#f8f9fa",
+      "surface-container-lowest": "#ffffff",
+      "surface-container-low": "#f3f4f5",
+      "surface-container": "#edeeef",
+      "surface-container-high": "#e7e8e9",
+      "surface-container-highest": "#e1e3e4",
+      "surface-variant": "#e1e3e4",
+      "on-surface": "#191c1d",
+      "on-surface-variant": "#44474a",
+      "inverse-surface": "#2e3132",
+      "inverse-on-surface": "#f0f1f2",
+      "outline": "#75777a",
+      "outline-variant": "#c5c6ca",
+      "surface-tint": "#5d5e61"
+    },
+    "dark": {
+      "$status": "NOT DEFINED — flagged gap, see design-system.md §12. darkMode is wired in every Stitch screen's Tailwind config but no dark palette has been designed. Do not populate this object with guessed values; a dedicated dark-palette design pass is required first."
+    },
+    "notes": {
+      "success": "Reuses the `secondary` hue family deliberately — AZAR treats 'positive' as one semantic color, not a separate palette branch.",
+      "warning": "Currently reuses `error`-family tones at the token-mapping level pending a dedicated amber-family warning palette (Category B normalization noted in design-system-audit.md) — do not treat as final.",
+      "info": "Maps to the tertiary family, matching existing informational-banner usage."
+    }
+  },
+  "typography": {
+    "ltr": {
+      "display":            { "fontFamily": "Geist",      "fontSize": 40, "fontWeight": 600, "lineHeight": 48, "letterSpacing": "-0.02em" },
+      "headline-lg":         { "fontFamily": "Geist",      "fontSize": 32, "fontWeight": 600, "lineHeight": 40, "letterSpacing": "-0.02em" },
+      "headline-lg-mobile":  { "fontFamily": "Geist",      "fontSize": 24, "fontWeight": 600, "lineHeight": 32, "letterSpacing": "-0.01em" },
+      "headline-md":         { "fontFamily": "Geist",      "fontSize": 24, "fontWeight": 500, "lineHeight": 32, "letterSpacing": "-0.01em" },
+      "title-md":            { "fontFamily": "Geist",      "fontSize": 18, "fontWeight": 600, "lineHeight": 24, "letterSpacing": "-0.005em" },
+      "title-sm":            { "fontFamily": "Geist",      "fontSize": 16, "fontWeight": 600, "lineHeight": 22, "letterSpacing": "0em" },
+      "body-lg":             { "fontFamily": "Inter",      "fontSize": 18, "fontWeight": 400, "lineHeight": 28, "letterSpacing": "normal" },
+      "body-md":             { "fontFamily": "Inter",      "fontSize": 16, "fontWeight": 400, "lineHeight": 24, "letterSpacing": "normal" },
+      "body-sm":             { "fontFamily": "Inter",      "fontSize": 14, "fontWeight": 400, "lineHeight": 20, "letterSpacing": "normal" },
+      "label-md":            { "fontFamily": "Geist",      "fontSize": 14, "fontWeight": 500, "lineHeight": 20, "letterSpacing": "0.01em" },
+      "label-sm":            { "fontFamily": "Geist",      "fontSize": 12, "fontWeight": 600, "lineHeight": 16, "letterSpacing": "0.02em" },
+      "label-sm-mobile":     { "fontFamily": "Geist",      "fontSize": 10, "fontWeight": 600, "lineHeight": 14, "letterSpacing": "0.02em" }
+    },
+    "rtl": {
+      "display-rtl":            { "fontFamily": "Vazirmatn", "fontSize": 40, "fontWeight": 600, "lineHeight": 56, "letterSpacing": "0" },
+      "headline-lg-rtl":         { "fontFamily": "Vazirmatn", "fontSize": 32, "fontWeight": 600, "lineHeight": 46, "letterSpacing": "0" },
+      "headline-lg-mobile-rtl":  { "fontFamily": "Vazirmatn", "fontSize": 24, "fontWeight": 600, "lineHeight": 37, "letterSpacing": "0" },
+      "headline-md-rtl":         { "fontFamily": "Vazirmatn", "fontSize": 24, "fontWeight": 500, "lineHeight": 37, "letterSpacing": "0" },
+      "title-md-rtl":            { "fontFamily": "Vazirmatn", "fontSize": 18, "fontWeight": 600, "lineHeight": 28, "letterSpacing": "0" },
+      "title-sm-rtl":            { "fontFamily": "Vazirmatn", "fontSize": 16, "fontWeight": 600, "lineHeight": 25, "letterSpacing": "0" },
+      "body-md-rtl":             { "fontFamily": "Vazirmatn", "fontSize": 16, "fontWeight": 400, "lineHeight": 28, "letterSpacing": "0" },
+      "body-sm-rtl":             { "fontFamily": "Vazirmatn", "fontSize": 14, "fontWeight": 400, "lineHeight": 23, "letterSpacing": "0" },
+      "label-md-rtl":            { "fontFamily": "Vazirmatn", "fontSize": 14, "fontWeight": 500, "lineHeight": 23, "letterSpacing": "0" },
+      "label-sm-rtl":            { "fontFamily": "Vazirmatn", "fontSize": 12, "fontWeight": 600, "lineHeight": 18, "letterSpacing": "0" },
+      "label-sm-mobile-rtl":     { "fontFamily": "Vazirmatn", "fontSize": 10, "fontWeight": 600, "lineHeight": 16, "letterSpacing": "0" }
+    },
+    "fontFamilies": {
+      "Geist": { "weights": [400, 500, 600, 700], "role": "headings, labels, buttons (LTR)" },
+      "Inter": { "weights": [400, 500, 600], "role": "body copy (LTR)" },
+      "Vazirmatn": { "weights": [400, 500, 600, 700], "role": "all text (RTL/Persian)" },
+      "Material Symbols Outlined": { "weights": "100-700 variable", "role": "iconography, all contexts" }
+    }
+  },
+  "spacing": {
+    "space-0": 0,
+    "space-1": 4,
+    "space-2": 8,
+    "space-3": 12,
+    "space-4": 16,
+    "space-5": 20,
+    "space-6": 24,
+    "space-8": 32,
+    "space-10": 40,
+    "space-12": 48,
+    "space-16": 64,
+    "semantic": {
+      "base": "space-2",
+      "gutter": "space-4",
+      "margin-mobile": "space-4",
+      "margin-desktop": "space-8",
+      "compact-gutter": "space-3",
+      "relaxed-gutter": "space-6",
+      "container-max-width": 1200
+    }
+  },
+  "radius": {
+    "radius-none": 0,
+    "radius-small": 2,
+    "radius-medium": 4,
+    "radius-large": 8,
+    "radius-extra-large": 12,
+    "radius-full": 9999,
+    "radius-container-lg": 16
+  },
+  "elevation": {
+    "elevation-0": { "shadow": "none", "border": "1px solid var(--outline-variant)" },
+    "elevation-1": { "shadow": "0 4px 24px rgba(0,0,0,0.04)" },
+    "elevation-2": { "shadow": "0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06)" },
+    "elevation-3": { "shadow": "0 20px 25px -5px rgba(0,0,0,0.10), 0 8px 10px -6px rgba(0,0,0,0.10)" },
+    "elevation-4": { "shadow": "0 25px 50px -12px rgba(0,0,0,0.25)" }
+  },
+  "icon": {
+    "icon-2xs": 14,
+    "icon-xs": 16,
+    "icon-sm": 18,
+    "icon-md": 24,
+    "icon-lg": 32,
+    "icon-xl": 48,
+    "family": "Material Symbols Outlined",
+    "defaultFill": 0,
+    "activeFill": 1
+  },
+  "motion": {
+    "duration-fast": 150,
+    "duration-standard": 200,
+    "duration-moderate": 300,
+    "easing-standard": "cubic-bezier(0.4, 0, 0.2, 1)",
+    "pressScale": 0.98
+  },
+  "touchTarget": {
+    "minimum": 48,
+    "unit": "dp"
+  },
+  "grid": {
+    "compact":  { "minWidth": 0,   "maxWidth": 599,  "columns": 4,  "margin": "space-4", "gutter": "space-4" },
+    "medium":   { "minWidth": 600, "maxWidth": 839,  "columns": 8,  "margin": "space-6", "gutter": "space-4" },
+    "expanded": { "minWidth": 840, "maxWidth": null, "columns": 12, "margin": "space-8", "gutter": "space-6" },
+    "contentMaxWidth": 1200
+  },
+  "layout": {
+    "topAppBarHeight": 64,
+    "bottomNavHeight": 80,
+    "sheetMaxWidthDesktop": 480
+  },
+  "component": {
+    "button": { "paddingY": ["space-3", "space-4"], "paddingX": "space-6", "radius": "radius-large", "typography": "label-md" },
+    "iconButton": { "size": 40, "recommendedHitArea": 48, "radius": "radius-full" },
+    "textField": { "paddingY": "space-3", "paddingX": "space-4", "radius": "radius-large", "labelTypography": "label-md", "valueTypography": "body-md" },
+    "chip": { "paddingY": "space-1", "paddingX": "space-3", "radius": "radius-full", "typography": "label-sm" },
+    "card": { "radiusListItem": "radius-large", "radiusDetail": "radius-extra-large", "paddingDetail": "space-6", "paddingListItem": "space-4" },
+    "bottomSheet": { "radiusCompact": "radius-container-lg", "maxWidthDesktop": 480, "handleWidth": 40, "handleHeight": 4 },
+    "listRow": { "minHeight": 56, "maxHeight": 72, "paddingX": "space-4", "paddingY": "space-3" },
+    "priorityChip": {
+      "MUST_HAVE": { "bg": "primary", "fg": "on-primary" },
+      "IMPORTANT": { "bg": "secondary-container", "fg": "on-secondary-container" },
+      "PREFERRED": { "bg": "surface-container-high", "fg": "primary" },
+      "IGNORE": { "bg": "surface-container-low", "fg": "on-surface-variant", "border": "outline-variant" }
+    }
+  }
+}
