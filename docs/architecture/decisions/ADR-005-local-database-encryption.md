@@ -144,8 +144,40 @@ own overhead must be measured against the performance expectations in
 `04-final-architecture.md` §Performance once a real schema and dataset
 exist, not assumed.
 
+## Phase 4B security review additions
+
+Three requirements added as a direct result of the dedicated security
+review (full detail in `/docs/security/phase-4-security-review.md`; the
+backup-side equivalents of these same findings are in
+`backup-encryption-design.md` §11):
+
+- **[CONFIRMED, new requirement]** Any staged or temporary copy of the
+  database — created during a schema migration or while validating a
+  restore before the atomic swap — must itself be created as an encrypted
+  SQLCipher database, never as a plaintext scratch file, even
+  transiently. A crash or forensic disk capture during a staging window
+  must never expose an unencrypted copy of business data.
+- **[CONFIRMED, new requirement]** Key material (the database encryption
+  key, in plaintext form, however briefly it's held during app startup or
+  a key-rotation event if one is ever built) must be handled through a
+  native crypto binding capable of explicit memory zeroing, not a
+  pure-JavaScript code path — React Native's JS runtime has no
+  deterministic memory-erasure guarantee, so a "discarded" key in JS may
+  remain resident in the heap for an unpredictable window.
+- **[CONFIRMED, new requirement]** The app's staging/cache directories
+  must be explicitly excluded from OS-level device backup (iOS's
+  `NSURLIsExcludedFromBackupKey`, Android's backup exclusion rules) — the
+  encrypted live database itself being included in an OS-level backup is
+  not a new risk (its key doesn't travel with it), but this closes the
+  path for any staging file to leak through an OS backup mechanism.
+
 ## Status
 
 **PROPOSED.** Requires a dedicated security review before FINAL, consistent
 with the standing instruction not to finalize cryptographic algorithms
 without one. Key-rotation design is explicitly out of scope for this pass.
+The Phase 4B review (above) strengthened this ADR's requirements but did
+not move it to FINAL — SQLCipher/AES-256 remains the right mechanism, and
+the review found no reason to reconsider it, but a dedicated review
+specifically of the *implementation* (once written) is still required
+before this can be marked FINAL, consistent with the standing instruction.

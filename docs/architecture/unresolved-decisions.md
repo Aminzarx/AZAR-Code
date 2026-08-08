@@ -3,22 +3,20 @@
 Status: DRAFT — consolidates every open item flagged across the full
 document set into one place, so nothing gets lost between documents.
 Update this file whenever an item below is resolved elsewhere.
-Date: 2026-08-08 (revised in the Phase 4 final-architecture pass — the
-local-database-technology decision is now FINAL; the backup and
-local-database encryption *mechanisms* are now PROPOSED, concrete designs,
-no longer fully DEFERRED, though both still require a dedicated security
-review before FINAL; several items below are newly marked **PRODUCT OWNER
-DECISION REQUIRED** rather than left as generic "open" items, since Phase 4
-is architecture's last stop before implementation)
+Date: 2026-08-08 (revised in the Phase 4B product-decisions + security-gate
+pass — platform, backup version-compatibility window, and referral reuse
+policy are now FINAL; the dedicated cryptographic security review required
+before ADR-004/ADR-005 could be considered has been performed
+(`/docs/security/phase-4-security-review.md`), strengthening both designs
+without changing their core algorithm choices; both remain PROPOSED,
+pending an implementation-level review, not a design-level one)
 
 ## Platform
 
-- **React Native vs. Capacitor** (ADR-001) — **[PRODUCT OWNER DECISION
-  REQUIRED]**. [PROPOSED] React Native, with a documented rationale
-  (`ADR-001`), but no project-owner approval has been recorded anywhere in
-  this document set. This is the single decision nothing else in
-  implementation can proceed past — flagged explicitly, not silently
-  carried forward as though it were settled.
+- ~~React Native vs. Capacitor~~ (ADR-001) — **resolved, FINAL**: React
+  Native. Confirmed by the project owner in the Phase 4B pass; no
+  previously undocumented blocker was found against the full requirement
+  list. Capacitor is no longer under consideration.
 
 ## Local data
 
@@ -33,22 +31,30 @@ is architecture's last stop before implementation)
 ## Backup / encryption
 
 - ~~Final encryption algorithm and KDF selection~~ — **resolved to
-  [PROPOSED], pending dedicated security review** in the Phase 4 pass:
-  AES-256-GCM (AEAD) + Argon2id (KDF, 64 MiB / 3 iterations / parallelism 1
-  as a starting point). See `ADR-004-backup-encryption.md` and
-  `/docs/architecture/backup-encryption-design.md`. Not yet FINAL —
-  requires the dedicated security review both documents name, and the KDF
-  parameters specifically require empirical validation against a real
-  minimum-device baseline.
-- ~~Final key-management model~~ — **resolved to [PROPOSED]**: the hybrid
-  approach this tracker previously proposed is now concrete — a two-tier
+  [PROPOSED], dedicated security review complete**: AES-256-GCM (AEAD,
+  algorithm choice now **FINAL**) + Argon2id (KDF, algorithm choice
+  **FINAL**; parameters — 64 MiB / 3 iterations / parallelism 1 — remain
+  **PROPOSED** pending the benchmarking procedure now defined in
+  `backup-encryption-design.md` §3.1). See `ADR-004-backup-encryption.md`
+  and `/docs/security/phase-4-security-review.md` §7 for the full status
+  table.
+- ~~Final key-management model~~ — **resolved, FINAL**: the two-tier
   DEK/KEK hierarchy, independent of the local database's own at-rest
-  encryption key. See `backup-encryption-design.md` §4.
-- **[PRODUCT OWNER DECISION REQUIRED]** Backup version-compatibility policy
-  (how many prior schema versions remain restorable before a backup is
-  rejected as too old) — analyzed in
-  `/docs/architecture/migration-strategy.md` §"Backup compatibility," which
-  proposes a default but does not finalize it.
+  encryption key. Confirmed sound by the Phase 4B security review with no
+  changes to the structure itself (one specification-precision correction
+  to the AAD scope, `backup-encryption-design.md` §11.1).
+- ~~Backup version-compatibility policy~~ — **resolved, FINAL**: CURRENT +
+  2 previous backup format generations. See
+  `/docs/architecture/migration-strategy.md` §"Backup compatibility."
+- **[NEW, Phase 4B security review]** Encrypted staging for restore/
+  migration temp files, native-binding key zeroization, and OS-backup
+  exclusion for staging paths — all now **[FINAL as requirements]**,
+  implementation not yet written. See
+  `backup-encryption-design.md` §11.2-§11.4 and
+  `phase-4-security-review.md` §7/§9.
+- **[PRODUCT OWNER DECISION REQUIRED]** Minimum supported OS version /
+  device tier — needed before the Argon2id benchmarking procedure can be
+  executed against a real device.
 - ~~Restore-onto-existing-data behavior (block vs. overwrite)~~ — **resolved,
   FINAL product decision**: restore must never silently overwrite existing
   local business data. Mandatory sequence: detect existing data → warn →
@@ -84,10 +90,12 @@ is architecture's last stop before implementation)
   same dedicated security review named above. Key rotation is explicitly
   out of scope for this pass, not designed.
 - **[NEW, Phase 4]** Root/jailbreak detection tooling, app-tamper-
-  resistance tooling, notification lock-screen content visibility, and
-  insecure-temporary-file handling during restore staging — all flagged
-  as [OPEN-ARCH] in `/docs/security/threat-model.md`'s Phase 4 additions,
-  none blocking the rest of the architecture, none decided here.
+  resistance tooling, and notification lock-screen content visibility
+  remain **[OPEN-ARCH]** in `/docs/security/threat-model.md`'s Phase 4
+  additions, none blocking the rest of the architecture. ~~Insecure-
+  temporary-file handling during restore staging~~ — **resolved, FINAL
+  requirement** in the Phase 4B security review (encrypted staging,
+  §11.3 of `backup-encryption-design.md`).
 
 ## Authentication / OTP
 
@@ -117,13 +125,16 @@ is architecture's last stop before implementation)
 
 - **[PRODUCT OWNER DECISION REQUIRED, or data-driven tuning at
   implementation time]** Exact scoring formula and weight values
-  (IMPORTANT vs. PREFERRED, partial-match tapering) — the *constraints*
-  any eventual values must satisfy are now fixed
-  (`/docs/matching/matching-architecture.md` §"Scoring-weight decision
-  status"), but the numbers themselves are not, and are deliberately not
-  defaulted to placeholder values in this pass.
-- Approximate-value tolerance definition.
-- Score normalization/presentation scale.
+  (IMPORTANT vs. PREFERRED, partial-match tapering) — the full formal
+  model (match types, missing/conflicting/excluded-value handling,
+  normalization, explanation generation) is now specified in
+  `/docs/architecture/matching-scoring-spec.md`; only the actual numbers
+  remain open, deliberately not defaulted to placeholder values.
+- Approximate-value tolerance definition and the tapering function's exact
+  shape (`matching-scoring-spec.md` §"Match types").
+- Score normalization presentation scale (0-100 vs. another scale —
+  `matching-scoring-spec.md` §"Score normalization" fixes what the score
+  *represents*, not how it's displayed).
 - Whether/how an optional natural-language input layer is eventually built
   (out of core-engine scope regardless of the answer). **Note**: this is no
   longer a prerequisite for supporting conditional requirements like "if
@@ -166,10 +177,11 @@ is architecture's last stop before implementation)
 ## Product-level (carried from Phase 1/2, still open — not re-opened by Phase 3, listed for completeness)
 
 - Single-agent tool vs. team/admin accounts (Phase 1 §2/§19.6).
-- **[PRODUCT OWNER DECISION REQUIRED]** Referral code single-use vs.
-  reusable (Phase 1 §5.1/§19.2/§19.6) — restated in
-  `ADR-009-authentication-boundary.md` as still open; whatever is decided
-  must be enforced server-side.
+- ~~Referral code single-use vs. reusable~~ (Phase 1 §5.1/§19.2/§19.6) —
+  **resolved, FINAL**: a referral relationship is immutable once
+  registration succeeds — no replace, remove, or re-attach path exists
+  after that point. Self-referral is rejected. See
+  `ADR-009-authentication-boundary.md` §"Referral reuse policy."
 - Account-deletion/deactivation data-retention behavior (Phase 1 §5.4/§19.6).
 - Target accessibility standard (Phase 1 §16/§19.6).
 - Reminder schedule configurability: global-only vs. per-contract (Phase 1

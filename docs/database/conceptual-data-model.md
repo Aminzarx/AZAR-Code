@@ -98,7 +98,12 @@ User ──1───< BackupMetadata   (records of this user's own backup activ
   entity rather than a single self-referencing "referredBy" field on User: it
   keeps the "referrer of many, referred by exactly one" cardinality explicit
   and queryable (e.g. for REF-02's "referrals made" count) rather than
-  implicit.
+  implicit. **[FINAL, Phase 4B]** The referred-party side of this
+  relationship is immutable once written — created exactly once, at
+  registration, and never updated, replaced, or deleted afterward
+  (`ADR-009-authentication-boundary.md` §"Referral reuse policy"). No
+  application code path should expose an operation that modifies an
+  existing ReferralRelationship row's referred-party reference.
 - **RequirementCriterion.priority**: must never be null/unset — every
   structured criterion has an explicit priority (Phase 1 §8.1, APP-01's
   acceptance criteria).

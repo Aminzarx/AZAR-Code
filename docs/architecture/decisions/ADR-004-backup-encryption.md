@@ -35,6 +35,11 @@ the app can enforce.
   DEK-unwrap auth check → payload auth check → schema-version
   compatibility → structural validation — in that order, before any
   content is trusted (`backup-encryption-design.md` §6).
+- **Version-compatibility window**: **[FINAL]** CURRENT + 2 previous
+  backup format generations. A backup older than that is explicitly
+  rejected, never silently attempted. See
+  `/docs/architecture/migration-strategy.md` §"Backup compatibility" for
+  the full policy and rationale.
 
 ## Alternatives considered
 
@@ -97,10 +102,31 @@ operation, not a per-record or per-query cost — acceptable for an
 infrequent, explicit user action, but must be measured on real target
 hardware before the parameters are locked in.
 
+## Phase 4B security review outcome
+
+The dedicated review requested for this phase (full detail:
+`/docs/security/phase-4-security-review.md`) examined this design against
+a set of adversarial scenarios (attacker has the device; attacker has only
+the backup file; the backup was modified; the app crashed mid-restore;
+the user forgot the password) and found the core design sound — AES-256-
+GCM, Argon2id, and the two-tier DEK/KEK hierarchy remain the right
+choices, and no attacker scenario broke the authentication-before-trust
+ordering in §6 of `backup-encryption-design.md`. The review did produce
+six concrete corrections/additions, now folded into
+`backup-encryption-design.md` §11: an AAD-scope specification fix
+(§11.1), a native-crypto-binding requirement for key zeroization (§11.2),
+a mandatory encrypted-staging requirement for restore temp files (§11.3,
+the review's highest-severity finding), an OS-backup exclusion
+requirement (§11.4), a crash-remnant cleanup requirement (§11.5), and a
+malformed-payload parsing-safety requirement (§11.6).
+
 ## Status
 
 **PROPOSED.** Requires a dedicated security review (per standing
-instruction) before this leaves PROPOSED status, and requires empirical
-KDF-parameter validation against a real minimum-device baseline, which in
-turn depends on ADR-001 (platform) and a minimum-OS-version decision, both
-still open.
+instruction) before this leaves PROPOSED status — the Phase 4B review
+above is that dedicated review of the *design*, and it found the design
+sound, but a review of the actual *implementation* (once written) is still
+required before FINAL. Requires empirical KDF-parameter validation against
+a real minimum-device baseline, per the benchmarking procedure now defined
+in `backup-encryption-design.md` §3.1 — platform (`ADR-001`) is resolved;
+a minimum-OS-version/device-tier decision remains open.

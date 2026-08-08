@@ -81,10 +81,56 @@ mindful that this runs on a mobile device, not a server:
 testing.** They are a defensible, standards-aligned starting point (OWASP's
 Argon2id recommendations), not a guess pulled from nowhere — but the actual
 derivation time on the lowest-spec device this product commits to
-supporting (a decision that depends on ADR-001's eventual platform choice
-and the product's minimum-OS-version target, both still open) must be
-measured before these numbers are locked in for implementation. **[OPEN —
-requires empirical validation once a target device baseline exists.]**
+supporting must be measured before these numbers are locked in for
+implementation. **[OPEN — requires empirical validation, procedure below.]**
+The platform question this used to depend on is now settled (`ADR-001`:
+React Native, FINAL); what's still needed is a minimum-supported-OS-version
+and minimum-device-tier decision, which is a product/release-planning
+question, not a cryptographic one.
+
+### 3.1 Argon2id benchmarking procedure (defined, not yet executed)
+
+Before the parameters in the table above are moved from PROPOSED to FINAL,
+run this procedure:
+
+1. **Choose a representative low-end device.** The slowest device the
+   product commits to supporting (not the median device the team happens
+   to develop on) — e.g. a several-year-old, budget-tier Android phone at
+   or near the minimum OS version the product will support, since that is
+   the device where a too-slow KDF is most likely to feel broken to a
+   real user, and where a too-fast KDF is most dangerous if that same
+   device class represents what a lot of real users' backups were made
+   with.
+2. **Implement the exact native Argon2id binding intended for
+   production** (per §12's note that the specific library is not fixed in
+   this document) — do not benchmark against a different implementation
+   (e.g. a desktop/Node.js library) and assume the mobile number will
+   match; native mobile Argon2id implementations can differ meaningfully
+   in throughput from desktop ones.
+3. **Measure wall-clock derivation time** at the proposed parameters (64
+   MiB / 3 iterations / parallelism 1) on that device, with the app
+   running normally in the foreground (not in an idle/benchmark-only
+   state) so the measurement reflects real conditions, including whatever
+   the OS's thermal/power throttling does under typical use.
+4. **Target range**: derivation should land between roughly 0.5 and 3
+   seconds on the chosen low-end device. Below that range, the KDF is
+   too cheap relative to what this device class could compute repeatedly
+   for offline brute-forcing; above that range, backup creation and
+   restore start to feel broken to a user on their slowest supported
+   device.
+5. **If outside the target range, adjust memory cost first, then
+   iterations** — increasing memory cost has a stronger effect on
+   attacker cost (per Argon2id's memory-hardness design goal) than
+   increasing iterations alone, so it should be the first lever, subject
+   to not exceeding what the low-end device can allocate without risking
+   out-of-memory failures (test this explicitly — a KDF that succeeds on
+   a high-end device but OOMs on the low-end one is a regression, not an
+   improvement).
+6. **Record the final chosen parameters, the device tested, and the
+   measured time** in this document (replacing the "PROPOSED, pending
+   validation" language in the table above) before implementation treats
+   them as final. This is the same discipline `ADR-004`/`ADR-005` already
+   require before either moves from PROPOSED to FINAL.
 
 ## 4. Key hierarchy
 
@@ -152,13 +198,33 @@ User's backup password
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **The header is authenticated but not secret.** Every header field above
-  is passed as Additional Authenticated Data (AAD) to both the DEK-wrapping
-  and payload-encryption GCM operations, so tampering with *any* header
-  field (e.g. rolling back the format version to try to exploit an older,
-  less-validated parser) is detected by the authentication tag failing,
-  even though the header itself is readable without a password. This
-  directly satisfies "detect tampering before trusting any content"
+- **The header is authenticated but not secret.** **[Corrected in the
+  Phase 4B security review — see §11.1]** The AAD for each of the two GCM
+  operations must be defined precisely, because the two operations don't
+  share the same set of "already known" header fields at the time each
+  runs:
+  - The **DEK-wrap** operation's AAD is every header field that exists
+    *before* wrapping happens: magic bytes, format version, schema
+    version, creation timestamp, KDF identifier and parameters, and salt.
+    It cannot include the wrapped-DEK bytes themselves or the payload
+    nonce, since those don't exist yet at the moment the DEK is wrapped —
+    including an operation's own output as its own input is not
+    meaningful.
+  - The **payload-encryption** operation's AAD is the full header as it
+    exists once the DEK-wrap step has completed: everything above, plus
+    the wrapped DEK (with its own tag and nonce) and the payload nonce.
+    At this point every header field is known and fixed, so binding all of
+    it is both possible and correct.
+  - **Net effect, restated**: tampering with any header field is still
+    detected — a modified salt, KDF parameter, or format-version byte
+    changes what the DEK-wrap AAD covers, which breaks that tag; a
+    modified wrapped-DEK value changes what the payload-encryption AAD
+    covers, which breaks that tag. Between the two operations' AAD scopes,
+    every header field is covered by at least one authentication tag. This
+    achieves the same tamper-evidence goal the original single-paragraph
+    description intended — the correction is about which operation checks
+    which field, not about weakening the guarantee.
+  This directly satisfies "detect tampering before trusting any content"
   (`backup-architecture-analysis.md`, "Integrity/authentication").
 - **The KDF parameters travel with the backup**, not with the app. This
   means tuning §3's numbers upward in a future app version never breaks
@@ -275,7 +341,144 @@ which is enforced at the restore state-machine level
 | Incompatible schema version (too old to migrate, or too new) | 5 | Version-specific message (RST-04), see `migration-strategy.md` |
 | Malformed content after successful decryption | 6 | Treated the same as corruption (RST-03) from the user's perspective — the file decrypted but isn't valid business data, which is functionally indistinguishable from corruption to a user, even though the app can tell it apart from a wrong-password/tamper case internally |
 
-## 10. What this document does not decide
+## 11. Phase 4B security review additions
+
+The dedicated security review requested for this phase examined this
+document against several attacker scenarios beyond the ones already
+covered. Three findings resulted in new, concrete requirements below; the
+rest of the review's findings (device-level threats, temp-file handling
+beyond backup staging specifically, and the ones that didn't change this
+document) live in `/docs/security/phase-4-security-review.md`, not
+repeated here.
+
+### 11.1 AAD scope correction
+
+Covered in place above (§4's key-hierarchy section) — the DEK-wrap and
+payload-encryption operations authenticate different, precisely-scoped
+subsets of the header, not an undifferentiated "the header." This was a
+specification-clarity gap, not a cryptographic weakness: the original
+wording was ambiguous about which operation covers which field, in a way
+that could have been implemented inconsistently. **Severity: MEDIUM
+(specification clarity, not an exploitable weakness as designed).**
+
+### 11.2 Key material zeroization in a JavaScript/React Native runtime
+
+**Finding**: §4 states the KEK is "discarded immediately after use," but
+JavaScript (and by extension React Native, per `ADR-001`) has no manual
+memory management — a variable going out of scope makes it *eligible* for
+garbage collection, not immediately and deterministically erased. Key
+material (the KEK, the unwrapped DEK, and the plaintext password) can
+remain resident in the JS heap for an unpredictable period after logical
+"discard," and pure-JS crypto implementations typically cannot guarantee
+zeroing the underlying memory at all.
+
+**Requirement (new)**: implementation must use a **native crypto binding**
+for every operation that touches the password, KEK, or DEK in plaintext
+form — a binding that performs the AES-GCM and Argon2id operations in
+native (non-JS-heap) memory and exposes an explicit zeroing/wipe call
+(e.g. libsodium's `sodium_memzero`-equivalent, or the platform's native
+crypto APIs) — rather than a pure-JavaScript implementation of either
+primitive. This is not a new cryptographic choice (AES-256-GCM and
+Argon2id remain the selected primitives, per `ADR-004`); it is a
+requirement on *which kind of library* implements them. **Severity: MEDIUM
+— realistic on a compromised or forensically-imaged device where memory
+contents matter, not exploitable remotely.**
+
+### 11.3 Encrypted staging requirement for restore/migration temp copies
+
+**Finding**: neither this document nor `migration-strategy.md` previously
+stated explicitly that a *staged* database copy (created while validating
+an incoming restore, or while running a multi-step schema migration on a
+temporary copy) must itself be encrypted. If a naive implementation
+creates a plaintext SQLite file as a scratch/staging copy — even
+temporarily, even if deleted afterward — that file contains the full
+decrypted business-data snapshot on disk, unencrypted, for as long as it
+exists. A crash, a forensic disk image taken during that window, or an
+OS-level file-recovery tool run afterward could all recover it.
+
+**Requirement (new, CONFIRMED)**: any staged or temporary database copy
+created during restore or migration **must be created as an encrypted
+SQLCipher database** (using either the eventual live-database key, once
+one is assigned, or an ephemeral key discarded after the staging step —
+implementation detail, not fixed here), never as a plaintext file, at any
+point, even transiently. This elevates the existing "insecure temporary
+files" item in `/docs/security/threat-model.md` from a general OPEN-ARCH
+note to a specific, binding requirement wherever it concerns database
+staging specifically. **Severity: HIGH — this is exactly the kind of gap
+that looks fine in a design document and becomes a real plaintext-data-at-
+rest bug the first time someone implements "just copy the file to
+/tmp first."**
+
+### 11.4 OS-level device-backup exposure
+
+**Finding**: both iOS (iCloud/iTunes/Finder backup) and Android (Auto
+Backup for Apps, and OEM-specific full-device backup features) can, by
+default, include an app's private storage in a device-level backup unless
+the app explicitly opts out. The SQLCipher-encrypted database file itself
+being swept into such a backup is not a new risk (it's still encrypted,
+and its key lives in platform secure storage that generally does *not*
+travel with these backups). The real risk is any **temporary/staging
+file** (§11.3) or cache content that might exist at the moment such a
+backup runs, and would be swept up unencrypted if it were ever allowed to
+exist unencrypted in the first place — which §11.3 already prohibits, but
+this finding adds a second, independent layer.
+
+**Requirement (new)**: the app's temporary/staging/cache directories
+(wherever restore staging or migration scratch files are written) must be
+explicitly excluded from OS-level device backup — `NSURLIsExcludedFromBackupKey`
+on iOS for the specific directory/files in question, and Android's backup
+exclusion rules (`android:fullBackupContent` / `android:dataExtractionRules`
+scoped to exclude the relevant paths) on Android. This is defense in
+depth on top of §11.3's "never plaintext" rule, not a replacement for it.
+**Severity: MEDIUM.**
+
+### 11.5 Crash-remnant cleanup
+
+**Finding**: if the app is killed or crashes mid-backup-creation or
+mid-restore, a staging file (now required to be encrypted, per §11.3)
+could be left on disk indefinitely with no code path left to clean it up.
+
+**Requirement (new)**: on every app startup, the app must check known
+staging locations for leftover files from a previous, non-terminated
+backup or restore operation, and delete them once it's safe to conclude
+the prior operation did not complete (per the state machine in
+`04-final-architecture.md` §7 — a leftover staging file with no
+corresponding completed operation is safe to discard, since the live
+database was never touched until a successful atomic swap). **Severity:
+LOW** given §11.3's encryption requirement already prevents a crash
+remnant from being *readable* — this is a hygiene/storage-bloat concern
+more than a confidentiality one once §11.3 is implemented.
+
+### 11.6 Malformed-payload parsing safety
+
+**Finding**: `threat-model.md`'s "Export/import risks" section already
+requires avoiding "naive deserialization of untrusted content," but did
+not name the two concrete failure modes worth calling out explicitly for
+a JavaScript-based implementation: **prototype pollution** (a crafted
+JSON payload with `__proto__`-style keys manipulating object prototypes if
+parsed naively) and **resource-exhaustion** (a payload that claims an
+enormous number of records, or deeply nested structures, designed to
+exhaust device memory during parsing, before any content-level validation
+has a chance to reject it).
+
+**Requirement (new)**: the payload deserializer must use a
+prototype-pollution-safe parsing approach (e.g. a schema-validating parser
+that rejects unexpected keys outright, or explicit key-allowlisting) and
+must enforce sane upper bounds on record counts and nesting depth *before*
+allocating memory proportional to attacker-supplied size claims — both
+checks happen as part of step 6 ("structural/content validation") in §6's
+ordering, which already runs after authentication succeeds, so this
+applies only to payloads that already passed the AEAD tag check (i.e.
+this is defense against a **legitimate password holder's own future
+backup being crafted maliciously by a third party who also had the
+password**, or against a bug in this app's own future backup-writing code
+producing a malformed file — not an unauthenticated-attacker vector, since
+step 4 already rejects anything that fails authentication before step 6
+ever runs). **Severity: LOW** for exactly that reason — the authentication
+step already blocks the most dangerous "attacker with no password"
+scenario; this hardens the narrower remaining case.
+
+## 12. What this document does not decide
 
 Per the explicit instruction not to finalize implementation mechanics
 casually:

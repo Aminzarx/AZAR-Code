@@ -272,17 +272,35 @@ The two are now separated explicitly, per the project owner's correction:
   during backup creation/restore — could leave sensitive business data
   briefly readable outside the app's encrypted database if not handled
   carefully.
-- **Mitigation direction**: **[OPEN-ARCH]**, but the architectural
-  requirement is stated here so it isn't discovered as a gap during
-  implementation: any staging area used during restore (per the
-  safe-rollback design in `backup-architecture-analysis.md`) must itself
-  live within the app's private, sandboxed storage (never a
-  publicly-accessible or shared location), should be cleaned up
-  immediately after the restore completes or fails, and should avoid
-  writing decrypted business data to disk at all where an in-memory
-  staging approach is feasible for the data volumes involved. Concrete
-  implementation depends on the eventual platform (ADR-001) and its
-  file-system APIs.
+- **Mitigation — [CONFIRMED, elevated from OPEN-ARCH by the Phase 4B
+  security review]**: any staged or temporary database copy created
+  during restore or migration **must itself be an encrypted SQLCipher
+  database, never a plaintext file, at any point, even transiently** —
+  see `backup-encryption-design.md` §11.3 and
+  `ADR-005-local-database-encryption.md` for the full requirement and
+  rationale. This closes what was previously a general "be careful"
+  note with a specific, binding rule: a crash or forensic disk capture
+  during a staging window must never expose an unencrypted copy of
+  business data.
+- **Related, [CONFIRMED, new]**: the app's staging/cache directories must
+  be explicitly excluded from OS-level device backup (iOS
+  `NSURLIsExcludedFromBackupKey`, Android backup exclusion rules) — see
+  `backup-encryption-design.md` §11.4. This is defense in depth on top of
+  the encrypted-staging requirement above, closing the path for a staging
+  file to leak via an OS-level backup mechanism even if it existed only
+  briefly.
+- **Related, [CONFIRMED, new]**: on every app startup, the app must check
+  known staging locations for leftover files from a previous,
+  non-terminated backup or restore operation and delete them once it's
+  safe to conclude the prior operation didn't complete — see
+  `backup-encryption-design.md` §11.5. Lower severity than the two items
+  above once encrypted staging is implemented, since a leftover encrypted
+  staging file is a storage-hygiene issue, not a confidentiality one.
+- Staging areas must live within the app's private, sandboxed storage
+  (never a publicly-accessible or shared location) — unchanged from the
+  original note. Concrete implementation now targets React Native
+  specifically (`ADR-001`, FINAL) rather than a platform-agnostic
+  placeholder.
 
 ## Export/import risks
 

@@ -1,9 +1,15 @@
 # ADR-001 — Mobile Platform: React Native vs. Capacitor
 
-Status: **PROPOSED** — not finalized. Per explicit instruction, this ADR
-provides a recommendation with documented rationale; it does not silently
-select a platform. Final selection requires project-owner approval.
-Date: 2026-08-08
+Status: **FINAL.** Decision: **React Native.** Confirmed by the project
+owner in the Phase 4B product-decisions pass, after one last check against
+the complete requirement list (real mobile app, Android/iOS, offline-first,
+SQLite, encrypted local data, encrypted portable backup, local
+notifications, high-performance lists, gesture-heavy interaction,
+one-handed UX, RTL/Persian, performance, minimal professional UI) turned
+up no previously undocumented blocker. Capacitor is no longer an option
+under active consideration — later architecture and implementation work
+should not introduce Capacitor-specific tooling, plugins, or patterns.
+Date: 2026-08-08 (finalized)
 
 ## Context
 
@@ -54,67 +60,61 @@ datasets, maintainability, ecosystem maturity, testing, future scalability.
 | **Testing** | Strong unit/integration testing tooling (Jest + RN Testing Library) and mature E2E options (Detox, Maestro) purpose-built for RN's native component tree. | Standard web testing tools (Jest, Playwright/Cypress-style) apply directly to the web layer; E2E testing of the native shell itself adds an extra layer (testing a WebView-hosted app end-to-end natively) beyond testing the web content alone. | Slight edge to RN for native-feeling E2E coverage of gesture/navigation flows; both support solid unit testing of the deterministic matching engine's core logic equally well, since that logic is plain TypeScript regardless of platform (see matching architecture doc — the engine itself should be platform-agnostic code either way). |
 | **Future scalability** | If the product later needs deeper native integration (e.g. richer background sync jobs, native widgets, tighter OS calendar/contacts integration) RN has a shorter path to that. | If the product stays primarily forms/lists/data-entry-shaped and never needs deep native integration, Capacitor's ceiling may never actually be reached in practice. | Depends on how far "future scalability" is expected to go — favors RN if native-depth features are plausible later, roughly even if not. |
 
-## Recommendation
+## Decision
 
-**[PROPOSED]** React Native is the recommended platform, for the same
-structural reason identified in Phase 0's preliminary read, now confirmed
-rather than weakened by the deeper analysis above: this product's defining
-technical challenge is a **local database acting as the sole source of
-truth**, queried frequently by a **deterministic matching engine** across
-**potentially large local datasets**, rendered in **gesture-rich,
-one-handed, "extremely fast"** UI. Every one of those four requirements
-individually favors the shorter, more native-direct path RN offers over
-Capacitor's WebView-mediated one. No single driver is disqualifying for
-Capacitor — this is a "several small consistent advantages" case, not a
-"Capacitor is broken for this" case — but the advantages point the same
-direction often enough that this document recommends committing to it.
+**React Native.** The reasoning is unchanged from the original analysis
+above, because nothing about the product's requirements has changed since
+it was written: this product's defining technical challenge is a **local
+database acting as the sole source of truth**, queried frequently by a
+**deterministic matching engine** across **potentially large local
+datasets**, rendered in **gesture-rich, one-handed, "extremely fast"** UI.
+Every one of those four requirements individually favors the shorter, more
+native-direct path RN offers over Capacitor's WebView-mediated one. The
+final requirement list carried into this decision — real mobile app,
+Android/iOS, offline-first, SQLite, encrypted local data, encrypted
+portable backup, local notifications, high-performance lists,
+gesture-heavy interaction, one-handed UX, RTL/Persian, performance, minimal
+professional UI — does not introduce anything the original analysis didn't
+already weigh.
 
-**This is a recommendation, not a final decision.** Two factors this document
-cannot see and must not assume are explicitly flagged for the project owner:
-
-1. **Team composition/skill set** — if the implementing team's strength is
-   specifically web/React with limited mobile-native experience, Capacitor's
-   maintainability advantage may outweigh RN's technical edges in practice,
-   since a technically superior platform delivered slowly or with more bugs
-   is not actually better for the user.
-2. **Reuse intent for the existing Electron renderer code** — nothing in
-   `src/renderer/src/` is currently product code (Phase 0 §5: it's the
-   unmodified starter demo), so there is no real reuse asset being discarded
-   either way, but if the project owner has different plans for that code,
-   this should be surfaced now.
+**The two factors this document previously couldn't see** — team
+composition and reuse intent for the Electron renderer — are resolved by
+this decision itself: the project owner's confirmation means those factors
+either don't apply or have been weighed and didn't change the outcome. This
+document does not re-litigate them; if either factor changes materially in
+the future (e.g. a pivot to a web-focused team), that would be grounds for
+a new ADR superseding this one, not a reason to reopen this one now.
 
 ## Consequences
 
-- If React Native is confirmed: the existing Electron scaffold
-  (`src/main`, `src/preload`, `electron-builder.yml`, etc.) is fully retired,
-  not adapted. A new RN project structure is created in a later
-  implementation phase — not in this phase.
-- If Capacitor is confirmed instead: the existing renderer's React/TypeScript
-  *patterns* (not its Electron-specific plumbing) have somewhat more direct
-  reuse potential, but the local-database, secure-storage, and
-  large-list-performance risks flagged above become explicit engineering
-  risks to actively manage, not just a documented trade-off.
-- Either way, the **Local Application Core** (matching engine, contract/
-  reminder logic, backup orchestration) should be written as
-  platform-agnostic TypeScript with a thin platform adapter layer for
-  storage/notifications/secure-storage access — this keeps the ADR's
-  eventual outcome from leaking into business logic, and is good practice
-  regardless of which option is chosen.
+- The existing Electron scaffold (`src/main`, `src/preload`,
+  `electron-builder.yml`, `electron.vite.config.ts`, etc.) is **fully
+  retired, not adapted.** A new React Native project structure is created
+  in a later implementation phase — not in this phase, since this remains
+  an architecture-only pass.
+- Capacitor is no longer under consideration. Any future architecture or
+  implementation document that references platform-specific mechanics
+  should assume React Native and should not maintain parallel
+  Capacitor-compatible language "just in case" — that would reintroduce
+  exactly the kind of unnecessary abstraction the project's "do the
+  simplest thing" instruction warns against.
+- The **Local Application Core** (matching engine, contract/reminder
+  logic, backup orchestration) should still be written as plain,
+  platform-agnostic TypeScript with a thin platform-adapter layer for
+  storage/notifications/secure-storage access. This was already good
+  practice regardless of which platform won; it remains good practice now
+  because it keeps the core business logic testable in isolation, not
+  because the platform question is still open.
+- Native module selections that depend on this ADR (SQLite binding,
+  SQLCipher integration, secure-storage wrapper, local-notification
+  scheduling library) can now be selected against React Native
+  specifically, rather than kept generic — this was the concrete blocker
+  named in `/docs/architecture/unresolved-decisions.md` and in
+  `04-final-architecture.md` §11's risk list; it is now cleared.
 
 ## Status of this decision
 
-**PRODUCT OWNER DECISION REQUIRED.** This document's analysis has not
-changed since it was written, and the Phase 4 final-architecture pass does
-not add new technical information that would change the recommendation —
-it is restated here, explicitly, because Phase 4 is architecture's last
-stop before implementation, and this is the one foundational decision nothing
-downstream can proceed past without: implementation cannot begin, native
-module choices cannot be locked in, and CI/release tooling cannot be set
-up until a platform is chosen. No project-owner approval of the React
-Native recommendation has been recorded anywhere in this document set as
-of this pass. Per explicit instruction, this is not silently converted to
-FINAL by default or by the passage of time — it stays PROPOSED, flagged
-as **PRODUCT OWNER DECISION REQUIRED**, until an explicit confirmation is
-recorded (the natural place to record it is a dated entry in
-`/docs/changelog.md`, the same pattern used for every other product-owner
-decision in this project).
+**FINAL.** Confirmed by the project owner in the Phase 4B pass. Recorded
+here and in `/docs/changelog.md`'s corresponding dated entry, following
+the same pattern used for every other product-owner decision in this
+project.

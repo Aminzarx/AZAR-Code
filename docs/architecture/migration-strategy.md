@@ -97,15 +97,78 @@ the backup format's compatibility across app versions.
 | Older, and no migration path exists (too old, support window exceeded) | Restore is rejected with a clear, specific message (RST-04) — the existing local data is untouched, per the restore-safety invariant. |
 | Newer than the app currently supports | Restore is rejected with a clear, specific message distinguishing "this backup is from a newer app version" from a generic failure — the existing local data is untouched. |
 
-- **[PRODUCT OWNER DECISION REQUIRED]**: how many prior schema versions
-  remain restorable (the "support window") before a backup is rejected as
-  too old — this was already flagged as open in
-  `backup-architecture-analysis.md` and is restated here because it's the
-  concrete policy this table's second row depends on. A reasonable
-  starting position (e.g. "migrate forward from any version the current
-  app's migration chain still contains steps for") is a viable default,
-  but committing to it is a product decision about how much migration
-  history to maintain indefinitely, not a purely technical one.
+- **[FINAL — confirmed by the project owner in the Phase 4B pass]** The
+  backup version-compatibility support window is **CURRENT + 2 PREVIOUS
+  format generations**. Concretely: if the app is currently on backup
+  format version N, it must be able to restore backups written at format
+  versions N, N-1, and N-2. A backup at format version N-3 or older is
+  explicitly rejected, with a clear message naming it as too old to
+  restore directly, rather than silently attempted or vaguely refused.
+  This window applies to the backup **format version**
+  (`backup-encryption-design.md`'s container-level version number), not
+  the finer-grained business-data **schema version** the payload carries
+  — a single format-version generation may span several schema-version
+  migrations, all of which stay supported as long as the format version
+  they belong to is within the window.
+  - **Why a fixed window rather than "support everything forever"**: an
+    unbounded migration chain accumulates indefinitely and each old
+    migration step becomes a permanent maintenance and testing burden with
+    shrinking real-world benefit — most users restore a recent backup, not
+    one from many format generations ago. A fixed window bounds that
+    burden predictably while still covering the realistic case (a user
+    restoring after reinstalling, switching devices, or recovering from an
+    incident within a reasonable timeframe).
+  - **What happens outside the window**: rejected, not silently migrated
+    and not silently restored. The rejection message must say plainly that
+    the backup is from an unsupported, older app version, distinct from
+    the "corrupted" and "wrong password" messages (§"Backup compatibility"
+    table below), consistent with `backup-encryption-design.md` §6 and §9's
+    requirement that the most specific, most actionable error is always
+    shown.
+  - **A backup within the window but from an older schema version still
+    goes through the full migration chain** described earlier in this
+    document (staged, transactional, validated before swap) — the format-
+    version window bounds *how far back restore support reaches*; it does
+    not change *how* an in-window older backup is actually migrated
+    forward.
+  - **Format-version increments are expected to be infrequent** — this
+    document does not set a cadence for them (that's an implementation-
+    phase/release-planning question), only the support-window policy that
+    applies whenever one happens.
+
+## Full pre-restore validation checklist (confirmed)
+
+Before any restore step is permitted to modify the existing live database,
+every one of the following must pass, in this order — this consolidates
+`backup-encryption-design.md` §6's six-step ordering with the specific
+checklist named in the Phase 4B product-decisions request, so both
+documents describe the same thing in compatible terms:
+
+1. **Format version** — is this a recognized backup container at all, and
+   is its format version within the supported range (§"Backup
+   compatibility" above)?
+2. **Encryption metadata** — are the header's KDF parameters, salt, wrapped
+   DEK, and nonce present and well-formed enough to attempt decryption?
+3. **Integrity/authentication** — does the payload's authentication tag
+   verify against the derived key? (This step also implicitly verifies the
+   password, per `backup-encryption-design.md` §6 steps 3-4 — a wrong
+   password and a tampered/corrupted payload are still distinguished from
+   each other there, even though both route through this same checklist
+   item at a high level.)
+4. **Schema version / migration compatibility** — once the payload is
+   confirmed authentic, is its schema version one this app version can use
+   directly or migrate forward, per the support window above?
+5. **Required fields** — after decryption and any needed migration, does
+   the payload contain every field the current schema requires, correctly
+   typed and structurally valid?
+
+Only after all five pass does the restore proceed to staging and the
+atomic swap described in `04-final-architecture.md` §7's restore state
+machine. Failing any single check rejects the restore with a
+check-specific message and leaves the existing live database completely
+untouched — this is the same hard invariant `04-final-architecture.md`
+already establishes, restated here as a checklist rather than a state
+diagram.
 
 ## Old / incompatible backup handling
 
@@ -150,7 +213,7 @@ the backup format's compatibility across app versions.
 
 - Exact migration tooling/library choice (carried from
   `local-data-architecture.md`).
-- **[PRODUCT OWNER DECISION REQUIRED]** Backup version-compatibility
-  support window (how many prior schema versions remain restorable).
+- ~~Backup version-compatibility support window~~ — **resolved, FINAL**:
+  CURRENT + 2 previous format generations (§"Backup compatibility" above).
 - Whether to prompt for a backup before a schema-migrating update —
   proposed here, not yet confirmed as a UX decision.

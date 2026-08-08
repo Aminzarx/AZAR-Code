@@ -1014,3 +1014,110 @@ the complete list of what's finalized, what's proposed, and what needs a
 product-owner call — the two decisions with the broadest downstream
 impact are the mobile platform choice (`ADR-001`) and the backup-version
 support window (`migration-strategy.md`).
+
+## 2026-08-08 — Phase 4B: product decisions finalized + dedicated security review
+
+**What changed**: Closed the product-owner decisions Phase 4 left open,
+and performed the dedicated cryptographic security review that
+`ADR-004`/`ADR-005` had been waiting on since they were first written. No
+application code was written; this remains a documentation and
+architecture pass.
+
+Four decisions finalized:
+
+1. **Mobile platform: React Native, FINAL.** `ADR-001` re-checked against
+   the complete requirement list one last time — no previously
+   undocumented blocker surfaced. Capacitor is no longer under
+   consideration for this product. The Electron scaffold remains fully
+   retired, not adapted, when implementation eventually begins.
+2. **Backup version-compatibility window: CURRENT + 2 previous format
+   generations, FINAL.** A backup older than that is explicitly rejected,
+   never silently attempted. Documented in
+   `/docs/architecture/migration-strategy.md`, with a consolidated
+   pre-restore validation checklist (format version, encryption metadata,
+   integrity/authentication, schema version/migration compatibility,
+   required fields) added alongside it.
+3. **Referral code reuse policy: immutable after registration, FINAL.** A
+   referral relationship is created exactly once, at registration, and
+   can never be replaced, removed, or re-attached afterward — enforced
+   server-side, with self-referral rejected. Documented in `ADR-009`.
+4. **Matching engine scoring model formalized**, without inventing final
+   weights, in the new `/docs/architecture/matching-scoring-spec.md`: hard
+   vs. soft constraints, five match types (exact, range, approximate,
+   categorical, amenity/boolean), explicit handling for missing/
+   conflicting/excluded values, conditional-criteria interaction with
+   scoring, score normalization (against an applicant's own achievable
+   score, not a fixed global maximum), and the full explanation-generation
+   content contract. The actual weight numbers remain open, deliberately.
+
+**Dedicated cryptographic security review performed**, documented in the
+new `/docs/security/phase-4-security-review.md`. The review confirmed the
+core designs in `ADR-004` (AES-256-GCM + Argon2id backup encryption) and
+`ADR-005` (SQLCipher/AES-256 local database encryption) are sound —
+neither algorithm choice changed — and produced six concrete corrections/
+additions, all now folded into `backup-encryption-design.md` §11 and the
+two ADRs:
+
+- A specification fix for which header fields each of the two GCM
+  operations authenticates (previously ambiguous, not exploitable as
+  designed, but worth making precise).
+- A requirement that key material (password, KEK, DEK) be handled through
+  a native crypto binding capable of explicit memory zeroing, since
+  JavaScript's runtime offers no deterministic memory-erasure guarantee.
+- **The review's highest-severity finding**: restore/migration staging
+  copies of the database were not previously required to be encrypted,
+  which could have allowed an implementation to create a genuinely
+  plaintext temporary copy of a user's full business data. Now a binding
+  requirement — any staged database copy must itself be SQLCipher-
+  encrypted, never plaintext, even transiently.
+- A requirement to exclude staging/cache paths from OS-level device
+  backup (iOS/Android), as defense in depth on top of the encryption
+  requirement above.
+- A requirement to clean up leftover staging files from a crashed session
+  on next app startup.
+- A requirement for prototype-pollution-safe, resource-bounded parsing of
+  a validated backup payload.
+
+A concrete Argon2id benchmarking procedure was also defined
+(`backup-encryption-design.md` §3.1) — the KDF parameters remain PROPOSED
+until that procedure is run against a real minimum-supported device,
+which itself depends on a still-open minimum-OS-version/device-tier
+decision.
+
+The review also walked the restore state machine and the offline/online
+session boundary against nine specific adversarial scenarios (attacker
+has the device; attacker has only the backup; the backup was modified;
+the app crashed mid-restore; the user forgot the password; the app was
+reinstalled; the app was offline for a long time; the server reports
+authentication failure; the server is unreachable) — all nine held up
+against the existing design, with no scenario breaking the
+authenticate-before-trust or network-failure-never-logs-out invariants.
+
+**No CRITICAL findings. One HIGH finding (the plaintext-staging gap
+above), resolved at the architecture level by this same pass** — the
+requirement fixing it is written into the documents already, so it does
+not remain open.
+
+**Reason**: Explicit project-owner instruction to close the remaining
+Phase 4 product decisions and perform the dedicated security review that
+had been consistently deferred until a concrete design existed to review.
+
+**Affected modules**: Documentation only (`ADR-001`, `ADR-004`, `ADR-005`,
+`ADR-009`, `backup-encryption-design.md`,
+`/docs/architecture/migration-strategy.md`,
+`/docs/architecture/matching-scoring-spec.md` (new),
+`/docs/security/phase-4-security-review.md` (new),
+`/docs/security/threat-model.md`,
+`/docs/architecture/unresolved-decisions.md`,
+`/docs/database/conceptual-data-model.md`). No application code,
+dependencies, or database schema were touched.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet (no application code exists).
+
+**Security gate**: **SECURITY GATE PASSED WITH CONDITIONS.** See the full
+report delivered alongside this entry — the conditions are the remaining
+open items (Argon2id parameter benchmarking, a future implementation-level
+crypto review, and the still-open UX-dependent items), none of which are
+CRITICAL or unresolved HIGH findings.

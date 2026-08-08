@@ -307,15 +307,18 @@ must not silently destroy existing local data.
 
 ## 11. Risks (consolidated)
 
-- **Platform decision is the single blocking dependency** for everything
-  downstream that touches native APIs (secure storage bindings, SQLite
-  bindings, notification scheduling) — `ADR-001` remains PRODUCT OWNER
-  DECISION REQUIRED and nothing in this document works around that; it
-  names the dependency rather than guessing past it.
-- **Cryptographic decisions are PROPOSED, not FINAL** — `ADR-004` and
-  `ADR-005` make concrete, standards-based choices, but both explicitly
-  require a dedicated security review before implementation should treat
-  them as settled, per standing instruction.
+- ~~Platform decision is the single blocking dependency~~ — **resolved in
+  the Phase 4B pass**: `ADR-001` is FINAL (React Native). Native module
+  selections (SQLite binding, SQLCipher integration, secure-storage
+  wrapper, notification scheduling) can now target React Native
+  specifically.
+- **Cryptographic decisions are PROPOSED, not FINAL, but have now been
+  through their dedicated security review** — the Phase 4B review
+  (`/docs/security/phase-4-security-review.md`) confirmed `ADR-004` and
+  `ADR-005`'s core designs are sound and strengthened them with six
+  concrete corrections; both remain PROPOSED because an
+  implementation-level review (once code exists) is still required, not
+  because the design itself is still in question.
 - **Scoring weights are genuinely unresolved** — not a blocker to
   finalizing the rest of the architecture (the pipeline shape and
   constraints are fixed), but a real gap that must be closed before the
@@ -332,7 +335,7 @@ must not silently destroy existing local data.
 | Document | Status | Covers |
 |---|---|---|
 | This file | Consolidation | System shape, boundaries, performance, risks, final report |
-| `ADR-001-mobile-platform.md` | PRODUCT OWNER DECISION REQUIRED | React Native vs. Capacitor |
+| `ADR-001-mobile-platform.md` | **FINAL** (Phase 4B) | React Native |
 | `ADR-002-local-database-source-of-truth.md` | **FINAL** | SQLite as local DB technology |
 | `ADR-003-otp-provider-deferred.md` | DEFERRED (by instruction) | OTP/SMS vendor |
 | `ADR-004-backup-encryption.md` + `backup-encryption-design.md` | PROPOSED, pending security review | Backup crypto scheme |
@@ -343,6 +346,8 @@ must not silently destroy existing local data.
 | `ADR-009-authentication-boundary.md` | CONFIRMED shape / several OPEN items | Online surface boundary |
 | `/docs/database/conceptual-data-model.md` | Extended | Entities, relationships, shared field model |
 | `/docs/matching/matching-architecture.md` | Extended | Pipeline + conditional criteria |
-| `/docs/architecture/migration-strategy.md` | PROPOSED | DB/backup versioning and migration |
-| `/docs/security/threat-model.md` | Extended | Full threat catalog |
-| `/docs/architecture/unresolved-decisions.md` | Updated | Consolidated open-item tracker |
+| `/docs/architecture/migration-strategy.md` | **FINAL** (Phase 4B, backup window) | DB/backup versioning and migration |
+| `/docs/architecture/matching-scoring-spec.md` | PROPOSED (Phase 4B) | Formal scoring model, weights still open |
+| `/docs/security/phase-4-security-review.md` | Complete (Phase 4B) | Dedicated cryptographic security review |
+| `/docs/security/threat-model.md` | Extended (Phase 4B) | Full threat catalog |
+| `/docs/architecture/unresolved-decisions.md` | Updated (Phase 4B) | Consolidated open-item tracker |
