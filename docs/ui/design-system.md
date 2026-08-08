@@ -7,7 +7,10 @@ application code, does not begin Phase 4, and does not redesign the product —
 it formalizes and reconciles what the Stitch design set
 (`/design/stitch/stitch_elite_real_estate_crm/`) already established, using
 Material Design 3 (https://m3.material.io/) as the structural foundation.
-Date: 2026-08-08
+Date: 2026-08-08 (v1.1.0 — FINAL UI correction pass before Phase 4: restore
+safety-backup flow completed as ten distinct states §8.22, 48dp touch-target
+gap resolved §9, `warning` separated from `error` as a distinct token §12,
+dark mode confirmed still deferred §12)
 
 ## 0. Positioning statement
 
@@ -33,10 +36,17 @@ professional" brand pillars (`executive_precision/DESIGN.md`).
 ## 1. Audit summary (source of truth for every value below)
 
 Every token in this document is grounded in what the Stitch design package
-(post-correction-pass, 32 screens) actually uses, reconciled where the
-package's own `DESIGN.md` prose and its 15+ per-screen embedded Tailwind
-configs disagreed with each other. See
+actually uses, reconciled where the package's own `DESIGN.md` prose and its
+per-screen embedded Tailwind configs disagreed with each other. See
 `/docs/ui/design-system-audit.md` for the full screen-by-screen accounting.
+
+**Screen count note (FINAL UI correction pass before Phase 4)**: the
+package grew from 32 to 44 screens in this pass — 12 new screens (6 new
+LTR + 6 new RTL) implementing the restore safety-backup flow's previously
+missing states (§8.22). References to "32 screens" elsewhere in this
+document describe the state of the package as of the Material 3
+standardization pass (v1.0.0) and are historical; the current authoritative
+screen count and per-screen classification is `design-system-audit.md`.
 Headline findings that shaped this document:
 
 - **Color**: `executive_precision/DESIGN.md`'s prose names "Emerald
@@ -558,6 +568,64 @@ See §17, a dedicated specification.
   where possible (`ui_destructive_confirmation`,
   `restore_existing_data_warning` — both compliant, Category A).
 
+### 8.22 Restore Safety-Backup Flow [RESOLVED — FINAL UI correction pass]
+
+**Finalized product decision** (recorded in `/docs/changelog.md` and
+`/docs/01-product-requirements.md` §14): restoring a backup onto a device
+that already contains local business data must never silently overwrite
+that data. The full sequence, now fully represented as ten distinct screen
+states (previously the mandatory safety-backup step was missing as its own
+step — the single Category D finding carried over from the prior
+correction pass):
+
+| # | State | Screen (LTR) | Screen (RTL) |
+|---|---|---|---|
+| 1 | Existing Data Detected | `restore_existing_data_detected` | `restore_existing_data_detected_persian_rtl` |
+| 2 | Safety Backup Required | `restore_safety_backup_required` | `restore_safety_backup_required_persian_rtl` |
+| 3 | Creating Safety Backup | `restore_safety_backup_progress` | `restore_safety_backup_progress_persian_rtl` |
+| 4 | Safety Backup Success | `restore_safety_backup_success` | `restore_safety_backup_success_persian_rtl` |
+| 5 | Safety Backup Failure | `restore_safety_backup_failure` | `restore_safety_backup_failure_persian_rtl` |
+| 6 | Restore & Replace Confirmation | `restore_existing_data_warning` (repurposed) | `restore_existing_data_warning_persian_rtl` (repurposed) |
+| 7 | Restore Progress | `restore_progress` (existing, copy updated) | — *(not yet built for RTL; carried scope from the prior correction pass, not newly introduced by this one)* |
+| 8 | Restore Success | `restore_success` (existing) | — *(same note as above)* |
+| 9 | Restore Failure | `restore_failure` (existing, copy updated) | — *(same note as above)* |
+| 10 | Cancellation without data modification | `restore_cancelled` | `restore_cancelled_persian_rtl` |
+
+**States are deliberately not combined.** Each state above is its own
+screen because collapsing any of them would reduce user understanding of a
+destructive-adjacent flow:
+
+- States 1 and 2 are separate because "data exists" and "here is what will
+  protect it" are two different facts the user must register before being
+  asked to act.
+- State 5 (Safety Backup Failure) is a hard stop, not a warning: **restore
+  cannot proceed if the safety backup fails** — the flow has no path from
+  state 5 back into state 6; the only way forward is retrying state 3 or
+  cancelling.
+- State 6 is positioned **after** state 4 (Safety Backup Success), not
+  immediately after state 1 — this is the core correction. The user is only
+  asked to confirm the destructive replace once their current data is
+  already safely backed up, and state 6's copy explicitly names the
+  safety-backup file as a recovery path if the restore itself later fails.
+- State 10 exists as its own screen (not just "close the sheet") so that
+  cancelling produces an explicit, visible confirmation that nothing was
+  modified — consistent with the destructive-confirmation pattern's general
+  rule of never leaving a consequential action ambiguous.
+
+**Cancellation is available up through state 6** (before the actual restore
+begins in state 7); every pre-restore screen in the flow includes a
+"Cancel" action that leads to state 10 without modifying existing data.
+Once state 7 (Restore Progress) begins, the in-progress screen still offers
+a cancel action, and its copy explicitly reassures the user that the
+pre-restore safety backup remains available even if they cancel mid-restore
+or if state 9 (Restore Failure) occurs.
+
+**Color semantics** (§12): states 1, 2, 3, 4, and 6 use the `warning` token
+family (caution, consequence disclosure — not yet a failure); state 5 uses
+`error` (a genuine failure); state 6's commit button ("Restore & Replace")
+uses `error` regardless of the banner above it using `warning`, per the
+destructive-commit-button rule in §12.
+
 ---
 
 ## 9. Touch Targets
@@ -567,21 +635,41 @@ the **effective/hit-area** minimum — not necessarily the *visual* icon or
 control size, per the brief's explicit instruction not to visually enlarge
 icons just to satisfy a touch-target rule.
 
+**RESOLVED (FINAL UI correction pass before Phase 4).** The 40×40px
+icon-button gap previously flagged below is now corrected across all 32
+Stitch screens plus every new restore safety-backup-flow screen: every
+icon-only interactive control (back/close buttons, header icon buttons,
+stepper +/- buttons, list-row overflow ("more") buttons) now sits inside a
+48×48dp minimum interactive container (`min-w-[48px] min-h-[48px]` plus
+`p-3` centering, or equivalent), while the **visual icon glyph itself is
+unchanged in size** — the fix expands the invisible hit-area, not the icon.
+This was applied at the shared-template level
+(`page_shell`/`page_shell_rtl`'s back button, `sheet_shell`/`sheet_shell_rtl`'s
+close button) so every screen generated from those templates inherits the
+correct hit-area by construction, plus a targeted pass over screens with
+bespoke icon buttons (contract urgency-list "more" button, dashboard
+notification bell, applicant/owner-edit numeric steppers, file-list-row
+overflow menu).
+
 Audit of existing interactive elements against this minimum:
 
 | Element | Visual size | Effective target (with padding) | Verdict |
 |---|---|---|---|
 | Primary buttons | Full width × ~48-56px | Same | **Compliant** |
-| Back/close icon buttons | 40×40px container | 40×40px (no extra hit-area padding currently defined) | **Below minimum — Category D**, needs an invisible hit-area expansion to 48×48px in implementation (visual size unchanged) |
+| Back/close icon buttons | 24px icon, 48×48px container (`p-3` + `min-w-[48px] min-h-[48px]`) | 48×48px | **Compliant (corrected this pass)** |
 | Bottom nav items | ~64px tall touch column | Compliant | **Compliant** |
 | List rows | Full-width, `py-4`+ internal padding → 56-72px row height | Compliant | **Compliant** |
 | Chips (filter/amenity) | ~32-36px tall | Below 48px | **[EXCEPTION — documented]**: chips are Material 3's own accepted exception (compact, multi-item selection contexts where 48px per chip would be impractically large); acceptable as-is per Material 3 guidance, provided adjacent chips have adequate `space-2` gap to prevent mis-taps |
 | Checkbox/radio controls (restore confirmation, priority toggles) | ~16-20px visual, but wrapped in a larger `<label>` with padding | Compliant (the label, not the control itself, is the tap target) | **Compliant** |
+| Numeric stepper +/- buttons (bed/bath count entry) | 20px icon, 48×48px container (`p-3` centered) | 48×48px | **Compliant (corrected this pass)** |
+| List-row overflow ("more") buttons | 20px icon, 48×48px container | 48×48px | **Compliant (corrected this pass)** |
 
 **Rule for implementation**: any icon-only control smaller than 48×48px
 visually must receive `min-width`/`min-height: 48px` with the icon centered
 inside via flex/grid centering — the icon does not grow, only its
-tappable/clickable bounding box does.
+tappable/clickable bounding box does. `design-tokens.json`'s
+`component.iconButton` reflects this as `hitArea: 48` (mandatory), replacing
+the earlier `recommendedHitArea` framing that read as optional.
 
 ---
 
@@ -653,20 +741,71 @@ would modify the design package rather than document it).
 | `on-surface` | `#191c1d` | Primary text | — | ~15.6:1 on `surface` — compliant |
 | `on-surface-variant` | `#44474a` | Secondary text, labels | — | ~7.7:1 on `surface` — compliant |
 | `outline` / `outline-variant` | `#75777a` / `#c5c6ca` | Borders, dividers | — | Structural only, not text |
-| `error` | `#ba1a1a` | Error text, destructive buttons, mismatched-criteria indicators | — | ~5.9:1 on white — compliant |
+| `error` | `#ba1a1a` | Error text, destructive-commit buttons, mismatched-criteria indicators, genuine failure states (failed operation, invalid input, corrupted data, authentication failure, unrecoverable/failed state) | — | ~5.9:1 on white — compliant |
 | `error-container` | `#ffdad6` | Error banners, mismatch-highlight backgrounds | — | `on-error-container` (`#93000a`) on this: ~7.2:1 — compliant |
-| **`success`** [documented, not a separate token — mapped] | = `secondary` (`#3b6934`) | Success confirmations (restore success, save confirmations) | — | Reuses `secondary` rather than introducing a new hue — deliberate, since AZAR's palette treats "positive" as a single semantic color (already how "Active" status chips and checkmarks are colored) |
-| **`warning`** [documented, not a separate token — mapped] | = `tertiary-fixed-dim` (`#a3cdda`) family / amber-adjacent use via `error-container` at lower emphasis for "urgent but not failed" states (e.g. contract-expiring-soon indicators, which currently use red/error-family tones at varying opacity, e.g. the "3 Days Left" chip) | Contract urgency tiers | — | **[Category B — should be normalized]**: today "Urgent," "Follow-up Required," and true errors all visually borrow from the `error` family at different tints, which works but isn't a formally distinct `warning` token — recommend a dedicated `warning`/`on-warning` pair (amber-family, distinct from `error`'s red) in a future palette pass rather than reusing red-family tints for two different severities |
+| **`warning`** | `#8a5000` | Non-fatal caution/attention states: contract approaching expiration, reminder-related caution, restore-flow warnings *before* the destructive commit step, other potentially-destructive-but-not-yet-failed consequences | — | On white: ~5.4:1, compliant |
+| **`warning-container`** | `#ffddb3` | Warning banners, contract-urgency-tier backgrounds, reminder-severity indicators | — | `on-warning-container` (`#6b3d00`) on this: ~7.7:1 — compliant |
+| `on-warning` | `#ffffff` | Text/icons on `warning` fill | — | Compliant (inverse of above) |
+| `on-warning-container` | `#6b3d00` | Text on `warning-container` | — | See above |
+| **`success`** [documented, not a separate token — mapped] | = `secondary` (`#3b6934`) | Success confirmations (restore success, safety-backup success, save confirmations) | — | Reuses `secondary` rather than introducing a new hue — deliberate, since AZAR's palette treats "positive" as a single semantic color (already how "Active" status chips and checkmarks are colored) |
 | **`info`** [documented, not a separate token — mapped] | = `tertiary-container`/`on-tertiary-container` (`#001f26`/`#618a96`) | Informational banners (local-notification banner, "unsaved changes" banner) | — | Compliant, already in consistent use |
 
-**Dark mode**: not present anywhere in the current Stitch set (`darkMode:
-"class"` is configured in every file's Tailwind config, but no
-`dark:` variant classes define an actual dark palette beyond a handful of
-incidental `dark:` utility classes on the RTL match-explanation screen's nav
-— e.g. `dark:bg-background`). **Flagged as a real gap** (Category D): dark
-mode is technically wired for but not designed. Not resolved here — a
-dedicated dark-palette design pass is required before it can be documented
-as implementation-ready.
+**RESOLVED (FINAL UI correction pass before Phase 4): `warning` is now a
+distinct amber-family token, separate from `error`.** Previously `warning`
+was only a documented mapping onto `error`-family tones at varying
+tints/opacity (Category B finding in `design-system-audit.md`); this pass
+introduces genuine `warning`/`on-warning`/`warning-container`/
+`on-warning-container` tokens (in `design-tokens.json` and every affected
+Stitch screen's embedded Tailwind config) and re-colors every
+previously-conflated usage:
+
+- `contract_management_timeline`: the "Urgent (< 7 Days)" and "Upcoming
+  (< 30 Days)" tiers now use `warning`/`warning-container` — previously
+  "Urgent" borrowed `error`/`error-container` and "Upcoming" used an
+  undocumented hardcoded hex (`#f57f17`/`#fff8e1`) with no token at all.
+  `error` is no longer used anywhere on this screen, since none of its
+  urgency tiers represent an actual failed/expired state (the still-open
+  "Expired" bucket, tracked separately as a content gap, would be the first
+  legitimate `error` usage on this screen once added).
+- `settings_contract_reminders` (+ RTL): all five reminder-severity bars
+  (30/14/7/3-days-before, On Expiration) now use `warning`/
+  `warning-container` instead of `error`/`error-container` — these are
+  configuration-time caution indicators, not failure states.
+- `restore_existing_data_detected`, `restore_safety_backup_required`,
+  `restore_safety_backup_progress`, `restore_safety_backup_success`, and the
+  repurposed `restore_existing_data_warning` (Restore & Replace
+  Confirmation): use `warning`/`warning-container` for their icon and
+  informational banner, since these are cautionary/consequence-disclosure
+  states, not failures.
+- `restore_safety_backup_failure`: uses `error`/`error-container` — this
+  **is** a genuine failure state (the safety backup could not be created),
+  so `error` is correct here.
+- **Explicit rule for destructive-commit buttons**: the button that actually
+  triggers an irreversible action (e.g. "Restore & Replace" in the
+  confirmation step, "Delete" in `ui_destructive_confirmation`) keeps the
+  `error` token even when the surrounding banner/icon above it uses
+  `warning` — the button represents the point of no return, which is a
+  distinct signal from the cautionary text leading up to it. This
+  distinction is intentional, not an inconsistency: a screen can correctly
+  show a `warning`-colored banner ("here is what will happen") immediately
+  above an `error`-colored commit button ("this action is irreversible").
+- `ui_destructive_confirmation` (+ RTL) is unchanged — deleting a file is
+  itself a completed, irreversible failure-adjacent action with no
+  intermediate "not yet failed" caution state, so full `error` styling
+  throughout remains correct there.
+
+**Dark mode: remains explicitly deferred, unchanged by this pass.** Not
+present anywhere in the Stitch set (`darkMode: "class"` is configured in
+every file's Tailwind config, but no `dark:` variant classes define an
+actual dark palette beyond a handful of incidental `dark:` utility classes
+on the RTL match-explanation screen's nav — e.g. `dark:bg-background`).
+`design-tokens.json`'s `color.dark` object is deliberately left as
+`{"$status": "NOT DEFINED..."}"` — **no dark-mode colors were invented or
+guessed as part of this correction pass**, per explicit instruction. Dark
+mode remains a future product/design decision, to be scoped as its own
+dedicated palette-design pass before Phase 4 implementation would need to
+account for it (or, if Phase 4 ships light-mode-only, before dark mode is
+added in a later release).
 
 **Do not encode meaning using color alone** — already followed consistently
 (status chips pair color with text labels; match criteria use icon shape

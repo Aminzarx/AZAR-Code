@@ -52,13 +52,17 @@ notes below)
   `/design/stitch/stitch_elite_real_estate_crm/restore_existing_data_warning/`
   and its seven sibling restore-state screens. Only the technical staging/
   atomic-swap implementation mechanics remain open, not the policy.
-  **[Design gap tracked, not yet closed]**: the delivered
+  ~~**[Design gap tracked, not yet closed]**: the delivered
   `restore_existing_data_warning/` screen does not yet show the mandatory
-  pre-replace safety-backup step as its own distinct step — it goes straight
-  from the warning to the replace confirmation. A follow-up design
-  correction pass is needed to add a visible "Creating Safety Backup..."
-  step between them before the restore flow is fully aligned with this final
-  decision (`/docs/ui/02-stitch-final-correction.md` §F addendum).
+  pre-replace safety-backup step as its own distinct step~~ — **resolved,
+  FINAL UI correction pass before Phase 4** (`/docs/changelog.md`, entry
+  "FINAL UI correction pass before Phase 4"). The flow now has ten distinct
+  screen states (design-system.md §8.22): Existing Data Detected → Safety
+  Backup Required → Creating Safety Backup → Safety Backup Success/Failure
+  → Restore & Replace Confirmation (the repurposed
+  `restore_existing_data_warning`) → Restore Progress → Restore
+  Success/Failure → Cancellation. Only the technical staging/atomic-swap
+  implementation mechanics remain open, not the design or the policy.
 - ~~Whether the local database itself should be encrypted at rest~~ —
   **resolved at the policy level**: at-rest encryption of sensitive local
   business data is now a **[CONFIRMED REQUIRED]** security requirement

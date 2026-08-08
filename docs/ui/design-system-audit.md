@@ -1,11 +1,13 @@
 # Design System Audit — Stitch Screen Set vs. AZAR Design System
 
-Status: DRAFT — audit only. No screens were redesigned or modified as part
-of this audit; this document classifies existing deviations for future
-correction passes to act on. Audited against
-`/docs/ui/design-system.md` v1.0.0, across all 32 screens in
+Status: RE-AUDITED after the FINAL UI correction pass before Phase 4. This
+pass corrected the restore safety-backup flow (10 distinct states, 12 new
+screens), the 48dp touch-target gap, and the warning/error semantic
+separation; dark mode remains explicitly deferred (unchanged). Audited
+against `/docs/ui/design-system.md` v1.1.0, across all 44 screens (32
+original + 12 new restore safety-backup-flow screens) in
 `/design/stitch/stitch_elite_real_estate_crm/`.
-Date: 2026-08-08
+Date: 2026-08-08 (re-audit)
 
 ## Classification key
 
@@ -29,16 +31,17 @@ compliant *given* these caveats:
 
 | Finding | Classification | Scope |
 |---|---|---|
-| Border-radius token mismatch | **A (resolved)** | All 32 screens — already reconciled in the prior correction pass; re-verified clean during this audit. |
-| Icon sizes used ad hoc (10/14/16/18/20/24/28/32/48px, no naming) | **B** | All screens using icons (i.e. all 32) — consolidate to the 6-step `icon-*` scale (design-system.md §13); no visual change required, this is a naming/consistency exercise. |
-| `label-sm-mobile` (10px bottom-nav label) never a named token in `DESIGN.md` | **B** | Every screen with a bottom nav bar (~24 of 32) — now formalized in design-system.md §3.1, no screen needs to change. |
-| Keyboard focus ring only demonstrated on text fields, not buttons/icon-buttons/nav items | **D** | All 32 screens — genuine accessibility gap, not yet demonstrated anywhere. |
-| Icon-only buttons (back/close, 40×40px) below the 48dp touch-target recommendation | **D** | Every screen with a back/close icon button (~20 of 32) — needs an invisible hit-area expansion in implementation; no visual change. |
-| No `aria-label` on icon-only buttons in the reference HTML | **D** | All 32 screens — expected for static mockups, but must be added in real implementation markup. |
-| Dark mode wired (`darkMode: "class"`) but no dark palette actually designed | **D** | All 32 screens — flagged in design-system.md §12 as a real gap, not designed in this pass. |
-| `warning` treated as a reuse of the `error` color family rather than a distinct amber-family token | **B** | Contract urgency screens specifically (`contract_management_timeline` and its data); flagged in design-system.md §12. |
-| Empty states, loading/skeleton states not demonstrated for any list screen | **D** | `file_management_all_files`, `matching_ranked_results`, `contract_management_timeline`, `settings_backup_security` (history list) — none show an empty or loading variant. |
+| Border-radius token mismatch | **A (resolved)** | All 44 screens — already reconciled in the prior correction pass; re-verified clean during this audit. |
+| Icon sizes used ad hoc (10/14/16/18/20/24/28/32/48px, no naming) | **B** | All screens using icons (i.e. all 44) — consolidate to the 6-step `icon-*` scale (design-system.md §13); no visual change required, this is a naming/consistency exercise. |
+| `label-sm-mobile` (10px bottom-nav label) never a named token in `DESIGN.md` | **B** | Every screen with a bottom nav bar (~24 of 44) — now formalized in design-system.md §3.1, no screen needs to change. |
+| Keyboard focus ring only demonstrated on text fields, not buttons/icon-buttons/nav items | **D** | All 44 screens — genuine accessibility gap, not yet demonstrated anywhere; unchanged by this pass (out of scope — the brief scoped this pass to the restore flow, touch targets, warning token, and dark-mode deferral only). |
+| **Icon-only buttons below the 48dp touch-target minimum** | **A (resolved this pass)** | Every icon-only interactive control app-wide (back/close buttons, header icons, numeric steppers, list-row overflow buttons — was ~20 of 32, now audited across all 44) — every icon-only control now sits inside a 48×48dp minimum hit-area (`min-w-[48px] min-h-[48px]` + centered padding) while the visual icon glyph is unchanged in size. Fixed at the shared-template level (`page_shell`/`sheet_shell` back/close buttons) plus a targeted pass over bespoke icon buttons. See design-system.md §9. |
+| No `aria-label` on icon-only buttons in the reference HTML | **D** | All 44 screens — expected for static mockups, but must be added in real implementation markup; unchanged by this pass (implementation-phase concern, not a design-package defect). |
+| Dark mode wired (`darkMode: "class"`) but no dark palette actually designed | **D (deferred, confirmed unchanged)** | All 44 screens — flagged in design-system.md §12 as a real gap; explicitly **not** designed in this pass per instruction — no dark-mode colors were invented or guessed. `design-tokens.json`'s `color.dark` remains `{"$status": "NOT DEFINED..."}"`. Dark mode remains a future product/design decision. |
+| **`warning` treated as a reuse of the `error` color family rather than a distinct amber-family token** | **A (resolved this pass)** | Was: contract urgency screens specifically. Now: `warning`/`on-warning`/`warning-container`/`on-warning-container` exist as genuine tokens (`design-tokens.json`, every affected screen's embedded config) and are applied wherever the content is cautionary rather than a genuine failure — `contract_management_timeline`'s urgency tiers (including replacing an undocumented hardcoded hex `#f57f17`/`#fff8e1` in the "Upcoming" tier), `settings_contract_reminders`'s five severity bars, and the restore safety-backup flow's states 1/2/3/4/6. `error` is reserved for genuine failures and for the destructive-commit button itself (§12). |
+| Empty states, loading/skeleton states not demonstrated for any list screen | **D** | `file_management_all_files`, `matching_ranked_results`, `contract_management_timeline`, `settings_backup_security` (history list) — none show an empty or loading variant; unchanged by this pass (out of scope). |
 | Google-hosted stock avatar/property photo URLs (`lh3.googleusercontent.com`) present throughout | **C** | Intentional placeholder content for a design mockup — not a defect, will be replaced by real user/property images in implementation; no action needed. |
+| Restore safety-backup flow missing its mandatory pre-replace safety-backup step as a distinct state | **A (resolved this pass)** | Was the single most consequential D finding in the prior audit (rows 18/19 below). Now: 10 distinct states across LTR (all) and RTL (states 1-6, 10) screens, per design-system.md §8.22. Restore-progress/success/failure (states 7-9) remain LTR-only, carried scope from before this pass — see row-level notes below. |
 
 ---
 
@@ -50,11 +53,11 @@ compliant *given* these caveats:
 | 2 | `authentication_otp_verification` | **A** | Auto-advance digit-box focus behavior is a deliberate, documented exception (design-system.md §16) — correctly scoped to OTP entry only, not generalized. |
 | 3 | `authentication_phone_entry` | **A** | Clean, compliant form pattern. No content-level design-system deviations found (the registration/login flow-ordering ambiguity noted in `/docs/ui/00-ui-handoff-review.md` is a *product/UX* finding, not a design-system compliance issue, and is out of scope for this audit). |
 | 4 | `authentication_referral_code` | **A** | Compliant since the correction pass removed "Request an Invitation"/"Brokerage Login." |
-| 5 | `contract_management_timeline` | **B** | Urgency-tier color coding borrows from the `error` family at varying tints/opacities rather than using a distinct `warning` token (cross-cutting finding above). Otherwise compliant, including the (still-open, tracked separately in product docs) missing "Expired" bucket, which is a *content/requirements* gap, not a design-system one. |
+| 5 | `contract_management_timeline` | **A (resolved this pass)** | Urgency-tier color coding now uses the distinct `warning`/`warning-container` token for both the "Urgent" and "Upcoming" tiers, replacing both the prior `error`-family borrowing and an undocumented hardcoded hex. `error` no longer appears anywhere on this screen. The (still-open, tracked separately in product docs) missing "Expired" bucket remains a *content/requirements* gap, not a design-system one. |
 | 6 | `dashboard_home` | **B** | Redundant double greeting ("Good morning," / "Hello, Sarah") — a content/copy issue already flagged in the prior UI review, not re-litigated here as a design-system violation, but noted for whoever performs the next content pass. |
 | 7 | `dashboard_home_persian_rtl` | **B** | **Uses Geist/Inter (Latin fonts) for Persian text rather than Vazirmatn** — the one screen in the set still on font fallback rather than the now-formalized Persian typeface (design-system.md §3.2). Layout mirroring and RTL structure are otherwise correct. Also mixes Persian and Western numerals within the same screen (match-score badges in Western digits, day counts in Persian digits) — should be reconciled per the §3.3 numeral rule (both are individually "correct" per the rule, so this is more a documentation/consistency note than a rule violation, but flagged since it was the audit's original inconsistency finding). |
 | 8 | `file_creation_property_entry` | **A** | The canonical bottom-sheet form pattern — segmented control, slider, stepper, chips all exactly match design-system.md §8.1-§8.7/§16. |
-| 9 | `file_management_all_files` | **B/D** | Compliant list-row structure (design-system.md §17), but has no empty state or loading state (cross-cutting **D**), and its search/filter entry point (**B**) uses a slightly different icon-button sizing than the header search icon elsewhere — same 40px pattern, no functional issue, just worth a consistency pass. |
+| 9 | `file_management_all_files` | **A/D** | Compliant list-row structure (design-system.md §17); the per-row "more" overflow icon button (previously ~22px effective target) and header icon buttons are now corrected to the 48dp hit-area (**A, resolved this pass**). Still has no empty state or loading state (cross-cutting **D**, unchanged — out of scope for this pass). |
 | 10 | `file_management_applicant_detail` | **A** | New screen (Phase 3 correction), built directly against the same patterns as `file_management_owner_detail` — fully compliant, including correct priority-chip usage (§18.1). |
 | 11 | `file_management_applicant_detail_persian_rtl` | **A** | Uses Vazirmatn correctly (built in the correction pass, already compliant with the now-formalized typeface decision). Persian/Western numeral split matches the §3.3 rule (Persian for counts, `dir="ltr"` Western digits for phone/email/currency). |
 | 12 | `file_management_applicant_edit` | **A** | Reuses existing form components per design-system.md §16's explicit instruction not to invent new ones; includes a compliant unsaved-changes banner (§8.13) and validation-error state (§8.3). |
@@ -63,8 +66,17 @@ compliant *given* these caveats:
 | 15 | `file_management_owner_edit_persian_rtl` | **A** | Vazirmatn used correctly; compliant. |
 | 16 | `matching_ranked_results` | **A** | Clean, no AI-styled language, compliant with §18.2's score-presentation rule (large bold numeral + "Score" caption) and §18.3's matched/mismatched inline reasoning. No empty-results state demonstrated (cross-cutting **D**). |
 | 17 | `restore_corrupted_backup` | **A** | Compliant error-state pattern (§8.20), explicit named actions (§8.21). |
-| 18 | `restore_existing_data_warning` | **D** | **Does not yet show the mandatory pre-replace safety-backup step as its own distinct step** — it goes directly from the existing-data warning to the "Restore & Replace" confirmation. This was compliant against the design instructions in effect when it was built, but the project owner has since finalized the restore-onto-existing-data policy to require a mandatory safety-backup-then-validate step *before* this confirmation (`/docs/changelog.md`, `/docs/01-product-requirements.md` §14). **This is the single most important finding in this audit** — already tracked in `/docs/architecture/unresolved-decisions.md` and `/docs/ui/02-stitch-final-correction.md`, restated here because a screen-by-screen audit would be incomplete without flagging it directly against the screen itself. Everything else on this screen (explicit checkbox, named "Cancel"/"Restore & Replace" buttons, itemized consequence list) is fully compliant with §8.21. |
-| 19 | `restore_existing_data_warning_persian_rtl` | **D** (same as #18) | Same missing-safety-backup-step gap as the LTR version; Vazirmatn/RTL execution itself is compliant. |
+| 18 | `restore_existing_data_warning` | **A (resolved this pass)** | **Repurposed as State 6 ("Restore & Replace Confirmation") of the finalized 10-state restore safety-backup flow (design-system.md §8.22)** — now positioned *after* the mandatory safety backup succeeds (State 4), not immediately after existing-data detection. Copy updated to reference the safety-backup file by name as a recovery path. Icon/banner now use `warning` (caution, not yet a failure); the commit button ("Restore & Replace") correctly keeps `error` per the destructive-commit-button rule (§12). Explicit checkbox, named "Cancel"/"Restore & Replace" buttons, itemized consequence list all remain compliant with §8.21. |
+| 19 | `restore_existing_data_warning_persian_rtl` | **A (resolved this pass)** | Same repurposing and warning/error re-coloring as #18; Vazirmatn/RTL execution remains compliant. |
+| — | `restore_existing_data_detected` (+ RTL) | **A** | New — State 1. Informational, `warning`-token icon/banner, explicitly states existing data, that a safety backup comes first, and that nothing changes before explicit confirmation. Compliant with §8.22/§16. |
+| — | `restore_safety_backup_required` (+ RTL) | **A** | New — State 2. Explains why the safety-backup step exists and that restore cannot proceed if it fails; `warning` token. Compliant. |
+| — | `restore_safety_backup_progress` (+ RTL) | **A** | New — State 3. Determinate progress + explicit reassurance that current data is untouched during this step; cancel available. Compliant with §8.17/§19. |
+| — | `restore_safety_backup_success` (+ RTL) | **A** | New — State 4. Names the safety-backup file, previews the next (destructive) step; `warning` token for the "next step is destructive" notice. Compliant. |
+| — | `restore_safety_backup_failure` (+ RTL) | **A** | New — State 5. Genuine failure state, correctly uses `error`/`error-container`; explicitly states restore cannot continue and current data is unchanged. Compliant with §8.20. |
+| — | `restore_cancelled` (+ RTL) | **A** | New — State 10. Explicit, visible cancellation confirmation stating no data was modified, rather than silently closing the sheet. Compliant. |
+| — | `restore_progress` | **A** | State 7 (renumbered "Step 5 of 6" within the finalized flow). Copy updated to also reassure that the pre-restore safety backup remains available. Touch-target on its close icon corrected. RTL variant not yet built — carried scope from before this pass, not a new gap introduced by it. |
+| — | `restore_success` | **A** | State 8, unchanged content, touch-target corrected. RTL variant not yet built (same carried-scope note as above). |
+| — | `restore_failure` | **A** | State 9. Copy updated to reassure that the pre-restore safety backup remains available for recovery if the restore itself failed. Touch-target corrected. RTL variant not yet built (same carried-scope note as above). |
 | 20 | `restore_failure` | **A** | Compliant. |
 | 21 | `restore_incompatible_version` | **A** | Compliant. |
 | 22 | `restore_password_entry` | **A** | Compliant; wrong-password state correctly distinguishes itself from corrupted/incompatible-version states per §8.20. |
@@ -81,19 +93,28 @@ compliant *given* these caveats:
 
 ---
 
-## Summary counts
+## Summary counts (re-audit, 44 screens)
 
 | Classification | Count | Screens |
 |---|---|---|
-| A — Compliant | 24 | 1,2,3,4,8,10,11,12,13,14,15,16,17,20,21,22,23,24,25,26,27,28,31,32 |
-| B — Minor deviation | 6 | 5,6,7,9(partial),29,30 |
+| A — Compliant | 41 | 1,2,3,4,5,8,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,31,32, plus the 12 new restore safety-backup-flow screens and `file_management_all_files` (9, partial — see below) |
+| B — Minor deviation | 2 | 6,7 (dashboard content/copy issues — redundant greeting, RTL numeral-mixing — unaffected by this pass, not re-litigated here) |
 | C — Documented exception | 0 screen-level (see cross-cutting table for the one C item: stock photo placeholders) | — |
-| D — Must correct | 3 screens carrying the most consequential gaps | 9(partial, empty/loading states),18,19 |
+| D — Must correct | 1 (partial) | 9 (partial — empty/loading list state still not demonstrated; its touch-target finding is now resolved) |
 
-**The two `restore_existing_data_warning` screens (18/19) are the only
-Category D findings with product-level consequence** — everything else
-classified D is either a cross-cutting implementation-phase item (focus
-rings, `aria-label`s, dark mode, touch-target hit-areas — none of which
-block treating the *design* as ready, since they're markup/implementation
-concerns) or a missing-but-not-yet-needed state (empty/loading variants for
-list screens).
+*Row 30 (`smart_matching_match_analysis_persian_rtl`) and row 29
+(`settings_contract_reminders_persian_rtl`) keep their prior **B**
+classification for reasons unrelated to this pass (folder-naming residue
+and LTR/RTL chrome-consistency, respectively) — both are counted in the B
+row above but not restated as separate B rows to avoid double-counting; see
+their per-screen notes above for detail.*
+
+**Every Category D finding with product-level consequence from the prior
+audit is now resolved.** The restore safety-backup flow's missing step
+(rows 18/19) and the app-wide 48dp touch-target gap and warning/error
+conflation (cross-cutting findings) are all **A (resolved)**. What remains
+classified D is exclusively implementation-phase/markup concerns (focus
+rings, `aria-label`s) and one still-missing content state (empty/loading
+list variants) — none of which block treating the *design* as ready for
+Phase 4. Dark mode remains explicitly **D (deferred, confirmed unchanged)**
+by product decision, not an oversight.

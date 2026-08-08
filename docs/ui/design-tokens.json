@@ -2,10 +2,11 @@
   "$schema": "AZAR Design System — machine-readable tokens. Authoritative numeric source; see /docs/ui/design-system.md for rationale and usage rules. Do not edit values here without updating design-system.md to match.",
   "meta": {
     "name": "AZAR Design System",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "foundation": "Material Design 3 (https://m3.material.io/)",
     "date": "2026-08-08",
-    "status": "draft-authoritative"
+    "status": "draft-authoritative",
+    "changeLog": "v1.1.0: FINAL UI correction pass before Phase 4 — distinct `warning` token separated from `error`; `iconButton` corrected from a 40px visual size with a merely 'recommended' 48dp hit area to a mandatory 48dp hit area around an unenlarged icon; `color.dark` remains explicitly deferred (unchanged, not populated)."
   },
   "color": {
     "light": {
@@ -42,10 +43,10 @@
       "on-success": "#ffffff",
       "success-container": "#b9eeab",
       "on-success-container": "#3f6d38",
-      "warning": "#93000a",
+      "warning": "#8a5000",
       "on-warning": "#ffffff",
-      "warning-container": "#ffdad6",
-      "on-warning-container": "#93000a",
+      "warning-container": "#ffddb3",
+      "on-warning-container": "#6b3d00",
       "info": "#001f26",
       "on-info": "#ffffff",
       "info-container": "#001f26",
@@ -74,7 +75,7 @@
     },
     "notes": {
       "success": "Reuses the `secondary` hue family deliberately — AZAR treats 'positive' as one semantic color, not a separate palette branch.",
-      "warning": "Currently reuses `error`-family tones at the token-mapping level pending a dedicated amber-family warning palette (Category B normalization noted in design-system-audit.md) — do not treat as final.",
+      "warning": "RESOLVED (FINAL UI correction pass): now a distinct amber-family token, independent of `error`. Use `warning`/`warning-container` for non-fatal caution states — contract approaching expiration, reminder-related caution, restore-flow warnings before the destructive commit step, other potentially-destructive-but-not-yet-failed consequences. Reserve `error`/`error-container` strictly for genuine failures — failed operations, invalid input, corrupted data, authentication failure, unrecoverable/failed state, and the destructive commit action itself (e.g. the 'Restore & Replace' button, consistent with the existing destructive-confirmation pattern). See design-system.md §12.",
       "info": "Maps to the tertiary family, matching existing informational-banner usage."
     }
   },
@@ -186,7 +187,7 @@
   },
   "component": {
     "button": { "paddingY": ["space-3", "space-4"], "paddingX": "space-6", "radius": "radius-large", "typography": "label-md" },
-    "iconButton": { "size": 40, "recommendedHitArea": 48, "radius": "radius-full" },
+    "iconButton": { "visualIconSize": 24, "hitArea": 48, "hitAreaRequired": true, "radius": "radius-full", "note": "RESOLVED (FINAL UI correction pass): every icon-only interactive control uses a 48dp x 48dp minimum interactive container regardless of the visual icon's own size; the icon itself is never enlarged to fill the container. Implemented as visual icon centered inside a 48dp hit-area (e.g. p-3/min-w-12/min-h-12 in the Stitch screens) rather than by growing the icon glyph." },
     "textField": { "paddingY": "space-3", "paddingX": "space-4", "radius": "radius-large", "labelTypography": "label-md", "valueTypography": "body-md" },
     "chip": { "paddingY": "space-1", "paddingX": "space-3", "radius": "radius-full", "typography": "label-sm" },
     "card": { "radiusListItem": "radius-large", "radiusDetail": "radius-extra-large", "paddingDetail": "space-6", "paddingListItem": "space-4" },

@@ -761,3 +761,106 @@ pass.
 states, missing `aria-label`s, the restore safety-backup step, missing
 empty/loading states) are the concrete follow-up items for the next design-
 correction or implementation pass.
+
+## 2026-08-08 — FINAL UI correction pass before Phase 4: restore safety-backup flow, 48dp touch targets, warning/error separation, dark-mode deferral confirmed
+
+**What changed**: The Material 3-founded AZAR Design System (previous
+entry) is approved as the authoritative Phase 4 UI specification, but one
+product-critical UI gap remained: the restore safety-backup flow did not
+show its mandatory safety-backup step as a distinct state. This pass makes
+four corrections, all documentation- and design-package-level only:
+
+1. **Restore safety-backup flow completed as ten distinct states.** The
+   finalized product decision (recorded earlier in this changelog under
+   "FINAL product decision: restore onto a device with existing local
+   data") is now fully represented, state by state, with no states
+   silently combined:
+   1. Existing Data Detected — `restore_existing_data_detected` (+ RTL, new)
+   2. Safety Backup Required — `restore_safety_backup_required` (+ RTL, new)
+   3. Creating Safety Backup — `restore_safety_backup_progress` (+ RTL, new)
+   4. Safety Backup Success — `restore_safety_backup_success` (+ RTL, new)
+   5. Safety Backup Failure — `restore_safety_backup_failure` (+ RTL, new)
+   6. Restore & Replace Confirmation — `restore_existing_data_warning` (+
+      RTL), **repurposed**: now positioned after the safety backup
+      succeeds (state 4) rather than immediately after existing-data
+      detection, and its copy names the safety-backup file as a recovery
+      path
+   7. Restore Progress — `restore_progress` (existing, copy updated to
+      reassure the safety backup remains available)
+   8. Restore Success — `restore_success` (existing, unchanged content)
+   9. Restore Failure — `restore_failure` (existing, copy updated to
+      reassure the safety backup remains available for recovery)
+   10. Cancellation without data modification — `restore_cancelled` (+ RTL,
+       new) — cancelling before the restore step now produces an explicit,
+       visible confirmation that no data was modified, rather than silently
+       closing the sheet
+   States 7-9 remain LTR-only for now (carried scope from before this pass,
+   not a new gap this pass introduces). 12 new screen folders were added to
+   `/design/stitch/stitch_elite_real_estate_crm/` (6 LTR + 6 RTL); the
+   package grew from 32 to 44 screens.
+2. **48dp touch-target gap resolved.** Every icon-only interactive control
+   across all 44 screens (back/close buttons, header icon buttons, numeric
+   +/- steppers, list-row overflow "more" buttons) now sits inside a 48×48dp
+   minimum interactive hit-area, while the **visual icon itself is
+   unchanged in size** — the fix expands the invisible tappable bounding
+   box (`min-w-[48px] min-h-[48px]` plus centered padding), never the icon
+   glyph. Applied at the shared-template level so every screen generated
+   from the standard page/sheet shells inherits the fix by construction,
+   plus a targeted pass over screens with bespoke icon buttons.
+3. **`warning` separated from `error` as a distinct semantic token.**
+   `design-tokens.json` and `design-system.md` §12 now define genuine
+   `warning`/`on-warning`/`warning-container`/`on-warning-container` tokens
+   (amber-family, `#8a5000`/`#ffddb3`/`#6b3d00`), replacing the prior
+   arrangement where `warning` was only documented as reusing `error`-family
+   tones. `warning` is used for non-fatal caution states (contract
+   approaching expiration, reminder-related caution, restore-flow warnings
+   before the destructive commit step); `error` is reserved for genuine
+   failures (failed operation, invalid input, corrupted data, auth failure,
+   unrecoverable/failed state) and for the destructive-commit button itself
+   even when the banner above it uses `warning` (e.g. "Restore & Replace").
+   Re-colored screens: `contract_management_timeline` (also removed an
+   undocumented hardcoded hex `#f57f17`/`#fff8e1` that had no token at all),
+   `settings_contract_reminders` (+ RTL), and the restore safety-backup flow
+   states 1/2/3/4/6. The existing color palette was not otherwise redesigned
+   — this is a semantic re-mapping, not a new visual identity.
+4. **Dark mode confirmed still deferred.** No dark-mode colors were
+   invented or guessed. `design-tokens.json`'s `color.dark` remains
+   `{"$status": "NOT DEFINED..."}"`, unchanged by this pass. Dark mode
+   remains a future product/design decision requiring its own dedicated
+   palette-design pass.
+
+**Consistency check**: the complete `/design/stitch/` package was searched
+for every previously-prohibited product concept (Cloud Sync, Smart
+Analysis, AI matching, AES-256, server backup, email alerts, push
+notifications, team, brokerage, Global Realty Group, Team Directory) —
+**zero matches**, including a word-boundary check on "team" alone.
+
+**Final UI/UX gate**: **READY FOR PHASE 4.** The restore safety-backup flow
+is complete (all ten states present, none silently combined), the 48dp
+touch-target gap is resolved, `warning`/`error` are now distinct tokens,
+and dark mode is explicitly and correctly still deferred rather than
+half-implemented. Remaining open items (keyboard focus-ring states,
+`aria-label`s on icon-only controls, empty/loading list-screen states) are
+implementation-phase markup concerns, not design gaps, and do not block
+Phase 4.
+
+**Reason**: Explicit project-owner instruction to correct the one
+product-critical UI gap remaining before Phase 4 implementation begins —
+restoring onto a device with existing data must never let a user reach the
+destructive "replace" confirmation without their current data already
+being safely backed up.
+
+**Affected modules**: Documentation
+(`/docs/ui/design-system.md`, `/docs/ui/design-tokens.json`,
+`/docs/ui/design-system-audit.md`) and the Stitch design package
+(`/design/stitch/stitch_elite_real_estate_crm/` — 12 new screen folders,
+~30 existing screens' `code.html`/`screen.png` updated for touch targets
+and/or warning-token re-coloring). No application code, dependencies, or
+database schema were touched. Phase 4 implementation was not started.
+
+**Migration requirements**: None — documentation and design-package only.
+
+**Tests**: None yet (no application code exists). Screenshots for all
+new/changed screens were regenerated through the established real-render
+pipeline (compiled Tailwind CSS, real fonts, headless Chromium) — none are
+placeholders or stale copies.
