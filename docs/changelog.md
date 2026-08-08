@@ -122,3 +122,41 @@ application code exists yet; no code changed.
 **Migration requirements**: None.
 
 **Tests**: N/A.
+
+---
+
+## 2026-08-08 — Phase 1 (Product Requirements) and Phase 2 (User Stories)
+
+**Change**: Created `/docs/01-product-requirements.md` (comprehensive functional,
+UX, performance, and security requirements covering authentication, profile,
+owner files, applicant files, matching, search/filtering, contracts, reminders,
+notifications, backup, and offline behavior) and `/docs/02-user-stories.md` (67
+user stories across 18 workflow areas, each with ID/actor/goal/description/
+preconditions/main flow/alternative flows/error cases/acceptance criteria/
+priority). Both documents label every requirement/story as CONFIRMED, BUSINESS
+RULE, OPEN-ARCH, or ASSUMPTION, and end with a Confirmed Decisions / Open Product
+Decisions / Open Architectural Decisions / Assumptions / Risks / Questions
+summary.
+
+**Reason**: Explicit project-owner approval of Phase 0 and instruction to proceed
+to Phase 1 and Phase 2, per PRODUCT.md's phased documentation-first process, with
+explicit constraints not to finalize RN vs. Capacitor, an OTP provider, the
+encryption design, the matching engine's internal implementation, or the final
+database schema in this phase.
+
+**Affected modules**: Documentation only. No application code was written. The
+matching engine requirements (§9 of 01-product-requirements.md; MATCH/MEXP stories
+in 02-user-stories.md) explicitly restate and preserve the AI-independence
+constraint from Phase 0 Decision 3, including the required pool/MUST_HAVE worked
+example (MATCH-03) and a dedicated "no AI dependency" regression scenario
+(MATCH-05). Backup/security requirements (§14, §18; BKP/RST/IE/SEC stories) are
+written as product-level requirements only — encryption algorithm and key
+management remain explicitly deferred. Offline requirements (§15; OFF/SYNC
+stories) establish behavior (view/edit offline, auto-sync, no silent data loss on
+conflict) without committing to a sync/conflict-resolution architecture.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet; MATCH-03, MATCH-05, and REM-03 are flagged in
+02-user-stories.md as required regression-test scenarios for when the matching
+engine and reminder scheduler are implemented in a later phase.
