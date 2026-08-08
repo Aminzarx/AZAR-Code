@@ -241,3 +241,86 @@ exists yet.
 once implementation begins: no future change may introduce implicit
 multi-device sync behavior. AUTH-06 and REF-06 are flagged as required
 graceful-degradation tests for the account/referral online surface.
+
+---
+
+## 2026-08-08 — Phase 3: Architecture documentation and analysis
+
+**Change**: Created a full Phase 3 documentation set — architectural analysis
+only, no application code, no dependencies installed, no implementation
+started:
+
+- `/docs/architecture/00-architecture-overview.md` — system shape, component
+  responsibilities, background jobs, error-handling posture, document map.
+- `/docs/architecture/decisions/ADR-001-mobile-platform.md` — React Native vs.
+  Capacitor analyzed against all 16 requested criteria; **[PROPOSED]** React
+  Native, explicitly not finalized, with team-composition/code-reuse caveats.
+- `/docs/architecture/decisions/ADR-002-local-database-source-of-truth.md` —
+  **[PROPOSED]** SQLite as the local database technology (source of truth,
+  not a cache), analyzed against document/NoSQL and sync-oriented-framework
+  alternatives.
+- `/docs/architecture/decisions/ADR-003-otp-provider-deferred.md` — records
+  the OTP/SMS provider decision as explicitly deferred, with selection
+  criteria for later.
+- `/docs/local-data/local-data-architecture.md` — indexing, migrations,
+  transactions, large-dataset performance, search, matching queries,
+  integrity, backup extraction, restore, schema versioning.
+- `/docs/backup/backup-architecture-analysis.md` — backup format, encryption
+  requirements and key-management options analyzed (hybrid approach
+  **[PROPOSED]**, not finalized), integrity/authentication, versioning,
+  corruption detection, wrong-password behavior, restore validation,
+  restore-onto-existing-data, safe rollback on failed restore. No algorithm
+  or key-management implementation selected.
+- `/docs/security/authentication-otp-architecture.md` — registration/OTP/
+  session/referral flow analysis, rate limiting, retry limits, duplicate-
+  phone prevention, abuse prevention, offline-after-authentication behavior.
+  Session-lifecycle Option A vs. B flagged as an open trade-off. No OTP
+  provider selected.
+- `/docs/security/threat-model.md` — assets, threats, and mitigation status
+  across local data, secure key storage, authentication/session, backup,
+  sensitive-data exposure, logs, app-switcher/screenshot privacy, clipboard
+  risk, and export/import risk, plus explicit non-goals consistent with the
+  local-first/no-AI/no-multi-device-sync decisions.
+- `/docs/matching/matching-architecture.md` — four-stage conceptual pipeline
+  (hard-constraint filter → per-criterion evaluation → weighted score
+  aggregation → explanation assembly) satisfying MUST_HAVE/IMPORTANT/
+  PREFERRED/IGNORE, hard constraints/exclusions/ranges/exact/approximate/
+  location/amenities, two-way matching, and mandatory explainability, with
+  zero AI dependency. Scoring formula explicitly deferred to Phase 4.
+- `/docs/notifications/notification-architecture.md` — expiration
+  calculation, reminder scheduling with idempotency enforced via a unique
+  `(contract_id, offset)` constraint, local (not push) notification delivery,
+  device-restart self-healing via re-deriving from the `Reminder` source of
+  truth, timezone/date-handling requirement, restore behavior, notification-
+  permission-denial fallback, and OS-imposed scheduling-limit risk.
+- `/docs/database/conceptual-data-model.md` — conceptual entities and
+  relationships (User, ReferralRelationship, Session, OwnerFile,
+  ApplicantFile, RequirementCriterion, Restriction, Amenity, Location, Match,
+  MatchExplanation, Contract, ContractHistoryEntry, Reminder, Notification,
+  BackupMetadata, AuditLogEntry) with important constraints and indexing
+  considerations. Explicitly not the final production schema — that remains
+  Phase 4.
+- `/docs/architecture/ux-dependencies.md` — consolidates every
+  UX-dependent decision flagged across the other Phase 3 documents,
+  confirming no screens/navigation were invented ahead of the forthcoming
+  Stitch designs.
+- `/docs/architecture/unresolved-decisions.md` — consolidated tracker of
+  every open item across the full Phase 3 document set plus carried-over
+  Phase 1/2 open product questions.
+
+**Reason**: Explicit project-owner authorization to proceed to Phase 3,
+documentation/architectural-analysis only, with an explicit list of binding
+local-first/offline-first constraints and a list of decisions that must be
+analyzed but not finalized (mobile platform, encryption/key management, OTP
+provider, matching scoring formula, final database schema).
+
+**Affected modules**: Documentation only. No application code was written, no
+dependencies were installed, and no existing implementation was modified. The
+Electron scaffold in `src/` is untouched.
+
+**Migration requirements**: None — documentation only.
+
+**Tests**: None yet. This phase does not implement the matching engine,
+reminder scheduler, backup system, or auth flow — it establishes the
+conceptual architecture and constraints those future implementations, and
+their tests, must satisfy.
