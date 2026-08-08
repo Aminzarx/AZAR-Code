@@ -392,3 +392,54 @@ exact rate limits all remain explicitly unresolved, per instruction.
 AUTHENTICATION FAILURE) and the required at-rest encryption are both flagged
 as behaviors that will need dedicated tests once implementation begins —
 recorded here so they aren't lost between this phase and the testing phase.
+
+---
+
+## 2026-08-08 — Stitch UI/UX design handoff review
+
+**Change**: Reviewed the delivered Stitch design set (9 screens + a
+`DESIGN.md` design-system spec, "Executive Precision" / "EstatePro CRM")
+against the approved product requirements, user stories, and full Phase 3
+architecture set. Created `/docs/ui/00-ui-handoff-review.md`. Review only —
+no application code written or modified, no dependencies installed, no
+database schema created.
+
+**Reason**: Explicit project-owner request for a design-handoff validation
+pass before production implementation begins.
+
+**Findings summary**: Three **blocking** conflicts between the design and
+confirmed architecture were identified and documented (not silently
+corrected): (1) a "Cloud Sync — Encrypted remote storage" toggle, on by
+default, in the Backup & Security screen, plus backup-history entries
+labeled "Automatic Cloud Backup" with one failing due to "Network Timeout" —
+directly contradicting the confirmed no-cloud-backup, local-first
+requirement (Phase 0 Decision 4); (2) the same screen names "AES-256
+encryption" and claims a "master password is never stored on our servers,"
+prematurely naming an algorithm and presupposing server-side custody where
+none is architected; (3) the match-explanation screen's "Smart Analysis"
+panel uses a sparkle (`auto_awesome`) icon and AI-summary-style presentation
+that risks implying the deterministic matching engine's explanation is
+AI-generated, contradicting Phase 0 Decision 3's explicit instruction that
+the UI must not imply AI is making the matching decision. A fourth
+significant issue — navigation items and copy ("Global Realty Group," "Team
+Directory," "Brokerage Login") assuming a multi-agent/team account model —
+was also flagged as blocking for the affected navigation, since it depends
+on an explicitly open, unresolved product question (Phase 1 §19.6 Q1).
+Additional non-blocking findings: several key screens/states are missing
+entirely from this delivery (file edit/detail, ranked match-candidate lists,
+full restore-flow states, reminder-schedule configuration, notification-
+permission states, destructive-action confirmation, and all loading/empty/
+error states); no RTL/Persian designs were provided at all; a minor,
+correctable border-radius token mismatch exists between `DESIGN.md` and the
+per-screen embedded Tailwind config.
+
+**Affected modules**: Documentation only
+(`/docs/ui/00-ui-handoff-review.md`). No application code, dependencies, or
+database schema were touched. The Stitch design files themselves were not
+modified and were not copied into the git repository as part of this review.
+
+**Migration requirements**: None.
+
+**Tests**: None yet. The blocking findings above must be resolved (by
+project-owner/design decision) before the affected screens can be treated as
+ready for implementation.
