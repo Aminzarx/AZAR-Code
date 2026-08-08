@@ -12,7 +12,7 @@ import type { DealStatus } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'DealDetail'>
 
-export function DealDetailScreen({ route }: Props): React.JSX.Element {
+export function DealDetailScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { dealId } = route.params
@@ -132,6 +132,18 @@ export function DealDetailScreen({ route }: Props): React.JSX.Element {
             {actionError ? (
               <Text style={[theme.typography('bodySm'), styles.actionError]}>{actionError}</Text>
             ) : null}
+
+            <Button
+              label="افزودن یادآوری"
+              variant="secondary"
+              onPress={() =>
+                navigation.navigate('CreateReminder', {
+                  dealId: deal.id,
+                  propertyId: deal.propertyId,
+                  applicantId: deal.applicantId
+                })
+              }
+            />
           </>
         )}
       </ScrollView>

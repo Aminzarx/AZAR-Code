@@ -33,7 +33,8 @@ describe('DashboardScreen', () => {
   it('shows a loading indicator, then the referral code and stats once data resolves', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '2' }],
-      recentActivity: []
+      recentActivity: [],
+      upcomingReminders: []
     })
 
     const { findByText } = await render(
@@ -57,7 +58,11 @@ describe('DashboardScreen', () => {
   })
 
   it('shows the empty state for recent activity when there is none', async () => {
-    mockedFetchDashboardData.mockResolvedValue({ stats: [], recentActivity: [] })
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [],
+      recentActivity: [],
+      upcomingReminders: []
+    })
 
     const { findByText } = await render(
       withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
@@ -69,7 +74,8 @@ describe('DashboardScreen', () => {
   it('navigates to CreateProperty when the add-property quick action is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '0' }],
-      recentActivity: []
+      recentActivity: [],
+      upcomingReminders: []
     })
 
     const { findByLabelText } = await render(
@@ -83,7 +89,8 @@ describe('DashboardScreen', () => {
   it('navigates to PropertyList when the properties stat card is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '3' }],
-      recentActivity: []
+      recentActivity: [],
+      upcomingReminders: []
     })
 
     const { findByLabelText } = await render(
@@ -97,7 +104,8 @@ describe('DashboardScreen', () => {
   it('navigates to CreateApplicant when the add-applicant quick action is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'applicants', label: 'متقاضیان', value: '0' }],
-      recentActivity: []
+      recentActivity: [],
+      upcomingReminders: []
     })
 
     const { findByLabelText } = await render(
@@ -111,7 +119,8 @@ describe('DashboardScreen', () => {
   it('navigates to ApplicantList when the applicants stat card is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'applicants', label: 'متقاضیان', value: '5' }],
-      recentActivity: []
+      recentActivity: [],
+      upcomingReminders: []
     })
 
     const { findByLabelText } = await render(
@@ -125,7 +134,8 @@ describe('DashboardScreen', () => {
   it('navigates to DealList when the "مشاهده پیگیری‌ها" quick action is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'contracts', label: 'پیگیری‌های فعال', value: '0' }],
-      recentActivity: []
+      recentActivity: [],
+      upcomingReminders: []
     })
 
     const { findByLabelText } = await render(
@@ -134,5 +144,34 @@ describe('DashboardScreen', () => {
 
     fireEvent.press(await findByLabelText('مشاهده پیگیری‌ها'))
     expect(mockNavigate).toHaveBeenCalledWith('DealList')
+  })
+
+  it('shows the empty state for upcoming reminders when there are none', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [],
+      recentActivity: [],
+      upcomingReminders: []
+    })
+
+    const { findByText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('یادآوری نزدیکی وجود ندارد')).toBeTruthy()
+  })
+
+  it('navigates to ReminderDetail when an upcoming reminder is pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [],
+      recentActivity: [],
+      upcomingReminders: [{ id: 'rem-1', title: 'تماس با متقاضی', timestamp: '۱۴۰۴/۰۵/۲۰' }]
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('تماس با متقاضی'))
+    expect(mockNavigate).toHaveBeenCalledWith('ReminderDetail', { reminderId: 'rem-1' })
   })
 })

@@ -13,6 +13,7 @@ const mockedUseDealDetail = useDealDetail as jest.MockedFunction<typeof useDealD
 const mockedUseDealService = useDealService as jest.MockedFunction<typeof useDealService>
 const mockUpdateStatus = jest.fn()
 const mockUpdateNotes = jest.fn()
+const mockNavigate = jest.fn()
 
 const DEAL: DealWithDetails = {
   id: 'deal-1',
@@ -61,13 +62,14 @@ const DEAL: DealWithDetails = {
   }
 }
 
-const navigationProp = {} as never
+const navigationProp = { navigate: mockNavigate } as never
 const routeProp = { key: 'DealDetail', name: 'DealDetail' as const, params: { dealId: 'deal-1' } }
 
 describe('DealDetailScreen', () => {
   beforeEach(() => {
     mockUpdateStatus.mockReset()
     mockUpdateNotes.mockReset()
+    mockNavigate.mockReset()
     mockedUseDealService.mockReturnValue({
       updateStatus: mockUpdateStatus,
       updateNotes: mockUpdateNotes
@@ -146,5 +148,25 @@ describe('DealDetailScreen', () => {
     await waitFor(() => fireEvent.press(getByText('ذخیره یادداشت')))
 
     await waitFor(() => expect(mockUpdateNotes).toHaveBeenCalledWith('deal-1', 'یادداشت جدید'))
+  })
+
+  it('navigates to CreateReminder with the deal, property, and applicant prefilled', async () => {
+    mockedUseDealDetail.mockReturnValue({
+      deal: DEAL,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('افزودن یادآوری'))
+    expect(mockNavigate).toHaveBeenCalledWith('CreateReminder', {
+      dealId: 'deal-1',
+      propertyId: 'prop-1',
+      applicantId: 'app-1'
+    })
   })
 })

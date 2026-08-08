@@ -10,6 +10,9 @@ import { CreateApplicantScreen } from '@features/applicant/screens/CreateApplica
 import { ApplicantDetailScreen } from '@features/applicant/screens/ApplicantDetailScreen'
 import { DealListScreen } from '@features/deal/screens/DealListScreen'
 import { DealDetailScreen } from '@features/deal/screens/DealDetailScreen'
+import { ReminderListScreen } from '@features/reminder/screens/ReminderListScreen'
+import { CreateReminderScreen } from '@features/reminder/screens/CreateReminderScreen'
+import { ReminderDetailScreen } from '@features/reminder/screens/ReminderDetailScreen'
 
 export type MainStackParamList = {
   BasicProfile: undefined
@@ -22,6 +25,9 @@ export type MainStackParamList = {
   ApplicantDetail: { applicantId: string }
   DealList: undefined
   DealDetail: { dealId: string }
+  ReminderList: undefined
+  CreateReminder: { propertyId?: string; applicantId?: string; dealId?: string } | undefined
+  ReminderDetail: { reminderId: string }
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -44,6 +50,9 @@ export function MainNavigator(): React.JSX.Element {
       <Stack.Screen name="ApplicantDetail" component={ApplicantDetailScreen} />
       <Stack.Screen name="DealList" component={DealListScreen} />
       <Stack.Screen name="DealDetail" component={DealDetailScreen} />
+      <Stack.Screen name="ReminderList" component={ReminderListScreen} />
+      <Stack.Screen name="CreateReminder" component={CreateReminderScreen} />
+      <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
     </Stack.Navigator>
   )
 }

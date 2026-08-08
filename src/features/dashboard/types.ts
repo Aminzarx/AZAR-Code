@@ -11,7 +11,14 @@ export type DashboardActivity = {
   timestamp: string
 }
 
+export type DashboardReminder = {
+  id: string
+  title: string
+  timestamp: string
+}
+
 export type DashboardData = {
   stats: DashboardStat[]
   recentActivity: DashboardActivity[]
+  upcomingReminders: DashboardReminder[]
 }

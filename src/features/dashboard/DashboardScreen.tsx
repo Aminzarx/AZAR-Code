@@ -10,6 +10,7 @@ import { useDashboardData } from './hooks/useDashboardData'
 import { StatCard } from './components/StatCard'
 import { QuickActions, type QuickAction } from './components/QuickActions'
 import { RecentActivityList } from './components/RecentActivityList'
+import { UpcomingRemindersList } from './components/UpcomingRemindersList'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
 
@@ -88,6 +89,16 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
               <View style={styles.section}>
                 <Text style={[theme.typography('titleMd'), styles.sectionTitle]}>اقدامات سریع</Text>
                 <QuickActions actions={quickActions} />
+              </View>
+
+              <View style={styles.section}>
+                <Text style={[theme.typography('titleMd'), styles.sectionTitle]}>
+                  یادآوری‌های نزدیک
+                </Text>
+                <UpcomingRemindersList
+                  reminders={data.upcomingReminders}
+                  onSelect={(reminderId) => navigation.navigate('ReminderDetail', { reminderId })}
+                />
               </View>
 
               <View style={styles.section}>

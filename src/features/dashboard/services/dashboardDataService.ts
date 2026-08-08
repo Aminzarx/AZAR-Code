@@ -2,6 +2,7 @@ import { getDatabase } from '@infrastructure/database/connection'
 import { PropertyRepository } from '@infrastructure/database/repositories/PropertyRepository'
 import { ApplicantRepository } from '@infrastructure/database/repositories/ApplicantRepository'
 import { DealRepository } from '@infrastructure/database/repositories/DealRepository'
+import { ReminderRepository } from '@infrastructure/database/repositories/ReminderRepository'
 import { PropertyService } from '@features/property/services/PropertyService'
 import { ApplicantService } from '@features/applicant/services/ApplicantService'
 import { DealService } from '@features/deal/services/DealService'
@@ -11,9 +12,15 @@ import type { DashboardActivity, DashboardData } from '../types'
 
 const RECENT_ACTIVITY_LIMIT = 5
 const RECENT_ITEMS_PER_SOURCE = RECENT_ACTIVITY_LIMIT
+const UPCOMING_REMINDERS_LIMIT = 5
 
 function formatDate(isoTimestamp: string): string {
   return new Date(isoTimestamp).toLocaleDateString('fa-IR')
+}
+
+function formatDateTime(isoTimestamp: string): string {
+  const date = new Date(isoTimestamp)
+  return `${date.toLocaleDateString('fa-IR')} — ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
 }
 
 /**
@@ -27,6 +34,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
   const propertyRepository = new PropertyRepository(db)
   const applicantRepository = new ApplicantRepository(db)
   const dealRepository = new DealRepository(db)
+  const reminderRepository = new ReminderRepository(db)
   const dealService = new DealService(
     dealRepository,
     new PropertyService(propertyRepository, generateId),
@@ -40,14 +48,16 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     activeDealCount,
     recentProperties,
     recentApplicants,
-    recentDeals
+    recentDeals,
+    upcomingReminders
   ] = await Promise.all([
     propertyRepository.countByOwner(ownerId),
     applicantRepository.countByUser(ownerId),
     dealRepository.countActive(ownerId),
     propertyRepository.findAllByOwner(ownerId),
     applicantRepository.getAll(ownerId),
-    dealService.listDeals(ownerId)
+    dealService.listDeals(ownerId),
+    reminderRepository.getUpcoming(ownerId, new Date().toISOString())
   ])
 
   const activity: DashboardActivity[] = [
@@ -83,6 +93,11 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
       { id: 'applicants', label: 'متقاضیان', value: String(applicantCount) },
       { id: 'contracts', label: 'پیگیری‌های فعال', value: String(activeDealCount) }
     ],
-    recentActivity: activity
+    recentActivity: activity,
+    upcomingReminders: upcomingReminders.slice(0, UPCOMING_REMINDERS_LIMIT).map((reminder) => ({
+      id: reminder.id,
+      title: reminder.title,
+      timestamp: formatDateTime(reminder.remindAt)
+    }))
   }
 }
