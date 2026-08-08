@@ -80,7 +80,11 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                         ? () => navigation.navigate('PropertyList')
                         : stat.id === 'applicants'
                           ? () => navigation.navigate('ApplicantList')
-                          : undefined
+                          : stat.id === 'deals'
+                            ? () => navigation.navigate('DealList')
+                            : stat.id === 'contracts'
+                              ? () => navigation.navigate('ContractList')
+                              : undefined
                     }
                   />
                 ))}
@@ -142,6 +146,7 @@ function createStyles(theme: Theme) {
     },
     statsRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: theme.spacing.space3
     },
     section: {

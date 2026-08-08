@@ -169,4 +169,24 @@ describe('DealDetailScreen', () => {
       applicantId: 'app-1'
     })
   })
+
+  it('navigates to CreateContract with the deal, property, and applicant prefilled', async () => {
+    mockedUseDealDetail.mockReturnValue({
+      deal: DEAL,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('ایجاد قرارداد'))
+    expect(mockNavigate).toHaveBeenCalledWith('CreateContract', {
+      dealId: 'deal-1',
+      propertyId: 'prop-1',
+      applicantId: 'app-1'
+    })
+  })
 })

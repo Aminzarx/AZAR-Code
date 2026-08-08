@@ -4,6 +4,7 @@ import { getDatabase, closeDatabase } from '@infrastructure/database/connection'
 import { PropertyRepository } from '@infrastructure/database/repositories/PropertyRepository'
 import { ApplicantRepository } from '@infrastructure/database/repositories/ApplicantRepository'
 import { DealRepository } from '@infrastructure/database/repositories/DealRepository'
+import { ContractRepository } from '@infrastructure/database/repositories/ContractRepository'
 import { fetchDashboardData } from '../dashboardDataService'
 
 const DB_FILE = path.join(process.cwd(), 'azar.db')
@@ -40,7 +41,8 @@ describe('fetchDashboardData', () => {
     expect(result.stats).toEqual([
       { id: 'properties', label: 'پرونده‌های ملکی', value: '0' },
       { id: 'applicants', label: 'متقاضیان', value: '0' },
-      { id: 'contracts', label: 'پیگیری‌های فعال', value: '0' }
+      { id: 'deals', label: 'پیگیری‌های فعال', value: '0' },
+      { id: 'contracts', label: 'قراردادهای فعال', value: '0' }
     ])
     expect(result.recentActivity).toEqual([])
   })
@@ -109,7 +111,8 @@ describe('fetchDashboardData', () => {
     expect(result.stats).toEqual([
       { id: 'properties', label: 'پرونده‌های ملکی', value: '1' },
       { id: 'applicants', label: 'متقاضیان', value: '1' },
-      { id: 'contracts', label: 'پیگیری‌های فعال', value: '1' }
+      { id: 'deals', label: 'پیگیری‌های فعال', value: '1' },
+      { id: 'contracts', label: 'قراردادهای فعال', value: '0' }
     ])
   })
 
@@ -157,6 +160,68 @@ describe('fetchDashboardData', () => {
       applicantId: applicant.id
     })
     await dealRepository.updateStatus(deal.id, 'cancelled')
+
+    const result = await fetchDashboardData(USER_ID)
+    expect(result.stats.find((stat) => stat.id === 'deals')?.value).toBe('0')
+  })
+
+  it('does not count a cancelled contract toward active contracts', async () => {
+    await seedUsers()
+    const db = await getDatabase()
+    const propertyRepository = new PropertyRepository(db)
+    const applicantRepository = new ApplicantRepository(db)
+    const contractRepository = new ContractRepository(db)
+
+    const property = await propertyRepository.create({
+      id: 'prop-1',
+      ownerId: USER_ID,
+      title: 'آپارتمان',
+      propertyType: null,
+      transactionType: null,
+      city: 'تهران',
+      address: 'آدرس',
+      price: null,
+      area: null,
+      rooms: null,
+      description: null
+    })
+    const applicant = await applicantRepository.create({
+      id: 'app-1',
+      userId: USER_ID,
+      fullName: 'علی رضایی',
+      phoneNumber: '09121234567',
+      email: null,
+      applicantType: null,
+      preferredTransactionType: null,
+      preferredPropertyType: null,
+      city: 'تهران',
+      minBudget: null,
+      maxBudget: null,
+      minArea: null,
+      maxArea: null,
+      rooms: null,
+      description: null
+    })
+    const contract = await contractRepository.create({
+      id: 'con-1',
+      userId: USER_ID,
+      propertyId: property.id,
+      applicantId: applicant.id,
+      dealId: null,
+      type: null,
+      amount: null,
+      startDate: '2026-09-01',
+      endDate: '2027-09-01',
+      notes: null
+    })
+    await contractRepository.update(contract.id, {
+      type: null,
+      status: 'cancelled',
+      amount: null,
+      startDate: contract.startDate,
+      endDate: contract.endDate,
+      notes: null
+    })
 
     const result = await fetchDashboardData(USER_ID)
     expect(result.stats.find((stat) => stat.id === 'contracts')?.value).toBe('0')

@@ -4,6 +4,7 @@ import { migration0002Properties } from './0002_properties'
 import { migration0003Applicants } from './0003_applicants'
 import { migration0004Deals } from './0004_deals'
 import { migration0005Reminders } from './0005_reminders'
+import { migration0006Contracts } from './0006_contracts'
 
 /**
  * Ordered by version, ascending — docs/architecture/migration-strategy.md
@@ -14,5 +15,6 @@ export const migrations: readonly Migration[] = [
   migration0002Properties,
   migration0003Applicants,
   migration0004Deals,
-  migration0005Reminders
+  migration0005Reminders,
+  migration0006Contracts
 ]

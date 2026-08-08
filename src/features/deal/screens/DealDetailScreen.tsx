@@ -144,6 +144,19 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
                 })
               }
             />
+
+            <Button
+              label="ایجاد قرارداد"
+              variant="secondary"
+              onPress={() =>
+                navigation.navigate('CreateContract', {
+                  dealId: deal.id,
+                  propertyId: deal.propertyId,
+                  applicantId: deal.applicantId
+                })
+              }
+              style={styles.createContractButton}
+            />
           </>
         )}
       </ScrollView>
@@ -182,6 +195,9 @@ function createStyles(theme: Theme) {
     },
     actionError: {
       color: theme.colors.error
+    },
+    createContractButton: {
+      marginTop: theme.spacing.space3
     }
   })
 }

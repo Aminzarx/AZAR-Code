@@ -133,7 +133,7 @@ describe('DashboardScreen', () => {
 
   it('navigates to DealList when the "مشاهده پیگیری‌ها" quick action is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'contracts', label: 'پیگیری‌های فعال', value: '0' }],
+      stats: [{ id: 'deals', label: 'پیگیری‌های فعال', value: '0' }],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -144,6 +144,36 @@ describe('DashboardScreen', () => {
 
     fireEvent.press(await findByLabelText('مشاهده پیگیری‌ها'))
     expect(mockNavigate).toHaveBeenCalledWith('DealList')
+  })
+
+  it('navigates to DealList when the deals stat card is pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [{ id: 'deals', label: 'پیگیری‌های فعال', value: '2' }],
+      recentActivity: [],
+      upcomingReminders: []
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('پیگیری‌های فعال: 2'))
+    expect(mockNavigate).toHaveBeenCalledWith('DealList')
+  })
+
+  it('navigates to ContractList when the contracts stat card is pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [{ id: 'contracts', label: 'قراردادهای فعال', value: '4' }],
+      recentActivity: [],
+      upcomingReminders: []
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('قراردادهای فعال: 4'))
+    expect(mockNavigate).toHaveBeenCalledWith('ContractList')
   })
 
   it('shows the empty state for upcoming reminders when there are none', async () => {

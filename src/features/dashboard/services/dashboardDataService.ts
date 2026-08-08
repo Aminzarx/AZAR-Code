@@ -3,6 +3,7 @@ import { PropertyRepository } from '@infrastructure/database/repositories/Proper
 import { ApplicantRepository } from '@infrastructure/database/repositories/ApplicantRepository'
 import { DealRepository } from '@infrastructure/database/repositories/DealRepository'
 import { ReminderRepository } from '@infrastructure/database/repositories/ReminderRepository'
+import { ContractRepository } from '@infrastructure/database/repositories/ContractRepository'
 import { PropertyService } from '@features/property/services/PropertyService'
 import { ApplicantService } from '@features/applicant/services/ApplicantService'
 import { DealService } from '@features/deal/services/DealService'
@@ -35,6 +36,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
   const applicantRepository = new ApplicantRepository(db)
   const dealRepository = new DealRepository(db)
   const reminderRepository = new ReminderRepository(db)
+  const contractRepository = new ContractRepository(db)
   const dealService = new DealService(
     dealRepository,
     new PropertyService(propertyRepository, generateId),
@@ -46,6 +48,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     propertyCount,
     applicantCount,
     activeDealCount,
+    activeContractCount,
     recentProperties,
     recentApplicants,
     recentDeals,
@@ -54,6 +57,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     propertyRepository.countByOwner(ownerId),
     applicantRepository.countByUser(ownerId),
     dealRepository.countActive(ownerId),
+    contractRepository.countActive(ownerId),
     propertyRepository.findAllByOwner(ownerId),
     applicantRepository.getAll(ownerId),
     dealService.listDeals(ownerId),
@@ -91,7 +95,8 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     stats: [
       { id: 'properties', label: 'پرونده‌های ملکی', value: String(propertyCount) },
       { id: 'applicants', label: 'متقاضیان', value: String(applicantCount) },
-      { id: 'contracts', label: 'پیگیری‌های فعال', value: String(activeDealCount) }
+      { id: 'deals', label: 'پیگیری‌های فعال', value: String(activeDealCount) },
+      { id: 'contracts', label: 'قراردادهای فعال', value: String(activeContractCount) }
     ],
     recentActivity: activity,
     upcomingReminders: upcomingReminders.slice(0, UPCOMING_REMINDERS_LIMIT).map((reminder) => ({
