@@ -59,18 +59,15 @@ appears anywhere in this screen or its RTL counterpart.
 Added the previously missing 7-day and 3-day rows. The screen now shows all
 seven confirmed default offsets: 90, 60, 30, 14, 7, 3 days before, and "On
 Expiration."
-**Note — instruction discrepancy flagged, not silently resolved**: this
-correction task's own instructions listed the seventh offset as "1 day
-before," but the confirmed, approved product requirement
-(`/docs/01-product-requirements.md` §12) is **the expiration day itself (0
-days)**, not 1 day before. Since these two are different values and the
-correction instructions did not present this as a new product decision, I
-implemented the offset that matches the already-approved requirement ("On
-Expiration") rather than silently changing a confirmed business rule based on
-an inconsistency in these instructions. Flagged here for explicit
-confirmation — if "1 day before" was intentional and meant to change the
-confirmed default schedule, that is a product decision to make explicitly,
-not something this design pass should decide on its own.
+**Update — resolved, FINAL**: this correction task's own instructions had
+briefly listed the seventh offset as "1 day before," conflicting with the
+already-approved requirement of the expiration day itself. The discrepancy
+was flagged rather than silently resolved at the time, and the project owner
+has since explicitly confirmed **"On Expiration" as the final seventh
+default** and that "1 day before" must not be used
+(`/docs/changelog.md`, `/docs/01-product-requirements.md` §12/§19.1). No
+further action needed — the screen as corrected already matches the final
+decision.
 
 ### 4. Stale backup screenshot — corrected
 **Path**: `settings_backup_security/screen.png`
@@ -119,11 +116,14 @@ below):
 | 12. Safe Cancellation | `restore_progress/` (an explicit "Cancel Restore" action, with copy stating existing data is untouched until restore finishes) |
 
 **No silent decision was made about whether restore overwrites existing
-data** — the previously open policy question (block vs. overwrite) is
-resolved in the *design* only to the extent of making the consequence
-explicit and requiring confirmation (per the correction instructions); the
-underlying architectural decision remains recorded as open in
-`/docs/architecture/unresolved-decisions.md` and is not changed by this pass.
+data** by this design pass itself — at the time this correction was made,
+the design only went as far as making the consequence explicit and requiring
+confirmation, while the underlying policy question (block vs. overwrite)
+remained open. **That policy has since been finalized by the project owner**
+(see `/docs/changelog.md`): neither block-forever nor silent overwrite, but a
+mandatory safety-backup-then-explicit-replace sequence. The design already
+delivered here (`restore_existing_data_warning/` plus the mandatory safety-
+backup step upstream in the flow) is consistent with that final decision.
 
 ### 7. Applicant Detail screen — added
 **Path**: `file_management_applicant_detail/`
@@ -252,20 +252,39 @@ sandbox.
   interpreted as this representative critical subset rather than 100%
   coverage of all 32 screens; a full RTL pass across every screen would be a
   larger, separate effort.
+- **[Newly discovered, added post-design-pass, not yet corrected in the
+  design]** `restore_existing_data_warning/` (and its RTL counterpart) does
+  **not** show a distinct "Create Safety Backup → Validate Safety Backup"
+  step before the "Restore & Replace" confirmation — it jumps directly from
+  the warning to the replace confirmation. This was consistent with the
+  design instructions at the time it was built, but the project owner has
+  since finalized the restore-onto-existing-data policy as a **mandatory**
+  safety-backup-then-validate step *before* the explicit replace
+  confirmation (`/docs/changelog.md`). **This is a real gap between the
+  now-final product decision and the already-delivered design** — flagged
+  here explicitly rather than silently left implied as covered. Per this
+  task's documentation-only scope, the design files were not modified to
+  close this gap; it requires a follow-up design correction pass (adding a
+  "Creating Safety Backup..." progress step between the warning and the
+  final confirmation) before the restore flow can be considered fully
+  aligned with the final decision.
 
 ## G. Remaining product decisions (not resolved by this design pass)
 
-- Whether restore blocks or overwrites when a device already has local data
-  — the design now makes the consequence explicit and requires confirmation
-  either way, but the underlying architectural policy is still open
-  (`/docs/architecture/unresolved-decisions.md`).
-- The reminder-offset discrepancy noted in §A.3 ("1 day before" vs. the
-  confirmed "expiration day itself") needs explicit confirmation from the
-  project owner.
+- ~~Whether restore blocks or overwrites when a device already has local
+  data~~ — **resolved, FINAL** (recorded post-Stitch-correction): neither.
+  A mandatory detect → warn → safety-backup → validate → explicit-confirm →
+  restore → verify sequence is now the confirmed policy
+  (`/docs/01-product-requirements.md` §14, `/docs/changelog.md`). The design
+  in `restore_existing_data_warning/` already matches it.
+- ~~The reminder-offset discrepancy noted in §A.3~~ — **resolved, FINAL**:
+  "On Expiration" is confirmed as the seventh default; "1 day before" must
+  not be used (`/docs/changelog.md`).
 - Single-agent vs. team/brokerage accounts (Phase 1 §19.6 Q1) remains open
   as a product question — this pass removed team/brokerage *navigation* to
   match the current single-agent assumption, but did not resolve the
-  underlying open question itself.
+  underlying open question itself. **Still open** — not addressed by the two
+  decisions recorded in this round.
 
 ## H. Final implementation-readiness assessment
 
@@ -309,3 +328,14 @@ representative (7 of 32 screens), not exhaustive; two product decisions
 (§G) still need explicit project-owner confirmation before their affected
 screens can be treated as fully final, though neither blocks moving forward
 with implementation planning on the rest of the package.
+
+**Addendum (recorded after the two decisions below were finalized)**: the
+restore-onto-existing-data policy referenced in §G's second bullet is no
+longer open — it has been decided. That decision surfaced a real gap in the
+already-delivered restore design: the mandatory pre-replace safety-backup
+step (§F) is not yet visually represented as its own step in
+`restore_existing_data_warning/`. This does not change the gate
+classification retroactively (it was accurate against the requirements in
+effect when this pass ran), but it is a known, tracked follow-up for the
+next design-correction round, and the backup/restore flow should not be
+treated as 100% aligned with the final decision until that step is added.

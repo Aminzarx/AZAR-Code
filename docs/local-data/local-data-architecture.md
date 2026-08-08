@@ -159,14 +159,19 @@ does not treat it as final.
   including re-running any migrations needed if the backup was created by an
   older schema version (tying into schema versioning below and the
   restore-validation analysis in the backup document).
-- **[OPEN-ARCH — flagged in Phase 1/2 already]** Behavior when restoring onto
-  a device that already has local data (block-until-confirmed vs. overwrite)
-  remains open; this document adds the observation that "safe rollback if
-  restore fails" (requested explicitly for backup architecture) implies the
-  restore process should stage the incoming data (e.g. into a temporary
-  location or transaction) and only atomically replace the live database once
-  the incoming backup is fully validated — never overwrite incrementally in a
-  way that could leave a half-restored, unusable database if interrupted.
+- **[CONFIRMED — FINAL, resolved after Phase 3/UI correction round]** Behavior
+  when restoring onto a device that already has local data is no longer open:
+  it is neither block-until-confirmed-forever nor a silent overwrite, but a
+  mandatory sequence — detect existing data → warn → create and validate a
+  safety backup of the *current* device data → require explicit "Restore &
+  Replace" confirmation → perform the restore → verify the restored dataset
+  (`/docs/01-product-requirements.md` §14). This document's technical
+  implication still holds and is now sharper: the restore process should
+  stage the incoming data (e.g. into a temporary location or transaction),
+  and the pre-restore safety backup must itself be completed and validated
+  before the live database is touched at all — never overwrite incrementally
+  in a way that could leave a half-restored, unusable database, and never
+  destroy the pre-restore state before its safety backup is confirmed good.
 
 ## Schema versioning
 
@@ -196,5 +201,7 @@ does not treat it as final.
 - Exact migration tooling/library choice.
 - Whether to checksum the live database file for corruption detection beyond
   backup integrity checking.
-- Restore-onto-existing-data behavior (block vs. overwrite).
+- ~~Restore-onto-existing-data behavior (block vs. overwrite)~~ — **resolved,
+  FINAL**: mandatory safety-backup-then-explicit-replace sequence (§Restore
+  above). Only the staging/atomic-swap implementation mechanics remain open.
 - Concrete pagination/caching strategy, pending real data volumes.

@@ -154,12 +154,22 @@ key management here.
 
 ## Restore to a device containing existing data
 
-- **[OPEN-ARCH — carried from Phase 1/2, RST-05]** Whether restore blocks
-  pending explicit user confirmation or overwrites existing local data is not
-  decided here. This document adds the structural requirement that whichever
-  policy is chosen, the restore process itself must be staged (see "Safe
-  rollback" below) so the decision of *what* to do about existing data is
-  cleanly separable from *how* the restore is mechanically executed.
+- **[CONFIRMED — FINAL product decision, resolved after Phase 3/UI correction
+  round]** Restore must never silently overwrite existing local business
+  data, and must never simply block indefinitely either. The mandatory
+  sequence, per `/docs/01-product-requirements.md` §14, is: (1) detect
+  existing local business data, (2) clearly warn the user, (3) create a
+  safety backup of the device's *current* data, (4) validate that safety
+  backup — if it cannot be completed successfully, the restore does not
+  proceed, (5) require explicit, unambiguous confirmation (e.g. "Restore &
+  Replace," never a bare "OK"), (6) perform the restore only after both
+  validation and confirmation have succeeded, (7) verify the restored
+  dataset. Cancellation at any point before step 6 must leave the existing
+  data completely untouched. This document's structural requirement remains
+  and is now sharper: the restore process must be staged (see "Safe
+  rollback" below) *and* the pre-restore safety backup itself must be
+  completed and validated before the live local database is modified at
+  all — the safety backup is not optional and is not merely recommended.
 
 ## Safe rollback if restore fails
 
@@ -172,7 +182,11 @@ key management here.
   it in as the live database — the pre-restore live database is not touched
   or discarded until the incoming data is confirmed fully valid and applied.
   If any step fails, the device is left exactly as it was before the restore
-  attempt started.
+  attempt started. **[CONFIRMED, extended by the FINAL restore-onto-existing-
+  data decision above]** When existing data is present, this rollback
+  guarantee is additionally backstopped by the mandatory pre-restore safety
+  backup — even in the (structurally prevented) case of the staged swap
+  itself going wrong, a validated safety backup of the prior state exists.
 
 ## Risks
 
@@ -195,4 +209,7 @@ key management here.
 - Final key-management model (device-only vs. password-only vs. hybrid — this
   document proposes hybrid but does not finalize it).
 - Backup version-compatibility policy (migrate-forward vs. reject window).
-- Restore-onto-existing-data behavior (block vs. overwrite).
+- ~~Restore-onto-existing-data behavior (block vs. overwrite)~~ — **resolved,
+  FINAL**: mandatory safety-backup-then-explicit-replace sequence (§Restore
+  to a device containing existing data, above). Only the staging/atomic-swap
+  implementation mechanics remain open.

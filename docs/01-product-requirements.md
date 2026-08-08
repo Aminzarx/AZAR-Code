@@ -493,6 +493,30 @@ internally.
   they belong in `/docs/security/encryption.md` (later phase). This document
   only asserts that backups must be encrypted, integrity-protected, and that
   wrong-key/corruption must be distinguishable and handled gracefully.
+- **[CONFIRMED — FINAL product decision, added after Phase 1 sign-off]**
+  Restoring onto a device that already has existing local business data
+  **must never silently overwrite it**. The required sequence is:
+  1. Detect that existing local business data is present on the device.
+  2. Clearly warn the user that restoring will replace it.
+  3. Require a safety backup of the device's *current* data to be created
+     successfully before any destructive replacement — if the safety backup
+     cannot be completed, the restore does not proceed.
+  4. Validate the safety backup.
+  5. Require explicit, unambiguous confirmation from the user before
+     replacing the existing local dataset (e.g. "Restore & Replace," never a
+     bare "OK" — Phase 1 §4/§16's destructive-confirmation requirement
+     applies here specifically).
+  6. Only then perform the restore, after both validation and confirmation
+     have completed successfully.
+  7. The user must be able to cancel at any point before step 6 without any
+     modification to the existing local data.
+  This resolves what was previously recorded as an open architectural
+  question ("overwrite vs. block-until-confirmed") — the answer is neither
+  a silent overwrite nor a hard block, but a mandatory safety-backup-then-
+  explicit-replace flow. The exact technical mechanism (staging, atomic
+  swap) remains governed by `/docs/backup/backup-architecture-analysis.md`'s
+  "safe rollback if restore fails" requirement, which this decision extends
+  to cover the pre-restore safety backup as well.
 
 ## 15. Offline — Functional Requirements
 
@@ -531,11 +555,14 @@ online surface for account/referral operations."
   conflict resolution, CRDTs, real-time sync, or cloud replication
   infrastructure** for business data. A restore from a backup on a new device
   is expected to establish that device's local dataset from the backup (an
-  explicit, user-understood operation, not a silent merge) — the exact
-  behavior when a device already has local data at restore time (e.g.
-  overwrite vs. block-until-user-confirms) is an **[OPEN-ARCH]** detail for
-  Phase 3, but "silently and invisibly merge two divergent datasets" is
-  explicitly out of scope unless a future product decision requires it.
+  explicit, user-understood operation, not a silent merge) — "silently and
+  invisibly merge two divergent datasets" is explicitly out of scope unless a
+  future product decision requires it. **[CONFIRMED — FINAL, resolved]** The
+  behavior when a device already has local data at restore time is neither a
+  silent overwrite nor an indefinite block: it is the mandatory
+  safety-backup-then-explicit-replace sequence specified in §14 (detect →
+  warn → safety backup → validate → explicit confirm → restore → verify) —
+  see §14 for the full sequence, which is authoritative.
 
 ## 16. UX Requirements
 
@@ -685,6 +712,14 @@ and `/docs/security/authentication.md` (later phase):
 - **[Added after initial Phase 1 documentation]** Contract reminders are
   delivered via local device notifications, not push notifications — push
   infrastructure is not required for v1 (§13).
+- **[FINAL — added after Phase 3/UI correction round]** The seven default
+  reminder offsets are fixed: 90, 60, 30, 14, 7, 3 days before expiration,
+  and **on the expiration date itself** ("On Expiration"). "1 day before" is
+  explicitly not the seventh default (§12).
+- **[FINAL — added after Phase 3/UI correction round]** Restoring onto a
+  device with existing local business data must never silently overwrite it;
+  the mandatory sequence is detect → warn → safety backup → validate →
+  explicit "Restore & Replace" confirmation → restore → verify (§14).
 
 ### 19.2 Open product decisions
 - Whether referral codes are single-use or reusable (§5.1).
@@ -705,8 +740,10 @@ and `/docs/security/authentication.md` (later phase):
   `/docs/security/encryption.md`.
 - Local storage technology and on-device data-protection mechanism (§15, §18)
   — Phase 3, now the sole data store rather than a cache (Phase 0 Decision 4).
-- Behavior when restoring a backup onto a device that already has local data
-  (overwrite vs. block-until-confirmed) — Phase 3 (§15).
+- ~~Behavior when restoring a backup onto a device that already has local
+  data~~ — **resolved, FINAL**: mandatory safety-backup-then-explicit-replace
+  sequence, see §14. The remaining open item is only the technical staging/
+  atomic-swap mechanism, not the policy.
 - Local notification scheduling mechanism for reminders (§13) — Phase 3.
 - Matching engine's internal scoring formula (§9) — `/docs/matching/*.md`.
 - Final database schema (all entities) — Phase 4.

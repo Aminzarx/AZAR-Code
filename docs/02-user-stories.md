@@ -887,11 +887,11 @@ Date: 2026-08-08 (amended)
   password/key → app validates (RST-01's integrity/version checks) → restores
   data onto this device.
 - **Alternative flows**: New device already has some local data (e.g. from a
-  prior partial setup) → **[OPEN-ARCH]** whether this blocks restore pending
-  explicit user confirmation, or restore overwrites it, is a Phase 3 decision
-  (Phase 1 §19.3) — but silently, invisibly merging the two datasets is
-  explicitly out of scope (Phase 1 §15) unless a future product decision
-  requires multi-device sync.
+  prior partial setup) → **[CONFIRMED — FINAL, resolved]** this now follows
+  the mandatory safety-backup-then-replace sequence in RST-06 below, rather
+  than either blocking indefinitely or overwriting silently; silently,
+  invisibly merging the two datasets remains explicitly out of scope (Phase 1
+  §15) unless a future product decision requires multi-device sync.
 - **Error/edge cases**: Same wrong-key (RST-02) and corrupted/incompatible
   (RST-03/RST-04) failure handling applies identically on a new device.
 - **Acceptance criteria**: Restoring on a new device requires no connectivity
@@ -899,6 +899,44 @@ Date: 2026-08-08 (amended)
   device; the operation is entirely driven by the backup file and the user's
   key/password.
 - **Priority**: P0
+
+### RST-06 — Existing local data is protected by a mandatory safety backup before restore replaces it [OFFLINE]
+- **Actor**: Logged-in user
+- **Goal**: Restore a backup onto a device that already has business data on
+  it, without risking silent loss of what's currently there.
+- **Description**: **[CONFIRMED — FINAL product decision, added after the
+  Phase 3/UI correction round]** Restore must never silently overwrite
+  existing local business data. This story defines the mandatory sequence,
+  matching the design already validated in
+  `/design/stitch/stitch_elite_real_estate_crm/restore_existing_data_warning/`:
+  Existing Data Detected → Create Safety Backup → Validate Safety Backup →
+  Explicit "Restore & Replace" Confirmation → Restore → Verify Restored
+  Dataset.
+- **Preconditions**: User has selected a valid backup file to restore
+  (RST-01) on a device that already has existing owner files, applicant
+  files, contracts, or other business data.
+- **Main flow**:
+  1. App detects existing local business data on the device.
+  2. App clearly warns the user that continuing will replace that data.
+  3. App creates a safety backup of the device's *current* data.
+  4. App validates that safety backup succeeded.
+  5. App requires explicit confirmation from the user (e.g. "Restore &
+     Replace," never a bare "OK") before proceeding.
+  6. Only after both the safety backup is validated and the user has
+     confirmed does the app perform the restore.
+  7. App verifies the restored dataset before reporting success.
+- **Alternative flows**: User cancels at any point before step 6 → no
+  modification is made to the existing local data; the device is left
+  exactly as it was.
+- **Error/edge cases**: The safety backup itself fails to complete
+  successfully → the restore does not proceed at all, and the user is told
+  why, consistent with RST-01 through RST-04's failure-handling patterns.
+- **Acceptance criteria**: There is no code path in which existing local
+  business data is deleted or overwritten before both (a) a validated safety
+  backup of that data exists and (b) the user has explicitly confirmed the
+  replacement. Cancellation at any point prior to the actual restore step
+  leaves existing data completely untouched.
+- **Priority**: P0 — non-negotiable per confirmed final product decision.
 
 ---
 
@@ -1194,10 +1232,12 @@ No story above invents an implementation detail Phase 1 left open (encryption
 algorithm, OTP provider, RN vs. Capacitor, exact scoring formula, local
 storage technology, notification-permission fallback mechanism, final schema).
 Where a story's full acceptance criteria depend on one of these, it is called
-out inline with **[OPEN-ARCH]**. RST-05 additionally flags one narrower open
+out inline with **[OPEN-ARCH]**. ~~RST-05 additionally flags one narrower open
 question: whether restoring onto a device that already has local data blocks
-for confirmation or overwrites — a Phase 3 decision, not a reintroduction of
-multi-device sync.
+for confirmation or overwrites~~ — **resolved, FINAL**: neither blocks
+indefinitely nor overwrites silently; RST-06 records the mandatory
+safety-backup-then-explicit-replace sequence. This is not a reintroduction of
+multi-device sync — SYNC-02 remains a confirmed non-goal.
 
 ### 4. Assumptions
 - Single-owner, single-user-type data model (SEC-01) — consistent with Phase 1

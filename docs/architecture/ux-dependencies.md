@@ -103,14 +103,20 @@ file picker, and how backup password entry is presented (this also feeds the
 clipboard-risk consideration in the threat model — the risk is named now,
 the actual UI decision waits).
 
-### Restore workflow — **WAIT FOR STITCH, with FINALIZE NOW architecture underneath**
-**FINALIZE NOW**: the validation ordering (format → integrity → key → version)
-and the staged/rollback-safe restore mechanism are settled. **WAIT FOR
-STITCH**: the specific UI for the still-open restore-onto-existing-data
-question — this document previously listed the *policy* (block vs. overwrite)
-as pending; it is now clear that even once that policy is chosen, its
-presentation (a confirmation dialog, a diff/preview screen, etc.) is Stitch's
-call, not architecture's.
+### Restore workflow — **FINALIZE NOW (policy + UI delivered)**
+**[Updated — FINAL, resolved after the Phase 3/UI correction round]** The
+validation ordering (format → integrity → key → version) and the staged/
+rollback-safe restore mechanism were already settled. The
+restore-onto-existing-data *policy* that this section previously listed as
+pending is now a confirmed, final product decision (mandatory
+detect → warn → safety-backup → validate → explicit-confirm → restore →
+verify sequence — `/docs/01-product-requirements.md` §14) — no longer a
+block-vs-overwrite open question. Stitch has since delivered the
+corresponding UI across the full restore workflow, including the existing-
+data warning and explicit "Restore & Replace" confirmation screen
+(`/design/stitch/stitch_elite_real_estate_crm/restore_existing_data_warning/`
+and seven sibling restore-state screens) — this row is no longer
+"WAIT FOR STITCH," both the policy and its presentation are settled.
 
 ### Offline states — **FINALIZE NOW (classification), WAIT FOR STITCH (presentation)**
 **FINALIZE NOW**: `/docs/01-product-requirements.md` §4a already classifies
@@ -171,7 +177,7 @@ to Settings).
 | Contract workflow | WAIT FOR STITCH (data/logic: FINALIZE NOW) |
 | Reminder management | WAIT FOR STITCH (data/logic: FINALIZE NOW) |
 | Backup/export/import UX | WAIT FOR STITCH (architecture: FINALIZE NOW) |
-| Restore workflow | WAIT FOR STITCH (architecture: FINALIZE NOW) |
+| Restore workflow | FINALIZE NOW (policy + UI delivered, FINAL) |
 | Offline states | FINALIZE NOW (classification) / WAIT FOR STITCH (presentation) |
 | Loading states | INDEPENDENT OF UI (when) / WAIT FOR STITCH (how) |
 | Empty states | WAIT FOR STITCH |

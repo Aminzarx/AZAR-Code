@@ -584,3 +584,112 @@ No application code, dependencies, or database schema were touched.
 non-blocking remaining items (no LTR match-explanation screen, no
 notification-permission-denied screen, partial RTL coverage, two product
 decisions still needing explicit confirmation).
+
+---
+
+## 2026-08-08 — FINAL product decision: default contract reminder offsets
+
+**Change**: The seven default contract-reminder offsets are confirmed
+**FINAL**: 90 days before, 60 days before, 30 days before, 14 days before, 7
+days before, 3 days before, and **on the expiration date itself** ("On
+Expiration"). **"1 day before" is explicitly not the seventh default** and
+must not be used anywhere in documentation or design.
+
+**Reason**: Explicit project-owner decision, made before Phase 4 begins, to
+close a discrepancy this session had already flagged (but not silently
+resolved) between an earlier correction-round instruction that said "1 day
+before" and the previously-approved requirement of "the expiration day
+itself." The project owner has now confirmed the originally-approved value
+is the final one.
+
+**Affected modules**: Documentation only. Updated
+`/docs/01-product-requirements.md` (§14/§19.1, marking the decision FINAL and
+resolving the corresponding open-item entry in §19.3),
+`/docs/architecture/unresolved-decisions.md` (added an explicit FINAL note
+under Contracts/reminders/notifications so "1 day before" is never
+reintroduced by mistake), and `/docs/ui/02-stitch-final-correction.md`
+(updated its discrepancy note to reflect resolution). No documentation
+elsewhere in the repository was found to contain "1 day before" as an actual
+(non-historical/non-explanatory) value — `/docs/01-product-requirements.md`
+§12, `/docs/notifications/notification-architecture.md`, and the delivered
+`settings_contract_reminders/` design already used "on the expiration day
+itself" / "On Expiration" consistently, so no contradiction existed there.
+
+**Migration requirements**: None — documentation only; no application code
+or schema exists yet.
+
+**Tests**: None yet. This confirms the value that
+`/docs/02-user-stories.md` REM-01 and the reminder-scheduling architecture
+(`/docs/notifications/notification-architecture.md`) must be tested against
+once implementation begins.
+
+---
+
+## 2026-08-08 — FINAL product decision: restore onto a device with existing local data
+
+**Change**: Restoring a backup onto a device that already has existing local
+business data **must never silently overwrite it**. The mandatory sequence
+is now confirmed **FINAL**:
+
+1. Detect existing local business data on the device.
+2. Clearly warn the user that continuing will replace it.
+3. Require a safety backup of the device's *current* data to be created.
+4. Require that safety backup to validate successfully — if it cannot be
+   completed successfully, the restore does not proceed.
+5. Require explicit, unambiguous user confirmation (e.g. "Restore &
+   Replace," never a bare "OK") before replacing the existing dataset.
+6. Perform the restore only after both validation and confirmation have
+   completed successfully.
+7. Verify the restored dataset.
+8. The user must be able to cancel at any point before the actual restore
+   step, leaving existing data completely untouched.
+
+This resolves the "block vs. overwrite" question that had been recorded as
+open architecture across multiple Phase 3 documents since restore-related
+analysis began: the answer is neither a hard block nor a silent overwrite,
+but a mandatory safety-backup-then-explicit-replace flow.
+
+**Reason**: Explicit project-owner decision, grounded in the already-
+confirmed local-first principle that the local database is the primary
+source of truth — for a store with no server backstop, an unprotected
+overwrite would be an unrecoverable data-loss risk. Made before Phase 4
+begins so the database and backup architecture are designed against the
+final policy, not a placeholder.
+
+**Affected modules**: Documentation only. Updated
+`/docs/01-product-requirements.md` (§14 — added as a new CONFIRMED FINAL
+requirement with the full 7-step sequence; §15 — resolved the corresponding
+open item; §19.1/§19.3 — moved from open architectural decision to confirmed
+FINAL decision), `/docs/02-user-stories.md` (updated RST-05's "Alternative
+flows" and added a new story, **RST-06**, defining the mandatory sequence as
+its own testable acceptance criteria; updated the Summary's "Open
+architectural decisions" section), `/docs/local-data/local-data-architecture.md`
+(§Restore — resolved, with the technical implication that the pre-restore
+safety backup must complete and validate before the live database is
+touched at all), `/docs/backup/backup-architecture-analysis.md` (§Restore to
+a device containing existing data, §Safe rollback if restore fails —
+resolved and extended), `/docs/architecture/ux-dependencies.md` (§Restore
+workflow — moved from "WAIT FOR STITCH" to "FINALIZE NOW," since Stitch has
+already delivered corresponding screens), and
+`/docs/architecture/unresolved-decisions.md` (moved from open to resolved in
+both the Local data and Backup/encryption sections).
+
+**Contradiction found during this update — not fully closed by documentation
+alone**: the already-delivered `restore_existing_data_warning/` Stitch
+screen (and its RTL counterpart) does not yet show the mandatory pre-replace
+safety-backup step as its own distinct step — it currently goes directly
+from the existing-data warning to the replace confirmation. This is now a
+tracked, flagged gap between the final product decision and the delivered
+design (`/docs/ui/02-stitch-final-correction.md` §F addendum,
+`/docs/architecture/unresolved-decisions.md`), requiring a follow-up design
+correction pass (not performed in this documentation-only update) before the
+restore flow can be considered fully aligned with this decision.
+
+**Migration requirements**: None — documentation only; no application code
+or schema exists yet.
+
+**Tests**: None yet. RST-06 in `/docs/02-user-stories.md` is the required
+regression-test scenario for this decision once backup/restore is
+implemented: no code path may exist where existing local business data is
+modified before both a validated safety backup exists and the user has
+explicitly confirmed the replacement.

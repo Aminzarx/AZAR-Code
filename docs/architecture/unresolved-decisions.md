@@ -3,8 +3,11 @@
 Status: DRAFT — consolidates every open item flagged across the Phase 3
 document set into one place, so nothing gets lost between documents. Update
 this file whenever an item below is resolved elsewhere.
-Date: 2026-08-08 (revised — two items newly resolved at the policy level,
-mechanism still open, see notes below)
+Date: 2026-08-08 (revised — four items now resolved at the policy level:
+local-DB-encryption requirement, session-lifecycle network-vs-auth-failure
+rule, default reminder schedule (FINAL), and restore-onto-existing-data
+(FINAL); mechanism/implementation details for the first two remain open, see
+notes below)
 
 ## Platform
 
@@ -17,8 +20,9 @@ mechanism still open, see notes below)
 - Exact migration tooling/library choice.
 - Whether to checksum the live database file for corruption detection beyond
   backup integrity checking.
-- Restore-onto-existing-data behavior (block vs. overwrite) — also listed
-  under Backup below; same decision, two documents reference it.
+- ~~Restore-onto-existing-data behavior (block vs. overwrite)~~ — **resolved,
+  FINAL** (see Backup / encryption section below — same decision, listed
+  there in full).
 - Concrete pagination/caching strategy, pending real data volumes.
 
 ## Backup / encryption
@@ -34,7 +38,27 @@ mechanism still open, see notes below)
   (device-held key for local at-rest protection + user password-derived key
   for portable backup) but did not finalize it.
 - Backup version-compatibility policy (migrate-forward vs. reject window).
-- Restore-onto-existing-data behavior (block vs. overwrite).
+- ~~Restore-onto-existing-data behavior (block vs. overwrite)~~ — **resolved,
+  FINAL product decision**: restore must never silently overwrite existing
+  local business data. Mandatory sequence: detect existing data → warn →
+  create a safety backup of current data → validate that safety backup (do
+  not proceed if it fails) → require explicit "Restore & Replace"
+  confirmation → restore → verify the restored dataset. Cancellation before
+  the actual restore step leaves existing data untouched. Recorded in
+  `/docs/01-product-requirements.md` §14/§19.1, `/docs/02-user-stories.md`
+  RST-06, `/docs/backup/backup-architecture-analysis.md`, and
+  `/docs/local-data/local-data-architecture.md`. The UI for this flow is
+  already delivered in
+  `/design/stitch/stitch_elite_real_estate_crm/restore_existing_data_warning/`
+  and its seven sibling restore-state screens. Only the technical staging/
+  atomic-swap implementation mechanics remain open, not the policy.
+  **[Design gap tracked, not yet closed]**: the delivered
+  `restore_existing_data_warning/` screen does not yet show the mandatory
+  pre-replace safety-backup step as its own distinct step — it goes straight
+  from the warning to the replace confirmation. A follow-up design
+  correction pass is needed to add a visible "Creating Safety Backup..."
+  step between them before the restore flow is fully aligned with this final
+  decision (`/docs/ui/02-stitch-final-correction.md` §F addendum).
 - ~~Whether the local database itself should be encrypted at rest~~ —
   **resolved at the policy level**: at-rest encryption of sensitive local
   business data is now a **[CONFIRMED REQUIRED]** security requirement
@@ -79,6 +103,12 @@ mechanism still open, see notes below)
 
 ## Contracts / reminders / notifications
 
+- **[CONFIRMED — FINAL, not open]** The seven default reminder offsets are
+  fixed: 90, 60, 30, 14, 7, 3 days before expiration, and on the expiration
+  date itself ("On Expiration"). Noted here explicitly because an earlier
+  correction-round instruction briefly used "1 day before" for the seventh
+  offset, which does not match this final decision — recorded so it is never
+  reintroduced by mistake.
 - Behavior when a newly configured reminder offset is already in the past for
   existing contracts (fire immediately vs. apply to future contracts only).
 - Exact local-notification scheduling library/approach (pending ADR-001).
