@@ -1,0 +1,216 @@
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { getDatabase, closeDatabase } from '@infrastructure/database/connection'
+import { PropertyRepository } from '@infrastructure/database/repositories/PropertyRepository'
+import { ApplicantRepository } from '@infrastructure/database/repositories/ApplicantRepository'
+import { DealRepository } from '@infrastructure/database/repositories/DealRepository'
+import { fetchDashboardData } from '../dashboardDataService'
+
+const DB_FILE = path.join(process.cwd(), 'azar.db')
+const USER_ID = 'user-1'
+const OTHER_USER_ID = 'user-2'
+
+describe('fetchDashboardData', () => {
+  afterEach(() => {
+    closeDatabase()
+    if (fs.existsSync(DB_FILE)) {
+      fs.unlinkSync(DB_FILE)
+    }
+  })
+
+  async function seedUsers(): Promise<void> {
+    const db = await getDatabase()
+    await db.execute(
+      `INSERT INTO users (id, phone_number, referral_code, created_at, updated_at)
+       VALUES (?, '09120000000', 'REF00001', '2026-08-08', '2026-08-08')`,
+      [USER_ID]
+    )
+    await db.execute(
+      `INSERT INTO users (id, phone_number, referral_code, created_at, updated_at)
+       VALUES (?, '09120000001', 'REF00002', '2026-08-08', '2026-08-08')`,
+      [OTHER_USER_ID]
+    )
+  }
+
+  it('returns zero counts and no activity for a user with no data', async () => {
+    await seedUsers()
+
+    const result = await fetchDashboardData(USER_ID)
+
+    expect(result.stats).toEqual([
+      { id: 'properties', label: 'پرونده‌های ملکی', value: '0' },
+      { id: 'applicants', label: 'متقاضیان', value: '0' },
+      { id: 'contracts', label: 'پیگیری‌های فعال', value: '0' }
+    ])
+    expect(result.recentActivity).toEqual([])
+  })
+
+  it('returns real counts scoped to the requesting user only', async () => {
+    await seedUsers()
+    const db = await getDatabase()
+    const propertyRepository = new PropertyRepository(db)
+    const applicantRepository = new ApplicantRepository(db)
+    const dealRepository = new DealRepository(db)
+
+    const property = await propertyRepository.create({
+      id: 'prop-1',
+      ownerId: USER_ID,
+      title: 'آپارتمان دو خوابه',
+      propertyType: null,
+      transactionType: null,
+      city: 'تهران',
+      address: 'خیابان ولیعصر',
+      price: null,
+      area: null,
+      rooms: null,
+      description: null
+    })
+    const applicant = await applicantRepository.create({
+      id: 'app-1',
+      userId: USER_ID,
+      fullName: 'علی رضایی',
+      phoneNumber: '09121234567',
+      email: null,
+      applicantType: null,
+      preferredTransactionType: null,
+      preferredPropertyType: null,
+      city: 'تهران',
+      minBudget: null,
+      maxBudget: null,
+      minArea: null,
+      maxArea: null,
+      rooms: null,
+      description: null
+    })
+    await dealRepository.create({
+      id: 'deal-1',
+      userId: USER_ID,
+      propertyId: property.id,
+      applicantId: applicant.id
+    })
+
+    // Data belonging to a different user must not leak into these counts.
+    await propertyRepository.create({
+      id: 'prop-2',
+      ownerId: OTHER_USER_ID,
+      title: 'ملک کاربر دیگر',
+      propertyType: null,
+      transactionType: null,
+      city: 'شیراز',
+      address: 'آدرس',
+      price: null,
+      area: null,
+      rooms: null,
+      description: null
+    })
+
+    const result = await fetchDashboardData(USER_ID)
+
+    expect(result.stats).toEqual([
+      { id: 'properties', label: 'پرونده‌های ملکی', value: '1' },
+      { id: 'applicants', label: 'متقاضیان', value: '1' },
+      { id: 'contracts', label: 'پیگیری‌های فعال', value: '1' }
+    ])
+  })
+
+  it('does not count a cancelled deal toward active deals', async () => {
+    await seedUsers()
+    const db = await getDatabase()
+    const propertyRepository = new PropertyRepository(db)
+    const applicantRepository = new ApplicantRepository(db)
+    const dealRepository = new DealRepository(db)
+
+    const property = await propertyRepository.create({
+      id: 'prop-1',
+      ownerId: USER_ID,
+      title: 'آپارتمان',
+      propertyType: null,
+      transactionType: null,
+      city: 'تهران',
+      address: 'آدرس',
+      price: null,
+      area: null,
+      rooms: null,
+      description: null
+    })
+    const applicant = await applicantRepository.create({
+      id: 'app-1',
+      userId: USER_ID,
+      fullName: 'علی رضایی',
+      phoneNumber: '09121234567',
+      email: null,
+      applicantType: null,
+      preferredTransactionType: null,
+      preferredPropertyType: null,
+      city: 'تهران',
+      minBudget: null,
+      maxBudget: null,
+      minArea: null,
+      maxArea: null,
+      rooms: null,
+      description: null
+    })
+    const deal = await dealRepository.create({
+      id: 'deal-1',
+      userId: USER_ID,
+      propertyId: property.id,
+      applicantId: applicant.id
+    })
+    await dealRepository.updateStatus(deal.id, 'cancelled')
+
+    const result = await fetchDashboardData(USER_ID)
+    expect(result.stats.find((stat) => stat.id === 'contracts')?.value).toBe('0')
+  })
+
+  it('builds recent activity from real property/applicant/deal records', async () => {
+    await seedUsers()
+    const db = await getDatabase()
+    const propertyRepository = new PropertyRepository(db)
+    const applicantRepository = new ApplicantRepository(db)
+
+    await propertyRepository.create({
+      id: 'prop-1',
+      ownerId: USER_ID,
+      title: 'آپارتمان دو خوابه',
+      propertyType: null,
+      transactionType: null,
+      city: 'تهران',
+      address: 'خیابان ولیعصر',
+      price: null,
+      area: null,
+      rooms: null,
+      description: null
+    })
+    await applicantRepository.create({
+      id: 'app-1',
+      userId: USER_ID,
+      fullName: 'علی رضایی',
+      phoneNumber: '09121234567',
+      email: null,
+      applicantType: null,
+      preferredTransactionType: null,
+      preferredPropertyType: null,
+      city: 'تهران',
+      minBudget: null,
+      maxBudget: null,
+      minArea: null,
+      maxArea: null,
+      rooms: null,
+      description: null
+    })
+
+    const result = await fetchDashboardData(USER_ID)
+
+    expect(result.recentActivity).toHaveLength(2)
+    expect(result.recentActivity.map((item) => item.id).sort()).toEqual([
+      'applicant-app-1',
+      'property-prop-1'
+    ])
+    expect(result.recentActivity.find((item) => item.id === 'property-prop-1')?.title).toBe(
+      'پرونده ملکی جدید: آپارتمان دو خوابه'
+    )
+    expect(result.recentActivity.find((item) => item.id === 'applicant-app-1')?.title).toBe(
+      'متقاضی جدید: علی رضایی'
+    )
+  })
+})

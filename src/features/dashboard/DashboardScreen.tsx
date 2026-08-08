@@ -1,5 +1,5 @@
 import React from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -12,10 +12,6 @@ import { QuickActions, type QuickAction } from './components/QuickActions'
 import { RecentActivityList } from './components/RecentActivityList'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
-
-function announceComingSoon(featureLabel: string): void {
-  Alert.alert(featureLabel, 'این قابلیت در فاز بعدی اضافه می‌شود.')
-}
 
 export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
@@ -35,9 +31,9 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
       onPress: () => navigation.navigate('CreateApplicant')
     },
     {
-      id: 'contracts',
-      label: 'مشاهده قراردادها',
-      onPress: () => announceComingSoon('مشاهده قراردادها')
+      id: 'deals',
+      label: 'مشاهده پیگیری‌ها',
+      onPress: () => navigation.navigate('DealList')
     },
     { id: 'logout', label: 'خروج از حساب', onPress: () => logout() }
   ]

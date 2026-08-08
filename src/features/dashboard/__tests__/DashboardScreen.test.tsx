@@ -121,4 +121,18 @@ describe('DashboardScreen', () => {
     fireEvent.press(await findByLabelText('متقاضیان: 5'))
     expect(mockNavigate).toHaveBeenCalledWith('ApplicantList')
   })
+
+  it('navigates to DealList when the "مشاهده پیگیری‌ها" quick action is pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [{ id: 'contracts', label: 'پیگیری‌های فعال', value: '0' }],
+      recentActivity: []
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('مشاهده پیگیری‌ها'))
+    expect(mockNavigate).toHaveBeenCalledWith('DealList')
+  })
 })

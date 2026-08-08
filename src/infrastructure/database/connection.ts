@@ -1,6 +1,7 @@
 import { open, type DB } from '@op-engineering/op-sqlite'
 import { getOrCreateDatabaseKey } from '../security/databaseKey'
 import { keychainSecureStorage } from '../security/keychainSecureStorage'
+import { runMigrations } from './migrationRunner'
 
 const DATABASE_NAME = 'azar.db'
 
@@ -13,7 +14,10 @@ let instance: DB | null = null
  * storage (`getOrCreateDatabaseKey`) — never written to disk in plain
  * form. Foreign key enforcement is turned on immediately after opening,
  * per docs/local-data/local-data-architecture.md's integrity requirement
- * (SQLite has it off by default per connection).
+ * (SQLite has it off by default per connection). Migrations run here too
+ * — this is the one place every caller goes through before touching the
+ * database, so it is the only place that can guarantee the schema is
+ * up to date before any repository query runs against it.
  */
 export async function getDatabase(): Promise<DB> {
   if (instance) {
@@ -21,8 +25,10 @@ export async function getDatabase(): Promise<DB> {
   }
 
   const encryptionKey = await getOrCreateDatabaseKey(keychainSecureStorage)
-  instance = open({ name: DATABASE_NAME, encryptionKey })
-  instance.executeSync('PRAGMA foreign_keys = ON')
+  const db = open({ name: DATABASE_NAME, encryptionKey })
+  db.executeSync('PRAGMA foreign_keys = ON')
+  await runMigrations(db)
+  instance = db
 
   return instance
 }
