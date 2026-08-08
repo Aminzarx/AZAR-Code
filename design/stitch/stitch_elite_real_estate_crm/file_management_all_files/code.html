@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Files - EstatePro CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "secondary-container": "#b9eeab",
+                            "tertiary": "#000000",
+                            "outline": "#75777a",
+                            "error": "#ba1a1a",
+                            "on-surface-variant": "#44474a",
+                            "primary-fixed-dim": "#c6c6c9",
+                            "surface-container": "#edeeef",
+                            "outline-variant": "#c5c6ca",
+                            "inverse-surface": "#2e3132",
+                            "on-primary-container": "#838486",
+                            "on-secondary-container": "#3f6d38",
+                            "surface-container-high": "#e7e8e9",
+                            "on-tertiary": "#ffffff",
+                            "on-secondary-fixed": "#002201",
+                            "on-background": "#191c1d",
+                            "on-tertiary-fixed": "#001f26",
+                            "on-primary": "#ffffff",
+                            "primary-container": "#1a1c1e",
+                            "on-secondary": "#ffffff",
+                            "on-surface": "#191c1d",
+                            "surface-container-highest": "#e1e3e4",
+                            "on-tertiary-container": "#618a96",
+                            "surface-tint": "#5d5e61",
+                            "primary-fixed": "#e2e2e5",
+                            "surface": "#f8f9fa",
+                            "error-container": "#ffdad6",
+                            "tertiary-fixed": "#bfe9f7",
+                            "on-tertiary-fixed-variant": "#224c57",
+                            "surface-dim": "#d9dadb",
+                            "primary": "#000101",
+                            "background": "#f8f9fa",
+                            "secondary": "#3b6934",
+                            "surface-container-lowest": "#ffffff",
+                            "on-error": "#ffffff",
+                            "surface-bright": "#f8f9fa",
+                            "tertiary-fixed-dim": "#a3cdda",
+                            "surface-container-low": "#f3f4f5",
+                            "secondary-fixed": "#bcf0ae",
+                            "tertiary-container": "#001f26",
+                            "on-primary-fixed-variant": "#454749",
+                            "on-secondary-fixed-variant": "#23501e",
+                            "secondary-fixed-dim": "#a1d494",
+                            "surface-variant": "#e1e3e4",
+                            "inverse-on-surface": "#f0f1f2",
+                            "on-error-container": "#93000a",
+                            "on-primary-fixed": "#1a1c1e",
+                            "inverse-primary": "#c6c6c9"
+                    },
+                    "borderRadius": {
+                        "sm": "0.125rem",
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                            "gutter": "16px",
+                            "base": "8px",
+                            "margin-desktop": "32px",
+                            "container-max-width": "1200px",
+                            "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                            "body-lg": ["Inter"],
+                            "headline-lg-mobile": ["Geist"],
+                            "display": ["Geist"],
+                            "label-sm": ["Geist"],
+                            "headline-lg": ["Geist"],
+                            "body-md": ["Inter"],
+                            "headline-md": ["Geist"],
+                            "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                            "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                            "display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                            "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                            "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-background w-full sticky top-0 z-50 bg-surface dark:bg-background border-b border-outline-variant dark:border-on-surface-variant flex items-center justify-between px-margin-mobile py-base">
+<div class="flex items-center gap-4">
+<button class="p-2 text-primary dark:text-on-background hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors active:opacity-70 transition-opacity rounded-full md:hidden">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-display text-headline-md font-semibold text-primary dark:text-on-background">EstatePro CRM</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-primary dark:text-on-background hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors active:opacity-70 transition-opacity rounded-full">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-highest">
+<img alt="Agent Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a real estate agent. Minimalist background, high-key lighting, modern and clean aesthetic. The person is smiling confidently." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUDsNhOaUoypPAx3FGgEBNd4qTZyXaZbPdNNCc6GuOnuheTaVdodfdEmGoPDIZkp1RqLBFc1wjELn1vrTkvhK1WKuYBxELOwP4afLfYk_AoM9kxIhaQfTgW54zlgeGkQmahj2td5A_ME2zmYE3pN6EkKnXE5rq-7rrAcwgZEckX6WZDLFAB7ZsfrbgznZSp0A2DBH4Gs0Gye2zRlLif0RWqU017V25W5RWoL4qkIyWjTqACWWptWvmSQ"/>
+</div>
+</div>
+</header>
+<!-- Main Content Container -->
+<div class="flex flex-1 overflow-hidden relative">
+<!-- Navigation Drawer (Desktop) -->
+<aside class="hidden md:flex flex-col h-full w-80 bg-surface dark:bg-background shadow-xl p-gutter shrink-0 border-r border-outline-variant">
+<div class="mb-8 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-highest shrink-0">
+<img alt="Agent Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a real estate agent. Minimalist background, high-key lighting, modern and clean aesthetic. The person is smiling confidently." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMyr1j6uV-DJyfP8aUt8DDc7vRGZtrY55yxtGMRcvhQcIHlf8z7WjAERY74hRglLYuf2agWJ_bK92JJ2PLMHHjiKGf_IBNbOMa7jPgd8GAvsyAsSM_ZA2PVa5sKi1l4_z7i2O0cKFnhPpx4C2Wmj5FqHvkZNE-CwMBRAyeSeYmQ8rTyFZPPV38YcI5ia_CgAO6i5J7kKzxtPWnB2IefX0FA4jiVDbrNLt6cdBO6x3HIrHRSsMGmRSwlQ"/>
+</div>
+<div>
+<h2 class="font-label-md font-bold text-primary">Premium Agent</h2>
+<p class="font-label-sm text-outline text-[10px]">ID: 98234</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 flex-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:bg-surface-variant dark:hover:bg-on-primary-fixed-variant transition-colors active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-body-md">Home</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary-container dark:bg-on-secondary-container text-on-secondary-container font-medium hover:bg-surface-variant dark:hover:bg-on-primary-fixed-variant transition-colors active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open" data-weight="fill" style="font-variation-settings: 'FILL' 1;">folder_open</span>
+<span class="font-body-md">Files</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:bg-surface-variant dark:hover:bg-on-primary-fixed-variant transition-colors active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+<span class="font-body-md">Matching</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:bg-surface-variant dark:hover:bg-on-primary-fixed-variant transition-colors active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-body-md">Contracts</span>
+</a>
+<div class="mt-auto flex flex-col gap-2 pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:bg-surface-variant dark:hover:bg-on-primary-fixed-variant transition-colors active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:bg-surface-variant dark:hover:bg-on-primary-fixed-variant transition-colors active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span class="font-body-md">Help Support</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-y-auto w-full pb-24 md:pb-8">
+<div class="max-w-[1200px] w-full mx-auto p-margin-mobile md:p-margin-desktop flex flex-col gap-6">
+<!-- Search & Filter -->
+<div class="flex gap-2 w-full">
+<div class="relative flex-1 bg-surface-container-low rounded-xl flex items-center px-4 border border-outline-variant focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="search">search</span>
+<input class="w-full bg-transparent border-none focus:ring-0 text-body-md placeholder:text-on-surface-variant py-3 ml-2" placeholder="Search properties or applicants..." type="text"/>
+</div>
+<button class="bg-surface-container-low rounded-xl px-4 flex items-center justify-center border border-outline-variant hover:bg-surface-container-high transition-colors active:scale-95 shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="tune">tune</span>
+</button>
+</div>
+<!-- Tabs (Segmented Control) -->
+<div class="bg-surface-container-low p-1 rounded-lg flex w-full max-w-md mx-auto md:mx-0">
+<button class="flex-1 py-2 text-center rounded bg-surface-container-lowest text-primary font-label-md shadow-sm transition-all">
+                        Owners/Properties
+                    </button>
+<button class="flex-1 py-2 text-center rounded text-on-surface-variant font-label-md hover:bg-surface-container-highest transition-all">
+                        Applicants
+                    </button>
+</div>
+<!-- Bento Grid / Card List -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant hover:shadow-sm transition-shadow flex flex-col gap-4 relative group">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-md text-primary truncate">124 Maple Street</h3>
+<p class="font-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
+                                    Downtown, District 4
+                                </p>
+</div>
+<span class="bg-secondary-container text-on-secondary-container px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider shrink-0">Active</span>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<div>
+<p class="font-label-sm text-outline text-[10px] uppercase">Price</p>
+<p class="font-body-md text-primary font-medium">$1,250,000</p>
+</div>
+<div>
+<p class="font-label-sm text-outline text-[10px] uppercase">Type</p>
+<p class="font-body-md text-primary">Single Family</p>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-4 border-t border-surface-container">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover" data-alt="A small circular portrait of a client. Minimalist lighting, corporate clean style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9YM42e2B_slFgFDrf-CcIogkiccSLXDjSw5TJ3T7UgHt-M856508GNCGgu58lL77vA4siNYj-EQs2muNlYyV3M2cpI0-r3VanyjHvPr26WyJbIDbD1VL2se_WRP9dI6rsePgyjCGHJ3HPDdfl-CY-GK423KLRHfy35l1z3OO_BlY_XepTMdytv2W8BFXOKxmlAeqHZ7efEWF-RVc4e42zxkdjvRiakCij7cEYRIhh4l9FFg47ynX9Ag"/>
+</div>
+<p class="font-label-sm text-on-surface-variant">Owner: Sarah J.</p>
+<button class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-primary p-1 rounded hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant hover:shadow-sm transition-shadow flex flex-col gap-4 relative group">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-md text-primary truncate">Apt 4B, The Zenith</h3>
+<p class="font-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
+                                    Uptown, District 1
+                                </p>
+</div>
+<span class="bg-surface-container-high text-on-surface-variant px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider shrink-0">Pending</span>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<div>
+<p class="font-label-sm text-outline text-[10px] uppercase">Price</p>
+<p class="font-body-md text-primary font-medium">$850,000</p>
+</div>
+<div>
+<p class="font-label-sm text-outline text-[10px] uppercase">Type</p>
+<p class="font-body-md text-primary">Condo</p>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-4 border-t border-surface-container">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover" data-alt="A small circular portrait of a male client. Minimalist lighting, corporate clean style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqB2fI0jeYdhkejG_SpzUefewhoUK5Fey4C4iTai8F03SHj9ng1T7eWRSuW3lpQ2yESPR5PkvAFRiIWXhuf0nWwRCWEygfki8gwDSdhmJg92uK0ZAF67QE4qs4on2yTG31EYO-3fiGeYkhTlhVvVsn3cO3Hmqp73Vs4wEZXqc6agaJQOULcoAo2wEkDibIgtq86hwebOe_y3tf5JugiRZXN1J5WxPCVTujzuPxk_xPew63XRYqWBBI7w"/>
+</div>
+<p class="font-label-sm text-on-surface-variant">Owner: Michael T.</p>
+<button class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-primary p-1 rounded hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant hover:shadow-sm transition-shadow flex flex-col gap-4 relative group">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-md text-primary truncate">88 Pine Ridge Road</h3>
+<p class="font-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
+                                    Suburbs, Westside
+                                </p>
+</div>
+<span class="bg-error-container text-on-error-container px-2 py-1 rounded font-label-sm text-[10px] uppercase tracking-wider shrink-0">Closed</span>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<div>
+<p class="font-label-sm text-outline text-[10px] uppercase">Price</p>
+<p class="font-body-md text-primary font-medium">$2,100,000</p>
+</div>
+<div>
+<p class="font-label-sm text-outline text-[10px] uppercase">Type</p>
+<p class="font-body-md text-primary">Estate</p>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-4 border-t border-surface-container">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-surface-container-highest text-center leading-6 font-label-sm bg-tertiary text-on-tertiary">
+                                ER
+                            </div>
+<p class="font-label-sm text-on-surface-variant">Owner: Elena R.</p>
+<button class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-primary p-1 rounded hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB -->
+<button class="fixed bottom-24 md:bottom-8 right-4 md:right-8 w-14 h-14 bg-tertiary text-on-tertiary rounded-full shadow-md flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40">
+<span class="material-symbols-outlined text-[28px]" data-icon="add">add</span>
+</button>
+</div>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden bg-surface dark:bg-background fixed bottom-0 w-full z-50 rounded-t-full bg-surface dark:bg-background border-t border-outline-variant dark:border-on-surface-variant shadow-sm flex justify-around items-center w-full px-2 py-3 pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-on-background bg-secondary-container dark:bg-on-secondary-container rounded-full px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open" data-weight="fill" style="font-variation-settings: 'FILL' 1;">folder_open</span>
+<span class="font-label-sm text-label-sm mt-1">Files</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+<span class="font-label-sm text-label-sm mt-1">Matching</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-sm text-label-sm mt-1">Contracts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

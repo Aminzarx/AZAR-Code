@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Applicant Smart Requirements</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-container": "#b9eeab",
+                      "tertiary": "#000000",
+                      "outline": "#75777a",
+                      "error": "#ba1a1a",
+                      "on-surface-variant": "#44474a",
+                      "primary-fixed-dim": "#c6c6c9",
+                      "surface-container": "#edeeef",
+                      "outline-variant": "#c5c6ca",
+                      "inverse-surface": "#2e3132",
+                      "on-primary-container": "#838486",
+                      "on-secondary-container": "#3f6d38",
+                      "surface-container-high": "#e7e8e9",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#002201",
+                      "on-background": "#191c1d",
+                      "on-tertiary-fixed": "#001f26",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#1a1c1e",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#191c1d",
+                      "surface-container-highest": "#e1e3e4",
+                      "on-tertiary-container": "#618a96",
+                      "surface-tint": "#5d5e61",
+                      "primary-fixed": "#e2e2e5",
+                      "surface": "#f8f9fa",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed": "#bfe9f7",
+                      "on-tertiary-fixed-variant": "#224c57",
+                      "surface-dim": "#d9dadb",
+                      "primary": "#000101",
+                      "background": "#f8f9fa",
+                      "secondary": "#3b6934",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f8f9fa",
+                      "tertiary-fixed-dim": "#a3cdda",
+                      "surface-container-low": "#f3f4f5",
+                      "secondary-fixed": "#bcf0ae",
+                      "tertiary-container": "#001f26",
+                      "on-primary-fixed-variant": "#454749",
+                      "on-secondary-fixed-variant": "#23501e",
+                      "secondary-fixed-dim": "#a1d494",
+                      "surface-variant": "#e1e3e4",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#1a1c1e",
+                      "inverse-primary": "#c6c6c9"
+              },
+              "borderRadius": {
+                        "sm": "0.125rem",
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+              "spacing": {
+                      "gutter": "16px",
+                      "base": "8px",
+                      "margin-desktop": "32px",
+                      "container-max-width": "1200px",
+                      "margin-mobile": "16px"
+              },
+              "fontFamily": {
+                      "body-lg": ["Inter"],
+                      "headline-lg-mobile": ["Geist"],
+                      "display": ["Geist"],
+                      "label-sm": ["Geist"],
+                      "headline-lg": ["Geist"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Geist"],
+                      "label-md": ["Geist"]
+              },
+              "fontSize": {
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .priority-toggle input:checked + label {
+            background-color: var(--tw-colors-primary-container, #1a1c1e);
+            color: var(--tw-colors-on-primary, #ffffff);
+            border-color: var(--tw-colors-primary-container, #1a1c1e);
+        }
+        
+        .priority-toggle.ignore input:checked + label {
+            background-color: var(--tw-colors-surface-variant, #e1e3e4);
+            color: var(--tw-colors-on-surface-variant, #44474a);
+            border-color: var(--tw-colors-surface-variant, #e1e3e4);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<!-- TopAppBar (Hidden Navigation logic applies - Transactional/Input screen, but keeping a minimal header for context based on requirements) -->
+<header class="w-full sticky top-0 z-50 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile py-base md:px-margin-desktop shadow-sm h-16">
+<div class="flex items-center gap-4">
+<button aria-label="Go back" class="p-2 -ml-2 rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary font-semibold">Smart Requirements</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:opacity-90 transition-opacity">
+                Save Profile
+            </button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-container-max-width mx-auto px-margin-mobile md:px-margin-desktop py-8 md:py-12">
+<div class="max-w-3xl mx-auto">
+<div class="mb-10">
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">Define Applicant Priorities</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Configure the smart matching algorithm by assigning importance levels to key property attributes. This ensures high-precision recommendations.</p>
+</div>
+<!-- Requirements List -->
+<div class="flex flex-col gap-6">
+<!-- Attribute: Price -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-primary">Price Target</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Maximum budget constraint</p>
+</div>
+</div>
+</div>
+<div class="mt-4 border-t border-outline-variant pt-4">
+<div class="flex flex-wrap gap-2 priority-group w-full rounded-lg bg-surface-container-low p-1">
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input checked="" class="sr-only" id="price-must" name="priority-price" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="price-must">
+                                    Must Have
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="price-important" name="priority-price" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="price-important">
+                                    Important
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="price-preferred" name="priority-price" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="price-preferred">
+                                    Preferred
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle ignore">
+<input class="sr-only" id="price-ignore" name="priority-price" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="price-ignore">
+                                    Ignore
+                                </label>
+</div>
+</div>
+</div>
+</div>
+<!-- Attribute: Location -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="location_on">location_on</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-primary">Location / Neighborhood</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Proximity to specified zones</p>
+</div>
+</div>
+</div>
+<div class="mt-4 border-t border-outline-variant pt-4">
+<div class="flex flex-wrap gap-2 priority-group w-full rounded-lg bg-surface-container-low p-1">
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="loc-must" name="priority-loc" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="loc-must">
+                                    Must Have
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input checked="" class="sr-only" id="loc-important" name="priority-loc" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="loc-important">
+                                    Important
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="loc-preferred" name="priority-loc" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="loc-preferred">
+                                    Preferred
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle ignore">
+<input class="sr-only" id="loc-ignore" name="priority-loc" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="loc-ignore">
+                                    Ignore
+                                </label>
+</div>
+</div>
+</div>
+</div>
+<!-- Attribute: Pool -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="pool">pool</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-primary">Swimming Pool</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Private or shared pool access</p>
+</div>
+</div>
+</div>
+<div class="mt-4 border-t border-outline-variant pt-4">
+<div class="flex flex-wrap gap-2 priority-group w-full rounded-lg bg-surface-container-low p-1">
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="pool-must" name="priority-pool" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="pool-must">
+                                    Must Have
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="pool-important" name="priority-pool" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="pool-important">
+                                    Important
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input checked="" class="sr-only" id="pool-preferred" name="priority-pool" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="pool-preferred">
+                                    Preferred
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle ignore">
+<input class="sr-only" id="pool-ignore" name="priority-pool" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="pool-ignore">
+                                    Ignore
+                                </label>
+</div>
+</div>
+</div>
+</div>
+<!-- Attribute: Parking -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="local_parking">local_parking</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-primary">Dedicated Parking</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Garage or reserved spot</p>
+</div>
+</div>
+</div>
+<div class="mt-4 border-t border-outline-variant pt-4">
+<div class="flex flex-wrap gap-2 priority-group w-full rounded-lg bg-surface-container-low p-1">
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="park-must" name="priority-park" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="park-must">
+                                    Must Have
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="park-important" name="priority-park" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="park-important">
+                                    Important
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle">
+<input class="sr-only" id="park-preferred" name="priority-park" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="park-preferred">
+                                    Preferred
+                                </label>
+</div>
+<div class="flex-1 min-w-[80px] priority-toggle ignore">
+<input checked="" class="sr-only" id="park-ignore" name="priority-park" type="radio"/>
+<label class="block w-full text-center py-2 px-3 rounded-md font-label-md text-label-md text-on-surface-variant cursor-pointer hover:bg-surface transition-colors border border-transparent" for="park-ignore">
+                                    Ignore
+                                </label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-12 flex justify-end pb-24 md:pb-12">
+<button class="w-full md:w-auto px-8 py-3 bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center gap-2">
+                    Proceed to Next Step
+                    <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+</body></html>

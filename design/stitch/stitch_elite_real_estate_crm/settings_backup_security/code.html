@@ -1,0 +1,338 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Backup &amp; Security - EstatePro CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#b9eeab",
+                        "tertiary": "#000000",
+                        "outline": "#75777a",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#44474a",
+                        "primary-fixed-dim": "#c6c6c9",
+                        "surface-container": "#edeeef",
+                        "outline-variant": "#c5c6ca",
+                        "inverse-surface": "#2e3132",
+                        "on-primary-container": "#838486",
+                        "on-secondary-container": "#3f6d38",
+                        "surface-container-high": "#e7e8e9",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#002201",
+                        "on-background": "#191c1d",
+                        "on-tertiary-fixed": "#001f26",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#1a1c1e",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#191c1d",
+                        "surface-container-highest": "#e1e3e4",
+                        "on-tertiary-container": "#618a96",
+                        "surface-tint": "#5d5e61",
+                        "primary-fixed": "#e2e2e5",
+                        "surface": "#f8f9fa",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#bfe9f7",
+                        "on-tertiary-fixed-variant": "#224c57",
+                        "surface-dim": "#d9dadb",
+                        "primary": "#000101",
+                        "background": "#f8f9fa",
+                        "secondary": "#3b6934",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f8f9fa",
+                        "tertiary-fixed-dim": "#a3cdda",
+                        "surface-container-low": "#f3f4f5",
+                        "secondary-fixed": "#bcf0ae",
+                        "tertiary-container": "#001f26",
+                        "on-primary-fixed-variant": "#454749",
+                        "on-secondary-fixed-variant": "#23501e",
+                        "secondary-fixed-dim": "#a1d494",
+                        "surface-variant": "#e1e3e4",
+                        "inverse-on-surface": "#f0f1f2",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#1a1c1e",
+                        "inverse-primary": "#c6c6c9"
+                    },
+                    "borderRadius": {
+                        "sm": "0.125rem",
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "base": "8px",
+                        "margin-desktop": "32px",
+                        "container-max-width": "1200px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Geist"],
+                        "display": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .toggle-checkbox:checked { right: 0; border-color: #000101; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #000101; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md antialiased min-h-screen flex flex-col md:flex-row">
+<!-- Navigation Drawer (Desktop) -->
+<nav class="hidden md:flex flex-col h-full w-80 fixed left-0 top-0 z-[60] bg-surface dark:bg-background shadow-xl p-gutter border-r border-outline-variant">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-primary text-3xl">real_estate_agent</span>
+<span class="font-display text-headline-md font-bold text-primary">EstatePro CRM</span>
+</div>
+<div class="flex items-center gap-4 mb-8 p-4 bg-surface-container-low rounded-lg">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden">
+<img alt="Agent Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a real estate agent. High key lighting, clean background, modern corporate style. Deep charcoal suit, crisp white shirt. Confident and approachable expression. The lighting is soft and even, highlighting a polished appearance suitable for a premium brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCf2KfVpI9rskRG1JoD2BnxElPx62qhIiXbqqh6XfZfEOhvgZRXITEl_n0wMQXOsUpE-jdu1oVBHlhBoVJW3Jhsou_CxFzvMHYgaNhVWGVt8BMO5pKVZ6DtqhuleNWcjT1Q8AbYGcaPnLPf68k2uwhzPxBqAtXkKkJP_Aw5CRADiO2Dn1kBXRlwB0TqE8VRK33jRmYSTrOwg5_h446rB-3_6ceCMEESJEO73-1wWap58Ccu5CLZ1T4MFQ">
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Premium Agent</p>
+<p class="font-label-sm text-label-sm text-outline text-[10px] mt-1">ID: 98234</p>
+</div>
+</div>
+<div class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="font-label-md text-label-md">Files</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span class="font-label-md text-label-md">Matching</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-md text-label-md">Contracts</span>
+</a>
+</div>
+<div class="mt-auto space-y-2 border-t border-outline-variant pt-4">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary-container text-on-secondary-container font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span class="font-label-md text-label-md">Help Support</span>
+</a>
+</div>
+</nav>
+<!-- Top App Bar (Mobile) -->
+<header class="md:hidden w-full sticky top-0 z-50 bg-surface dark:bg-background flex items-center justify-between px-margin-mobile py-base border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden">
+<img alt="Agent Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a real estate agent. High key lighting, clean background, modern corporate style. Deep charcoal suit, crisp white shirt. Confident and approachable expression. The lighting is soft and even, highlighting a polished appearance suitable for a premium brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNdJ28wugXlk0Of-1uvi_tadU3ClyRHyywS-jSJPRZtIf2as4wErUBE9REJ9Sebp7lQYRp6kHWJU1ai2KeoRcgvNRK4u0aiurhIpINJvC0FhzDWlmE4dHD3JutK_BRD3zUmEh4s4LYrClvVL4gPtayHYLIvXA207D5vTjAp-m39wZlj6XoiVbVU6M2X_RKcV0fFF2tB0iJqfhNzo0fPjd7bmEJntM0cOvDgI1Fydtz1KQAwmEAP2R3og">
+</div>
+<span class="font-display text-headline-md font-semibold text-primary">EstatePro CRM</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors active:opacity-70">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 md:ml-80 pb-24 md:pb-8 p-margin-mobile md:p-margin-desktop max-w-container-max-width mx-auto w-full">
+<div class="mb-8">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background mb-2">Backup &amp; Security</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Manage your data backups and security preferences.</p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Backup Actions Column -->
+<div class="lg:col-span-1 space-y-6">
+<!-- Status Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-secondary"></div>
+<div class="flex items-start gap-4 mb-6">
+<div class="p-3 bg-secondary-container rounded-full text-on-secondary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Data Secure</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Last backup: Today, 08:30 AM</p>
+</div>
+</div>
+<div class="space-y-4">
+<button class="w-full py-3 px-4 bg-primary text-on-primary font-label-md text-label-md rounded-lg flex items-center justify-center gap-2 hover:bg-on-surface transition-colors active:scale-[0.98]"><span class="material-symbols-outlined text-[20px]">save_alt</span> Create Encrypted Backup</button>
+<button class="w-full py-3 px-4 bg-surface text-primary border border-outline-variant font-label-md text-label-md rounded-lg flex items-center justify-center gap-2 hover:bg-surface-container-low transition-colors active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">settings_backup_restore</span>
+                            Restore from File
+                        </button>
+</div>
+</div>
+<!-- Settings Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant shadow-sm">
+<h3 class="font-headline-md text-[18px] font-semibold text-on-surface mb-6">Preferences</h3>
+<div class="flex items-center justify-between mb-4">
+<div>
+<p class="font-label-md text-label-md text-on-surface">Automatic Backup</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Daily at 02:00 AM</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-surface-variant appearance-none cursor-pointer transition-transform duration-200 ease-in-out z-10 top-0" id="toggle1" name="toggle" type="checkbox">
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary cursor-pointer" for="toggle1"></label>
+</div>
+</div>
+
+</div>
+<!-- Security Note -->
+<div class="bg-surface-container-low p-4 rounded-lg flex items-start gap-3">
+<span class="material-symbols-outlined text-outline">lock</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant leading-relaxed">Your business data is protected on your device, and exported backups are encrypted for secure transfer.</p>
+</div>
+</div>
+<!-- Backup History Column -->
+<div class="lg:col-span-2">
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm h-full flex flex-col">
+<div class="p-6 border-b border-surface-variant flex justify-between items-center">
+<h3 class="font-headline-md text-[18px] font-semibold text-on-surface">Backup History</h3>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-2">
+<!-- History Item 1 -->
+<div class="p-4 hover:bg-surface-container-low rounded-lg transition-colors flex items-center justify-between group cursor-pointer border-b border-surface-variant last:border-0">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Automatic Local Backup</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Oct 24, 2023 • 02:00 AM</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">45.2 MB</span>
+</div>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-2 text-on-surface-variant hover:bg-surface-variant rounded-full transition-all">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+<!-- History Item 2 -->
+<div class="p-4 hover:bg-surface-container-low rounded-lg transition-colors flex items-center justify-between group cursor-pointer border-b border-surface-variant last:border-0">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Manual Local Backup</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Oct 23, 2023 • 14:15 PM</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">45.1 MB</span>
+</div>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-2 text-on-surface-variant hover:bg-surface-variant rounded-full transition-all">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+<!-- History Item 3 (Failed) -->
+<div class="p-4 hover:bg-surface-container-low rounded-lg transition-colors flex items-center justify-between group cursor-pointer border-b border-surface-variant last:border-0">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined text-[20px]">error</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Automatic Local Backup</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-error">Failed: Insufficient Storage Space</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Oct 23, 2023 • 02:00 AM</span>
+</div>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-2 text-on-surface-variant hover:bg-surface-variant rounded-full transition-all">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+</button>
+</div>
+<!-- History Item 4 -->
+<div class="p-4 hover:bg-surface-container-low rounded-lg transition-colors flex items-center justify-between group cursor-pointer border-b border-surface-variant last:border-0">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Automatic Local Backup</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Oct 22, 2023 • 02:00 AM</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">44.8 MB</span>
+</div>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-2 text-on-surface-variant hover:bg-surface-variant rounded-full transition-all">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+</div>
+<div class="p-4 border-t border-surface-variant text-center">
+<button class="text-primary font-label-md text-label-md hover:underline">View All History</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-full bg-surface dark:bg-background border-t border-outline-variant shadow-sm flex justify-around items-center px-2 py-3 pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="font-label-sm text-label-sm mt-1">Files</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span class="font-label-sm text-label-sm mt-1">Matching</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-sm text-label-sm mt-1">Contracts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-on-background bg-secondary-container dark:bg-on-secondary-container rounded-full px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+
+
+</body></html>

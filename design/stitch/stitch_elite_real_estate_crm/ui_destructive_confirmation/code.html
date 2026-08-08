@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Delete File Confirmation - EstatePro CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "inverse-primary": "#c6c6c9",
+                            "on-secondary": "#ffffff",
+                            "primary-fixed": "#e2e2e5",
+                            "surface-container": "#edeeef",
+                            "primary": "#000101",
+                            "surface-bright": "#f8f9fa",
+                            "primary-fixed-dim": "#c6c6c9",
+                            "on-secondary-container": "#3f6d38",
+                            "background": "#f8f9fa",
+                            "on-primary": "#ffffff",
+                            "error-container": "#ffdad6",
+                            "on-primary-container": "#838486",
+                            "on-secondary-fixed": "#002201",
+                            "surface-tint": "#5d5e61",
+                            "error": "#ba1a1a",
+                            "secondary-fixed": "#bcf0ae",
+                            "on-error-container": "#93000a",
+                            "surface-container-highest": "#e1e3e4",
+                            "secondary": "#3b6934",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary-fixed-variant": "#224c57",
+                            "surface-dim": "#d9dadb",
+                            "on-error": "#ffffff",
+                            "tertiary-fixed": "#bfe9f7",
+                            "surface-variant": "#e1e3e4",
+                            "on-primary-fixed": "#1a1c1e",
+                            "outline-variant": "#c5c6ca",
+                            "on-primary-fixed-variant": "#454749",
+                            "surface-container-high": "#e7e8e9",
+                            "secondary-container": "#b9eeab",
+                            "surface": "#f8f9fa",
+                            "primary-container": "#1a1c1e",
+                            "surface-container-low": "#f3f4f5",
+                            "inverse-on-surface": "#f0f1f2",
+                            "outline": "#75777a",
+                            "on-surface": "#191c1d",
+                            "on-tertiary": "#ffffff",
+                            "on-tertiary-container": "#618a96",
+                            "inverse-surface": "#2e3132",
+                            "tertiary": "#000000",
+                            "secondary-fixed-dim": "#a1d494",
+                            "tertiary-container": "#001f26",
+                            "on-surface-variant": "#44474a",
+                            "tertiary-fixed-dim": "#a3cdda",
+                            "on-secondary-fixed-variant": "#23501e",
+                            "on-background": "#191c1d",
+                            "on-tertiary-fixed": "#001f26"
+                    },
+                    "borderRadius": {
+                        "sm": "0.125rem",
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                            "base": "8px",
+                            "margin-desktop": "32px",
+                            "container-max-width": "1200px",
+                            "margin-mobile": "16px",
+                            "gutter": "16px",
+                            "compact-gutter": "12px",
+                            "relaxed-gutter": "24px"
+                    },
+                    "fontFamily": {
+                            "headline-lg-mobile": ["Geist"],
+                            "headline-md": ["Geist"],
+                            "display": ["Geist"],
+                            "headline-lg": ["Geist"],
+                            "body-lg": ["Inter"],
+                            "label-sm": ["Geist"],
+                            "label-md": ["Geist"],
+                            "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                            "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                            "display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                            "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                            "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+            },
+                },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .bottom-sheet-anim {
+            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+    </style>
+</head>
+<body class="bg-surface-variant font-body-md text-on-surface antialiased min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Background Mock Canvas (to show it's a bottom sheet overlay) -->
+<div class="absolute inset-0 pointer-events-none opacity-50 p-6 flex flex-col gap-4 filter blur-[2px]">
+<div class="h-12 w-48 bg-surface-container rounded-lg"></div>
+<div class="flex gap-4">
+<div class="h-64 w-1/3 bg-surface-container rounded-xl"></div>
+<div class="h-64 w-1/3 bg-surface-container rounded-xl"></div>
+<div class="h-64 w-1/3 bg-surface-container rounded-xl"></div>
+</div>
+</div>
+<!-- Scrim / Backdrop -->
+<div class="fixed inset-0 bg-primary/20 backdrop-blur-sm z-40 transition-opacity"></div>
+<!-- Bottom Sheet Container -->
+<div class="fixed bottom-0 w-full md:w-[480px] md:left-1/2 md:-translate-x-1/2 bg-surface rounded-t-[16px] md:rounded-[16px] md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-50 shadow-2xl flex flex-col max-h-[620px] bottom-sheet-anim overflow-hidden border border-outline-variant/30">
+<!-- Drag Handle -->
+<div class="w-full flex justify-center pt-3 pb-1 md:hidden">
+<div class="w-10 h-1 bg-outline-variant rounded-full opacity-50"></div>
+</div>
+<!-- Header -->
+<div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/50 shrink-0">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Confirm Deletion</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Destructive action &mdash; requires confirmation</p>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Body -->
+<div class="px-6 py-5 overflow-y-auto flex-1">
+<div class="flex flex-col items-center text-center gap-4 py-2">
+<div class="w-16 h-16 rounded-full bg-error-container flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-[32px]">delete_forever</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-primary mb-2">Delete this owner file?</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+You are about to permanently delete <span class="font-semibold text-on-surface">124 Maple Street</span> and all of its structured data, notes, and match history.
+</p>
+</div>
+<div class="w-full bg-error-container/30 border border-error-container rounded-lg p-4 text-left">
+<p class="font-label-md text-label-md text-error mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+This cannot be undone
+</p>
+<ul class="font-body-md text-body-md text-on-surface-variant space-y-1 list-disc list-inside">
+<li>The property file and all structured fields will be removed</li>
+<li>1 linked contract will lose its property reference</li>
+<li>Past match results referencing this file will no longer be viewable</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="px-6 py-4 border-t border-outline-variant/50 shrink-0">
+<div class="flex gap-3">
+<button class="flex-1 px-4 py-3 border border-outline text-primary rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-colors">Cancel</button>
+<button class="flex-1 px-4 py-3 bg-error text-on-error rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+Delete
+</button>
+</div>
+</div>
+</div>
+</body></html>

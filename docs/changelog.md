@@ -497,3 +497,90 @@ themselves were not modified and were not copied into the git repository.
 ISSUES**. Five blocking issues documented with exact file paths and
 recommended corrections in `/docs/ui/01-stitch-final-validation.md`; none
 resolved silently by this review.
+
+---
+
+## 2026-08-08 — Stitch UI/UX final correction pass
+
+**Change**: Corrected all five blocking issues from
+`/docs/ui/01-stitch-final-validation.md` directly in the Stitch design
+package and added the nine explicitly missing implementation-critical
+screens. This is a **design-artifact correction**, not application
+implementation: no code in `src/`, no application dependency, and no
+database schema were touched. The corrected package
+(`stitch_elite_real_estate_crm/`, 32 screens) is committed to this
+repository for the first time, at `/design/stitch/` — the location the
+design handoff referenced.
+
+**Corrections applied**:
+1. Removed "Smart Analysis"/sparkle-icon/AI-implying presentation from
+   `smart_matching_match_analysis_persian_rtl/`; replaced with a plain
+   "Match Explanation" panel whose Persian copy explicitly states the result
+   is deterministic and does not use AI; added the previously missing
+   **Ignored** criteria section.
+2. Removed "Email Alert / Edit Recipients" from
+   `settings_contract_reminders/`; added an explicit local-notification
+   banner.
+3. Added the missing 7-day and 3-day reminder offsets to
+   `settings_contract_reminders/`, completing the confirmed default schedule
+   (90/60/30/14/7/3/On Expiration). Flagged a discrepancy: the correction
+   task's own text said "1 day before" for the seventh offset, which
+   conflicts with the already-approved "expiration day itself" — implemented
+   the approved value and did not silently change the confirmed business
+   rule.
+4. Regenerated `settings_backup_security/screen.png` from its current,
+   already-corrected `code.html` via an actual render (previously
+   byte-identical to the pre-fix image); also fixed a residual "Failed:
+   Network Timeout" label on a now-"Local" backup entry (changed to "Failed:
+   Insufficient Storage Space") and swapped a leftover cloud-shaped status
+   icon for a neutral one.
+5. Removed "Global Realty Group" and "Team Directory" from the four
+   remaining screens that still had them
+   (`contract_management_timeline/`, `matching_ranked_results/`,
+   `file_management_all_files/`, `settings_backup_security/`).
+6. Added a complete restore workflow across 8 screens covering all 12
+   required states (select, validate, password entry, wrong password,
+   corrupted, incompatible version, existing-data warning, explicit
+   confirmation, progress, success, failure, safe cancellation) — the
+   overwrite-vs-block policy itself remains an open architectural decision,
+   not resolved by this design pass.
+7. Added an Applicant Detail screen showing structured requirements with
+   explicit MUST_HAVE/IMPORTANT/PREFERRED/IGNORE priority chips.
+8. Added Owner Edit and Applicant Edit screens reusing existing form
+   components, with validation-error and unsaved-changes states.
+9. Added a reusable destructive-action confirmation pattern (delete-file
+   example) with explicit Cancel/Delete (or Cancel/Restore & Replace)
+   actions, never a bare "OK."
+10. Reconciled the border-radius token mismatch: every screen's embedded
+    Tailwind config now matches `DESIGN.md`'s authoritative scale.
+
+Added RTL/Persian variants for the five most safety/product-critical new
+categories (applicant detail, owner edit, destructive confirmation, restore
+existing-data warning, reminder configuration), on top of the two
+pre-existing RTL screens (dashboard, match explanation). **All 32 screens'
+screenshots were regenerated** from their current source via a real headless-
+browser render (Tailwind compiled from each file's own embedded tokens, real
+Geist/Inter/Vazirmatn/Material Symbols fonts) — not placeholders, not stale
+copies — specifically so the radius-token fix (applied to all 15 pre-existing
+files) doesn't recreate the exact code/screenshot mismatch this pass was
+tasked with closing. A final recursive scan for every previously prohibited
+term (Cloud Sync, Smart Analysis, AI, AES-256, server storage/backup, email
+alerts, push notifications, team, brokerage, Global Realty Group, Team
+Directory, auto_awesome) returned zero matches anywhere in the UI content.
+
+**Reason**: Explicit project-owner instruction to correct the remaining
+blocking issues and missing implementation-critical screens identified in
+the prior final validation, and re-run an independent review afterward.
+
+**Affected modules**: `/design/stitch/stitch_elite_real_estate_crm/` (design
+package, newly committed to the repo) and
+`/docs/ui/02-stitch-final-correction.md` (this correction's documentation).
+No application code, dependencies, or database schema were touched.
+
+**Migration requirements**: None.
+
+**Tests**: None yet. Final gate classification: **READY WITH MINOR FIXES**
+— see `/docs/ui/02-stitch-final-correction.md` for the full breakdown of
+non-blocking remaining items (no LTR match-explanation screen, no
+notification-permission-denied screen, partial RTL coverage, two product
+decisions still needing explicit confirmation).

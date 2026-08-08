@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EstatePro CRM - Contract Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-container": "#b9eeab",
+                      "tertiary": "#000000",
+                      "outline": "#75777a",
+                      "error": "#ba1a1a",
+                      "on-surface-variant": "#44474a",
+                      "primary-fixed-dim": "#c6c6c9",
+                      "surface-container": "#edeeef",
+                      "outline-variant": "#c5c6ca",
+                      "inverse-surface": "#2e3132",
+                      "on-primary-container": "#838486",
+                      "on-secondary-container": "#3f6d38",
+                      "surface-container-high": "#e7e8e9",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#002201",
+                      "on-background": "#191c1d",
+                      "on-tertiary-fixed": "#001f26",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#1a1c1e",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#191c1d",
+                      "surface-container-highest": "#e1e3e4",
+                      "on-tertiary-container": "#618a96",
+                      "surface-tint": "#5d5e61",
+                      "primary-fixed": "#e2e2e5",
+                      "surface": "#f8f9fa",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed": "#bfe9f7",
+                      "on-tertiary-fixed-variant": "#224c57",
+                      "surface-dim": "#d9dadb",
+                      "primary": "#000101",
+                      "background": "#f8f9fa",
+                      "secondary": "#3b6934",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f8f9fa",
+                      "tertiary-fixed-dim": "#a3cdda",
+                      "surface-container-low": "#f3f4f5",
+                      "secondary-fixed": "#bcf0ae",
+                      "tertiary-container": "#001f26",
+                      "on-primary-fixed-variant": "#454749",
+                      "on-secondary-fixed-variant": "#23501e",
+                      "secondary-fixed-dim": "#a1d494",
+                      "surface-variant": "#e1e3e4",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#1a1c1e",
+                      "inverse-primary": "#c6c6c9"
+              },
+              "borderRadius": {
+                        "sm": "0.125rem",
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+              "spacing": {
+                      "gutter": "16px",
+                      "base": "8px",
+                      "margin-desktop": "32px",
+                      "container-max-width": "1200px",
+                      "margin-mobile": "16px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Geist"
+                      ],
+                      "display": [
+                              "Geist"
+                      ],
+                      "label-sm": [
+                              "Geist"
+                      ],
+                      "headline-lg": [
+                              "Geist"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Geist"
+                      ],
+                      "label-md": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        /* Timeline styling */
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #edeeef; /* surface-container */
+        }
+        @media (min-width: 768px) {
+            .timeline-container::before {
+                left: 40px;
+            }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col md:flex-row antialiased selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar (Mobile Only) -->
+<header class="md:hidden w-full sticky top-0 z-50 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-mobile py-base">
+<div class="flex items-center gap-3">
+<img alt="Agent Profile" class="w-8 h-8 rounded-full object-cover" data-alt="A close-up, professional headshot of a real estate agent in a modern, well-lit office setting. The aesthetic is clean, light, and minimal, conveying trust and efficiency. High key lighting, sharp focus on the face." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4tdgycIH9KGHDO5uxc3UGsV8T_owCcvJJkX4fhSAxTTOQFjFCULd878IiJN9XCT8mTNbdWQNCGp2aC4FbTRqXxL7jUzdEnpBu3JllHIA8a05jiF9bIgsCvknkw2EqOY9dLkLGGENQkSH6aZkc6XI6OZDDyaVHOWjelNuWrBNafyj-bZ3ioEjaW3CumA9Rq_itP3QNA2qn1Xir3Lon6Fcer0pOYfv9CB2b5PjWUqCL3gbMbxFCASdeOw"/>
+<h1 class="font-display text-headline-md font-semibold text-primary">EstatePro CRM</h1>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container-low active:opacity-70 transition-opacity">
+<span class="material-symbols-outlined text-primary">search</span>
+</button>
+</header>
+<!-- Navigation Drawer (Desktop Only) -->
+<nav class="hidden md:flex flex-col h-screen sticky top-0 w-80 bg-surface shadow-xl p-gutter z-[60] border-r border-outline-variant shrink-0">
+<div class="flex items-center justify-between mb-8">
+<h1 class="font-display text-headline-lg font-bold text-primary">EstatePro</h1>
+</div>
+<div class="flex items-center gap-4 mb-8 p-4 bg-surface-container-low rounded-xl">
+<img alt="Agent Avatar" class="w-12 h-12 rounded-full object-cover" data-alt="A professional headshot of a real estate agent in a bright, modern office, conveying reliability and expertise. The lighting is soft and natural, fitting a high-end corporate profile. Clear white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC65ssR5PD837RKGWymJTFDxRSOnOtYXCxoa9gfUOcKr2blKHZOqiXjAxyEh1MM6-9Z9-i32RtwkXehhgmYljx5rgNFJLLgb12EFWkNsApvZBLUJ-56OaoFIDuJPCV0VcDfeloPDJIOwvf6Sr3EGAt0iDfcFZDsYtqyIt5qhGiuEplR9bqdIXcCQEtp6ZskAv5_EMbE7yYE8SQGFcMR6FF9MLOE7Xkmrx1hAddfFDwL5EICzB3JuwXeig"/>
+<div>
+<div class="font-headline-md text-headline-md text-primary">Premium Agent</div>
+<div class="font-label-sm text-label-sm text-outline mt-1">ID: 98234</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<div class="space-y-1">
+<a class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">home</span>
+<span>Home</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span>Files</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span>Matching</span>
+</a>
+<a class="flex items-center gap-3 p-3 bg-secondary-container text-on-secondary-container font-medium rounded-lg transition-colors font-label-md text-label-md active:scale-[0.98] shadow-sm" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+<span>Contracts</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">person</span>
+<span>Profile</span>
+</a>
+</div>
+<div class="mt-8 pt-8 border-t border-outline-variant space-y-1">
+<div class="px-3 pb-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">System</div>
+<a class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">history</span>
+<span>Activity Logs</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span>Help Support</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col min-w-0 bg-background pb-24 md:pb-8">
+<!-- Header Section -->
+<div class="px-margin-mobile md:px-margin-desktop py-6 md:py-8 bg-surface border-b border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 md:top-0 z-40 backdrop-blur-md bg-opacity-90">
+<div>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">Contract Expirations</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage upcoming renewals and critical dates.</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-primary font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                    Filter
+                </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-inverse-surface transition-colors flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    New Contract
+                </button>
+</div>
+</div>
+<!-- Timeline Canvas -->
+<div class="flex-1 overflow-y-auto px-margin-mobile md:px-margin-desktop py-8 max-w-[container-max-width] mx-auto w-full relative">
+<div class="timeline-container relative w-full pb-12">
+<!-- URGENT SECTION (< 7 days) -->
+<div class="relative mb-12">
+<!-- Section Header -->
+<div class="flex items-center gap-4 mb-6 relative z-10">
+<div class="w-10 md:w-20 flex justify-end shrink-0">
+<div class="w-8 h-8 rounded-full bg-error-container border-2 border-surface flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-error text-[16px]" style="font-variation-settings: 'FILL' 1;">error</span>
+</div>
+</div>
+<h3 class="font-headline-md text-headline-md text-primary bg-surface px-2">Urgent <span class="text-error font-body-md text-body-md ml-2">&lt; 7 Days</span></h3>
+</div>
+<!-- Entries list -->
+<div class="space-y-4 pl-12 md:pl-24">
+<!-- Entry 1 -->
+<div class="bg-surface rounded-xl p-4 md:p-5 border border-error-container shadow-sm hover:shadow-md transition-shadow relative group">
+<div class="absolute left-[-26px] md:left-[-54px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-error border-2 border-surface z-10"></div>
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-sm bg-error-container text-error uppercase tracking-wider">3 Days Left</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-sm bg-surface-container-high text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">warning</span> Follow-up Required
+                                        </span>
+</div>
+<h4 class="font-headline-md text-[18px] text-primary mt-1">4500 Penthouse Suite, The Avery</h4>
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 font-label-md text-label-md text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">person</span>
+<span>Tenant: Eleanor Vance</span>
+</div>
+<div class="hidden sm:block w-1 h-1 rounded-full bg-outline-variant"></div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">calendar_today</span>
+<span>Exp: Oct 24, 2023</span>
+</div>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2 md:flex-col md:items-end">
+<button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-inverse-surface transition-colors w-full md:w-auto">Renew</button>
+<button class="p-2 border border-outline-variant rounded-lg text-primary hover:bg-surface-container-low transition-colors hidden md:block">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Entry 2 -->
+<div class="bg-surface rounded-xl p-4 md:p-5 border border-error-container shadow-sm hover:shadow-md transition-shadow relative group">
+<div class="absolute left-[-26px] md:left-[-54px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-error border-2 border-surface z-10"></div>
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-sm bg-error-container text-error uppercase tracking-wider">5 Days Left</span>
+</div>
+<h4 class="font-headline-md text-[18px] text-primary mt-1">Unit 12B, The Continental</h4>
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 font-label-md text-label-md text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">person</span>
+<span>Owner: Marcus Thorne</span>
+</div>
+<div class="hidden sm:block w-1 h-1 rounded-full bg-outline-variant"></div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">calendar_today</span>
+<span>Exp: Oct 26, 2023</span>
+</div>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2 md:flex-col md:items-end">
+<button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-inverse-surface transition-colors w-full md:w-auto">Review</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- UPCOMING SECTION (< 30 days) -->
+<div class="relative mb-12">
+<!-- Section Header -->
+<div class="flex items-center gap-4 mb-6 relative z-10">
+<div class="w-10 md:w-20 flex justify-end shrink-0">
+<div class="w-8 h-8 rounded-full bg-[#fff8e1] border-2 border-surface flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[#f57f17] text-[16px]" style="font-variation-settings: 'FILL' 1;">schedule</span>
+</div>
+</div>
+<h3 class="font-headline-md text-headline-md text-primary bg-surface px-2">Upcoming <span class="text-[#f57f17] font-body-md text-body-md ml-2">&lt; 30 Days</span></h3>
+</div>
+<!-- Entries list -->
+<div class="space-y-4 pl-12 md:pl-24">
+<!-- Entry 3 -->
+<div class="bg-surface rounded-xl p-4 md:p-5 border border-outline-variant shadow-sm hover:shadow-md transition-shadow relative group">
+<div class="absolute left-[-26px] md:left-[-54px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#f57f17] border-2 border-surface z-10"></div>
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-sm bg-[#fff8e1] text-[#f57f17] uppercase tracking-wider">14 Days Left</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-sm bg-surface-container-high text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">mail</span> Sent Reminder
+                                        </span>
+</div>
+<h4 class="font-headline-md text-[18px] text-primary mt-1">7800 Retail Space, Downtown</h4>
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 font-label-md text-label-md text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">business</span>
+<span>Tenant: Artisan Coffee Co.</span>
+</div>
+<div class="hidden sm:block w-1 h-1 rounded-full bg-outline-variant"></div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">calendar_today</span>
+<span>Exp: Nov 04, 2023</span>
+</div>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2 md:flex-col md:items-end">
+<button class="px-4 py-2 border border-outline-variant text-primary rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-colors w-full md:w-auto">Details</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- FUTURE SECTION -->
+<div class="relative">
+<!-- Section Header -->
+<div class="flex items-center gap-4 mb-6 relative z-10">
+<div class="w-10 md:w-20 flex justify-end shrink-0">
+<div class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-surface flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-outline text-[16px]" style="font-variation-settings: 'FILL' 1;">event_upcoming</span>
+</div>
+</div>
+<h3 class="font-headline-md text-headline-md text-primary bg-surface px-2">Future <span class="text-on-surface-variant font-body-md text-body-md ml-2">30+ Days</span></h3>
+</div>
+<!-- Entries list -->
+<div class="space-y-4 pl-12 md:pl-24 opacity-80 hover:opacity-100 transition-opacity">
+<!-- Entry 4 -->
+<div class="bg-surface rounded-xl p-4 md:p-5 border border-surface-container shadow-sm hover:shadow-md transition-shadow relative group">
+<div class="absolute left-[-26px] md:left-[-54px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-surface-container-high border-2 border-surface z-10"></div>
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-sm bg-surface-container text-on-surface-variant uppercase tracking-wider">45 Days Left</span>
+</div>
+<h4 class="font-headline-md text-[18px] text-primary mt-1">Villa Rosa, Lake District</h4>
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 font-label-md text-label-md text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">person</span>
+<span>Tenant: Sophia Lin</span>
+</div>
+<div class="hidden sm:block w-1 h-1 rounded-full bg-outline-variant"></div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">calendar_today</span>
+<span>Exp: Dec 05, 2023</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- End of Timeline marker -->
+<div class="absolute bottom-0 left-[20px] md:left-[40px] -translate-x-1/2 w-3 h-3 rounded-full bg-surface-container border-2 border-background z-10"></div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-full bg-surface border-t border-outline-variant shadow-sm flex justify-around items-center px-2 py-3 pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-highest transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-highest transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="font-label-sm text-label-sm">Files</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-highest transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span class="font-label-sm text-label-sm">Matching</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-secondary-container rounded-full px-4 py-1 hover:bg-surface-container-highest transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+<span class="font-label-sm text-label-sm">Contracts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-highest transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+</body></html>

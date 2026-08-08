@@ -1,0 +1,272 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Exclusive Access - EstatePro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-container": "#b9eeab",
+                      "tertiary": "#000000",
+                      "outline": "#75777a",
+                      "error": "#ba1a1a",
+                      "on-surface-variant": "#44474a",
+                      "primary-fixed-dim": "#c6c6c9",
+                      "surface-container": "#edeeef",
+                      "outline-variant": "#c5c6ca",
+                      "inverse-surface": "#2e3132",
+                      "on-primary-container": "#838486",
+                      "on-secondary-container": "#3f6d38",
+                      "surface-container-high": "#e7e8e9",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#002201",
+                      "on-background": "#191c1d",
+                      "on-tertiary-fixed": "#001f26",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#1a1c1e",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#191c1d",
+                      "surface-container-highest": "#e1e3e4",
+                      "on-tertiary-container": "#618a96",
+                      "surface-tint": "#5d5e61",
+                      "primary-fixed": "#e2e2e5",
+                      "surface": "#f8f9fa",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed": "#bfe9f7",
+                      "on-tertiary-fixed-variant": "#224c57",
+                      "surface-dim": "#d9dadb",
+                      "primary": "#000101",
+                      "background": "#f8f9fa",
+                      "secondary": "#3b6934",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f8f9fa",
+                      "tertiary-fixed-dim": "#a3cdda",
+                      "surface-container-low": "#f3f4f5",
+                      "secondary-fixed": "#bcf0ae",
+                      "tertiary-container": "#001f26",
+                      "on-primary-fixed-variant": "#454749",
+                      "on-secondary-fixed-variant": "#23501e",
+                      "secondary-fixed-dim": "#a1d494",
+                      "surface-variant": "#e1e3e4",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#1a1c1e",
+                      "inverse-primary": "#c6c6c9"
+              },
+              "borderRadius": {
+                        "sm": "0.125rem",
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+              "spacing": {
+                      "gutter": "16px",
+                      "base": "8px",
+                      "margin-desktop": "32px",
+                      "container-max-width": "1200px",
+                      "margin-mobile": "16px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Geist"
+                      ],
+                      "display": [
+                              "Geist"
+                      ],
+                      "label-sm": [
+                              "Geist"
+                      ],
+                      "headline-lg": [
+                              "Geist"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Geist"
+                      ],
+                      "label-md": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .shake-animation {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex items-center justify-center p-margin-mobile md:p-margin-desktop antialiased">
+<!-- Main Container -->
+<main class="w-full max-w-md mx-auto">
+<!-- Glassmorphism Card -->
+<div class="bg-surface-container-lowest/80 backdrop-blur-md rounded-xl p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-outline-variant/30 flex flex-col items-center text-center">
+<!-- Brand Mark Placeholder -->
+<div class="w-16 h-16 bg-surface-container flex items-center justify-center rounded-full mb-8">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">
+                    vpn_key
+                </span>
+</div>
+<!-- Header Content -->
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-4">
+                Exclusive Access
+            </h1>
+<p class="font-body-md text-body-md text-on-surface-variant mb-10 max-w-[280px]">
+                EstatePro is currently invite-only. Please enter your professional referral code to continue.
+            </p>
+<!-- Referral Code Form -->
+<form class="w-full flex flex-col gap-6" id="referralForm" onsubmit="event.preventDefault(); showError();">
+<!-- Input Group -->
+<div class="relative w-full text-left" id="inputContainer">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 ml-1" for="referralCode">Referral Code</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant z-10 select-none">
+                            tag
+                        </span>
+<input autocomplete="off" class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary px-12 py-4 rounded-t-lg outline-none transition-colors font-body-lg text-body-lg text-primary placeholder:text-outline/50 uppercase tracking-wider" id="referralCode" placeholder="e.g. EP-2024-PRO" spellcheck="false" type="text">
+<!-- Error Icon (Hidden initially) -->
+<span class="material-symbols-outlined absolute right-4 text-error hidden z-10 select-none" id="errorIcon">
+                            error
+                        </span>
+</div>
+<!-- Inline Error Message -->
+<div class="hidden items-center gap-2 mt-2 ml-1 text-error" id="errorMessage">
+<span class="font-label-md text-label-md">Invalid Referral Code. Please try again.</span>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full bg-primary text-on-primary py-4 rounded-lg font-label-md text-label-md hover:opacity-90 active:scale-[0.98] transition-all flex justify-center items-center gap-2 mt-2" type="submit">
+<span class="">Join EstatePro</span>
+<span class="material-symbols-outlined" style="font-size: 20px;">
+                        arrow_forward
+                    </span>
+</button>
+</form>
+<!-- Footer Links -->
+
+</div>
+</main>
+<script>
+        function showError() {
+            const input = document.getElementById('referralCode');
+            const container = document.getElementById('inputContainer');
+            const errorIcon = document.getElementById('errorIcon');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Add error styles
+            input.classList.remove('border-outline-variant', 'focus:border-primary', 'bg-surface-container-low');
+            input.classList.add('border-error', 'focus:border-error', 'bg-error-container/20', 'text-error');
+            
+            // Show error elements
+            errorIcon.classList.remove('hidden');
+            errorMessage.classList.remove('hidden');
+            errorMessage.classList.add('flex');
+
+            // Trigger shake animation
+            container.classList.remove('shake-animation');
+            void container.offsetWidth; // trigger reflow
+            container.classList.add('shake-animation');
+
+            // Reset on input focus
+            input.addEventListener('focus', function resetError() {
+                input.classList.add('border-outline-variant', 'focus:border-primary', 'bg-surface-container-low');
+                input.classList.remove('border-error', 'focus:border-error', 'bg-error-container/20', 'text-error');
+                
+                errorIcon.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+                errorMessage.classList.remove('flex');
+                
+                input.removeEventListener('focus', resetError);
+            });
+        }
+    </script>
+
+
+</body></html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+
+<html class="light" dir="rtl" lang="fa"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Match Details (Persian/RTL)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-container": "#b9eeab",
+                      "tertiary": "#000000",
+                      "outline": "#75777a",
+                      "error": "#ba1a1a",
+                      "on-surface-variant": "#44474a",
+                      "primary-fixed-dim": "#c6c6c9",
+                      "surface-container": "#edeeef",
+                      "outline-variant": "#c5c6ca",
+                      "inverse-surface": "#2e3132",
+                      "on-primary-container": "#838486",
+                      "on-secondary-container": "#3f6d38",
+                      "surface-container-high": "#e7e8e9",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#002201",
+                      "on-background": "#191c1d",
+                      "on-tertiary-fixed": "#001f26",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#1a1c1e",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#191c1d",
+                      "surface-container-highest": "#e1e3e4",
+                      "on-tertiary-container": "#618a96",
+                      "surface-tint": "#5d5e61",
+                      "primary-fixed": "#e2e2e5",
+                      "surface": "#f8f9fa",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed": "#bfe9f7",
+                      "on-tertiary-fixed-variant": "#224c57",
+                      "surface-dim": "#d9dadb",
+                      "primary": "#000101",
+                      "background": "#f8f9fa",
+                      "secondary": "#3b6934",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f8f9fa",
+                      "tertiary-fixed-dim": "#a3cdda",
+                      "surface-container-low": "#f3f4f5",
+                      "secondary-fixed": "#bcf0ae",
+                      "tertiary-container": "#001f26",
+                      "on-primary-fixed-variant": "#454749",
+                      "on-secondary-fixed-variant": "#23501e",
+                      "secondary-fixed-dim": "#a1d494",
+                      "surface-variant": "#e1e3e4",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#1a1c1e",
+                      "inverse-primary": "#c6c6c9"
+              },
+              "borderRadius": {
+                        "sm": "0.125rem",
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+              "spacing": {
+                      "gutter": "16px",
+                      "base": "8px",
+                      "margin-desktop": "32px",
+                      "container-max-width": "1200px",
+                      "margin-mobile": "16px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Vazirmatn"
+                      ],
+                      "headline-lg-mobile": [
+                              "Vazirmatn"
+                      ],
+                      "display": [
+                              "Vazirmatn"
+                      ],
+                      "label-sm": [
+                              "Vazirmatn"
+                      ],
+                      "headline-lg": [
+                              "Vazirmatn"
+                      ],
+                      "body-md": [
+                              "Vazirmatn"
+                      ],
+                      "headline-md": [
+                              "Vazirmatn"
+                      ],
+                      "label-md": [
+                              "Vazirmatn"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+      </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col antialiased selection:bg-secondary-container selection:text-on-secondary-container pb-24 md:pb-0">
+<!-- TopAppBar (From JSON) -->
+<header class="bg-surface dark:bg-background border-b border-outline-variant dark:border-on-surface-variant w-full sticky top-0 z-50 flat no shadows hidden md:flex items-center justify-between px-margin-mobile py-base md:px-margin-desktop">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-2xl cursor-pointer hover:bg-surface-container-low transition-colors p-2 rounded-full hidden md:block">menu</span>
+<div class="flex items-center gap-3">
+<img alt="Agent Profile" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a real estate agent, wearing a tailored charcoal suit against a clean, softly lit white background. The lighting is bright and modern, creating a professional and trustworthy aesthetic suitable for a high-end CRM application. The image conveys calm confidence." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVj1Guo6gaqX1arQ2i0SwuEQybyTJzjSPovWv3VZjX18otb_PXry2cL4cR7Pb-PN1kIA6IgzXuCvcTRHWAadVgdkpRS_e2fs_evt7CW5biL7yVh7G3EbQvXIkDIa-Z-wEpKMqJ6onC6O26WPwwJaoYtHmfKFaIXFSYs6mcodegMrjGfiwwAb0g266673MPf_VZz7Y4mZbW8tVMfU7z9tBSzjeu4JiX9NeDt6RZcb5phFvEbJ-1a_xeNw"/>
+<span class="font-display text-headline-md font-semibold text-primary dark:text-on-background">EstatePro CRM</span>
+</div>
+</div>
+<nav class="hidden md:flex gap-1 items-center bg-surface-container-low rounded-lg p-1">
+<a class="px-4 py-2 rounded-md font-label-md text-label-md text-on-surface-variant hover:bg-surface-variant transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-lg">home</span> خانه
+             </a>
+<a class="px-4 py-2 rounded-md font-label-md text-label-md text-on-surface-variant hover:bg-surface-variant transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-lg">folder_open</span> فایل‌ها
+             </a>
+<a class="px-4 py-2 rounded-md font-label-md text-label-md bg-secondary-container text-on-secondary-container shadow-sm flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-lg filled">insights</span> تطابق
+             </a>
+<a class="px-4 py-2 rounded-md font-label-md text-label-md text-on-surface-variant hover:bg-surface-variant transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-lg">description</span> قراردادها
+             </a>
+</nav>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors active:opacity-70 transition-opacity">
+<span class="material-symbols-outlined text-2xl">search</span>
+</button>
+</div>
+</header>
+<!-- Mobile Top Header (Supplemental for when nav is below) -->
+<header class="md:hidden flex items-center justify-between px-margin-mobile py-4 bg-surface border-b border-outline-variant sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<button class="material-symbols-outlined text-on-surface -scale-x-100">arrow_back</button>
+<h1 class="font-headline-md text-headline-md text-primary font-semibold">جزئیات تطابق</h1>
+</div>
+<button class="material-symbols-outlined text-on-surface">more_vert</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-[container-max-width] mx-auto px-margin-mobile md:px-margin-desktop py-gutter md:py-8 flex flex-col gap-gutter md:gap-6">
+<!-- Header Section -->
+<section class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-outline-variant pb-6">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">تحلیل تطابق #M-8492</p>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">متقاضی <span class="text-outline">در مقابل</span> ملک</h2>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 border border-outline-variant rounded text-primary font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">share</span> اشتراک‌گذاری با مشتری
+                </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded font-label-md text-label-md hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">chat_bubble</span> تماس با متخصص
+                </button>
+</div>
+</section>
+<!-- Bento Grid Layout -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-gutter md:gap-6">
+<!-- Entities Card (Left Column, Span 4) -->
+<div class="md:col-span-4 flex flex-col gap-4">
+<!-- Match Score Highlight Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-l from-secondary-container to-secondary"></div>
+<div class="w-32 h-32 rounded-full border-8 border-secondary-container flex items-center justify-center mb-4 relative">
+<div class="absolute inset-0 rounded-full border-4 border-secondary border-t-transparent animate-[spin_3s_linear_infinite] opacity-30"></div>
+<span class="font-display text-[48px] font-bold text-secondary flex items-center flex-row-reverse"><span class="text-2xl mr-1">%</span>94</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-primary mb-1">تطابق عالی</h3>
+<p class="font-body-md text-body-md text-on-surface-variant text-center">جفت شدن بسیار توصیه شده بر اساس معیارهای اصلی.</p>
+</div>
+<!-- Entities Summary -->
+<div class="bg-surface-container-lowest rounded-xl p-0 border border-outline-variant shadow-sm overflow-hidden flex flex-col">
+<div class="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">متقاضی</span>
+<a class="font-label-sm text-label-sm text-secondary hover:underline" href="#">مشاهده پروفایل</a>
+</div>
+<div class="p-4 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-headline-md font-semibold">
+                            EW
+                        </div>
+<div>
+<h4 class="font-headline-md text-body-lg font-medium text-primary">Eleanor Wright</h4>
+<p class="font-body-md text-label-sm text-on-surface-variant">Pre-approved: $1.2M • Cash Buyer</p>
+</div>
+</div>
+<div class="h-px w-full bg-outline-variant/50 relative my-2">
+<div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface px-2">
+<span class="material-symbols-outlined text-outline text-sm">swap_vert</span>
+</div>
+</div>
+<div class="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center mt-2">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">ملک</span>
+<a class="font-label-sm text-label-sm text-secondary hover:underline" href="#">مشاهده جزئیات</a>
+</div>
+<div class="p-4 flex gap-4">
+<img alt="Property Image" class="w-16 h-16 rounded object-cover border border-outline-variant" data-alt="A modern architectural home exterior viewed at twilight. The house features clean, minimalist lines, large floor-to-ceiling glass windows glowing warmly from the inside, and a flat roof. It is set against a softly blurred landscape, emphasizing a luxurious, contemporary aesthetic. The color palette is cool blues and warm amber lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgdtU7yU_fNJIDyzGNucNEkFAJzFFPg_QkELu7DpoaAcEbrQlBadzlys3yvijGSC6owFxcYDf8CWKTP8sMioZNqh3bql5GmXxKeKbp6qBNCIhM1zRCfNC3GHLY5mD2EgQRm9ySNGV05B0d47_5MMiGfx2pDoj-emAN4mT-bc1DNjcCT69Hh2-rj0w7Aik8WvJSClOT2__7fVaPhyRdTywJjg_QOv3J0NDjNQxRlWW8YuNmK7pLrWVseA"/>
+<div class="flex-1">
+<h4 class="font-headline-md text-body-lg font-medium text-primary line-clamp-1">1042 Alta Vista Drive</h4>
+<p class="font-body-md text-label-sm text-on-surface-variant mb-1">Beverly Hills, CA 90210</p>
+<span class="font-label-sm text-label-sm bg-surface-container-high px-2 py-1 rounded text-primary" dir="ltr">$1.25M</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Analysis Canvas (Right Column, Span 8) -->
+<div class="md:col-span-8 flex flex-col gap-gutter md:gap-6">
+<!-- Match Explanation Summary (deterministic, rule-based) -->
+<div class="bg-surface-container-low rounded-xl p-5 border border-outline-variant relative overflow-hidden">
+<div class="flex items-start gap-3 relative z-10">
+<span class="material-symbols-outlined text-secondary mt-0.5 -scale-x-100">rule</span>
+<div>
+<h4 class="font-label-md text-label-md text-primary mb-1 uppercase tracking-wider">توضیح تطابق</h4>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                                این نتیجه به‌صورت قطعی و بر اساس معیارهای ساختاریافته‌ای که شما تعریف کرده‌اید محاسبه شده است؛ بدون استفاده از هوش مصنوعی. موقعیت مکانی و استخر با معیارهای الزامی (Must-Have) مطابقت کامل دارند. قیمت کمی بالاتر از بودجه است، اما چون متقاضی آن را «اولویت پایین» علامت‌گذاری کرده، در امتیاز نهایی تأثیر کمی داشته است. طبقه ساختمان توسط متقاضی «نادیده گرفته شده» و اصلاً در محاسبه امتیاز لحاظ نشده است.
+                            </p>
+</div>
+</div>
+</div>
+<!-- Breakdown Lists -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter md:gap-6">
+<!-- Strongest Links (Must Haves) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden">
+<div class="p-4 bg-surface-container-low border-b border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary-fixed-variant text-sm">check_circle</span>
+<h4 class="font-label-md text-label-md text-primary font-semibold">قوی‌ترین پیوندها</h4>
+<span class="mr-auto font-label-sm text-label-sm text-on-surface-variant bg-surface px-2 py-0.5 rounded border border-outline-variant">الزامات</span>
+</div>
+<ul class="divide-y divide-outline-variant/50">
+<li class="p-4 flex items-start gap-3 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-secondary-fixed-variant">location_on</span>
+<div>
+<p class="font-label-md text-label-md text-primary">Location</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Within 5 miles of Tech Hub</p>
+</div>
+</li>
+<li class="p-4 flex items-start gap-3 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-secondary-fixed-variant">bed</span>
+<div>
+<p class="font-label-md text-label-md text-primary">Bedrooms</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant" dir="ltr">3+ Required (Property has 4)</p>
+</div>
+</li>
+<li class="p-4 flex items-start gap-3 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-secondary-fixed-variant -scale-x-100">pool</span>
+<div>
+<p class="font-label-md text-label-md text-primary">Amenities</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Private Pool included</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="flex flex-col gap-gutter md:gap-6">
+<!-- Minor Differences (Preferred) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden">
+<div class="p-4 bg-surface-container-low border-b border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-sm">info</span>
+<h4 class="font-label-md text-label-md text-primary font-semibold">تفاوت‌های جزئی</h4>
+<span class="mr-auto font-label-sm text-label-sm text-on-surface-variant bg-surface px-2 py-0.5 rounded border border-outline-variant">ترجیحات</span>
+</div>
+<ul class="divide-y divide-outline-variant/50">
+<li class="p-4 flex items-start gap-3 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">garage</span>
+<div>
+<p class="font-label-md text-label-md text-primary">Garage Space</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Prefers 3-car, Property has 2-car</p>
+</div>
+</li>
+<li class="p-4 flex items-start gap-3 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">yard</span>
+<div>
+<p class="font-label-md text-label-md text-primary">Lot Size</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Slightly smaller than preferred quarter-acre</p>
+</div>
+</li>
+</ul>
+</div>
+<!-- Mismatched (Ignored/Low Priority) -->
+<div class="bg-surface-container-lowest rounded-xl border border-error-container overflow-hidden">
+<div class="p-4 bg-error-container/20 border-b border-error-container flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-sm">warning</span>
+<h4 class="font-label-md text-label-md text-primary font-semibold">عدم تطابق</h4>
+<span class="mr-auto font-label-sm text-label-sm text-on-surface-variant bg-surface px-2 py-0.5 rounded border border-outline-variant">اولویت پایین</span>
+</div>
+<ul class="divide-y divide-error-container/50">
+<li class="p-4 flex items-start gap-3 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-error">payments</span>
+<div>
+<p class="font-label-md text-label-md text-primary">Price</p>
+<p class="font-label-sm text-label-sm text-error/80" dir="ltr">$1.25M is +$50k above initial target budget</p>
+</div>
+</li>
+</ul>
+</div>
+<!-- Ignored (explicitly shown per applicant's IGNORE priority) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden">
+<div class="p-4 bg-surface-container-low border-b border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-sm">visibility_off</span>
+<h4 class="font-label-md text-label-md text-primary font-semibold">نادیده گرفته شده</h4>
+<span class="mr-auto font-label-sm text-label-sm text-on-surface-variant bg-surface px-2 py-0.5 rounded border border-outline-variant">Ignore</span>
+</div>
+<ul class="divide-y divide-outline-variant/50">
+<li class="p-4 flex items-start gap-3 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-outline">layers</span>
+<div>
+<p class="font-label-md text-label-md text-primary">Floor Level</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">متقاضی این معیار را نادیده گرفته و در امتیاز لحاظ نشده است</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (From JSON) - Mobile Only -->
+<nav class="bg-surface dark:bg-background border-t border-outline-variant dark:border-on-surface-variant fixed bottom-0 w-full z-50 rounded-t-full shadow-sm flex justify-around items-center px-2 py-3 pb-safe md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-[10px] mt-1">خانه</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="font-label-sm text-[10px] mt-1">فایل‌ها</span>
+</a>
+<!-- Active nav state: Matching section -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-on-background bg-secondary-container dark:bg-on-secondary-container rounded-full px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined filled">insights</span>
+<span class="font-label-sm text-[10px] mt-1">تطابق</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-sm text-[10px] mt-1">قراردادها</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-inverse-surface transition-all active:scale-95 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-[10px] mt-1">پروفایل</span>
+</a>
+</nav>
+</body></html>
