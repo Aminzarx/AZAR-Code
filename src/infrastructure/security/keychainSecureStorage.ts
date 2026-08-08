@@ -4,7 +4,7 @@ import type { SecureStorage } from './secureStorage'
 /**
  * Production SecureStorage backed by react-native-keychain (iOS Keychain
  * / Android Keystore). One credential per `key`, namespaced by `service`
- * so multiple secrets (currently just the database key) don't collide.
+ * so multiple secrets (database key, session token) don't collide.
  */
 export const keychainSecureStorage: SecureStorage = {
   async get(key) {
@@ -13,5 +13,8 @@ export const keychainSecureStorage: SecureStorage = {
   },
   async set(key, value) {
     await Keychain.setGenericPassword(key, value, { service: key })
+  },
+  async delete(key) {
+    await Keychain.resetGenericPassword({ service: key })
   }
 }

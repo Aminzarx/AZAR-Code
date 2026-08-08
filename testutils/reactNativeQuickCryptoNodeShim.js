@@ -20,6 +20,7 @@ module.exports = {
   createCipheriv: crypto.createCipheriv,
   createDecipheriv: crypto.createDecipheriv,
   randomBytes: crypto.randomBytes,
+  randomUUID: crypto.randomUUID,
   argon2: (algorithm, params, callback) => {
     argon2
       .hash(Buffer.from(params.message), {

@@ -3,3 +3,9 @@ export { runMigrations, getSchemaVersion, MigrationError } from './migrationRunn
 export { migrations } from './migrations'
 export type { Migration } from './types'
 export { ApplicationSettingsRepository } from './repositories/ApplicationSettingsRepository'
+export { UserRepository, type UserRecord } from './repositories/UserRepository'
+export {
+  ReferralRelationshipRepository,
+  type ReferralRelationshipRecord
+} from './repositories/ReferralRelationshipRepository'
+export { SessionRepository, type SessionRecord } from './repositories/SessionRepository'

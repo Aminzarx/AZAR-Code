@@ -1,25 +1,38 @@
 import React from 'react'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { PlaceholderScreen } from '@features/placeholder/PlaceholderScreen'
-
-export type RootStackParamList = {
-  Placeholder: undefined
-}
-
-const Stack = createNativeStackNavigator<RootStackParamList>()
+import { useAuth } from '@features/auth/AuthProvider'
+import { AuthNavigator } from './AuthNavigator'
+import { MainNavigator } from './MainNavigator'
+import { colors } from '@shared/tokens'
 
 /**
- * Phase 5 navigation shell — a single placeholder route. Real route trees
- * (auth, dashboard, files, matching, contracts, settings, restore) are
- * added from Phase 12 onward per docs/implementation/ui-screen-mapping.md.
+ * Session-gated root: AuthNavigator (Welcome -> ... -> ReferralCode)
+ * while unauthenticated, MainNavigator (BasicProfile -> Home) once a
+ * session exists. Switches automatically the moment AuthProvider's
+ * session state changes — register()/login()/logout() all update it.
  */
 export function RootNavigator(): React.JSX.Element {
+  const { isInitializing, session } = useAuth()
+
+  if (isInitializing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    )
+  }
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Placeholder" component={PlaceholderScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <NavigationContainer>{session ? <MainNavigator /> : <AuthNavigator />}</NavigationContainer>
   )
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background
+  }
+})
