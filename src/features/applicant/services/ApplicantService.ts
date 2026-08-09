@@ -3,6 +3,14 @@ import type { Applicant, ApplicantFormValues } from '../types'
 import { validateApplicantForm } from '../validation/applicantValidation'
 import { ApplicantValidationError } from '../validation/ApplicantValidationError'
 
+/**
+ * `email`/`applicantType` were removed from the applicant form (forms
+ * polish brief §4) — the DB columns stay (schema/migrations are out of
+ * scope here), so every write explicitly nulls them instead of leaving a
+ * dangling required field on the repository's create/update input.
+ */
+const REMOVED_FIELDS = { email: null, applicantType: null } as const
+
 /** Thin business-rule wrapper around ApplicantRepository — the UI never calls the repository directly. */
 export class ApplicantService {
   constructor(
@@ -15,7 +23,12 @@ export class ApplicantService {
     if (!input) {
       throw new ApplicantValidationError(errors)
     }
-    return this.repository.create({ id: this.generateId(), userId, ...input })
+    return this.repository.create({
+      id: this.generateId(),
+      userId,
+      ...input,
+      ...REMOVED_FIELDS
+    })
   }
 
   async updateApplicant(
@@ -27,7 +40,7 @@ export class ApplicantService {
     if (!input) {
       throw new ApplicantValidationError(errors)
     }
-    return this.repository.update(id, { ...input, status })
+    return this.repository.update(id, { ...input, ...REMOVED_FIELDS, status })
   }
 
   async listApplicants(userId: string, search?: string): Promise<Applicant[]> {

@@ -1,7 +1,9 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, TextInput } from '@shared/components'
+import { AutocompleteInput, Button, FormRow, MoneyInput, TextInput } from '@shared/components'
+import { IRANIAN_CITIES } from '@shared/data/iranianCities'
+import { APPLICANT_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
 import type { ApplicantFormErrors, ApplicantFormValues } from '../types'
 
 type Props = {
@@ -29,6 +31,7 @@ export function ApplicantForm({
     <View style={styles.form}>
       <TextInput
         label="نام و نام خانوادگی"
+        required
         value={values.fullName}
         onChangeText={(value) => onChange('fullName', value)}
         placeholder="مثلاً علی رضایی"
@@ -36,75 +39,68 @@ export function ApplicantForm({
       />
       <TextInput
         label="شماره تماس"
+        required
         value={values.phoneNumber}
         onChangeText={(value) => onChange('phoneNumber', value)}
         placeholder="09121234567"
         keyboardType="phone-pad"
         errorMessage={errors.phoneNumber}
       />
-      <TextInput
-        label="ایمیل"
-        value={values.email}
-        onChangeText={(value) => onChange('email', value)}
-        placeholder="اختیاری"
-        errorMessage={errors.email}
-      />
-      <TextInput
-        label="نوع متقاضی"
-        value={values.applicantType}
-        onChangeText={(value) => onChange('applicantType', value)}
-        placeholder="حقیقی، حقوقی..."
-        errorMessage={errors.applicantType}
-      />
-      <TextInput
+      <AutocompleteInput
         label="نوع معامله مدنظر"
         value={values.preferredTransactionType}
-        onChangeText={(value) => onChange('preferredTransactionType', value)}
-        placeholder="فروش، رهن و اجاره..."
+        onChangeValue={(value) => onChange('preferredTransactionType', value)}
+        suggestions={APPLICANT_TRANSACTION_TYPES}
+        placeholder="خرید، اجاره..."
         errorMessage={errors.preferredTransactionType}
       />
-      <TextInput
+      <AutocompleteInput
         label="نوع ملک مدنظر"
         value={values.preferredPropertyType}
-        onChangeText={(value) => onChange('preferredPropertyType', value)}
+        onChangeValue={(value) => onChange('preferredPropertyType', value)}
+        suggestions={PROPERTY_TYPES}
         placeholder="آپارتمان، ویلا..."
         errorMessage={errors.preferredPropertyType}
       />
-      <TextInput
+      <AutocompleteInput
         label="شهر"
+        required
         value={values.city}
-        onChangeText={(value) => onChange('city', value)}
+        onChangeValue={(value) => onChange('city', value)}
+        suggestions={IRANIAN_CITIES}
         placeholder="تهران"
         errorMessage={errors.city}
       />
-      <TextInput
-        label="حداقل بودجه (تومان)"
-        value={values.minBudget}
-        onChangeText={(value) => onChange('minBudget', value)}
-        keyboardType="number-pad"
-        errorMessage={errors.minBudget}
-      />
-      <TextInput
-        label="حداکثر بودجه (تومان)"
-        value={values.maxBudget}
-        onChangeText={(value) => onChange('maxBudget', value)}
-        keyboardType="number-pad"
-        errorMessage={errors.maxBudget}
-      />
-      <TextInput
-        label="حداقل متراژ"
-        value={values.minArea}
-        onChangeText={(value) => onChange('minArea', value)}
-        keyboardType="number-pad"
-        errorMessage={errors.minArea}
-      />
-      <TextInput
-        label="حداکثر متراژ"
-        value={values.maxArea}
-        onChangeText={(value) => onChange('maxArea', value)}
-        keyboardType="number-pad"
-        errorMessage={errors.maxArea}
-      />
+      <FormRow>
+        <MoneyInput
+          label="حداقل بودجه (تومان)"
+          value={values.minBudget}
+          onChangeValue={(value) => onChange('minBudget', value)}
+          errorMessage={errors.minBudget}
+        />
+        <MoneyInput
+          label="حداکثر بودجه (تومان)"
+          value={values.maxBudget}
+          onChangeValue={(value) => onChange('maxBudget', value)}
+          errorMessage={errors.maxBudget}
+        />
+      </FormRow>
+      <FormRow>
+        <TextInput
+          label="حداقل متراژ"
+          value={values.minArea}
+          onChangeText={(value) => onChange('minArea', value)}
+          keyboardType="number-pad"
+          errorMessage={errors.minArea}
+        />
+        <TextInput
+          label="حداکثر متراژ"
+          value={values.maxArea}
+          onChangeText={(value) => onChange('maxArea', value)}
+          keyboardType="number-pad"
+          errorMessage={errors.maxArea}
+        />
+      </FormRow>
       <TextInput
         label="تعداد اتاق"
         value={values.rooms}

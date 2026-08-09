@@ -6,8 +6,6 @@ export type {
 export type ApplicantFormValues = {
   fullName: string
   phoneNumber: string
-  email: string
-  applicantType: string
   preferredTransactionType: string
   preferredPropertyType: string
   city: string

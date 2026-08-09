@@ -20,6 +20,10 @@ type Props = {
   autoFocus?: boolean
   disabled?: boolean
   secureTextEntry?: boolean
+  /** Shows a red asterisk beside the label — design-system's required-field indicator, not a validation rule by itself. */
+  required?: boolean
+  onFocus?: () => void
+  onBlur?: () => void
 }
 
 /** design-system.md §8.3 — label above field, focus/error/disabled states. */
@@ -34,7 +38,10 @@ export function TextInput({
   maxLength,
   autoFocus,
   disabled,
-  secureTextEntry
+  secureTextEntry,
+  required,
+  onFocus,
+  onBlur
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const [isFocused, setIsFocused] = useState(false)
@@ -43,7 +50,10 @@ export function TextInput({
 
   return (
     <View style={styles.group}>
-      <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
+      <Text style={[theme.typography('labelMd'), styles.label]}>
+        {label}
+        {required ? <Text style={styles.requiredMark}> *</Text> : null}
+      </Text>
       <RNTextInput
         accessibilityLabel={label}
         accessibilityState={{ disabled }}
@@ -55,8 +65,14 @@ export function TextInput({
         ]}
         value={value}
         onChangeText={onChangeText}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        onFocus={() => {
+          setIsFocused(true)
+          onFocus?.()
+        }}
+        onBlur={() => {
+          setIsFocused(false)
+          onBlur?.()
+        }}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.outline}
         keyboardType={keyboardType}
@@ -82,6 +98,9 @@ function createStyles(theme: Theme) {
     },
     label: {
       color: theme.colors.onSurfaceVariant
+    },
+    requiredMark: {
+      color: theme.colors.error
     },
     input: {
       minHeight: theme.touchTargetMinimum,

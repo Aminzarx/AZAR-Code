@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, LoadingIndicator } from '@shared/components'
+import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
 import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
 import { usePropertyDetail } from '../hooks/usePropertyDetail'
 import { usePropertyService } from '../hooks/usePropertyService'
@@ -80,115 +79,103 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {isLoading ? (
-          <View style={styles.centeredSection}>
-            <LoadingIndicator size="large" />
-          </View>
-        ) : error ? (
-          <View style={styles.centeredSection}>
-            <ErrorState
-              title="بارگذاری پرونده با مشکل مواجه شد"
-              description={error.message}
-              retryLabel="تلاش مجدد"
-              onRetry={refetch}
-            />
-          </View>
-        ) : !property ? (
-          <View style={styles.centeredSection}>
-            <ErrorState title="پرونده پیدا نشد" />
-          </View>
-        ) : isEditing && values ? (
-          <>
-            {submitError ? (
-              <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
-            ) : null}
-            <PropertyForm
-              values={values}
-              errors={errors}
-              onChange={handleChange}
-              onSubmit={handleSubmit}
-              submitLabel="ذخیره تغییرات"
-              isSubmitting={isSubmitting}
-            />
-          </>
-        ) : (
-          <Card variant="detail">
-            <Text style={[theme.typography('headlineMd'), styles.title]}>{property.title}</Text>
-            <View style={styles.detailRow}>
-              <Text style={[theme.typography('bodyMd'), styles.value]}>
-                {property.city} — {property.address}
-              </Text>
-            </View>
-            {property.propertyType ? (
-              <DetailRow
-                label="نوع ملک"
-                value={property.propertyType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.transactionType ? (
-              <DetailRow
-                label="نوع معامله"
-                value={property.transactionType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.price !== null ? (
-              <DetailRow
-                label="قیمت"
-                value={`${property.price.toLocaleString('fa-IR')} تومان`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.area !== null ? (
-              <DetailRow
-                label="متراژ"
-                value={`${property.area} متر`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.rooms !== null ? (
-              <DetailRow
-                label="تعداد اتاق"
-                value={String(property.rooms)}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.description ? (
-              <DetailRow
-                label="توضیحات"
-                value={property.description}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            <Button
-              label="ویرایش"
-              onPress={startEditing}
-              variant="secondary"
-              style={styles.editButton}
-            />
-          </Card>
-        )}
-
-        {property && !isEditing ? (
-          <SuggestedApplicantsSection
-            property={property}
-            onSelectApplicant={(applicantId) =>
-              navigation.navigate('ApplicantDetail', { applicantId })
-            }
-            onDealCreated={(dealId) => navigation.navigate('DealDetail', { dealId })}
+    <FormScreenContainer>
+      {isLoading ? (
+        <View style={styles.centeredSection}>
+          <LoadingIndicator size="large" />
+        </View>
+      ) : error ? (
+        <View style={styles.centeredSection}>
+          <ErrorState
+            title="بارگذاری پرونده با مشکل مواجه شد"
+            description={error.message}
+            retryLabel="تلاش مجدد"
+            onRetry={refetch}
           />
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+        </View>
+      ) : !property ? (
+        <View style={styles.centeredSection}>
+          <ErrorState title="پرونده پیدا نشد" />
+        </View>
+      ) : isEditing && values ? (
+        <>
+          {submitError ? (
+            <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+          ) : null}
+          <PropertyForm
+            values={values}
+            errors={errors}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            submitLabel="ذخیره تغییرات"
+            isSubmitting={isSubmitting}
+          />
+        </>
+      ) : (
+        <Card variant="detail">
+          <Text style={[theme.typography('headlineMd'), styles.title]}>{property.title}</Text>
+          <View style={styles.detailRow}>
+            <Text style={[theme.typography('bodyMd'), styles.value]}>
+              {property.city} — {property.address}
+            </Text>
+          </View>
+          {property.propertyType ? (
+            <DetailRow
+              label="نوع ملک"
+              value={property.propertyType}
+              theme={theme}
+              styles={styles}
+            />
+          ) : null}
+          {property.transactionType ? (
+            <DetailRow
+              label="نوع معامله"
+              value={property.transactionType}
+              theme={theme}
+              styles={styles}
+            />
+          ) : null}
+          {property.price !== null ? (
+            <DetailRow
+              label="قیمت"
+              value={`${property.price.toLocaleString('fa-IR')} تومان`}
+              theme={theme}
+              styles={styles}
+            />
+          ) : null}
+          {property.area !== null ? (
+            <DetailRow label="متراژ" value={`${property.area} متر`} theme={theme} styles={styles} />
+          ) : null}
+          {property.rooms !== null ? (
+            <DetailRow
+              label="تعداد اتاق"
+              value={String(property.rooms)}
+              theme={theme}
+              styles={styles}
+            />
+          ) : null}
+          {property.description ? (
+            <DetailRow label="توضیحات" value={property.description} theme={theme} styles={styles} />
+          ) : null}
+          <Button
+            label="ویرایش"
+            onPress={startEditing}
+            variant="secondary"
+            style={styles.editButton}
+          />
+        </Card>
+      )}
+
+      {property && !isEditing ? (
+        <SuggestedApplicantsSection
+          property={property}
+          onSelectApplicant={(applicantId) =>
+            navigation.navigate('ApplicantDetail', { applicantId })
+          }
+          onDealCreated={(dealId) => navigation.navigate('DealDetail', { dealId })}
+        />
+      ) : null}
+    </FormScreenContainer>
   )
 }
 
@@ -210,14 +197,6 @@ function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.E
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: theme.colors.background
-    },
-    content: {
-      padding: theme.spacing.space6,
-      gap: theme.spacing.space4
-    },
     centeredSection: {
       alignItems: 'center',
       justifyContent: 'center',

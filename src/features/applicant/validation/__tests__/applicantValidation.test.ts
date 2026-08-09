@@ -4,8 +4,6 @@ import type { ApplicantFormValues } from '../../types'
 const VALID_VALUES: ApplicantFormValues = {
   fullName: 'علی رضایی',
   phoneNumber: '09121234567',
-  email: 'ali@example.com',
-  applicantType: 'حقیقی',
   preferredTransactionType: 'فروش',
   preferredPropertyType: 'آپارتمان',
   city: 'تهران',
@@ -24,8 +22,6 @@ describe('validateApplicantForm', () => {
     expect(result.input).toEqual({
       fullName: 'علی رضایی',
       phoneNumber: '09121234567',
-      email: 'ali@example.com',
-      applicantType: 'حقیقی',
       preferredTransactionType: 'فروش',
       preferredPropertyType: 'آپارتمان',
       city: 'تهران',
@@ -51,10 +47,9 @@ describe('validateApplicantForm', () => {
     expect(result.errors?.city).toBeTruthy()
   })
 
-  it('allows email and all numeric range fields to be omitted', () => {
+  it('allows all numeric range fields to be omitted', () => {
     const result = validateApplicantForm({
       ...VALID_VALUES,
-      email: '',
       minBudget: '',
       maxBudget: '',
       minArea: '',
@@ -62,7 +57,6 @@ describe('validateApplicantForm', () => {
       rooms: ''
     })
     expect(result.errors).toBeNull()
-    expect(result.input?.email).toBeNull()
     expect(result.input?.minBudget).toBeNull()
     expect(result.input?.maxBudget).toBeNull()
   })

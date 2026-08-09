@@ -52,8 +52,6 @@ describe('DealService', () => {
     const applicant = await applicantService.createApplicant(USER_ID, {
       fullName: 'علی رضایی',
       phoneNumber: '09121234567',
-      email: '',
-      applicantType: '',
       preferredTransactionType: '',
       preferredPropertyType: '',
       city: 'تهران',

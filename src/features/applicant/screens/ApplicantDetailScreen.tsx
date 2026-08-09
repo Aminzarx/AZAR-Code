@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Alert, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, LoadingIndicator } from '@shared/components'
+import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
 import { SuggestedPropertiesSection } from '@features/matching/components/SuggestedPropertiesSection'
 import { useApplicantDetail } from '../hooks/useApplicantDetail'
 import { useApplicantService } from '../hooks/useApplicantService'
@@ -18,8 +17,6 @@ function toFormValues(applicant: Applicant): ApplicantFormValues {
   return {
     fullName: applicant.fullName,
     phoneNumber: applicant.phoneNumber,
-    email: applicant.email ?? '',
-    applicantType: applicant.applicantType ?? '',
     preferredTransactionType: applicant.preferredTransactionType ?? '',
     preferredPropertyType: applicant.preferredPropertyType ?? '',
     city: applicant.city,
@@ -109,136 +106,123 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {isLoading ? (
-          <View style={styles.centeredSection}>
-            <LoadingIndicator size="large" />
-          </View>
-        ) : error ? (
-          <View style={styles.centeredSection}>
-            <ErrorState
-              title="بارگذاری متقاضی با مشکل مواجه شد"
-              description={error.message}
-              retryLabel="تلاش مجدد"
-              onRetry={refetch}
-            />
-          </View>
-        ) : !applicant ? (
-          <View style={styles.centeredSection}>
-            <ErrorState title="متقاضی پیدا نشد" />
-          </View>
-        ) : isEditing && values ? (
-          <>
-            {submitError ? (
-              <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
-            ) : null}
-            <ApplicantForm
-              values={values}
-              errors={errors}
-              onChange={handleChange}
-              onSubmit={handleSubmit}
-              submitLabel="ذخیره تغییرات"
-              isSubmitting={isSubmitting}
-            />
-          </>
-        ) : (
-          <Card variant="detail">
-            <Text style={[theme.typography('headlineMd'), styles.title]}>{applicant.fullName}</Text>
+    <FormScreenContainer>
+      {isLoading ? (
+        <View style={styles.centeredSection}>
+          <LoadingIndicator size="large" />
+        </View>
+      ) : error ? (
+        <View style={styles.centeredSection}>
+          <ErrorState
+            title="بارگذاری متقاضی با مشکل مواجه شد"
+            description={error.message}
+            retryLabel="تلاش مجدد"
+            onRetry={refetch}
+          />
+        </View>
+      ) : !applicant ? (
+        <View style={styles.centeredSection}>
+          <ErrorState title="متقاضی پیدا نشد" />
+        </View>
+      ) : isEditing && values ? (
+        <>
+          {submitError ? (
+            <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+          ) : null}
+          <ApplicantForm
+            values={values}
+            errors={errors}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            submitLabel="ذخیره تغییرات"
+            isSubmitting={isSubmitting}
+          />
+        </>
+      ) : (
+        <Card variant="detail">
+          <Text style={[theme.typography('headlineMd'), styles.title]}>{applicant.fullName}</Text>
+          <DetailRow
+            label="شماره تماس"
+            value={applicant.phoneNumber}
+            theme={theme}
+            styles={styles}
+          />
+          <DetailRow label="شهر" value={applicant.city} theme={theme} styles={styles} />
+          {applicant.preferredTransactionType ? (
             <DetailRow
-              label="شماره تماس"
-              value={applicant.phoneNumber}
+              label="نوع معامله مدنظر"
+              value={applicant.preferredTransactionType}
               theme={theme}
               styles={styles}
             />
-            {applicant.email ? (
-              <DetailRow label="ایمیل" value={applicant.email} theme={theme} styles={styles} />
-            ) : null}
-            <DetailRow label="شهر" value={applicant.city} theme={theme} styles={styles} />
-            {applicant.applicantType ? (
-              <DetailRow
-                label="نوع متقاضی"
-                value={applicant.applicantType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.preferredTransactionType ? (
-              <DetailRow
-                label="نوع معامله مدنظر"
-                value={applicant.preferredTransactionType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.preferredPropertyType ? (
-              <DetailRow
-                label="نوع ملک مدنظر"
-                value={applicant.preferredPropertyType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.minBudget !== null || applicant.maxBudget !== null ? (
-              <DetailRow
-                label="بودجه"
-                value={`${applicant.minBudget?.toLocaleString('fa-IR') ?? '—'} تا ${applicant.maxBudget?.toLocaleString('fa-IR') ?? '—'} تومان`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.minArea !== null || applicant.maxArea !== null ? (
-              <DetailRow
-                label="متراژ"
-                value={`${applicant.minArea ?? '—'} تا ${applicant.maxArea ?? '—'} متر`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.rooms !== null ? (
-              <DetailRow
-                label="تعداد اتاق"
-                value={String(applicant.rooms)}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.description ? (
-              <DetailRow
-                label="توضیحات"
-                value={applicant.description}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {submitError ? (
-              <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
-            ) : null}
-            <Button
-              label="ویرایش"
-              onPress={startEditing}
-              variant="secondary"
-              style={styles.editButton}
+          ) : null}
+          {applicant.preferredPropertyType ? (
+            <DetailRow
+              label="نوع ملک مدنظر"
+              value={applicant.preferredPropertyType}
+              theme={theme}
+              styles={styles}
             />
-            <Button
-              label="حذف متقاضی"
-              onPress={confirmDelete}
-              variant="destructive"
-              loading={isDeleting}
-              style={styles.deleteButton}
+          ) : null}
+          {applicant.minBudget !== null || applicant.maxBudget !== null ? (
+            <DetailRow
+              label="بودجه"
+              value={`${applicant.minBudget?.toLocaleString('fa-IR') ?? '—'} تا ${applicant.maxBudget?.toLocaleString('fa-IR') ?? '—'} تومان`}
+              theme={theme}
+              styles={styles}
             />
-          </Card>
-        )}
-
-        {applicant && !isEditing ? (
-          <SuggestedPropertiesSection
-            applicant={applicant}
-            onSelectProperty={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
-            onDealCreated={(dealId) => navigation.navigate('DealDetail', { dealId })}
+          ) : null}
+          {applicant.minArea !== null || applicant.maxArea !== null ? (
+            <DetailRow
+              label="متراژ"
+              value={`${applicant.minArea ?? '—'} تا ${applicant.maxArea ?? '—'} متر`}
+              theme={theme}
+              styles={styles}
+            />
+          ) : null}
+          {applicant.rooms !== null ? (
+            <DetailRow
+              label="تعداد اتاق"
+              value={String(applicant.rooms)}
+              theme={theme}
+              styles={styles}
+            />
+          ) : null}
+          {applicant.description ? (
+            <DetailRow
+              label="توضیحات"
+              value={applicant.description}
+              theme={theme}
+              styles={styles}
+            />
+          ) : null}
+          {submitError ? (
+            <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+          ) : null}
+          <Button
+            label="ویرایش"
+            onPress={startEditing}
+            variant="secondary"
+            style={styles.editButton}
           />
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+          <Button
+            label="حذف متقاضی"
+            onPress={confirmDelete}
+            variant="destructive"
+            loading={isDeleting}
+            style={styles.deleteButton}
+          />
+        </Card>
+      )}
+
+      {applicant && !isEditing ? (
+        <SuggestedPropertiesSection
+          applicant={applicant}
+          onSelectProperty={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
+          onDealCreated={(dealId) => navigation.navigate('DealDetail', { dealId })}
+        />
+      ) : null}
+    </FormScreenContainer>
   )
 }
 
@@ -260,14 +244,6 @@ function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.E
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: theme.colors.background
-    },
-    content: {
-      padding: theme.spacing.space6,
-      gap: theme.spacing.space4
-    },
     centeredSection: {
       alignItems: 'center',
       justifyContent: 'center',

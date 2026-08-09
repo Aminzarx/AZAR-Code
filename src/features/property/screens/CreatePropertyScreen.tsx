@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { ScrollView, StyleSheet, Text } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { StyleSheet, Text } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
+import { FormScreenContainer } from '@shared/components'
 import { usePropertyService } from '../hooks/usePropertyService'
 import { PropertyForm } from '../components/PropertyForm'
 import { PropertyValidationError } from '../services/PropertyValidationError'
@@ -63,35 +63,25 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[theme.typography('titleMd'), styles.heading]}>افزودن پرونده ملکی</Text>
-        {submitError ? (
-          <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
-        ) : null}
-        <PropertyForm
-          values={values}
-          errors={errors}
-          onChange={handleChange}
-          onSubmit={handleSubmit}
-          submitLabel="ثبت پرونده"
-          isSubmitting={isSubmitting}
-        />
-      </ScrollView>
-    </SafeAreaView>
+    <FormScreenContainer>
+      <Text style={[theme.typography('titleMd'), styles.heading]}>افزودن پرونده ملکی</Text>
+      {submitError ? (
+        <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+      ) : null}
+      <PropertyForm
+        values={values}
+        errors={errors}
+        onChange={handleChange}
+        onSubmit={handleSubmit}
+        submitLabel="ثبت پرونده"
+        isSubmitting={isSubmitting}
+      />
+    </FormScreenContainer>
   )
 }
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: theme.colors.background
-    },
-    content: {
-      padding: theme.spacing.space6,
-      gap: theme.spacing.space4
-    },
     heading: {
       color: theme.colors.onSurface
     },

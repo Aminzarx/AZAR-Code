@@ -3,8 +3,6 @@ import type { ApplicantFormErrors, ApplicantFormValues } from '../types'
 export type ValidatedApplicantInput = {
   fullName: string
   phoneNumber: string
-  email: string | null
-  applicantType: string | null
   preferredTransactionType: string | null
   preferredPropertyType: string | null
   city: string
@@ -34,9 +32,9 @@ function parsePositiveNumber(
 }
 
 /**
- * `applicantType`/`preferredTransactionType`/`preferredPropertyType` stay
- * unconstrained free text, matching migration 0003's comment — no enum
- * values are decided project-wide yet.
+ * `preferredTransactionType`/`preferredPropertyType` stay unconstrained
+ * free text, matching migration 0003's comment — no enum values are
+ * decided project-wide yet.
  */
 export function validateApplicantForm(
   values: ApplicantFormValues
@@ -74,8 +72,6 @@ export function validateApplicantForm(
     input: {
       fullName: values.fullName.trim(),
       phoneNumber: values.phoneNumber.trim(),
-      email: values.email.trim() || null,
-      applicantType: values.applicantType.trim() || null,
       preferredTransactionType: values.preferredTransactionType.trim() || null,
       preferredPropertyType: values.preferredPropertyType.trim() || null,
       city: values.city.trim(),

@@ -1,7 +1,9 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, TextInput } from '@shared/components'
+import { AutocompleteInput, Button, FormRow, MoneyInput, TextInput } from '@shared/components'
+import { IRANIAN_CITIES } from '@shared/data/iranianCities'
+import { PROPERTY_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
 
 type Props = {
@@ -29,60 +31,67 @@ export function PropertyForm({
     <View style={styles.form}>
       <TextInput
         label="عنوان پرونده"
+        required
         value={values.title}
         onChangeText={(value) => onChange('title', value)}
         placeholder="مثلاً آپارتمان دو خوابه ولیعصر"
         errorMessage={errors.title}
       />
-      <TextInput
+      <AutocompleteInput
         label="نوع ملک"
         value={values.propertyType}
-        onChangeText={(value) => onChange('propertyType', value)}
+        onChangeValue={(value) => onChange('propertyType', value)}
+        suggestions={PROPERTY_TYPES}
         placeholder="آپارتمان، ویلا، زمین..."
         errorMessage={errors.propertyType}
       />
-      <TextInput
+      <AutocompleteInput
         label="نوع معامله"
         value={values.transactionType}
-        onChangeText={(value) => onChange('transactionType', value)}
+        onChangeValue={(value) => onChange('transactionType', value)}
+        suggestions={PROPERTY_TRANSACTION_TYPES}
         placeholder="فروش، رهن و اجاره..."
         errorMessage={errors.transactionType}
       />
-      <TextInput
+      <AutocompleteInput
         label="شهر"
+        required
         value={values.city}
-        onChangeText={(value) => onChange('city', value)}
+        onChangeValue={(value) => onChange('city', value)}
+        suggestions={IRANIAN_CITIES}
         placeholder="تهران"
         errorMessage={errors.city}
       />
       <TextInput
         label="آدرس"
+        required
         value={values.address}
         onChangeText={(value) => onChange('address', value)}
         placeholder="خیابان، کوچه، پلاک"
         errorMessage={errors.address}
       />
-      <TextInput
+      <MoneyInput
         label="قیمت (تومان)"
         value={values.price}
-        onChangeText={(value) => onChange('price', value)}
-        keyboardType="number-pad"
+        onChangeValue={(value) => onChange('price', value)}
         errorMessage={errors.price}
       />
-      <TextInput
-        label="متراژ (متر مربع)"
-        value={values.area}
-        onChangeText={(value) => onChange('area', value)}
-        keyboardType="number-pad"
-        errorMessage={errors.area}
-      />
-      <TextInput
-        label="تعداد اتاق"
-        value={values.rooms}
-        onChangeText={(value) => onChange('rooms', value)}
-        keyboardType="number-pad"
-        errorMessage={errors.rooms}
-      />
+      <FormRow>
+        <TextInput
+          label="متراژ (متر مربع)"
+          value={values.area}
+          onChangeText={(value) => onChange('area', value)}
+          keyboardType="number-pad"
+          errorMessage={errors.area}
+        />
+        <TextInput
+          label="تعداد اتاق"
+          value={values.rooms}
+          onChangeText={(value) => onChange('rooms', value)}
+          keyboardType="number-pad"
+          errorMessage={errors.rooms}
+        />
+      </FormRow>
       <TextInput
         label="توضیحات"
         value={values.description}

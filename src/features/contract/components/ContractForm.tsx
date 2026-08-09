@@ -1,7 +1,8 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, TextInput } from '@shared/components'
+import { AutocompleteInput, Button, FormRow, MoneyInput, TextInput } from '@shared/components'
+import { PROPERTY_TRANSACTION_TYPES } from '@shared/data/realEstateOptions'
 import type { ContractFormErrors, ContractFormValues } from '../types'
 
 type Props = {
@@ -27,34 +28,38 @@ export function ContractForm({
 
   return (
     <View style={styles.form}>
-      <TextInput
+      <AutocompleteInput
         label="نوع قرارداد"
         value={values.type}
-        onChangeText={(value) => onChange('type', value)}
+        onChangeValue={(value) => onChange('type', value)}
+        suggestions={PROPERTY_TRANSACTION_TYPES}
         placeholder="فروش، اجاره..."
         errorMessage={errors.type}
       />
-      <TextInput
+      <MoneyInput
         label="مبلغ (تومان)"
         value={values.amount}
-        onChangeText={(value) => onChange('amount', value)}
-        keyboardType="number-pad"
+        onChangeValue={(value) => onChange('amount', value)}
         errorMessage={errors.amount}
       />
-      <TextInput
-        label="تاریخ شروع"
-        value={values.startDate}
-        onChangeText={(value) => onChange('startDate', value)}
-        placeholder="1404-05-20"
-        errorMessage={errors.startDate}
-      />
-      <TextInput
-        label="تاریخ پایان"
-        value={values.endDate}
-        onChangeText={(value) => onChange('endDate', value)}
-        placeholder="1405-05-20"
-        errorMessage={errors.endDate}
-      />
+      <FormRow>
+        <TextInput
+          label="تاریخ شروع"
+          required
+          value={values.startDate}
+          onChangeText={(value) => onChange('startDate', value)}
+          placeholder="1404-05-20"
+          errorMessage={errors.startDate}
+        />
+        <TextInput
+          label="تاریخ پایان"
+          required
+          value={values.endDate}
+          onChangeText={(value) => onChange('endDate', value)}
+          placeholder="1405-05-20"
+          errorMessage={errors.endDate}
+        />
+      </FormRow>
       <TextInput
         label="یادداشت"
         value={values.notes}

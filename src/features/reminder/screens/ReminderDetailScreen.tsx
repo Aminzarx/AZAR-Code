@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Alert, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, LoadingIndicator } from '@shared/components'
+import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
 import { useReminderDetail } from '../hooks/useReminderDetail'
 import { useReminderService } from '../hooks/useReminderService'
 import { ReminderForm } from '../components/ReminderForm'
@@ -108,97 +107,85 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {isLoading ? (
-          <View style={styles.centeredSection}>
-            <LoadingIndicator size="large" />
-          </View>
-        ) : error ? (
-          <View style={styles.centeredSection}>
-            <ErrorState
-              title="بارگذاری یادآوری با مشکل مواجه شد"
-              description={error.message}
-              retryLabel="تلاش مجدد"
-              onRetry={refetch}
-            />
-          </View>
-        ) : !reminder ? (
-          <View style={styles.centeredSection}>
-            <ErrorState title="یادآوری پیدا نشد" />
-          </View>
-        ) : isEditing && values ? (
-          <>
-            {submitError ? (
-              <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
-            ) : null}
-            <ReminderForm
-              values={values}
-              errors={errors}
-              onChange={handleChange}
-              onSubmit={handleSubmit}
-              submitLabel="ذخیره تغییرات"
-              isSubmitting={isSubmitting}
-            />
-          </>
-        ) : (
-          <Card variant="detail">
-            <Text style={[theme.typography('headlineMd'), styles.title]}>{reminder.title}</Text>
-            <Text style={[theme.typography('bodyMd'), styles.value]}>
-              {new Date(reminder.remindAt).toLocaleDateString('fa-IR')} —{' '}
-              {new Date(reminder.remindAt).toLocaleTimeString('fa-IR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+    <FormScreenContainer>
+      {isLoading ? (
+        <View style={styles.centeredSection}>
+          <LoadingIndicator size="large" />
+        </View>
+      ) : error ? (
+        <View style={styles.centeredSection}>
+          <ErrorState
+            title="بارگذاری یادآوری با مشکل مواجه شد"
+            description={error.message}
+            retryLabel="تلاش مجدد"
+            onRetry={refetch}
+          />
+        </View>
+      ) : !reminder ? (
+        <View style={styles.centeredSection}>
+          <ErrorState title="یادآوری پیدا نشد" />
+        </View>
+      ) : isEditing && values ? (
+        <>
+          {submitError ? (
+            <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+          ) : null}
+          <ReminderForm
+            values={values}
+            errors={errors}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            submitLabel="ذخیره تغییرات"
+            isSubmitting={isSubmitting}
+          />
+        </>
+      ) : (
+        <Card variant="detail">
+          <Text style={[theme.typography('headlineMd'), styles.title]}>{reminder.title}</Text>
+          <Text style={[theme.typography('bodyMd'), styles.value]}>
+            {new Date(reminder.remindAt).toLocaleDateString('fa-IR')} —{' '}
+            {new Date(reminder.remindAt).toLocaleTimeString('fa-IR', {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </Text>
+          {reminder.description ? (
+            <Text style={[theme.typography('bodySm'), styles.description]}>
+              {reminder.description}
             </Text>
-            {reminder.description ? (
-              <Text style={[theme.typography('bodySm'), styles.description]}>
-                {reminder.description}
-              </Text>
-            ) : null}
-            {submitError ? (
-              <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
-            ) : null}
-            <Button
-              label={
-                reminder.isDone
-                  ? 'علامت‌گذاری به‌عنوان انجام‌نشده'
-                  : 'علامت‌گذاری به‌عنوان انجام‌شده'
-              }
-              onPress={handleToggleDone}
-              variant="secondary"
-              style={styles.actionButton}
-            />
-            <Button
-              label="ویرایش"
-              onPress={startEditing}
-              variant="secondary"
-              style={styles.actionButton}
-            />
-            <Button
-              label="حذف یادآوری"
-              onPress={confirmDelete}
-              variant="destructive"
-              loading={isDeleting}
-              style={styles.actionButton}
-            />
-          </Card>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          ) : null}
+          {submitError ? (
+            <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+          ) : null}
+          <Button
+            label={
+              reminder.isDone ? 'علامت‌گذاری به‌عنوان انجام‌نشده' : 'علامت‌گذاری به‌عنوان انجام‌شده'
+            }
+            onPress={handleToggleDone}
+            variant="secondary"
+            style={styles.actionButton}
+          />
+          <Button
+            label="ویرایش"
+            onPress={startEditing}
+            variant="secondary"
+            style={styles.actionButton}
+          />
+          <Button
+            label="حذف یادآوری"
+            onPress={confirmDelete}
+            variant="destructive"
+            loading={isDeleting}
+            style={styles.actionButton}
+          />
+        </Card>
+      )}
+    </FormScreenContainer>
   )
 }
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: theme.colors.background
-    },
-    content: {
-      padding: theme.spacing.space6,
-      gap: theme.spacing.space4
-    },
     centeredSection: {
       alignItems: 'center',
       justifyContent: 'center',

@@ -1,4 +1,6 @@
 import {
+  areTransactionTypesCompatible,
+  citiesMatch,
   findApplicantMatchesForProperty,
   findPropertyMatchesForApplicant,
   scoreMatch
@@ -34,7 +36,7 @@ function makeApplicant(overrides: Partial<Applicant> = {}): Applicant {
     phoneNumber: '09121234567',
     email: null,
     applicantType: null,
-    preferredTransactionType: 'فروش',
+    preferredTransactionType: 'خرید',
     preferredPropertyType: 'آپارتمان',
     city: 'تهران',
     minBudget: 2000000000,
@@ -50,28 +52,70 @@ function makeApplicant(overrides: Partial<Applicant> = {}): Applicant {
   }
 }
 
+describe('areTransactionTypesCompatible', () => {
+  it('matches a "فروش" property against a "خرید" applicant (seller + buyer)', () => {
+    expect(areTransactionTypesCompatible('فروش', 'خرید')).toBe(true)
+  })
+
+  it('does not match two "فروش" sides (seller + seller)', () => {
+    expect(areTransactionTypesCompatible('فروش', 'فروش')).toBe(false)
+  })
+
+  it('does not match two "خرید" sides (buyer + buyer)', () => {
+    expect(areTransactionTypesCompatible('خرید', 'خرید')).toBe(false)
+  })
+
+  it('matches a rental property against a tenant applicant', () => {
+    expect(areTransactionTypesCompatible('اجاره', 'اجاره')).toBe(true)
+    expect(areTransactionTypesCompatible('رهن و اجاره', 'اجاره')).toBe(true)
+  })
+
+  it('returns false when either side is empty', () => {
+    expect(areTransactionTypesCompatible('', 'خرید')).toBe(false)
+    expect(areTransactionTypesCompatible('فروش', null)).toBe(false)
+  })
+})
+
+describe('citiesMatch', () => {
+  it('matches identical cities', () => {
+    expect(citiesMatch('تهران', 'تهران')).toBe(true)
+  })
+
+  it('matches cities differing only by Arabic/Persian Yeh and extra spaces', () => {
+    expect(citiesMatch('   تهران  ', 'تهران')).toBe(true)
+  })
+
+  it('does not match different cities', () => {
+    expect(citiesMatch('تهران', 'شیراز')).toBe(false)
+  })
+})
+
 describe('scoreMatch', () => {
-  it('scores 100 when every specified criterion matches', () => {
+  it('scores 100 when every specified criterion matches (seller property + buyer applicant)', () => {
     const result = scoreMatch(makeProperty(), makeApplicant())
-    expect(result.score).toBe(100)
-    expect(result.matchedCriteria).toEqual(
+    expect(result?.score).toBe(100)
+    expect(result?.matchedCriteria).toEqual(
       expect.arrayContaining(['city', 'propertyType', 'transactionType', 'budget', 'area', 'rooms'])
     )
   })
 
-  it('scores 0 when nothing matches', () => {
+  it('returns null (no match) when cities differ', () => {
+    const result = scoreMatch(makeProperty({ city: 'شیراز' }), makeApplicant({ city: 'تهران' }))
+    expect(result).toBeNull()
+  })
+
+  it('only scores the city criterion when cities match but nothing else does', () => {
     const result = scoreMatch(
       makeProperty({
-        city: 'شیراز',
-        propertyType: 'ویلا',
+        propertyType: 'ویلایی',
         transactionType: 'رهن و اجاره',
         price: 100,
         area: 5
       }),
-      makeApplicant({ city: 'تهران', rooms: 5 })
+      makeApplicant({ rooms: 5 })
     )
-    expect(result.score).toBe(0)
-    expect(result.matchedCriteria).toEqual([])
+    expect(result?.score).toBe(25)
+    expect(result?.matchedCriteria).toEqual(['city'])
   })
 
   it('does not count budget/area toward the score when the applicant left them unset', () => {
@@ -79,8 +123,8 @@ describe('scoreMatch', () => {
       makeProperty(),
       makeApplicant({ minBudget: null, maxBudget: null, minArea: null, maxArea: null })
     )
-    expect(result.matchedCriteria).not.toContain('budget')
-    expect(result.matchedCriteria).not.toContain('area')
+    expect(result?.matchedCriteria).not.toContain('budget')
+    expect(result?.matchedCriteria).not.toContain('area')
   })
 
   it('matches a price exactly at a budget boundary', () => {
@@ -88,7 +132,7 @@ describe('scoreMatch', () => {
       makeProperty({ price: 4000000000 }),
       makeApplicant({ minBudget: 2000000000, maxBudget: 4000000000 })
     )
-    expect(result.matchedCriteria).toContain('budget')
+    expect(result?.matchedCriteria).toContain('budget')
   })
 
   it('does not match a price outside the budget range', () => {
@@ -96,30 +140,26 @@ describe('scoreMatch', () => {
       makeProperty({ price: 5000000000 }),
       makeApplicant({ minBudget: 2000000000, maxBudget: 4000000000 })
     )
-    expect(result.matchedCriteria).not.toContain('budget')
+    expect(result?.matchedCriteria).not.toContain('budget')
   })
 })
 
 describe('findPropertyMatchesForApplicant', () => {
-  it('sorts by score descending and drops zero-score properties', () => {
+  it('sorts by score descending and drops zero-score/excluded properties', () => {
     const applicant = makeApplicant()
     const strongMatch = makeProperty({ id: 'prop-strong' })
     const weakMatch = makeProperty({
       id: 'prop-weak',
-      propertyType: 'ویلا',
+      propertyType: 'ویلایی',
       transactionType: 'رهن'
     })
-    const noMatch = makeProperty({
-      id: 'prop-none',
-      city: 'شیراز',
-      propertyType: 'زمین',
-      transactionType: 'رهن و اجاره',
-      price: 1,
-      area: 5,
-      rooms: 9
-    })
+    const differentCity = makeProperty({ id: 'prop-different-city', city: 'شیراز' })
 
-    const results = findPropertyMatchesForApplicant(applicant, [weakMatch, noMatch, strongMatch])
+    const results = findPropertyMatchesForApplicant(applicant, [
+      weakMatch,
+      differentCity,
+      strongMatch
+    ])
 
     expect(results.map((r) => r.property.id)).toEqual(['prop-strong', 'prop-weak'])
     expect(results[0]?.score).toBeGreaterThanOrEqual(results[1]?.score ?? 0)
@@ -127,22 +167,12 @@ describe('findPropertyMatchesForApplicant', () => {
 })
 
 describe('findApplicantMatchesForProperty', () => {
-  it('sorts by score descending and drops zero-score applicants', () => {
+  it('sorts by score descending and drops zero-score/excluded applicants', () => {
     const property = makeProperty()
     const strongMatch = makeApplicant({ id: 'app-strong' })
-    const noMatch = makeApplicant({
-      id: 'app-none',
-      city: 'شیراز',
-      preferredPropertyType: 'زمین',
-      preferredTransactionType: 'رهن',
-      rooms: 9,
-      minBudget: 1,
-      maxBudget: 10,
-      minArea: 1,
-      maxArea: 5
-    })
+    const differentCity = makeApplicant({ id: 'app-different-city', city: 'شیراز' })
 
-    const results = findApplicantMatchesForProperty(property, [noMatch, strongMatch])
+    const results = findApplicantMatchesForProperty(property, [differentCity, strongMatch])
 
     expect(results.map((r) => r.applicant.id)).toEqual(['app-strong'])
   })

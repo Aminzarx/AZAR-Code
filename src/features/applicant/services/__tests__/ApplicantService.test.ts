@@ -10,8 +10,6 @@ const USER_ID = 'user-1'
 const VALID_VALUES: ApplicantFormValues = {
   fullName: 'علی رضایی',
   phoneNumber: '09121234567',
-  email: '',
-  applicantType: 'حقیقی',
   preferredTransactionType: 'فروش',
   preferredPropertyType: 'آپارتمان',
   city: 'تهران',

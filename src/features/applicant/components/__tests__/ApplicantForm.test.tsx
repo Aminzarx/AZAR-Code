@@ -7,8 +7,6 @@ import type { ApplicantFormValues } from '../../types'
 const EMPTY_VALUES: ApplicantFormValues = {
   fullName: '',
   phoneNumber: '',
-  email: '',
-  applicantType: '',
   preferredTransactionType: '',
   preferredPropertyType: '',
   city: '',

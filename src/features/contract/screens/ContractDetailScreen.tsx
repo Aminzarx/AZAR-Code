@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Alert, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, LoadingIndicator } from '@shared/components'
+import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
 import { useContractDetail } from '../hooks/useContractDetail'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
@@ -118,121 +117,119 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {isLoading ? (
-          <View style={styles.centeredSection}>
-            <LoadingIndicator size="large" />
-          </View>
-        ) : error ? (
-          <View style={styles.centeredSection}>
-            <ErrorState
-              title="بارگذاری قرارداد با مشکل مواجه شد"
-              description={error.message}
-              retryLabel="تلاش مجدد"
-              onRetry={refetch}
+    <FormScreenContainer>
+      {isLoading ? (
+        <View style={styles.centeredSection}>
+          <LoadingIndicator size="large" />
+        </View>
+      ) : error ? (
+        <View style={styles.centeredSection}>
+          <ErrorState
+            title="بارگذاری قرارداد با مشکل مواجه شد"
+            description={error.message}
+            retryLabel="تلاش مجدد"
+            onRetry={refetch}
+          />
+        </View>
+      ) : !contract ? (
+        <View style={styles.centeredSection}>
+          <ErrorState title="قرارداد پیدا نشد" />
+        </View>
+      ) : (
+        <>
+          <Card variant="detail">
+            <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>ملک</Text>
+            <Text style={[theme.typography('bodyMd'), styles.value]}>
+              {contract.property?.title ?? 'ملک پیدا نشد'}
+            </Text>
+            {contract.property ? (
+              <Text style={[theme.typography('bodySm'), styles.subValue]}>
+                {contract.property.city} — {contract.property.address}
+              </Text>
+            ) : null}
+          </Card>
+
+          <Card variant="detail">
+            <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>متقاضی</Text>
+            <Text style={[theme.typography('bodyMd'), styles.value]}>
+              {contract.applicant?.fullName ?? 'متقاضی پیدا نشد'}
+            </Text>
+            {contract.applicant ? (
+              <Text style={[theme.typography('bodySm'), styles.subValue]}>
+                {contract.applicant.city} — {contract.applicant.phoneNumber}
+              </Text>
+            ) : null}
+          </Card>
+
+          <View style={styles.section}>
+            <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>وضعیت</Text>
+            <ContractStatusPicker
+              status={contract.status}
+              onChange={handleStatusChange}
+              disabled={isUpdatingStatus}
             />
           </View>
-        ) : !contract ? (
-          <View style={styles.centeredSection}>
-            <ErrorState title="قرارداد پیدا نشد" />
-          </View>
-        ) : (
-          <>
-            <Card variant="detail">
-              <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>ملک</Text>
-              <Text style={[theme.typography('bodyMd'), styles.value]}>
-                {contract.property?.title ?? 'ملک پیدا نشد'}
-              </Text>
-              {contract.property ? (
-                <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                  {contract.property.city} — {contract.property.address}
-                </Text>
-              ) : null}
-            </Card>
 
-            <Card variant="detail">
-              <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>متقاضی</Text>
-              <Text style={[theme.typography('bodyMd'), styles.value]}>
-                {contract.applicant?.fullName ?? 'متقاضی پیدا نشد'}
-              </Text>
-              {contract.applicant ? (
-                <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                  {contract.applicant.city} — {contract.applicant.phoneNumber}
-                </Text>
-              ) : null}
-            </Card>
-
+          {isEditing && values ? (
             <View style={styles.section}>
-              <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>وضعیت</Text>
-              <ContractStatusPicker
-                status={contract.status}
-                onChange={handleStatusChange}
-                disabled={isUpdatingStatus}
+              <ContractForm
+                values={values}
+                errors={errors}
+                onChange={handleChange}
+                onSubmit={handleSubmit}
+                submitLabel="ذخیره تغییرات"
+                isSubmitting={isSubmitting}
               />
             </View>
-
-            {isEditing && values ? (
-              <View style={styles.section}>
-                <ContractForm
-                  values={values}
-                  errors={errors}
-                  onChange={handleChange}
-                  onSubmit={handleSubmit}
-                  submitLabel="ذخیره تغییرات"
-                  isSubmitting={isSubmitting}
-                />
-              </View>
-            ) : (
-              <Card variant="detail">
-                {contract.type ? (
-                  <DetailRow
-                    label="نوع قرارداد"
-                    value={contract.type}
-                    theme={theme}
-                    styles={styles}
-                  />
-                ) : null}
-                {contract.amount !== null ? (
-                  <DetailRow
-                    label="مبلغ"
-                    value={`${contract.amount.toLocaleString('fa-IR')} تومان`}
-                    theme={theme}
-                    styles={styles}
-                  />
-                ) : null}
+          ) : (
+            <Card variant="detail">
+              {contract.type ? (
                 <DetailRow
-                  label="بازه قرارداد"
-                  value={`${contract.startDate} تا ${contract.endDate}`}
+                  label="نوع قرارداد"
+                  value={contract.type}
                   theme={theme}
                   styles={styles}
                 />
-                {contract.notes ? (
-                  <DetailRow label="یادداشت" value={contract.notes} theme={theme} styles={styles} />
-                ) : null}
-                <Button
-                  label="ویرایش"
-                  onPress={startEditing}
-                  variant="secondary"
-                  style={styles.actionButton}
+              ) : null}
+              {contract.amount !== null ? (
+                <DetailRow
+                  label="مبلغ"
+                  value={`${contract.amount.toLocaleString('fa-IR')} تومان`}
+                  theme={theme}
+                  styles={styles}
                 />
-                <Button
-                  label="حذف قرارداد"
-                  onPress={confirmDelete}
-                  variant="destructive"
-                  loading={isDeleting}
-                  style={styles.actionButton}
-                />
-              </Card>
-            )}
+              ) : null}
+              <DetailRow
+                label="بازه قرارداد"
+                value={`${contract.startDate} تا ${contract.endDate}`}
+                theme={theme}
+                styles={styles}
+              />
+              {contract.notes ? (
+                <DetailRow label="یادداشت" value={contract.notes} theme={theme} styles={styles} />
+              ) : null}
+              <Button
+                label="ویرایش"
+                onPress={startEditing}
+                variant="secondary"
+                style={styles.actionButton}
+              />
+              <Button
+                label="حذف قرارداد"
+                onPress={confirmDelete}
+                variant="destructive"
+                loading={isDeleting}
+                style={styles.actionButton}
+              />
+            </Card>
+          )}
 
-            {submitError ? (
-              <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
-            ) : null}
-          </>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          {submitError ? (
+            <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+          ) : null}
+        </>
+      )}
+    </FormScreenContainer>
   )
 }
 
@@ -254,14 +251,6 @@ function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.E
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: theme.colors.background
-    },
-    content: {
-      padding: theme.spacing.space6,
-      gap: theme.spacing.space4
-    },
     centeredSection: {
       alignItems: 'center',
       justifyContent: 'center',
