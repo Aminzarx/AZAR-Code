@@ -8,7 +8,7 @@ import { generateId, generateReferralCode } from '../../../infrastructure/auth/i
 import { inMemorySecureStorage } from '../../../infrastructure/security/testHelpers'
 import { SessionManager } from '../sessionManager'
 
-const DEV_OTP_CODE = '123456'
+const DEV_OTP_CODE = '518322'
 
 async function setup() {
   const db: DB = open({ name: `test-session-${Math.random()}.db`, location: ':memory:' })

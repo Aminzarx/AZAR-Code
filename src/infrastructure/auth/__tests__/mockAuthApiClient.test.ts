@@ -6,7 +6,7 @@ import { MockAuthApiClient } from '../mockAuthApiClient'
 import { generateId, generateReferralCode } from '../idGenerators'
 import { AuthenticationFailureError, ValidationFailureError } from '../../../core/auth/errors'
 
-const DEV_OTP_CODE = '123456'
+const DEV_OTP_CODE = '518322'
 
 async function setup() {
   const db: DB = open({ name: `test-auth-${Math.random()}.db`, location: ':memory:' })

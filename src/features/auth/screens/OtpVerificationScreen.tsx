@@ -49,7 +49,7 @@ export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.E
           label="کد تأیید"
           value={code}
           onChangeText={setCode}
-          placeholder="123456"
+          placeholder="000000"
           keyboardType="number-pad"
           maxLength={6}
           errorMessage={error ?? undefined}
