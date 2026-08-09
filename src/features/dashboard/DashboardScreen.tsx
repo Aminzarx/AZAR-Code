@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Avatar, ErrorState, LoadingIndicator } from '@shared/components'
+import { Avatar, ErrorState, Icon, LoadingIndicator } from '@shared/components'
 import { useDashboardData } from './hooks/useDashboardData'
 import { StatCard } from './components/StatCard'
 import { QuickActions, type QuickAction } from './components/QuickActions'
@@ -24,16 +24,19 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
     {
       id: 'add-property',
       label: 'افزودن پرونده ملکی',
+      icon: 'files',
       onPress: () => navigation.navigate('CreateProperty')
     },
     {
       id: 'add-applicant',
       label: 'افزودن متقاضی',
+      icon: 'person',
       onPress: () => navigation.navigate('CreateApplicant')
     },
     {
       id: 'deals',
       label: 'مشاهده پیگیری‌ها',
+      icon: 'matching',
       onPress: () => navigation.navigate('DealList')
     }
   ]
@@ -41,18 +44,23 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="داشبورد">
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => navigation.navigate('Settings')}
-            accessibilityRole="button"
-            accessibilityLabel="مشاهده پروفایل و تنظیمات"
-          >
-            <Avatar name="کاربر آزار" size="lg" />
-          </Pressable>
+        <Pressable
+          onPress={() => navigation.navigate('Settings')}
+          accessibilityRole="button"
+          accessibilityLabel="مشاهده پروفایل و تنظیمات"
+          style={styles.header}
+        >
+          <Avatar name="کاربر آزار" size="lg" />
           <View style={styles.headerText}>
             <Text style={[theme.typography('headlineLgMobile'), styles.greeting]}>خوش آمدید</Text>
+            {session?.referralCode ? (
+              <Text style={[theme.typography('bodySm'), styles.headerSubtitle]}>
+                کد معرف: {session.referralCode}
+              </Text>
+            ) : null}
           </View>
-        </View>
+          <Icon name="chevron" size="sm" color={theme.colors.outline} />
+        </Pressable>
 
         {isLoading ? (
           <View style={styles.centeredSection}>
@@ -139,6 +147,10 @@ function createStyles(theme: Theme) {
     },
     greeting: {
       color: theme.colors.onSurface
+    },
+    headerSubtitle: {
+      color: theme.colors.onSurfaceVariant,
+      marginTop: theme.spacing.space1
     },
     statsRow: {
       flexDirection: 'row',

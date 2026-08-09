@@ -16,6 +16,9 @@ export type IconName =
   | 'copy'
   | 'alert'
   | 'inbox'
+  | 'person'
+  | 'calendar'
+  | 'chevronDouble'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -402,6 +405,76 @@ function renderGlyph(
         >
           <View style={{ height: stroke, backgroundColor: tint }} />
         </View>
+      )
+    case 'person':
+      return (
+        <>
+          <View
+            style={{
+              width: box * 0.34,
+              height: box * 0.34,
+              borderRadius: box,
+              backgroundColor: tint,
+              marginBottom: box * 0.06
+            }}
+          />
+          <View
+            style={{
+              width: box * 0.62,
+              height: box * 0.34,
+              backgroundColor: tint,
+              borderTopLeftRadius: box * 0.34,
+              borderTopRightRadius: box * 0.34
+            }}
+          />
+        </>
+      )
+    case 'calendar':
+      return (
+        <View
+          style={{
+            width: box * 0.72,
+            height: box * 0.64,
+            borderColor: tint,
+            borderWidth: stroke,
+            borderRadius: 3,
+            justifyContent: 'flex-start'
+          }}
+        >
+          <View style={{ height: box * 0.16, backgroundColor: tint, borderRadius: 1 }} />
+        </View>
+      )
+    case 'chevronDouble':
+      return (
+        <>
+          <View
+            style={[
+              styles.chevron,
+              {
+                width: box * 0.32,
+                height: box * 0.32,
+                borderColor: tint,
+                borderRightWidth: stroke,
+                borderTopWidth: stroke,
+                marginBottom: -box * 0.1,
+                transform: [{ rotate: isRTL ? '-45deg' : '135deg' }]
+              }
+            ]}
+          />
+          <View
+            style={[
+              styles.chevron,
+              {
+                width: box * 0.32,
+                height: box * 0.32,
+                borderColor: tint,
+                borderRightWidth: stroke,
+                borderTopWidth: stroke,
+                transform: [{ rotate: isRTL ? '-45deg' : '135deg' }]
+              }
+            ]}
+          />
+        </>
       )
   }
 }

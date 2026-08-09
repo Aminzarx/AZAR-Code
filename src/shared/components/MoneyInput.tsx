@@ -13,7 +13,7 @@ type Props = {
   errorMessage?: string
   required?: boolean
   disabled?: boolean
-  /** Zero counts for the quick-add chip row, e.g. [3, 6] renders "+۳ صفر" / "+۶ صفر". Defaults to [3, 6]. */
+  /** Zero counts for the quick-add chip row — each renders as its Persian unit name (see ZERO_LABELS) or "+N صفر" if unnamed. Defaults to [3, 4, 5, 6]. */
   quickZeroCounts?: number[]
 }
 
@@ -24,7 +24,13 @@ function formatWithSeparators(rawDigits: string): string {
   return rawDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
-const ZERO_LABELS: Record<number, string> = { 3: 'هزار', 6: 'میلیون', 9: 'میلیارد' }
+const ZERO_LABELS: Record<number, string> = {
+  3: 'هزار',
+  4: 'ده هزار',
+  5: 'صد هزار',
+  6: 'میلیون',
+  9: 'میلیارد'
+}
 
 /**
  * A price/budget field — design-system.md §8.3's TextInput plus two UX
@@ -43,7 +49,7 @@ export function MoneyInput({
   errorMessage,
   required,
   disabled,
-  quickZeroCounts = [3, 6]
+  quickZeroCounts = [3, 4, 5, 6]
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -75,18 +81,22 @@ export function MoneyInput({
       />
       {!disabled && quickZeroCounts.length > 0 ? (
         <View style={styles.chipRow}>
-          {quickZeroCounts.map((count) => (
-            <Pressable
-              key={count}
-              accessibilityRole="button"
-              accessibilityLabel={`افزودن ${count} صفر${ZERO_LABELS[count] ? ` (${ZERO_LABELS[count]})` : ''}`}
-              onPress={() => handleAddZeros(count)}
-              disabled={!value}
-              style={[styles.chip, !value && styles.chipDisabled]}
-            >
-              <Text style={[theme.typography('labelSm'), styles.chipLabel]}>{`+${count} صفر`}</Text>
-            </Pressable>
-          ))}
+          {quickZeroCounts.map((count) => {
+            const unitLabel = ZERO_LABELS[count]
+            const chipText = unitLabel ? `+ ${unitLabel}` : `+${count} صفر`
+            return (
+              <Pressable
+                key={count}
+                accessibilityRole="button"
+                accessibilityLabel={`افزودن ${count} صفر${unitLabel ? ` (${unitLabel})` : ''}`}
+                onPress={() => handleAddZeros(count)}
+                disabled={!value}
+                style={[styles.chip, !value && styles.chipDisabled]}
+              >
+                <Text style={[theme.typography('labelSm'), styles.chipLabel]}>{chipText}</Text>
+              </Pressable>
+            )
+          })}
         </View>
       ) : null}
     </View>

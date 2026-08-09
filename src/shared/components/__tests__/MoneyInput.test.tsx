@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render } from '@testing-library/react-native'
+import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '../testHelpers'
 import { MoneyInput } from '../MoneyInput'
 
@@ -27,6 +27,24 @@ describe('MoneyInput', () => {
     )
     fireEvent.press(getByLabelText('افزودن 6 صفر (میلیون)'))
     expect(onChangeValue).toHaveBeenCalledWith('5000000')
+  })
+
+  it('offers a ده هزار quick-add chip by default', async () => {
+    const onChangeValue = jest.fn()
+    const { getByLabelText } = await render(
+      withTheme(<MoneyInput label="قیمت" value="5" onChangeValue={onChangeValue} />)
+    )
+    fireEvent.press(getByLabelText('افزودن 4 صفر (ده هزار)'))
+    await waitFor(() => expect(onChangeValue).toHaveBeenCalledWith('50000'))
+  })
+
+  it('offers a صد هزار quick-add chip by default', async () => {
+    const onChangeValue = jest.fn()
+    const { getByLabelText } = await render(
+      withTheme(<MoneyInput label="قیمت" value="5" onChangeValue={onChangeValue} />)
+    )
+    fireEvent.press(getByLabelText('افزودن 5 صفر (صد هزار)'))
+    await waitFor(() => expect(onChangeValue).toHaveBeenCalledWith('500000'))
   })
 
   it('does not append zeros when the field is empty', async () => {
