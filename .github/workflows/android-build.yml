@@ -8,7 +8,7 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  assemble-debug:
+  assemble-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,27 +35,38 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build debug APK
+      - name: Build release APK
         working-directory: android
         # Building all 4 ABIs (armeabi-v7a/arm64-v8a/x86/x86_64) at once compiles
         # op-sqlite (SQLCipher) and quick-crypto (OpenSSL/ncrypto) native code in
         # parallel across all of them — on the standard ubuntu-latest runner's
         # ~7GB RAM this repeatedly exhausted memory and the job was silently
         # killed mid-compile (twice, no compiler error, just a dead process).
-        # Scoping this CI debug build to arm64-v8a only (what a real Xiaomi
+        # Scoping this CI build to arm64-v8a only (what a real Xiaomi/Samsung
         # phone needs to install and run it) and capping Gradle's worker count
         # cuts concurrent native compiles enough to stay within the runner's
         # memory budget. This only overrides the build for this CI invocation
         # via -P/-D flags; android/gradle.properties keeps its multi-ABI
-        # default for local/release builds.
+        # default for local builds.
+        #
+        # assembleRelease, not assembleDebug: React Native's debug variant
+        # doesn't embed the JS bundle — it expects to fetch it live from a
+        # Metro dev server on the same machine/network, so a debug APK
+        # installed standalone on a real device fails with "Unable to load
+        # script." The release variant bundles the JS (Hermes bytecode)
+        # into the APK itself, so it runs with no dev machine attached.
+        # android/app/build.gradle already points the release signingConfig
+        # at the checked-in debug.keystore (fine for this internal-testing
+        # build) and has minifyEnabled=false, so this needs no new keystore
+        # and no ProGuard rules.
         run: >-
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
           -PreactNativeArchitectures=arm64-v8a
           -Dorg.gradle.workers.max=2
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: azar-crm-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: azar-crm-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
