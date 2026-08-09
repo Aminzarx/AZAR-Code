@@ -105,6 +105,18 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    // op-sqlite (SQLCipher, OpenSSL 3.3.2) and react-native-quick-crypto
+    // (OpenSSL 3.6.2) each bundle their own libcrypto.so/libssl.so, so the
+    // native-lib merge step fails with "2 files found with path
+    // lib/<abi>/libcrypto.so". OpenSSL 3.x guarantees ABI stability across
+    // minor versions for its public API, so either copy works for both
+    // modules at runtime — pickFirst just resolves the packaging conflict.
+    packagingOptions {
+        jniLibs {
+            pickFirsts += ['lib/*/libcrypto.so', 'lib/*/libssl.so']
+        }
+    }
 }
 
 dependencies {
