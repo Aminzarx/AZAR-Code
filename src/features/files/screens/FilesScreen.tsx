@@ -19,11 +19,10 @@ const OPTIONS = [
 
 /**
  * Files tab root (design-system.md §7.5's bottom-nav item set). Owner
- * files vs. applicant files is a segmented-control choice, not two
- * separate tabs (§8.14's explicit "no Material Tabs, segmented controls
- * already cover every case" ruling) — this screen just switches which
- * existing list screen renders, reusing them as-is rather than
- * duplicating their search/list/create logic.
+ * files vs. applicant files is a segmented-control choice (§7.4), not
+ * two separate tabs — this screen just switches which existing list
+ * screen renders, reusing them as-is rather than duplicating their
+ * search/list/create logic.
  */
 export function FilesScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
