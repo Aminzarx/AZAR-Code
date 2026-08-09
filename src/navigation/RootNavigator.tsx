@@ -9,9 +9,10 @@ import { MainNavigator } from './MainNavigator'
 
 /**
  * Session-gated root: AuthNavigator (Welcome -> ... -> ReferralCode)
- * while unauthenticated, MainNavigator (BasicProfile -> Home) once a
- * session exists. Switches automatically the moment AuthProvider's
- * session state changes — register()/login()/logout() all update it.
+ * while unauthenticated, MainNavigator (bottom-tab layout, Home tab
+ * first) once a session exists. Switches automatically the moment
+ * AuthProvider's session state changes — register()/login()/logout()
+ * all update it.
  */
 export function RootNavigator(): React.JSX.Element {
   const { isInitializing, session } = useAuth()

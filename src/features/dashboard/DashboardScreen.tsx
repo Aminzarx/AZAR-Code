@@ -17,7 +17,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
 export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const { session, logout } = useAuth()
+  const { session } = useAuth()
   const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
 
   const quickActions: QuickAction[] = [
@@ -35,22 +35,16 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
       id: 'deals',
       label: 'مشاهده پیگیری‌ها',
       onPress: () => navigation.navigate('DealList')
-    },
-    { id: 'logout', label: 'خروج از حساب', onPress: () => logout() }
+    }
   ]
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="داشبورد">
         <View style={styles.header}>
-          <Avatar name={session?.referralCode ?? '?'} size="lg" />
+          <Avatar name="کاربر آزار" size="lg" />
           <View style={styles.headerText}>
             <Text style={[theme.typography('headlineLgMobile'), styles.greeting]}>خوش آمدید</Text>
-            {session ? (
-              <Text style={[theme.typography('bodySm'), styles.referralCode]}>
-                کد معرف شما: {session.referralCode}
-              </Text>
-            ) : null}
           </View>
         </View>
 
@@ -139,10 +133,6 @@ function createStyles(theme: Theme) {
     },
     greeting: {
       color: theme.colors.onSurface
-    },
-    referralCode: {
-      color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
     },
     statsRow: {
       flexDirection: 'row',

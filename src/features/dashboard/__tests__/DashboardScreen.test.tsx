@@ -4,13 +4,11 @@ import { withTheme } from '@shared/components/testHelpers'
 import { DashboardScreen } from '../DashboardScreen'
 import { fetchDashboardData } from '../services/dashboardDataService'
 
-const mockLogout = jest.fn()
 const mockNavigate = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
-    session: { sessionId: 's1', userId: 'u1', referralCode: 'ABCD1234', sessionToken: 't1' },
-    logout: mockLogout
+    session: { sessionId: 's1', userId: 'u1', referralCode: 'ABCD1234', sessionToken: 't1' }
   })
 }))
 
@@ -26,11 +24,10 @@ const routeProp = { key: 'Home', name: 'Home' as const, params: undefined }
 describe('DashboardScreen', () => {
   beforeEach(() => {
     mockedFetchDashboardData.mockReset()
-    mockLogout.mockReset()
     mockNavigate.mockReset()
   })
 
-  it('shows a loading indicator, then the referral code and stats once data resolves', async () => {
+  it('shows a loading indicator, then the stats once data resolves', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '2' }],
       recentActivity: [],
@@ -41,7 +38,6 @@ describe('DashboardScreen', () => {
       withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    expect(await findByText('کد معرف شما: ABCD1234')).toBeTruthy()
     expect(await findByText('پرونده‌های ملکی')).toBeTruthy()
     expect(mockedFetchDashboardData).toHaveBeenCalledWith('u1')
   })
