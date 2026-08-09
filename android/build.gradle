@@ -20,3 +20,24 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// op-sqlite (SQLCipher) and react-native-quick-crypto each independently
+// depend on io.github.ronickg:openssl — the same prebuilt OpenSSL AAR, but
+// pinned to different versions (3.3.2-1 vs 3.6.2-1). Because each is its
+// own Android library module, each bundles its own resolved version's
+// libcrypto.so/libssl.so into its own AAR before the app-level merge ever
+// runs, so Gradle's normal same-app version resolution can't unify them —
+// the app-level packagingOptions.pickFirst (android/app/build.gradle) only
+// hides the resulting duplicate-file conflict, it doesn't stop two
+// genuinely different compiled binaries from both being candidates, which
+// risks exactly the kind of native crash-on-launch a real device can hit
+// if the "wrong" one gets picked. Forcing every module's request for this
+// artifact to the same version removes the mismatch at its source, so
+// both native libraries link against and ship the identical binary.
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'io.github.ronickg:openssl:3.6.2-1'
+        }
+    }
+}
