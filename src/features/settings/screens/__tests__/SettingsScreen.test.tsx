@@ -1,9 +1,11 @@
 import React from 'react'
-import { fireEvent, render } from '@testing-library/react-native'
+import { Alert, Clipboard } from 'react-native'
+import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { SettingsScreen } from '../SettingsScreen'
 
 const mockLogout = jest.fn()
+const mockFindById = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -12,12 +14,36 @@ jest.mock('@features/auth/AuthProvider', () => ({
   })
 }))
 
+jest.mock('@infrastructure/database/connection', () => ({
+  getDatabase: () => Promise.resolve({})
+}))
+
+jest.mock('@infrastructure/database/repositories/UserRepository', () => ({
+  UserRepository: jest.fn().mockImplementation(() => ({
+    findById: (...args: unknown[]) => mockFindById(...args)
+  }))
+}))
+
 const navigationProp = {} as never
 const routeProp = { key: 'Settings', name: 'Settings' as const, params: undefined }
 
 describe('SettingsScreen', () => {
   beforeEach(() => {
     mockLogout.mockReset()
+    mockFindById.mockReset()
+    mockFindById.mockResolvedValue({
+      id: 'u1',
+      phoneNumber: '+989121234567',
+      referralCode: 'AZARSEED',
+      createdAt: '',
+      updatedAt: ''
+    })
+    jest.spyOn(Alert, 'alert').mockImplementation(() => undefined)
+    jest.spyOn(Clipboard, 'setString').mockImplementation(() => undefined)
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
   it('shows the referral code', async () => {
@@ -28,12 +54,53 @@ describe('SettingsScreen', () => {
     expect((await findByLabelText('کد معرف شما')).props.children).toBe('AZARSEED')
   })
 
-  it('logs out when the logout button is pressed', async () => {
+  it('shows the phone number once loaded', async () => {
+    const { findByText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('+989121234567')).toBeTruthy()
+  })
+
+  it('copies the referral code to the clipboard', async () => {
+    const { findByLabelText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('کپی کد معرف'))
+    expect(Clipboard.setString).toHaveBeenCalledWith('AZARSEED')
+  })
+
+  it('asks for confirmation before logging out and does not log out on cancel', async () => {
     const { findByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
     fireEvent.press(await findByText('خروج از حساب'))
-    expect(mockLogout).toHaveBeenCalledTimes(1)
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'خروج از حساب',
+      'آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟',
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'انصراف' }),
+        expect.objectContaining({ text: 'خروج' })
+      ])
+    )
+    expect(mockLogout).not.toHaveBeenCalled()
+  })
+
+  it('logs out only after confirming in the dialog', async () => {
+    const { findByText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('خروج از حساب'))
+
+    const alertMock = Alert.alert as jest.Mock
+    const buttons = alertMock.mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>
+    const logoutButton = buttons.find((button) => button.text === 'خروج')
+    logoutButton?.onPress?.()
+
+    await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1))
   })
 })

@@ -2,19 +2,14 @@ import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button } from './Button'
+import { Icon } from './Icon'
 
 type Props = {
   title: string
   description?: string
   actionLabel?: string
   onAction?: () => void
-  /**
-   * No icon font is bundled yet (Material Symbols Outlined, per
-   * design-tokens.json `icon.family`, is Phase 11 asset-loading work) —
-   * callers pass whatever icon element they already have (an emoji, an
-   * SVG, a future icon-font glyph) rather than this component assuming
-   * one specific icon library.
-   */
+  /** Defaults to the generic "inbox" glyph; pass a different `<Icon>` for a more specific context. */
   icon?: React.ReactNode
 }
 
@@ -31,7 +26,9 @@ export function EmptyState({
 
   return (
     <View style={styles.container}>
-      {icon}
+      <View style={styles.iconBadge}>
+        {icon ?? <Icon name="inbox" size="lg" color={theme.colors.onSurfaceVariant} />}
+      </View>
       <Text style={[theme.typography('titleSm'), styles.title]}>{title}</Text>
       {description ? (
         <Text style={[theme.typography('bodySm'), styles.description]}>{description}</Text>
@@ -52,6 +49,14 @@ function createStyles(theme: Theme) {
       justifyContent: 'center',
       padding: theme.spacing.space8,
       gap: theme.spacing.space3
+    },
+    iconBadge: {
+      width: theme.iconSize.xl,
+      height: theme.iconSize.xl,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.surfaceContainerLow,
+      alignItems: 'center',
+      justifyContent: 'center'
     },
     title: {
       color: theme.colors.onSurface

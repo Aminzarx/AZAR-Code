@@ -1,11 +1,13 @@
-import React from 'react'
-import { ScrollView, StyleSheet, Text } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { Alert, Clipboard, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card } from '@shared/components'
+import { Button, Card, Icon } from '@shared/components'
+import { getDatabase } from '@infrastructure/database/connection'
+import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>
 
@@ -19,6 +21,40 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session, logout } = useAuth()
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!session) {
+      return
+    }
+    getDatabase()
+      .then((db) => new UserRepository(db).findById(session.userId))
+      .then((user) => {
+        if (!cancelled) {
+          setPhoneNumber(user?.phoneNumber ?? null)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [session])
+
+  function handleCopyReferralCode(): void {
+    if (!session?.referralCode) {
+      return
+    }
+    Clipboard.setString(session.referralCode)
+    setCopied(true)
+  }
+
+  function confirmLogout(): void {
+    Alert.alert('خروج از حساب', 'آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟', [
+      { text: 'انصراف', style: 'cancel' },
+      { text: 'خروج', style: 'destructive', onPress: () => logout() }
+    ])
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -26,19 +62,45 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
         <Text style={[theme.typography('headlineLgMobile'), styles.title]}>تنظیمات</Text>
 
         <Card variant="detail" style={styles.card}>
+          <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>شماره موبایل</Text>
+          <Text style={[theme.typography('titleMd'), styles.value]}>{phoneNumber ?? '—'}</Text>
+        </Card>
+
+        <Card variant="detail" style={styles.card}>
           <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>کد معرف شما</Text>
-          <Text
-            accessibilityLabel="کد معرف شما"
-            style={[theme.typography('headlineLgMobile'), styles.code]}
-          >
-            {session?.referralCode}
-          </Text>
+          <View style={styles.codeRow}>
+            <Text
+              accessibilityLabel="کد معرف شما"
+              style={[theme.typography('headlineLgMobile'), styles.code]}
+            >
+              {session?.referralCode}
+            </Text>
+            <Pressable
+              onPress={handleCopyReferralCode}
+              accessibilityRole="button"
+              accessibilityLabel="کپی کد معرف"
+              style={styles.copyButton}
+              hitSlop={theme.spacing.space2}
+            >
+              <Icon name="copy" size="sm" color={theme.colors.primary} />
+            </Pressable>
+          </View>
           <Text style={[theme.typography('bodySm'), styles.hint]}>
-            این کد را برای دعوت افراد جدید به آزار به اشتراک بگذارید.
+            {copied
+              ? 'کد معرف کپی شد.'
+              : 'این کد را برای دعوت افراد جدید به آزار به اشتراک بگذارید.'}
           </Text>
         </Card>
 
-        <Button label="خروج از حساب" variant="secondary" onPress={() => logout()} />
+        <Card variant="detail" style={styles.card}>
+          <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>وضعیت نشست</Text>
+          <View style={styles.statusRow}>
+            <View style={styles.statusDot} />
+            <Text style={[theme.typography('titleMd'), styles.value]}>فعال</Text>
+          </View>
+        </Card>
+
+        <Button label="خروج از حساب" variant="secondary" onPress={confirmLogout} />
       </ScrollView>
     </SafeAreaView>
   )
@@ -63,12 +125,37 @@ function createStyles(theme: Theme) {
     cardLabel: {
       color: theme.colors.onSurfaceVariant
     },
+    value: {
+      color: theme.colors.onSurface
+    },
+    codeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    },
     code: {
       color: theme.colors.primary,
       letterSpacing: 4
     },
+    copyButton: {
+      minWidth: theme.touchTargetMinimum,
+      minHeight: theme.touchTargetMinimum,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
     hint: {
       color: theme.colors.onSurfaceVariant
+    },
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.success
     }
   })
 }

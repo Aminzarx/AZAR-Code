@@ -1,0 +1,425 @@
+import React from 'react'
+import { View, StyleSheet } from 'react-native'
+import { useTheme } from '../theme'
+
+export type IconName =
+  | 'chevron'
+  | 'plus'
+  | 'check'
+  | 'close'
+  | 'logout'
+  | 'home'
+  | 'files'
+  | 'matching'
+  | 'contract'
+  | 'settings'
+  | 'copy'
+  | 'alert'
+  | 'inbox'
+
+type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+
+type Props = {
+  name: IconName
+  /** design-tokens.json icon-size scale (16/18/24/32/48). Defaults to icon-md, the documented default. */
+  size?: IconSize
+  color?: string
+  /** Directional glyphs (currently just `chevron`) flip in RTL; everything else is direction-agnostic. */
+  accessibilityLabel?: string
+}
+
+/**
+ * A small, hand-drawn (pure View/border composition, zero dependencies)
+ * line-icon set — design-system.md §19 calls for Material Symbols
+ * Outlined, but no icon font/vector-icon library exists in this repo and
+ * every option investigated either needs native linking or only ships a
+ * web font format (woff2) Android can't load. This keeps stroke weight,
+ * corner rounding, and sizing fully consistent (the actual goal of §1's
+ * "unified icon system") without an unreviewed native dependency this
+ * close to finally having a working build. Covers exactly the icons this
+ * phase's screens use; extend the switch below as real needs come up,
+ * not speculatively.
+ */
+export function Icon({ name, size = 'md', color, accessibilityLabel }: Props): React.JSX.Element {
+  const theme = useTheme()
+  const box = theme.iconSize[size]
+  const tint = color ?? theme.colors.onSurface
+  const stroke = Math.max(1.5, box / 12)
+
+  return (
+    <View
+      style={[styles.box, { width: box, height: box }]}
+      accessible={Boolean(accessibilityLabel)}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityElementsHidden={!accessibilityLabel}
+      importantForAccessibility={accessibilityLabel ? 'yes' : 'no-hide-descendants'}
+    >
+      {renderGlyph(name, box, stroke, tint, theme.isRTL)}
+    </View>
+  )
+}
+
+function renderGlyph(
+  name: IconName,
+  box: number,
+  stroke: number,
+  tint: string,
+  isRTL: boolean
+): React.JSX.Element {
+  switch (name) {
+    case 'chevron':
+      return (
+        <View
+          style={[
+            styles.chevron,
+            {
+              width: box * 0.4,
+              height: box * 0.4,
+              borderColor: tint,
+              borderRightWidth: stroke,
+              borderTopWidth: stroke,
+              transform: [{ rotate: isRTL ? '-45deg' : '135deg' }]
+            }
+          ]}
+        />
+      )
+    case 'plus':
+      return (
+        <>
+          <View
+            style={[
+              styles.absoluteBar,
+              { width: box * 0.6, height: stroke, backgroundColor: tint }
+            ]}
+          />
+          <View
+            style={[
+              styles.absoluteBar,
+              { width: stroke, height: box * 0.6, backgroundColor: tint }
+            ]}
+          />
+        </>
+      )
+    case 'check':
+      return (
+        <View
+          style={[
+            styles.check,
+            {
+              width: box * 0.55,
+              height: box * 0.3,
+              borderColor: tint,
+              borderBottomWidth: stroke,
+              borderLeftWidth: stroke
+            }
+          ]}
+        />
+      )
+    case 'close':
+      return (
+        <>
+          <View
+            style={[
+              styles.absoluteBar,
+              {
+                width: box * 0.65,
+                height: stroke,
+                backgroundColor: tint,
+                transform: [{ rotate: '45deg' }]
+              }
+            ]}
+          />
+          <View
+            style={[
+              styles.absoluteBar,
+              {
+                width: box * 0.65,
+                height: stroke,
+                backgroundColor: tint,
+                transform: [{ rotate: '-45deg' }]
+              }
+            ]}
+          />
+        </>
+      )
+    case 'logout':
+      return (
+        <>
+          <View
+            style={{
+              width: box * 0.4,
+              height: box * 0.7,
+              borderColor: tint,
+              borderWidth: stroke,
+              borderRightWidth: 0,
+              borderTopLeftRadius: 3,
+              borderBottomLeftRadius: 3
+            }}
+          />
+          <View
+            style={[
+              styles.absoluteBar,
+              {
+                width: box * 0.4,
+                height: stroke,
+                backgroundColor: tint,
+                left: box * 0.35
+              }
+            ]}
+          />
+          <View
+            style={[
+              styles.chevron,
+              {
+                position: 'absolute',
+                left: box * 0.42,
+                width: box * 0.22,
+                height: box * 0.22,
+                borderColor: tint,
+                borderRightWidth: stroke,
+                borderTopWidth: stroke,
+                transform: [{ rotate: '45deg' }]
+              }
+            ]}
+          />
+        </>
+      )
+    case 'home':
+      return (
+        <>
+          <View
+            style={{
+              width: box * 0.62,
+              height: box * 0.62,
+              borderColor: tint,
+              borderWidth: stroke,
+              transform: [{ rotate: '45deg' }],
+              borderBottomWidth: 0,
+              borderRightWidth: 0,
+              marginBottom: box * 0.18
+            }}
+          />
+          <View
+            style={[
+              styles.absoluteBar,
+              {
+                bottom: box * 0.15,
+                width: box * 0.55,
+                height: box * 0.35,
+                backgroundColor: 'transparent',
+                borderColor: tint,
+                borderWidth: stroke,
+                borderTopWidth: 0
+              }
+            ]}
+          />
+        </>
+      )
+    case 'files':
+      return (
+        <View
+          style={{
+            width: box * 0.75,
+            height: box * 0.58,
+            borderColor: tint,
+            borderWidth: stroke,
+            borderRadius: 2
+          }}
+        >
+          <View
+            style={{
+              position: 'absolute',
+              top: -stroke,
+              [isRTL ? 'right' : 'left']: box * 0.08,
+              width: box * 0.3,
+              height: box * 0.14,
+              borderColor: tint,
+              borderWidth: stroke,
+              borderBottomWidth: 0,
+              borderTopLeftRadius: 2,
+              borderTopRightRadius: 2
+            }}
+          />
+        </View>
+      )
+    case 'matching':
+      return (
+        <>
+          <View
+            style={[
+              styles.absoluteBar,
+              { top: box * 0.28, width: box * 0.55, height: stroke, backgroundColor: tint }
+            ]}
+          />
+          <View
+            style={[
+              styles.chevron,
+              {
+                position: 'absolute',
+                top: box * 0.16,
+                right: box * 0.16,
+                width: box * 0.18,
+                height: box * 0.18,
+                borderColor: tint,
+                borderRightWidth: stroke,
+                borderTopWidth: stroke,
+                transform: [{ rotate: '45deg' }]
+              }
+            ]}
+          />
+          <View
+            style={[
+              styles.absoluteBar,
+              { top: box * 0.6, width: box * 0.55, height: stroke, backgroundColor: tint }
+            ]}
+          />
+          <View
+            style={[
+              styles.chevron,
+              {
+                position: 'absolute',
+                top: box * 0.48,
+                left: box * 0.16,
+                width: box * 0.18,
+                height: box * 0.18,
+                borderColor: tint,
+                borderLeftWidth: stroke,
+                borderBottomWidth: stroke,
+                transform: [{ rotate: '45deg' }]
+              }
+            ]}
+          />
+        </>
+      )
+    case 'contract':
+      return (
+        <View
+          style={{
+            width: box * 0.62,
+            height: box * 0.78,
+            borderColor: tint,
+            borderWidth: stroke,
+            borderRadius: 2,
+            justifyContent: 'center',
+            gap: box * 0.1
+          }}
+        >
+          <View style={{ height: stroke, marginHorizontal: box * 0.1, backgroundColor: tint }} />
+          <View style={{ height: stroke, marginHorizontal: box * 0.1, backgroundColor: tint }} />
+          <View
+            style={{
+              height: stroke,
+              marginHorizontal: box * 0.1,
+              width: '40%',
+              backgroundColor: tint
+            }}
+          />
+        </View>
+      )
+    case 'settings':
+      return (
+        <View
+          style={{
+            width: box * 0.65,
+            height: box * 0.65,
+            borderRadius: box,
+            borderWidth: stroke,
+            borderColor: tint,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <View
+            style={{
+              width: box * 0.22,
+              height: box * 0.22,
+              borderRadius: box,
+              backgroundColor: tint
+            }}
+          />
+        </View>
+      )
+    case 'copy':
+      return (
+        <>
+          <View
+            style={{
+              width: box * 0.5,
+              height: box * 0.5,
+              borderColor: tint,
+              borderWidth: stroke,
+              borderRadius: 2,
+              position: 'absolute',
+              top: box * 0.12,
+              [isRTL ? 'left' : 'right']: box * 0.1
+            }}
+          />
+          <View
+            style={{
+              width: box * 0.5,
+              height: box * 0.5,
+              borderColor: tint,
+              borderWidth: stroke,
+              borderRadius: 2,
+              position: 'absolute',
+              bottom: box * 0.12,
+              [isRTL ? 'right' : 'left']: box * 0.1
+            }}
+          />
+        </>
+      )
+    case 'alert':
+      return (
+        <View
+          style={{
+            width: box * 0.75,
+            height: box * 0.75,
+            borderRadius: box,
+            borderWidth: stroke,
+            borderColor: tint,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: box * 0.08
+          }}
+        >
+          <View style={{ width: stroke, height: box * 0.28, backgroundColor: tint }} />
+          <View
+            style={{ width: stroke, height: stroke, borderRadius: stroke, backgroundColor: tint }}
+          />
+        </View>
+      )
+    case 'inbox':
+      return (
+        <View
+          style={{
+            width: box * 0.7,
+            height: box * 0.55,
+            borderColor: tint,
+            borderWidth: stroke,
+            borderRadius: 2,
+            justifyContent: 'center'
+          }}
+        >
+          <View style={{ height: stroke, backgroundColor: tint }} />
+        </View>
+      )
+  }
+}
+
+const styles = StyleSheet.create({
+  box: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  absoluteBar: {
+    position: 'absolute',
+    borderRadius: 1
+  },
+  chevron: {
+    borderRadius: 1
+  },
+  check: {
+    transform: [{ rotate: '-45deg' }],
+    borderRadius: 1
+  }
+})

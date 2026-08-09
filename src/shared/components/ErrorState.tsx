@@ -2,6 +2,7 @@ import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button } from './Button'
+import { Icon } from './Icon'
 
 type Props = {
   title: string
@@ -22,7 +23,7 @@ export function ErrorState({ title, description, retryLabel, onRetry }: Props): 
   return (
     <View style={styles.container}>
       <View style={styles.iconBadge}>
-        <Text style={styles.iconGlyph}>!</Text>
+        <Icon name="alert" size="lg" color={theme.colors.onErrorContainer} />
       </View>
       <Text style={[theme.typography('titleSm'), styles.title]}>{title}</Text>
       {description ? (
@@ -52,10 +53,6 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.errorContainer,
       alignItems: 'center',
       justifyContent: 'center'
-    },
-    iconGlyph: {
-      color: theme.colors.onErrorContainer,
-      fontSize: 24
     },
     title: {
       color: theme.colors.onSurface,

@@ -4,11 +4,15 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '@navigation/AuthNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, TextInput } from '@shared/components'
+import { OtpInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
 import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'OtpVerification'>
+
+const CODE_LENGTH = 6
+
+type Status = 'default' | 'error' | 'success'
 
 export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
@@ -17,15 +21,20 @@ export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.E
   const { verifyOtp } = useAuth()
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState<Status>('default')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function handleSubmit(): Promise<void> {
+  async function submit(candidate: string): Promise<void> {
     setError(null)
     setIsSubmitting(true)
     try {
-      await verifyOtp(phoneNumber, code)
-      navigation.navigate('ReferralCode', { phoneNumber })
+      await verifyOtp(phoneNumber, candidate)
+      // Navigation happens once OtpInput's left-to-right success sweep
+      // finishes (onSuccessAnimationComplete below), not immediately —
+      // the confirmation itself is part of the expected flow.
+      setStatus('success')
     } catch (caughtError) {
+      setStatus('error')
       if (caughtError instanceof ValidationFailureError) {
         setError(caughtError.message)
       } else {
@@ -33,6 +42,15 @@ export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.E
       }
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  function handleChangeValue(next: string): void {
+    setCode(next)
+    setStatus('default')
+    setError(null)
+    if (next.length === CODE_LENGTH && !isSubmitting) {
+      submit(next)
     }
   }
 
@@ -45,22 +63,14 @@ export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.E
         </Text>
       </View>
       <View style={styles.form}>
-        <TextInput
-          label="کد تأیید"
+        <OtpInput
           value={code}
-          onChangeText={setCode}
-          placeholder="000000"
-          keyboardType="number-pad"
-          maxLength={6}
-          errorMessage={error ?? undefined}
-          autoFocus
+          onChangeValue={handleChangeValue}
+          status={status}
+          disabled={isSubmitting || status === 'success'}
+          onSuccessAnimationComplete={() => navigation.navigate('ReferralCode', { phoneNumber })}
         />
-        <Button
-          label="تأیید کد"
-          onPress={handleSubmit}
-          loading={isSubmitting}
-          disabled={code.length < 4}
-        />
+        {error ? <Text style={[theme.typography('bodySm'), styles.errorText]}>{error}</Text> : null}
       </View>
     </AuthScreenContainer>
   )
@@ -79,7 +89,10 @@ function createStyles(theme: Theme) {
       color: theme.colors.onSurfaceVariant
     },
     form: {
-      gap: theme.spacing.space6
+      gap: theme.spacing.space3
+    },
+    errorText: {
+      color: theme.colors.error
     }
   })
 }

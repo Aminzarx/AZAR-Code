@@ -1,5 +1,5 @@
 import React from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -42,7 +42,13 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="داشبورد">
         <View style={styles.header}>
-          <Avatar name="کاربر آزار" size="lg" />
+          <Pressable
+            onPress={() => navigation.navigate('Settings')}
+            accessibilityRole="button"
+            accessibilityLabel="مشاهده پروفایل و تنظیمات"
+          >
+            <Avatar name="کاربر آزار" size="lg" />
+          </Pressable>
           <View style={styles.headerText}>
             <Text style={[theme.typography('headlineLgMobile'), styles.greeting]}>خوش آمدید</Text>
           </View>

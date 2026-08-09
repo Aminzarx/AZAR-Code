@@ -20,6 +20,7 @@ import { CreateContractScreen } from '@features/contract/screens/CreateContractS
 import { ContractDetailScreen } from '@features/contract/screens/ContractDetailScreen'
 import { SettingsScreen } from '@features/settings/screens/SettingsScreen'
 import { useTheme } from '@shared/theme'
+import { Icon, type IconName } from '@shared/components'
 
 export type MainStackParamList = {
   Home: undefined
@@ -56,6 +57,14 @@ const TAB_LABELS: Record<TabName, string> = {
   MatchingTab: 'تطبیق',
   ContractsTab: 'قراردادها',
   ProfileTab: 'پروفایل'
+}
+
+const TAB_ICONS: Record<TabName, IconName> = {
+  HomeTab: 'home',
+  FilesTab: 'files',
+  MatchingTab: 'matching',
+  ContractsTab: 'contract',
+  ProfileTab: 'settings'
 }
 
 const TAB_INITIAL_ROUTE: Record<TabName, keyof MainStackParamList> = {
@@ -104,14 +113,16 @@ function MainStack({
   )
 }
 
+function makeTabIcon(name: IconName) {
+  return ({ color }: { color: string }) => <Icon name={name} size="md" color={color} />
+}
+
 /**
  * Rendered once a session exists (see RootNavigator). Bottom tab bar per
  * design-system.md §8.15: 5 items (Home, Files, Matching, Contracts,
  * Profile), label-sm-mobile labels, active state = secondary-container
- * fill. Material Symbols icons are the documented spec but are not
- * wired up yet — no icon asset (font or vector-icon library) has been
- * added, to avoid an unreviewed native dependency; text-only labels for
- * now, icons as an explicit follow-up.
+ * fill + filled icon. Uses the shared Icon component (see Icon.tsx for
+ * why it's hand-drawn rather than Material Symbols).
  */
 export function MainNavigator(): React.JSX.Element {
   const theme = useTheme()
@@ -136,27 +147,36 @@ export function MainNavigator(): React.JSX.Element {
     >
       <Tab.Screen
         name="HomeTab"
-        options={{ tabBarLabel: TAB_LABELS.HomeTab }}
+        options={{ tabBarLabel: TAB_LABELS.HomeTab, tabBarIcon: makeTabIcon(TAB_ICONS.HomeTab) }}
         children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.HomeTab} />}
       />
       <Tab.Screen
         name="FilesTab"
-        options={{ tabBarLabel: TAB_LABELS.FilesTab }}
+        options={{ tabBarLabel: TAB_LABELS.FilesTab, tabBarIcon: makeTabIcon(TAB_ICONS.FilesTab) }}
         children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.FilesTab} />}
       />
       <Tab.Screen
         name="MatchingTab"
-        options={{ tabBarLabel: TAB_LABELS.MatchingTab }}
+        options={{
+          tabBarLabel: TAB_LABELS.MatchingTab,
+          tabBarIcon: makeTabIcon(TAB_ICONS.MatchingTab)
+        }}
         children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.MatchingTab} />}
       />
       <Tab.Screen
         name="ContractsTab"
-        options={{ tabBarLabel: TAB_LABELS.ContractsTab }}
+        options={{
+          tabBarLabel: TAB_LABELS.ContractsTab,
+          tabBarIcon: makeTabIcon(TAB_ICONS.ContractsTab)
+        }}
         children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.ContractsTab} />}
       />
       <Tab.Screen
         name="ProfileTab"
-        options={{ tabBarLabel: TAB_LABELS.ProfileTab }}
+        options={{
+          tabBarLabel: TAB_LABELS.ProfileTab,
+          tabBarIcon: makeTabIcon(TAB_ICONS.ProfileTab)
+        }}
         children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.ProfileTab} />}
       />
     </Tab.Navigator>
