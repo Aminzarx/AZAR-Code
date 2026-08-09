@@ -10,6 +10,7 @@ import {
   touchTargetMinimum,
   typographyLtr,
   typographyRtl,
+  vazirmatnFontFamilyByWeight,
   type TypographyVariant
 } from './tokens'
 
@@ -27,6 +28,7 @@ export type Theme = {
     fontSize: number
     fontWeight: '400' | '500' | '600' | '700'
     lineHeight: number
+    fontFamily?: string
     textAlign: 'left' | 'right'
     writingDirection: 'ltr' | 'rtl'
   }
@@ -46,6 +48,9 @@ function buildTheme(isRTL: boolean): Theme {
     component: componentTokens,
     typography: (variant) => ({
       ...table[variant],
+      // Only Vazirmatn (RTL) is bundled as a real asset — LTR falls back
+      // to the system font until Geist/Inter are added.
+      fontFamily: isRTL ? vazirmatnFontFamilyByWeight[table[variant].fontWeight] : undefined,
       textAlign: isRTL ? 'right' : 'left',
       writingDirection: isRTL ? 'rtl' : 'ltr'
     })

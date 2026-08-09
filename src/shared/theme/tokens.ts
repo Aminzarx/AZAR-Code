@@ -6,11 +6,12 @@
  * the source document explicitly defers it (design-system.md §12,
  * tokens.json `color.dark.$status`), not this file's decision to make.
  *
- * Font families (Geist/Inter/Vazirmatn) are named here but not yet
- * loaded as bundled assets — no font files exist in this repo yet. Every
- * typography token still carries its correct size/weight/line-height per
- * direction (LTR vs RTL line-heights genuinely differ), so switching in
- * real fonts later only touches `fontFamily`, nothing else.
+ * Font families: Vazirmatn (Regular/Medium/SemiBold — the three weights
+ * design-tokens.json's RTL typography scale actually uses) ships as a
+ * bundled asset (assets/fonts/, linked via react-native.config.js) and is
+ * wired up below. Geist/Inter (the LTR faces) are still not bundled —
+ * AZAR is RTL-first by default (ThemeProvider's `isRTL` defaults to
+ * true), so LTR falls back to the system font until those are needed.
  */
 
 export const lightColors = {
@@ -161,6 +162,14 @@ export const typographyRtl = {
 } satisfies Record<keyof typeof typographyLtr, TypographyToken>
 
 export type TypographyVariant = keyof typeof typographyLtr
+
+/** Filenames match the bundled assets/fonts/Vazirmatn-*.ttf exactly (Android resolves font family by filename). */
+export const vazirmatnFontFamilyByWeight: Record<TypographyToken['fontWeight'], string> = {
+  '400': 'Vazirmatn-Regular',
+  '500': 'Vazirmatn-Medium',
+  '600': 'Vazirmatn-SemiBold',
+  '700': 'Vazirmatn-SemiBold' // no Bold weight is bundled — SemiBold is the closest available
+}
 
 /** design-tokens.json's `component` block — per-component size/spacing/radius contracts. */
 export const componentTokens = {
