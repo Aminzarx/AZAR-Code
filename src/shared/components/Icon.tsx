@@ -33,21 +33,20 @@ type Props = {
 
 /**
  * A small, hand-drawn (pure View/border composition, zero dependencies)
- * line-icon set — design-system.md §19 calls for Material Symbols
- * Outlined, but no icon font/vector-icon library exists in this repo and
- * every option investigated either needs native linking or only ships a
- * web font format (woff2) Android can't load. This keeps stroke weight,
- * corner rounding, and sizing fully consistent (the actual goal of §1's
- * "unified icon system") without an unreviewed native dependency this
- * close to finally having a working build. Covers exactly the icons this
- * phase's screens use; extend the switch below as real needs come up,
- * not speculatively.
+ * line-icon set — design-system.md §6. Every icon font/vector-icon
+ * library investigated either needs native linking or only ships a web
+ * font format (woff2) Android can't load, so this is the deliberate,
+ * documented approach, not a stopgap: one stroke-weight formula and one
+ * corner-rounding convention keep the whole set reading as one family.
+ * Covers exactly the icons this app's screens use; extend the switch
+ * below as real needs come up, not speculatively.
  */
 export function Icon({ name, size = 'md', color, accessibilityLabel }: Props): React.JSX.Element {
   const theme = useTheme()
   const box = theme.iconSize[size]
   const tint = color ?? theme.colors.onSurface
-  const stroke = Math.max(1.5, box / 12)
+  // Thinner than the old 1.5–2.7px range — a hairline stroke reads calmer/more refined, consistent with §0's "minimal luxury" direction.
+  const stroke = Math.max(1.25, box / 14)
 
   return (
     <View

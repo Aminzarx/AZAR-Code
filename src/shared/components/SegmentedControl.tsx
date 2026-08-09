@@ -14,11 +14,9 @@ type Props<T extends string> = {
 }
 
 /**
- * design-system.md §8.7 — light-grey track (surface-container-low),
- * primary-container fill on the active segment, rounded-lg track with
- * rounded inner segments. Preferred over true Tabs for mutually-exclusive
- * choices (§8.14 explicitly keeps this project on Segmented Controls, not
- * Material Tabs).
+ * design-system.md §7.4 — surface-container-low track, primary-container
+ * fill on the active segment, rounded track with rounded inner segments.
+ * Preferred over true Tabs for mutually-exclusive choices.
  */
 export function SegmentedControl<T extends string>({
   options,

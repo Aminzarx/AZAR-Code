@@ -119,7 +119,7 @@ function makeTabIcon(name: IconName) {
 
 /**
  * Rendered once a session exists (see RootNavigator). Bottom tab bar per
- * design-system.md §8.15: 5 items (Home, Files, Matching, Contracts,
+ * design-system.md §7.5: 5 items (Home, Files, Matching, Contracts,
  * Profile), label-sm-mobile labels, active state = secondary-container
  * fill + filled icon. Uses the shared Icon component (see Icon.tsx for
  * why it's hand-drawn rather than Material Symbols).

@@ -13,7 +13,7 @@ type Props = {
   icon?: React.ReactNode
 }
 
-/** design-system.md §8.19 — centered icon + title-sm heading + body-sm supporting text + optional action. */
+/** design-system.md §7.7 — centered icon + title-sm heading + body-sm supporting text + optional action. */
 export function EmptyState({
   title,
   description,

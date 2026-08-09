@@ -21,7 +21,7 @@ const OPTIONS = [
 ]
 
 /**
- * Matching tab root (design-system.md §8.15). Suggested-match browsing
+ * Matching tab root (design-system.md §7.5). Suggested-match browsing
  * itself already exists per-record (SuggestedApplicantsSection /
  * SuggestedPropertiesSection on the property/applicant detail screens) —
  * this is the entry point into that: pick a property or applicant here,

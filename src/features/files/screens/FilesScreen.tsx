@@ -18,7 +18,7 @@ const OPTIONS = [
 ]
 
 /**
- * Files tab root (design-system.md §8.15's bottom-nav item set). Owner
+ * Files tab root (design-system.md §7.5's bottom-nav item set). Owner
  * files vs. applicant files is a segmented-control choice, not two
  * separate tabs (§8.14's explicit "no Material Tabs, segmented controls
  * already cover every case" ruling) — this screen just switches which

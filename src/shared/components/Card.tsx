@@ -4,7 +4,7 @@ import { useTheme, type Theme } from '@shared/theme'
 
 type Props = {
   children: React.ReactNode
-  /** design-system.md §8.8 — list-item cards use radius-large; detail cards use radius-extra-large. */
+  /** design-system.md §7.3 — list-item cards use radius-large; detail cards use radius-extra-large. */
   variant?: 'listItem' | 'detail'
   /** elevation-0 for cards nested inside an already-elevated container (e.g. inside a bottom sheet). */
   flat?: boolean

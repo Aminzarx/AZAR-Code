@@ -14,7 +14,7 @@ type Props = {
   actions: QuickAction[]
 }
 
-/** design-system.md §9 touch-target rule applies here too — each action's hit area is the full row. */
+/** design-system.md §8 touch-target rule applies here too — each action's hit area is the full row. */
 export function QuickActions({ actions }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)

@@ -12,8 +12,8 @@ type Props = {
 }
 
 /**
- * design-system.md §8.20 — operation-level error state (distinct from
- * §8.3's inline field-level validation errors): a dedicated error
+ * design-system.md §7.8 — operation-level error state (distinct from
+ * §7.2's inline field-level validation errors): a dedicated error
  * presentation, e.g. a corrupted-backup or failed-operation screen.
  */
 export function ErrorState({ title, description, retryLabel, onRetry }: Props): React.JSX.Element {

@@ -61,9 +61,9 @@ const ThemeContext = createContext<Theme | null>(null)
 
 type Props = {
   /**
-   * AZAR is Persian-first (design-system.md §3: "RTL/Persian first-class
-   * from the start") — defaults to RTL rather than following the OS
-   * locale, consistent with every screen built so far (Phase 8).
+   * AZAR is Persian-first (design-system.md §10: RTL/Persian first-class
+   * from the start) — defaults to RTL rather than following the OS
+   * locale, consistent with every screen built so far.
    */
   isRTL?: boolean
   children: React.ReactNode

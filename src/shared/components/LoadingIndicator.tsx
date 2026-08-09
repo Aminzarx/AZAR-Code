@@ -4,11 +4,11 @@ import { useTheme, type Theme } from '@shared/theme'
 
 type Props = {
   /**
-   * design-system.md §8.17 — determinate (with a known percentage) for
+   * design-system.md §7.6 — determinate (with a known percentage) for
    * genuinely long operations (encryption, large-file validation);
-   * indeterminate for brief local steps. §19's offline-first rule:
-   * indeterminate spinners must NOT be used for instantaneous local
-   * reads — callers, not this component, are responsible for that.
+   * indeterminate for brief local steps. Indeterminate spinners must not
+   * be used for instantaneous local reads — callers, not this component,
+   * are responsible for that.
    */
   variant?: 'determinate' | 'indeterminate'
   /** 0-1, required when variant is 'determinate'. */

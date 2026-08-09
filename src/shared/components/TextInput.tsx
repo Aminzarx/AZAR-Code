@@ -26,7 +26,7 @@ type Props = {
   onBlur?: () => void
 }
 
-/** design-system.md §8.3 — label above field, focus/error/disabled states. */
+/** design-system.md §7.2 — label above field, focus/error/disabled states. */
 export function TextInput({
   label,
   value,

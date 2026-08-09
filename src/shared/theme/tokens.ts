@@ -6,6 +6,12 @@
  * the source document explicitly defers it (design-system.md §12,
  * tokens.json `color.dark.$status`), not this file's decision to make.
  *
+ * v2.0.0 ("Minimal Luxury" reset, superseding the v1.1.0 Material-3-drab
+ * palette) — see design-system.md §0 for the full rationale. Same token
+ * *shape* as v1.1.0 (every key name below is unchanged, so every
+ * component consuming `theme.colors.x` / `theme.radius.x` etc. picks up
+ * the new look automatically); only the values changed.
+ *
  * Font families: Vazirmatn (Regular/Medium/SemiBold — the three weights
  * design-tokens.json's RTL typography scale actually uses) ships as a
  * bundled asset (assets/fonts/, linked via react-native.config.js) and is
@@ -14,53 +20,62 @@
  * true), so LTR falls back to the system font until those are needed.
  */
 
+/**
+ * Warm ivory/charcoal neutrals + two restrained accents (a muted
+ * bronze/gold for primary brand actions, a deep emerald for
+ * success/positive-money states) instead of the old cool-gray,
+ * near-black-on-everything Material palette. Semantic reds/ambers stay
+ * close to their conventional hues — they're functional signals, not
+ * brand expression, so tests/users read them correctly regardless of
+ * theme.
+ */
 export const lightColors = {
-  primary: '#000101',
-  onPrimary: '#ffffff',
-  primaryContainer: '#1a1c1e',
-  onPrimaryContainer: '#838486',
-  inversePrimary: '#c6c6c9',
-  secondary: '#3b6934',
-  onSecondary: '#ffffff',
-  secondaryContainer: '#b9eeab',
-  onSecondaryContainer: '#3f6d38',
-  tertiary: '#000000',
-  onTertiary: '#ffffff',
-  tertiaryContainer: '#001f26',
-  onTertiaryContainer: '#618a96',
-  error: '#ba1a1a',
-  onError: '#ffffff',
-  errorContainer: '#ffdad6',
-  onErrorContainer: '#93000a',
-  success: '#3b6934',
-  onSuccess: '#ffffff',
-  successContainer: '#b9eeab',
-  onSuccessContainer: '#3f6d38',
-  warning: '#8a5000',
-  onWarning: '#ffffff',
-  warningContainer: '#ffddb3',
-  onWarningContainer: '#6b3d00',
-  info: '#001f26',
-  onInfo: '#ffffff',
-  infoContainer: '#001f26',
-  onInfoContainer: '#618a96',
-  background: '#f8f9fa',
-  onBackground: '#191c1d',
-  surface: '#f8f9fa',
-  surfaceDim: '#d9dadb',
-  surfaceBright: '#f8f9fa',
-  surfaceContainerLowest: '#ffffff',
-  surfaceContainerLow: '#f3f4f5',
-  surfaceContainer: '#edeeef',
-  surfaceContainerHigh: '#e7e8e9',
-  surfaceContainerHighest: '#e1e3e4',
-  surfaceVariant: '#e1e3e4',
-  onSurface: '#191c1d',
-  onSurfaceVariant: '#44474a',
-  inverseSurface: '#2e3132',
-  inverseOnSurface: '#f0f1f2',
-  outline: '#75777a',
-  outlineVariant: '#c5c6ca'
+  primary: '#1C1B19',
+  onPrimary: '#FAF8F5',
+  primaryContainer: '#2B2A27',
+  onPrimaryContainer: '#C9C4BA',
+  inversePrimary: '#D8D2C4',
+  secondary: '#8A6D3B',
+  onSecondary: '#FFFFFF',
+  secondaryContainer: '#F1E6D2',
+  onSecondaryContainer: '#5C4720',
+  tertiary: '#2F4F3E',
+  onTertiary: '#FFFFFF',
+  tertiaryContainer: '#DCEAE1',
+  onTertiaryContainer: '#1F3D2E',
+  error: '#B3261E',
+  onError: '#FFFFFF',
+  errorContainer: '#F9DEDC',
+  onErrorContainer: '#410E0B',
+  success: '#2F6B4F',
+  onSuccess: '#FFFFFF',
+  successContainer: '#DCEFE3',
+  onSuccessContainer: '#1B4632',
+  warning: '#8A5A00',
+  onWarning: '#FFFFFF',
+  warningContainer: '#F6E3C2',
+  onWarningContainer: '#4A3200',
+  info: '#3D5A73',
+  onInfo: '#FFFFFF',
+  infoContainer: '#E1E9EF',
+  onInfoContainer: '#263B4C',
+  background: '#FAF8F5',
+  onBackground: '#1C1B19',
+  surface: '#FAF8F5',
+  surfaceDim: '#E7E3DC',
+  surfaceBright: '#FAF8F5',
+  surfaceContainerLowest: '#FFFFFF',
+  surfaceContainerLow: '#F5F2EC',
+  surfaceContainer: '#EFEBE3',
+  surfaceContainerHigh: '#E9E4DA',
+  surfaceContainerHighest: '#E3DDD1',
+  surfaceVariant: '#E3DDD1',
+  onSurface: '#1C1B19',
+  onSurfaceVariant: '#57534A',
+  inverseSurface: '#302E2A',
+  inverseOnSurface: '#F5F2EC',
+  outline: '#8A8578',
+  outlineVariant: '#D8D2C4'
 } as const
 
 export const spacing = {
@@ -77,38 +92,44 @@ export const spacing = {
   space16: 64
 } as const
 
+/** Softer, larger corners than v1.1.0 — rounder reads calmer/more premium than the old sharp-ish Material corners. */
 export const radius = {
   none: 0,
-  small: 2,
-  medium: 4,
-  large: 8,
-  extraLarge: 12,
+  small: 4,
+  medium: 8,
+  large: 12,
+  extraLarge: 20,
   full: 9999,
-  containerLg: 16
+  containerLg: 24
 } as const
 
-/** design-tokens.json's `elevation` is CSS box-shadow — translated to RN's shadow* + elevation props. */
+/**
+ * design-tokens.json's `elevation` is CSS box-shadow — translated to
+ * RN's shadow* + elevation props. Luxury-minimal cards float on a very
+ * soft, low-opacity, large-blur shadow rather than the old harder/darker
+ * ones — barely visible in isolation, but reads as "lifted" in context.
+ */
 export const elevation = {
   level0: { shadowOpacity: 0, elevation: 0 },
   level1: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 24,
+    shadowColor: '#1C1B19',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
     elevation: 1
   },
   level2: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowColor: '#1C1B19',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 2
   },
   level4: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 25 },
-    shadowOpacity: 0.25,
-    shadowRadius: 50,
+    shadowColor: '#1C1B19',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.18,
+    shadowRadius: 40,
     elevation: 4
   }
 } as const
@@ -139,7 +160,7 @@ type TypographyToken = {
 export const typographyLtr = {
   headlineLgMobile: { fontSize: 24, fontWeight: '600', lineHeight: 32 },
   headlineMd: { fontSize: 24, fontWeight: '500', lineHeight: 32 },
-  titleMd: { fontSize: 18, fontWeight: '600', lineHeight: 24 },
+  titleMd: { fontSize: 18, fontWeight: '600', lineHeight: 26 },
   titleSm: { fontSize: 16, fontWeight: '600', lineHeight: 22 },
   bodyLg: { fontSize: 18, fontWeight: '400', lineHeight: 28 },
   bodyMd: { fontSize: 16, fontWeight: '400', lineHeight: 24 },
@@ -148,17 +169,17 @@ export const typographyLtr = {
   labelSm: { fontSize: 12, fontWeight: '600', lineHeight: 16 }
 } satisfies Record<string, TypographyToken>
 
-/** Line-heights genuinely differ from LTR — Vazirmatn needs more vertical room. */
+/** Line-heights genuinely differ from LTR — Vazirmatn needs more vertical room; bumped further for the airier, more generous "luxury" reading rhythm. */
 export const typographyRtl = {
-  headlineLgMobile: { fontSize: 24, fontWeight: '600', lineHeight: 37 },
-  headlineMd: { fontSize: 24, fontWeight: '500', lineHeight: 37 },
-  titleMd: { fontSize: 18, fontWeight: '600', lineHeight: 28 },
-  titleSm: { fontSize: 16, fontWeight: '600', lineHeight: 25 },
-  bodyLg: { fontSize: 18, fontWeight: '400', lineHeight: 28 },
-  bodyMd: { fontSize: 16, fontWeight: '400', lineHeight: 28 },
-  bodySm: { fontSize: 14, fontWeight: '400', lineHeight: 23 },
-  labelMd: { fontSize: 14, fontWeight: '500', lineHeight: 23 },
-  labelSm: { fontSize: 12, fontWeight: '600', lineHeight: 18 }
+  headlineLgMobile: { fontSize: 24, fontWeight: '600', lineHeight: 38 },
+  headlineMd: { fontSize: 24, fontWeight: '500', lineHeight: 38 },
+  titleMd: { fontSize: 18, fontWeight: '600', lineHeight: 29 },
+  titleSm: { fontSize: 16, fontWeight: '600', lineHeight: 26 },
+  bodyLg: { fontSize: 18, fontWeight: '400', lineHeight: 29 },
+  bodyMd: { fontSize: 16, fontWeight: '400', lineHeight: 29 },
+  bodySm: { fontSize: 14, fontWeight: '400', lineHeight: 24 },
+  labelMd: { fontSize: 14, fontWeight: '500', lineHeight: 24 },
+  labelSm: { fontSize: 12, fontWeight: '600', lineHeight: 19 }
 } satisfies Record<keyof typeof typographyLtr, TypographyToken>
 
 export type TypographyVariant = keyof typeof typographyLtr
@@ -171,14 +192,19 @@ export const vazirmatnFontFamilyByWeight: Record<TypographyToken['fontWeight'], 
   '700': 'Vazirmatn-SemiBold' // no Bold weight is bundled — SemiBold is the closest available
 }
 
-/** design-tokens.json's `component` block — per-component size/spacing/radius contracts. */
+/**
+ * design-tokens.json's `component` block — per-component size/spacing/
+ * radius contracts. Card padding is more generous than v1.1.0 (space4/
+ * space6 → space5/space8) — breathing room around content is a core part
+ * of the "luxury minimal" read, not just a color swap.
+ */
 export const componentTokens = {
   button: { paddingY: spacing.space4, paddingX: spacing.space6, radius: radius.large },
   textField: { paddingY: spacing.space3, paddingX: spacing.space4, radius: radius.large },
   card: {
     radiusListItem: radius.large,
     radiusDetail: radius.extraLarge,
-    paddingDetail: spacing.space6,
-    paddingListItem: spacing.space4
+    paddingDetail: spacing.space8,
+    paddingListItem: spacing.space5
   }
 } as const

@@ -33,7 +33,7 @@ const ZERO_LABELS: Record<number, string> = {
 }
 
 /**
- * A price/budget field — design-system.md §8.3's TextInput plus two UX
+ * A price/budget field — design-system.md §7.2's TextInput plus two UX
  * additions financial fields specifically need: automatic thousand
  * separators for display (the underlying value stays plain digits, so
  * validation/DB usage in propertyValidation.ts etc. is unaffected) and

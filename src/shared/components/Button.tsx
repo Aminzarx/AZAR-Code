@@ -22,7 +22,7 @@ type Props = {
 }
 
 /**
- * design-system.md §8.1 — one primary action per screen/sheet footer
+ * design-system.md §7.1 — one primary action per screen/sheet footer
  * maximum, destructive actions always paired with a cancel/secondary
  * action; that pairing is the screen's responsibility, not this
  * component's to enforce.
