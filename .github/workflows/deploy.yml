@@ -1,0 +1,66 @@
+name: Deploy to VPS
+
+# Status: SKELETON — not yet wired to a real deployable artifact.
+#
+# There is no deployable application in this repository yet. Per
+# /docs/implementation/00-session-handoff.md, Phase 5 (React Native
+# project foundation) has not started, and the account/referral backend
+# (the only part of this product that runs server-side, per ADR-009) has
+# not been written either. This workflow exists so the deploy pipeline
+# and its secrets are wired up in advance; the actual build/deploy steps
+# are placeholders to be filled in once there is real code to ship.
+#
+# Required repository secrets (Settings -> Secrets and variables ->
+# Actions), matching the sandbox VPS access documented for this project:
+#   VPS_HOST              e.g. 194.5.175.64
+#   VPS_PORT               e.g. 2222
+#   VPS_USER               e.g. amin
+#   VPS_SSH_PRIVATE_KEY     full contents of the private deploy key
+#
+# The private key itself is never stored in this repository — it lives
+# only in the GitHub Secrets store referenced above.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Remove this guard once there is a real backend/service to deploy.
+    if: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Add VPS host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync repository to the VPS
+        run: |
+          rsync -az --delete \
+            -e "ssh -p ${{ secrets.VPS_PORT }}" \
+            --exclude ".git" \
+            ./ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/home/${{ secrets.VPS_USER }}/azar-code/"
+
+      # TODO once the account/referral backend exists (per ADR-009 - the
+      # only server-side component this product has): install
+      # dependencies and (re)start the service here, e.g.
+      #
+      #   ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+      #     'cd ~/azar-code/<backend-dir> && npm ci --omit=dev && pm2 restart azar-backend || pm2 start ...'
+      #
+      # This mobile app itself (React Native, once Phase 5 starts) is not
+      # deployed via SSH/VPS at all - it ships through the App Store /
+      # Google Play release pipeline described in
+      # /docs/implementation/implementation-roadmap.md, Phase 16.
+      - name: Placeholder - nothing to start yet
+        run: echo "No deployable service exists in this repository yet."
