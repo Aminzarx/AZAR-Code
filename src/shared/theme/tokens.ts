@@ -223,8 +223,50 @@ export const componentTokens = {
   emptyStateCompact: {
     padding: spacing.space5,
     iconSize: iconSize.md
+  },
+  /** design-system.md §7 (v2.4.0 redesign) — small tonal pill, never a saturated solid fill. */
+  statusBadge: {
+    paddingY: spacing.space1,
+    paddingX: spacing.space3,
+    radius: radius.full,
+    gap: spacing.space1
+  },
+  /** design-tokens.json's `component.bottomSheet` — used by the list-screen filter sheet (§7.9-style modal presentation, bottom-anchored). */
+  bottomSheet: {
+    radiusCompact: radius.containerLg,
+    maxWidthDesktop: 480,
+    handleWidth: 40,
+    handleHeight: 4
   }
 } as const
+
+/**
+ * design-system.md §7 (v2.4.0) — the Status system's five tones. Every
+ * status badge in the app (property, applicant, deal, contract, reminder)
+ * maps its underlying state into exactly one of these five tones instead
+ * of picking a color per screen — this is what keeps "color has meaning"
+ * true instead of becoming decoration. Reuses the existing Material
+ * container/on-container role pairs (no new hex values), so this table
+ * is theme-swap-safe: a future `color.dark` palette only needs to repoint
+ * these five role names, every status badge in the app updates for free.
+ */
+export const statusTones = {
+  /** Healthy/default active state — nothing needs attention. */
+  positive: { background: 'successContainer', foreground: 'onSuccessContainer' },
+  /** Needs the broker's attention soon, but isn't urgent/broken. */
+  attention: { background: 'warningContainer', foreground: 'onWarningContainer' },
+  /** Something is actively in motion (a deal in progress, a match found). */
+  inProgress: { background: 'infoContainer', foreground: 'onInfoContainer' },
+  /** A brand-relevant highlight — reserved for the rare "this is the one" moment (won deal, best match). */
+  highlight: { background: 'secondaryContainer', foreground: 'onSecondaryContainer' },
+  /** Inactive/archived/closed — deliberately the lowest-emphasis tone, never red. */
+  neutral: { background: 'surfaceContainerHigh', foreground: 'onSurfaceVariant' }
+} as const satisfies Record<
+  string,
+  { background: keyof typeof lightColors; foreground: keyof typeof lightColors }
+>
+
+export type StatusTone = keyof typeof statusTones
 
 /**
  * design-system.md §13 — named layout tokens so every screen shares one

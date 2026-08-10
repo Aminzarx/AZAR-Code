@@ -9,9 +9,11 @@ import { useTheme, type Theme } from '@shared/theme'
 import { Avatar, ErrorState, Icon, LoadingIndicator } from '@shared/components'
 import { useDashboardData } from './hooks/useDashboardData'
 import { StatCard } from './components/StatCard'
+import { NeedsAttentionList } from './components/NeedsAttentionList'
 import { QuickActions, type QuickAction } from './components/QuickActions'
 import { RecentActivityList } from './components/RecentActivityList'
 import { UpcomingRemindersList } from './components/UpcomingRemindersList'
+import type { DashboardNeedsAttentionItem } from './types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
 
@@ -21,7 +23,10 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const { session } = useAuth()
   const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
 
-  const quickActions: QuickAction[] = [
+  // design-system.md §14 point 4 — exactly the two primary actions get the
+  // elevated/prominent treatment; every other Dashboard action (below)
+  // renders as a visually secondary row instead.
+  const primaryActions: QuickAction[] = [
     {
       id: 'add-property',
       label: 'افزودن پرونده ملکی',
@@ -33,14 +38,12 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
       label: 'افزودن متقاضی',
       icon: 'person',
       onPress: () => navigateAcrossTabs(navigation, 'CreateApplicant', undefined)
-    },
-    {
-      id: 'deals',
-      label: 'مشاهده پیگیری‌ها',
-      icon: 'deal',
-      onPress: () => navigateAcrossTabs(navigation, 'DealList', undefined)
     }
   ]
+
+  function handleNeedsAttentionSelect(item: DashboardNeedsAttentionItem): void {
+    navigateAcrossTabs(navigation, item.target, undefined)
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -89,6 +92,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
         ) : (
           data && (
             <>
+              {/* design-system.md §14 point 2 — Today/Overview, kept quiet (StatCard's `flat` Card), no heading needed. */}
               <View style={styles.statsRow}>
                 {data.stats.map((stat) => (
                   <StatCard
@@ -109,6 +113,23 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                 ))}
               </View>
 
+              {/* design-system.md §14 point 3 — Needs Attention; renders nothing at all when empty, per the spec (no empty heading with nothing under it). */}
+              {data.needsAttention.length > 0 ? (
+                <View style={styles.section}>
+                  <Text
+                    style={[theme.typography('titleMd'), styles.sectionTitle]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    نیازمند توجه
+                  </Text>
+                  <NeedsAttentionList
+                    items={data.needsAttention}
+                    onSelect={handleNeedsAttentionSelect}
+                  />
+                </View>
+              ) : null}
+
               <View style={styles.section}>
                 <Text
                   style={[theme.typography('titleMd'), styles.sectionTitle]}
@@ -117,7 +138,30 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                 >
                   اقدامات سریع
                 </Text>
-                <QuickActions actions={quickActions} />
+                <QuickActions actions={primaryActions} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="مشاهده پیگیری‌ها"
+                  onPress={() => navigateAcrossTabs(navigation, 'DealList', undefined)}
+                  style={styles.secondaryAction}
+                >
+                  <Icon name="deal" size="xs" color={theme.colors.onSurfaceVariant} />
+                  <Text style={[theme.typography('labelMd'), styles.secondaryActionLabel]}>
+                    مشاهده پیگیری‌ها
+                  </Text>
+                  <Icon name="chevron" size="xs" color={theme.colors.outline} />
+                </Pressable>
+              </View>
+
+              <View style={styles.section}>
+                <Text
+                  style={[theme.typography('titleMd'), styles.sectionTitle]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  آخرین فعالیت‌ها
+                </Text>
+                <RecentActivityList activity={data.recentActivity} />
               </View>
 
               <View style={styles.section}>
@@ -132,17 +176,6 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                   reminders={data.upcomingReminders}
                   onSelect={(reminderId) => navigation.navigate('ReminderDetail', { reminderId })}
                 />
-              </View>
-
-              <View style={styles.section}>
-                <Text
-                  style={[theme.typography('titleMd'), styles.sectionTitle]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  آخرین فعالیت‌ها
-                </Text>
-                <RecentActivityList activity={data.recentActivity} />
               </View>
             </>
           )
@@ -197,6 +230,20 @@ function createStyles(theme: Theme) {
       color: theme.colors.onSurface,
       flexShrink: 1,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    // design-system.md §14 point 4 — every Dashboard action besides the two
+    // primary ones reads as visually secondary: no Card, no elevation,
+    // smaller than the primary actions' row.
+    secondaryAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2,
+      minHeight: theme.touchTargetMinimum,
+      paddingHorizontal: theme.spacing.space2
+    },
+    secondaryActionLabel: {
+      flex: 1,
+      color: theme.colors.onSurfaceVariant
     },
     centeredSection: {
       alignItems: 'center',

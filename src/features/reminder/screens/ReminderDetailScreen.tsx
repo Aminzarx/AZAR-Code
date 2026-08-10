@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -33,21 +33,43 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
   const service = useReminderService()
   const [isEditing, setIsEditing] = useState(false)
   const [values, setValues] = useState<ReminderFormValues | null>(null)
+  const [initialValues, setInitialValues] = useState<ReminderFormValues | null>(null)
   const [errors, setErrors] = useState<ReminderFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
+
+  const isDirty = Boolean(
+    values && initialValues && JSON.stringify(values) !== JSON.stringify(initialValues)
+  )
 
   function startEditing(): void {
     if (!reminder) {
       return
     }
-    setValues(toFormValues(reminder))
+    const formValues = toFormValues(reminder)
+    setValues(formValues)
+    setInitialValues(formValues)
     setErrors({})
     setSubmitError(null)
     setIsEditing(true)
   }
+
+  // Keeps the header's "ذخیره شد" flash visible for a moment before
+  // closing the edit form — closing immediately (as the plain success path
+  // would) would unmount the header before the flash ever renders.
+  useEffect(() => {
+    if (!justSaved) {
+      return
+    }
+    const timer = setTimeout(() => {
+      setJustSaved(false)
+      setIsEditing(false)
+    }, 1200)
+    return () => clearTimeout(timer)
+  }, [justSaved])
 
   function handleChange<K extends keyof ReminderFormValues>(
     field: K,
@@ -69,7 +91,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
         applicantId: reminder.applicantId,
         dealId: reminder.dealId
       })
-      setIsEditing(false)
+      setJustSaved(true)
       refetch()
     } catch (caughtError) {
       if (caughtError instanceof ReminderValidationError) {
@@ -110,6 +132,8 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
       headerTitle={isEditing ? 'ویرایش یادآوری' : undefined}
       onSave={isEditing ? handleSubmit : undefined}
       isSaving={isSubmitting}
+      isDirty={isDirty}
+      saveSucceeded={justSaved}
     >
       {isLoading ? (
         <View style={styles.centeredSection}>

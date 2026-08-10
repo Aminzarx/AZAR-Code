@@ -5,6 +5,7 @@ import { PropertyRepository } from '@infrastructure/database/repositories/Proper
 import { ApplicantRepository } from '@infrastructure/database/repositories/ApplicantRepository'
 import { DealRepository } from '@infrastructure/database/repositories/DealRepository'
 import { ContractRepository } from '@infrastructure/database/repositories/ContractRepository'
+import { ReminderRepository } from '@infrastructure/database/repositories/ReminderRepository'
 import { fetchDashboardData } from '../dashboardDataService'
 
 const DB_FILE = path.join(process.cwd(), `azar.test-${process.env.JEST_WORKER_ID}.db`)
@@ -44,6 +45,7 @@ describe('fetchDashboardData', () => {
       { id: 'deals', label: 'پیگیری‌های فعال', value: '0' },
       { id: 'contracts', label: 'قراردادهای فعال', value: '0' }
     ])
+    expect(result.needsAttention).toEqual([])
     expect(result.recentActivity).toEqual([])
   })
 
@@ -277,5 +279,143 @@ describe('fetchDashboardData', () => {
     expect(result.recentActivity.find((item) => item.id === 'applicant-app-1')?.title).toBe(
       'متقاضی جدید: علی رضایی'
     )
+  })
+
+  it('includes a needs-attention row for an overdue applicant reminder', async () => {
+    await seedUsers()
+    const db = await getDatabase()
+    const applicantRepository = new ApplicantRepository(db)
+    const reminderRepository = new ReminderRepository(db)
+
+    const applicant = await applicantRepository.create({
+      id: 'app-1',
+      userId: USER_ID,
+      fullName: 'علی رضایی',
+      phoneNumber: '09121234567',
+      email: null,
+      applicantType: null,
+      preferredTransactionType: null,
+      preferredPropertyType: null,
+      city: 'تهران',
+      minBudget: null,
+      maxBudget: null,
+      minArea: null,
+      maxArea: null,
+      rooms: null,
+      description: null
+    })
+    await reminderRepository.create({
+      id: 'rem-1',
+      userId: USER_ID,
+      propertyId: null,
+      applicantId: applicant.id,
+      dealId: null,
+      title: 'تماس با متقاضی',
+      description: null,
+      remindAt: '2020-01-01T00:00:00.000Z'
+    })
+
+    const result = await fetchDashboardData(USER_ID)
+
+    expect(result.needsAttention).toContainEqual({
+      id: 'overdue-applicant-reminders',
+      label: '1 متقاضی نیازمند پیگیری',
+      tone: 'attention',
+      target: 'ApplicantList'
+    })
+  })
+
+  it('does not treat a future applicant reminder as needing attention', async () => {
+    await seedUsers()
+    const db = await getDatabase()
+    const applicantRepository = new ApplicantRepository(db)
+    const reminderRepository = new ReminderRepository(db)
+
+    const applicant = await applicantRepository.create({
+      id: 'app-1',
+      userId: USER_ID,
+      fullName: 'علی رضایی',
+      phoneNumber: '09121234567',
+      email: null,
+      applicantType: null,
+      preferredTransactionType: null,
+      preferredPropertyType: null,
+      city: 'تهران',
+      minBudget: null,
+      maxBudget: null,
+      minArea: null,
+      maxArea: null,
+      rooms: null,
+      description: null
+    })
+    await reminderRepository.create({
+      id: 'rem-1',
+      userId: USER_ID,
+      propertyId: null,
+      applicantId: applicant.id,
+      dealId: null,
+      title: 'تماس با متقاضی',
+      description: null,
+      remindAt: '2099-01-01T00:00:00.000Z'
+    })
+
+    const result = await fetchDashboardData(USER_ID)
+
+    expect(result.needsAttention).toEqual([])
+  })
+
+  it('includes a needs-attention row for a deal awaiting action in the contract stage', async () => {
+    await seedUsers()
+    const db = await getDatabase()
+    const propertyRepository = new PropertyRepository(db)
+    const applicantRepository = new ApplicantRepository(db)
+    const dealRepository = new DealRepository(db)
+
+    const property = await propertyRepository.create({
+      id: 'prop-1',
+      ownerId: USER_ID,
+      title: 'آپارتمان',
+      propertyType: null,
+      transactionType: null,
+      city: 'تهران',
+      address: 'آدرس',
+      price: null,
+      area: null,
+      rooms: null,
+      description: null
+    })
+    const applicant = await applicantRepository.create({
+      id: 'app-1',
+      userId: USER_ID,
+      fullName: 'علی رضایی',
+      phoneNumber: '09121234567',
+      email: null,
+      applicantType: null,
+      preferredTransactionType: null,
+      preferredPropertyType: null,
+      city: 'تهران',
+      minBudget: null,
+      maxBudget: null,
+      minArea: null,
+      maxArea: null,
+      rooms: null,
+      description: null
+    })
+    const deal = await dealRepository.create({
+      id: 'deal-1',
+      userId: USER_ID,
+      propertyId: property.id,
+      applicantId: applicant.id
+    })
+    await dealRepository.transitionStage(deal.id, 'contract', USER_ID)
+
+    const result = await fetchDashboardData(USER_ID)
+
+    expect(result.needsAttention).toContainEqual({
+      id: 'deals-awaiting-action',
+      label: '1 معامله در انتظار اقدام',
+      tone: 'inProgress',
+      target: 'DealList'
+    })
   })
 })

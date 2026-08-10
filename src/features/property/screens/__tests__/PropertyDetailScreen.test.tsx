@@ -4,16 +4,22 @@ import { withTheme } from '@shared/components/testHelpers'
 import { PropertyDetailScreen } from '../PropertyDetailScreen'
 import { usePropertyDetail } from '../../hooks/usePropertyDetail'
 import { usePropertyService } from '../../hooks/usePropertyService'
+import { usePropertyActivity } from '../../hooks/usePropertyActivity'
 import type { Property } from '../../types'
 
 jest.mock('../../hooks/usePropertyDetail')
 jest.mock('../../hooks/usePropertyService')
+jest.mock('../../hooks/usePropertyActivity')
 
 const mockedUsePropertyDetail = usePropertyDetail as jest.MockedFunction<typeof usePropertyDetail>
 const mockedUsePropertyService = usePropertyService as jest.MockedFunction<
   typeof usePropertyService
 >
+const mockedUsePropertyActivity = usePropertyActivity as jest.MockedFunction<
+  typeof usePropertyActivity
+>
 const mockUpdateProperty = jest.fn()
+const mockDeleteProperty = jest.fn()
 
 const PROPERTY: Property = {
   id: 'prop-1',
@@ -32,7 +38,8 @@ const PROPERTY: Property = {
   updatedAt: '2026-08-08T00:00:00.000Z'
 }
 
-const navigationProp = {} as never
+const mockGoBack = jest.fn()
+const navigationProp = { goBack: mockGoBack } as never
 const routeProp = {
   key: 'PropertyDetail',
   name: 'PropertyDetail' as const,
@@ -42,7 +49,19 @@ const routeProp = {
 describe('PropertyDetailScreen', () => {
   beforeEach(() => {
     mockUpdateProperty.mockReset()
-    mockedUsePropertyService.mockReturnValue({ updateProperty: mockUpdateProperty } as never)
+    mockDeleteProperty.mockReset()
+    mockGoBack.mockReset()
+    mockedUsePropertyService.mockReturnValue({
+      updateProperty: mockUpdateProperty,
+      deleteProperty: mockDeleteProperty
+    } as never)
+    mockedUsePropertyActivity.mockReturnValue({
+      deals: [],
+      reminders: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
   })
 
   it('shows the property details', async () => {
@@ -105,5 +124,25 @@ describe('PropertyDetailScreen', () => {
         'active'
       )
     )
+  })
+
+  it('deletes the property after confirmation and navigates back', async () => {
+    mockDeleteProperty.mockResolvedValue(undefined)
+    mockedUsePropertyDetail.mockReturnValue({
+      property: PROPERTY,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(<PropertyDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('حذف پرونده'))
+    fireEvent.press(await findByText('حذف'))
+
+    await waitFor(() => expect(mockDeleteProperty).toHaveBeenCalledWith('prop-1'))
+    await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1))
   })
 })

@@ -10,13 +10,17 @@ import {
   ConfirmDialog,
   ErrorState,
   FormScreenContainer,
-  LoadingIndicator
+  LoadingIndicator,
+  StatusBadge
 } from '@shared/components'
 import { SuggestedPropertiesSection } from '@features/matching/components/SuggestedPropertiesSection'
 import { useApplicantDetail } from '../hooks/useApplicantDetail'
 import { useApplicantService } from '../hooks/useApplicantService'
+import { useApplicantActivity } from '../hooks/useApplicantActivity'
 import { ApplicantForm } from '../components/ApplicantForm'
+import { ApplicantActivitySection } from '../components/ApplicantActivitySection'
 import { ApplicantValidationError } from '../validation/ApplicantValidationError'
+import { deriveApplicantStatus } from '../statusDerivation'
 import type { Applicant, ApplicantFormErrors, ApplicantFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ApplicantDetail'>
@@ -42,6 +46,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
   const styles = createStyles(theme)
   const { applicantId } = route.params
   const { applicant, isLoading, error, refetch } = useApplicantDetail(applicantId)
+  const activity = useApplicantActivity(applicantId)
   const service = useApplicantService()
   const [isEditing, setIsEditing] = useState(false)
   const [values, setValues] = useState<ApplicantFormValues | null>(null)
@@ -105,6 +110,11 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
     }
   }
 
+  const derivedStatus =
+    applicant && activity.deals && activity.reminders
+      ? deriveApplicantStatus(applicant, activity.deals, activity.reminders)
+      : null
+
   return (
     <FormScreenContainer
       headerTitle={isEditing ? 'ویرایش متقاضی' : undefined}
@@ -136,89 +146,111 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
           <ApplicantForm values={values} errors={errors} onChange={handleChange} />
         </>
       ) : (
-        <Card variant="detail">
-          <Text style={[theme.typography('headlineMd'), styles.title]}>{applicant.fullName}</Text>
-          <DetailRow
-            label="شماره تماس"
-            value={applicant.phoneNumber}
-            theme={theme}
-            styles={styles}
-          />
-          <DetailRow label="شهر" value={applicant.city} theme={theme} styles={styles} />
-          {applicant.preferredTransactionType ? (
-            <DetailRow
-              label="نوع معامله مدنظر"
-              value={applicant.preferredTransactionType}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {applicant.preferredPropertyType ? (
-            <DetailRow
-              label="نوع ملک مدنظر"
-              value={applicant.preferredPropertyType}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {applicant.minBudget !== null || applicant.maxBudget !== null ? (
-            <DetailRow
-              label="بودجه"
-              value={`${applicant.minBudget?.toLocaleString('fa-IR') ?? '-'} تا ${applicant.maxBudget?.toLocaleString('fa-IR') ?? '-'} تومان`}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {applicant.minArea !== null || applicant.maxArea !== null ? (
-            <DetailRow
-              label="متراژ"
-              value={`${applicant.minArea ?? '-'} تا ${applicant.maxArea ?? '-'} متر`}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {applicant.rooms !== null ? (
-            <DetailRow
-              label="تعداد اتاق"
-              value={String(applicant.rooms)}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {applicant.description ? (
-            <DetailRow
-              label="توضیحات"
-              value={applicant.description}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {submitError ? (
-            <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
-          ) : null}
-          <Button
-            label="ویرایش"
-            onPress={startEditing}
-            variant="secondary"
-            style={styles.editButton}
-          />
-          <Button
-            label="حذف متقاضی"
-            onPress={() => setIsDeleteConfirmVisible(true)}
-            variant="destructive"
-            loading={isDeleting}
-            style={styles.deleteButton}
-          />
-        </Card>
-      )}
+        <>
+          <Card variant="detail">
+            <View style={styles.titleRow}>
+              <Text
+                style={[theme.typography('headlineMd'), styles.title]}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {applicant.fullName}
+              </Text>
+              {derivedStatus ? (
+                <StatusBadge label={derivedStatus.label} tone={derivedStatus.tone} />
+              ) : null}
+            </View>
+            <Text style={[theme.typography('bodyMd'), styles.location]}>
+              {applicant.city} • {applicant.phoneNumber}
+            </Text>
 
-      {applicant && !isEditing ? (
-        <SuggestedPropertiesSection
-          applicant={applicant}
-          onSelectProperty={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
-          onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
-        />
-      ) : null}
+            {/* design-system.md Principle 6 — budget is what a broker
+                needs first, promoted above every other detail field. */}
+            {applicant.minBudget !== null || applicant.maxBudget !== null ? (
+              <View style={styles.headlineStats}>
+                <Text style={[theme.typography('headlineMd'), styles.budgetValue]}>
+                  {applicant.minBudget?.toLocaleString('fa-IR') ?? '-'} تا{' '}
+                  {applicant.maxBudget?.toLocaleString('fa-IR') ?? '-'} تومان
+                </Text>
+              </View>
+            ) : null}
+
+            {applicant.preferredTransactionType ? (
+              <DetailRow
+                label="نوع معامله مدنظر"
+                value={applicant.preferredTransactionType}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.preferredPropertyType ? (
+              <DetailRow
+                label="نوع ملک مدنظر"
+                value={applicant.preferredPropertyType}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.minArea !== null || applicant.maxArea !== null ? (
+              <DetailRow
+                label="متراژ مدنظر"
+                value={`${applicant.minArea ?? '-'} تا ${applicant.maxArea ?? '-'} متر`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.rooms !== null ? (
+              <DetailRow
+                label="تعداد اتاق"
+                value={String(applicant.rooms)}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.description ? (
+              <DetailRow
+                label="توضیحات"
+                value={applicant.description}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+
+            <View style={styles.actions}>
+              <Button
+                label="ویرایش"
+                onPress={startEditing}
+                variant="secondary"
+                style={styles.actionButton}
+              />
+              <Button
+                label="حذف متقاضی"
+                onPress={() => setIsDeleteConfirmVisible(true)}
+                variant="destructive"
+                loading={isDeleting}
+                style={styles.actionButton}
+              />
+            </View>
+            {submitError ? (
+              <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+            ) : null}
+          </Card>
+
+          <SuggestedPropertiesSection
+            applicant={applicant}
+            onSelectProperty={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
+            onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
+          />
+
+          <ApplicantActivitySection
+            deals={activity.deals}
+            reminders={activity.reminders}
+            isLoading={activity.isLoading}
+            error={activity.error}
+            onRetry={activity.refetch}
+          />
+        </>
+      )}
 
       <ConfirmDialog
         visible={isDeleteConfirmVisible}
@@ -257,13 +289,36 @@ function createStyles(theme: Theme) {
       justifyContent: 'center',
       paddingVertical: theme.spacing.space12
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.spacing.space2
+    },
+    // design-system.md §10 — rides inline in a row beside the status
+    // badge, so it needs flexShrink (overflow safety) instead of
+    // alignSelf (that rule is for standalone column-level Text only).
     title: {
       color: theme.colors.onSurface,
-      marginBottom: theme.spacing.space3,
+      flex: 1,
+      flexShrink: 1
+    },
+    location: {
+      color: theme.colors.onSurfaceVariant,
+      marginTop: theme.spacing.space2,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    // design-system.md Principle 6 — the one deliberately "loud" block on
+    // this screen: budget, promoted above every other field.
+    headlineStats: {
+      marginTop: theme.spacing.space5,
+      marginBottom: theme.spacing.space2
+    },
+    budgetValue: {
+      color: theme.colors.primary,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     detailRow: {
-      marginBottom: theme.spacing.space3
+      marginTop: theme.spacing.space3
     },
     label: {
       color: theme.colors.onSurfaceVariant,
@@ -279,13 +334,16 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     submitError: {
       color: theme.colors.error,
+      marginTop: theme.spacing.space3,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    editButton: {
-      marginTop: theme.spacing.space3
+    actions: {
+      flexDirection: 'row',
+      gap: theme.spacing.space3,
+      marginTop: theme.spacing.space5
     },
-    deleteButton: {
-      marginTop: theme.spacing.space3
+    actionButton: {
+      flex: 1
     }
   })
 }

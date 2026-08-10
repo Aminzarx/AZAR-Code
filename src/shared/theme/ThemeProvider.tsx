@@ -8,10 +8,12 @@ import {
   motion,
   radius,
   spacing,
+  statusTones,
   touchTargetMinimum,
   typographyLtr,
   typographyRtl,
   vazirmatnFontFamilyByWeight,
+  type StatusTone,
   type TypographyVariant
 } from './tokens'
 
@@ -34,6 +36,8 @@ export type Theme = {
     textAlign: 'left' | 'right'
     writingDirection: 'ltr' | 'rtl'
   }
+  /** Resolves one of the 5 status tones (design-system.md §7 Status System) to real theme colors. */
+  status: (tone: StatusTone) => { background: string; foreground: string }
 }
 
 function buildTheme(isRTL: boolean): Theme {
@@ -56,7 +60,14 @@ function buildTheme(isRTL: boolean): Theme {
       fontFamily: isRTL ? vazirmatnFontFamilyByWeight[table[variant].fontWeight] : undefined,
       textAlign: isRTL ? 'right' : 'left',
       writingDirection: isRTL ? 'rtl' : 'ltr'
-    })
+    }),
+    status: (tone) => {
+      const tokenPair = statusTones[tone]
+      return {
+        background: lightColors[tokenPair.background],
+        foreground: lightColors[tokenPair.foreground]
+      }
+    }
   }
 }
 

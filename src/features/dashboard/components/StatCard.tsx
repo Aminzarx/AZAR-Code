@@ -48,7 +48,11 @@ export function StatCard({ stat, onPress }: Props): React.JSX.Element {
   const label = `${stat.label}: ${stat.value}`
 
   const content = (
-    <Card style={styles.card}>
+    // design-system.md §14 point 2 — the KPI row is context, not the point
+    // of the screen; `flat` (hairline border, no shadow) keeps it visually
+    // quieter than the Needs Attention section below it, which is the
+    // section that should actually read as urgent/important.
+    <Card style={styles.card} flat>
       <View
         style={styles.row}
         accessible={!onPress}

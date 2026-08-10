@@ -20,6 +20,7 @@ export type IconName =
   | 'calendar'
   | 'chevronDouble'
   | 'deal'
+  | 'filter'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -509,6 +510,17 @@ function renderGlyph(
             ]}
           />
         </>
+      )
+    case 'filter':
+      // A funnel: two horizontal bars shrinking toward the bottom point —
+      // the conventional "narrowing down a list" metaphor, distinct from
+      // every other glyph in the set.
+      return (
+        <View style={{ alignItems: 'center', gap: box * 0.16 }}>
+          <View style={{ width: box * 0.7, height: stroke, backgroundColor: tint }} />
+          <View style={{ width: box * 0.44, height: stroke, backgroundColor: tint }} />
+          <View style={{ width: box * 0.18, height: stroke, backgroundColor: tint }} />
+        </View>
       )
   }
 }

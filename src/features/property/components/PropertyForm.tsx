@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { AutocompleteInput, FormRow, MoneyInput, TextInput } from '@shared/components'
+import { AutocompleteInput, MoneyInput, TextInput } from '@shared/components'
 import { IRANIAN_CITIES } from '@shared/data/iranianCities'
 import { PROPERTY_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
@@ -32,24 +32,22 @@ export function PropertyForm({ values, errors, onChange }: Props): React.JSX.Ele
         placeholder="مثلاً آپارتمان دو خوابه ولیعصر"
         errorMessage={errors.title}
       />
-      <FormRow>
-        <AutocompleteInput
-          label="نوع ملک"
-          value={values.propertyType}
-          onChangeValue={(value) => onChange('propertyType', value)}
-          suggestions={PROPERTY_TYPES}
-          placeholder="آپارتمان، ویلا..."
-          errorMessage={errors.propertyType}
-        />
-        <AutocompleteInput
-          label="نوع معامله"
-          value={values.transactionType}
-          onChangeValue={(value) => onChange('transactionType', value)}
-          suggestions={PROPERTY_TRANSACTION_TYPES}
-          placeholder="فروش، رهن..."
-          errorMessage={errors.transactionType}
-        />
-      </FormRow>
+      <AutocompleteInput
+        label="نوع ملک"
+        value={values.propertyType}
+        onChangeValue={(value) => onChange('propertyType', value)}
+        suggestions={PROPERTY_TYPES}
+        placeholder="آپارتمان، ویلا..."
+        errorMessage={errors.propertyType}
+      />
+      <AutocompleteInput
+        label="نوع معامله"
+        value={values.transactionType}
+        onChangeValue={(value) => onChange('transactionType', value)}
+        suggestions={PROPERTY_TRANSACTION_TYPES}
+        placeholder="فروش، رهن..."
+        errorMessage={errors.transactionType}
+      />
       <AutocompleteInput
         label="شهر"
         required
@@ -73,22 +71,20 @@ export function PropertyForm({ values, errors, onChange }: Props): React.JSX.Ele
         onChangeValue={(value) => onChange('price', value)}
         errorMessage={errors.price}
       />
-      <FormRow>
-        <TextInput
-          label="متراژ (متر مربع)"
-          value={values.area}
-          onChangeText={(value) => onChange('area', value)}
-          keyboardType="number-pad"
-          errorMessage={errors.area}
-        />
-        <TextInput
-          label="تعداد اتاق"
-          value={values.rooms}
-          onChangeText={(value) => onChange('rooms', value)}
-          keyboardType="number-pad"
-          errorMessage={errors.rooms}
-        />
-      </FormRow>
+      <TextInput
+        label="متراژ (متر مربع)"
+        value={values.area}
+        onChangeText={(value) => onChange('area', value)}
+        keyboardType="number-pad"
+        errorMessage={errors.area}
+      />
+      <TextInput
+        label="تعداد اتاق"
+        value={values.rooms}
+        onChangeText={(value) => onChange('rooms', value)}
+        keyboardType="number-pad"
+        errorMessage={errors.rooms}
+      />
       <TextInput
         label="توضیحات"
         value={values.description}

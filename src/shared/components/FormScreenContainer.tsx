@@ -1,8 +1,19 @@
-import React from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native'
 import { Pressable, ScrollView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
+import { Icon } from './Icon'
+
+/** How long the post-save "ذخیره شد" flash stays visible before the header reverts to its normal label. */
+const SAVED_FLASH_DURATION_MS = 1600
 
 type Props = {
   children: React.ReactNode
@@ -17,6 +28,23 @@ type Props = {
   onSave?: () => void
   saveLabel?: string
   isSaving?: boolean
+  /**
+   * Whether the form has unsaved changes worth submitting. Defaults to
+   * `true` (always enabled) for callers that don't yet track dirty state,
+   * so this stays backward-compatible with every existing call site.
+   * When `false`, the save action renders muted/disabled (design-system.md
+   * §7.2's disabled-field treatment: `surfaceContainerLow` fill, `outline`
+   * text) instead of inviting a no-op tap.
+   */
+  isDirty?: boolean
+  /**
+   * Flip this to `true` right after a save resolves successfully to show a
+   * brief "ذخیره شد" flash in place of the save label. The container clears
+   * it on its own after a short delay — callers don't need their own timer,
+   * just leave the prop `true` (or reset it whenever, the internal flash
+   * timing is what actually controls visibility).
+   */
+  saveSucceeded?: boolean
 }
 
 /**
@@ -55,10 +83,23 @@ export function FormScreenContainer({
   headerTitle,
   onSave,
   saveLabel = 'ذخیره',
-  isSaving
+  isSaving,
+  isDirty = true,
+  saveSucceeded = false
 }: Props): React.JSX.Element {
   const theme = useTheme()
-  const styles = createStyles(theme)
+  const isDisabled = Boolean(isSaving) || !isDirty
+  const styles = createStyles(theme, isDisabled)
+  const [showSavedFlash, setShowSavedFlash] = useState(false)
+
+  useEffect(() => {
+    if (!saveSucceeded) {
+      return
+    }
+    setShowSavedFlash(true)
+    const timer = setTimeout(() => setShowSavedFlash(false), SAVED_FLASH_DURATION_MS)
+    return () => clearTimeout(timer)
+  }, [saveSucceeded])
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -66,8 +107,17 @@ export function FormScreenContainer({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={saveLabel}
-          onPress={onSave}
-          disabled={isSaving}
+          accessibilityState={{ disabled: isDisabled }}
+          // Guarding inside the handler (not just via the `disabled` prop)
+          // keeps this reliably no-op regardless of how the underlying
+          // gesture-handler Pressable wires up disabled-state press
+          // suppression at the native/gesture level.
+          onPress={() => {
+            if (!isDisabled) {
+              onSave()
+            }
+          }}
+          disabled={isDisabled}
           style={styles.header}
         >
           {headerTitle ? (
@@ -83,6 +133,11 @@ export function FormScreenContainer({
           )}
           {isSaving ? (
             <ActivityIndicator color={theme.colors.onSecondaryContainer} size="small" />
+          ) : showSavedFlash ? (
+            <View style={styles.savedFlash}>
+              <Icon name="check" size="xs" color={theme.colors.onSuccessContainer} />
+              <Text style={[theme.typography('labelMd'), styles.savedFlashLabel]}>ذخیره شد</Text>
+            </View>
           ) : (
             <Text style={[theme.typography('labelMd'), styles.saveLabel]}>{saveLabel}</Text>
           )}
@@ -104,7 +159,7 @@ export function FormScreenContainer({
   )
 }
 
-function createStyles(theme: Theme) {
+function createStyles(theme: Theme, isDisabled: boolean) {
   return StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -128,13 +183,30 @@ function createStyles(theme: Theme) {
       flexShrink: 1,
       marginEnd: theme.spacing.space3
     },
+    // design-system.md §7.2's disabled-field treatment (surfaceContainerLow
+    // fill, outline text) reused here so "can't save yet" reads the same
+    // way a disabled text field does, instead of a one-off button style.
     saveLabel: {
-      color: theme.colors.onSecondaryContainer,
-      backgroundColor: theme.colors.secondaryContainer,
+      color: isDisabled ? theme.colors.outline : theme.colors.onSecondaryContainer,
+      backgroundColor: isDisabled
+        ? theme.colors.surfaceContainerLow
+        : theme.colors.secondaryContainer,
       paddingHorizontal: theme.spacing.space4,
       paddingVertical: theme.spacing.space2,
       borderRadius: theme.radius.full,
       overflow: 'hidden'
+    },
+    savedFlash: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space1,
+      paddingHorizontal: theme.spacing.space4,
+      paddingVertical: theme.spacing.space2,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.successContainer
+    },
+    savedFlashLabel: {
+      color: theme.colors.onSuccessContainer
     },
     content: {
       padding: theme.spacing.space6,

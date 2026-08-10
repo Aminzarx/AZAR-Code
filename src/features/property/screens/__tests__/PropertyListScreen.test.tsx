@@ -3,6 +3,7 @@ import { fireEvent, render } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { PropertyListScreen } from '../PropertyListScreen'
 import { useProperties } from '../../hooks/useProperties'
+import { useApplicants } from '@features/applicant/hooks/useApplicants'
 import type { Property } from '../../types'
 
 const mockNavigate = jest.fn()
@@ -14,8 +15,10 @@ jest.mock('@features/auth/AuthProvider', () => ({
 }))
 
 jest.mock('../../hooks/useProperties')
+jest.mock('@features/applicant/hooks/useApplicants')
 
 const mockedUseProperties = useProperties as jest.MockedFunction<typeof useProperties>
+const mockedUseApplicants = useApplicants as jest.MockedFunction<typeof useApplicants>
 
 const PROPERTY: Property = {
   id: 'prop-1',
@@ -41,6 +44,12 @@ describe('PropertyListScreen', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     mockedUseProperties.mockReset()
+    mockedUseApplicants.mockReturnValue({
+      applicants: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
   })
 
   it('shows a loading indicator while loading', async () => {

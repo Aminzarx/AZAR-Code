@@ -4,16 +4,21 @@ import { withTheme } from '@shared/components/testHelpers'
 import { ApplicantDetailScreen } from '../ApplicantDetailScreen'
 import { useApplicantDetail } from '../../hooks/useApplicantDetail'
 import { useApplicantService } from '../../hooks/useApplicantService'
+import { useApplicantActivity } from '../../hooks/useApplicantActivity'
 import type { Applicant } from '../../types'
 
 jest.mock('../../hooks/useApplicantDetail')
 jest.mock('../../hooks/useApplicantService')
+jest.mock('../../hooks/useApplicantActivity')
 
 const mockedUseApplicantDetail = useApplicantDetail as jest.MockedFunction<
   typeof useApplicantDetail
 >
 const mockedUseApplicantService = useApplicantService as jest.MockedFunction<
   typeof useApplicantService
+>
+const mockedUseApplicantActivity = useApplicantActivity as jest.MockedFunction<
+  typeof useApplicantActivity
 >
 const mockUpdateApplicant = jest.fn()
 const mockDeleteApplicant = jest.fn()
@@ -56,6 +61,13 @@ describe('ApplicantDetailScreen', () => {
       updateApplicant: mockUpdateApplicant,
       deleteApplicant: mockDeleteApplicant
     } as never)
+    mockedUseApplicantActivity.mockReturnValue({
+      deals: [],
+      reminders: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
   })
 
   it('shows the applicant details', async () => {
@@ -71,7 +83,7 @@ describe('ApplicantDetailScreen', () => {
     )
 
     expect(await findByText('علی رضایی')).toBeTruthy()
-    expect(await findByText('09121234567')).toBeTruthy()
+    expect(await findByText('تهران • 09121234567')).toBeTruthy()
   })
 
   it('shows an error state with retry when loading fails', async () => {

@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.4.0)
+# AZAR Design System — "Minimal Luxury" (v2.5.0)
 
 ## 0. Positioning statement
 
@@ -40,6 +40,57 @@ existed to forbid it. §13–§15 below close that gap; §7.3 and §7.9 are
 updated to point at the new rules. This is a documentation and
 implementation correction, not another visual reset — colors, type,
 radius, and elevation are unchanged from v2.0.0.
+
+## 0.2 v2.5.0 — Professional CRM redesign (why this section exists)
+
+v2.0–v2.3 fixed color, layout, and RTL correctness, but the app still
+reads as a **functional CRUD tool**, not a **professional CRM a broker
+is proud to open in front of a client**. The gap isn't decoration —
+it's that no screen tells the broker what to *do*. v2.5.0 is a
+UI/UX-only redesign (business logic, data model, and navigation
+structure are unchanged except where a screen genuinely needed a new
+*read* query to show already-existing data, e.g. reading a property's
+linked deals to show its real status — never a new business rule) built
+around eight principles:
+
+1. **Information before decoration.** Real data earns pixels before
+   any visual flourish does.
+2. **Action over navigation.** Every screen answers "what do I do now?",
+   not just "what exists?".
+3. **One visual focus per section.** A section with two loud things has
+   zero visual foci, not two.
+4. **Not everything is a Card.** A screen is composed from Canvas,
+   Surface, List Row, Tonal Surface, Card, Divider, and whitespace —
+   `Card` is reserved for content that genuinely needs a raised,
+   bounded container, not the default wrapper for every block.
+5. **Color has meaning.** Bronze (`secondary`) is a rare brand accent,
+   not a decoration — reserved for the single most important action or
+   highlight in a view. See §6.5 Status System for how state colors
+   (success/warning/info/neutral) are used consistently instead of
+   per-screen guesswork.
+6. **Progressive disclosure.** Primary information (what the broker
+   needs in 3 seconds) renders first and largest; secondary information
+   is smaller/lower; supporting information (metadata, timestamps) is
+   quietest and last.
+7. **Mobile-first.** Every layout decision is made for a 320–430px
+   phone first; nothing is designed for a tablet/desktop width and then
+   shrunk down.
+8. **CRM-first.** Every screen serves one step of ثبت → پیدا کردن →
+   تطبیق → پیگیری → معامله (register → find → match → follow up →
+   close) — a screen that doesn't visibly serve one of these steps is
+   the wrong screen, not just an unstyled one.
+
+**Definition of done for any v2.5.0 screen** (§28's audit, condensed):
+a broker looking at the screen for 3 seconds can answer *where am I*,
+*what's the most important information here*, and *what can I do right
+now* — without reading every line of text. If any of those three isn't
+obvious, the screen isn't done, no matter how polished it looks.
+
+**UI overload is explicitly banned**: card-inside-card, more than one
+loud accent color in a single view, more than one primary CTA in a
+single view, bold-everything (bold means nothing if everything is
+bold), center-aligning body content by default, and wrapping content in
+a container just because every other block has one.
 
 ## 1. Color System
 
@@ -190,6 +241,58 @@ this document owns is the *rules* every glyph choice must satisfy:
   `accessibilityLabel` (§8), and every icon paired with a label in a
   row stays paired with that label, never presented alone as the sole
   identifier of an action.
+
+## 6.5 Status System (v2.5.0)
+
+Every entity with a state (property, applicant, deal) shows it through
+one shared `StatusBadge` component (`src/shared/components/StatusBadge.tsx`)
+— never a bespoke colored `Text`/chip built per screen. A status is a
+small tonal pill (dot + label), never a saturated solid fill, never
+bold, never larger than `labelSm`.
+
+`StatusBadge` takes a `tone`, not a raw color — one of exactly 5 tones
+(`theme.status(tone)` in `src/shared/theme/tokens.ts`'s `statusTones`,
+each reusing an existing Material container/on-container role pair, no
+new hex values):
+
+- **positive** (success green) — healthy default state, nothing needs
+  attention (e.g. an active property with no open deal).
+- **attention** (warning amber) — needs the broker's attention soon,
+  not broken (e.g. an applicant with an overdue follow-up reminder).
+- **inProgress** (info blue) — something is actively moving (a deal in
+  an open stage against this property/applicant).
+- **highlight** (bronze) — reserved for the rare "this is the one"
+  moment (a won deal). Never used for routine state.
+- **neutral** (gray) — archived/inactive/closed. Deliberately the
+  *lowest*-emphasis tone — archived is not an error, so it is never red.
+
+**Property status** (derived, not just the raw DB `active`/`archived`
+column): بایگانی (archived → neutral) if archived; otherwise, if the
+property has any deal in `current_stage = 'won'` → معامله‌شده
+(highlight); otherwise if it has any deal in an open stage → در حال
+معامله (inProgress); otherwise فعال (positive). This reuses
+`DealRepository.getByProperty(propertyId)`, an existing read method —
+no schema change. **"منقضی" (expired) is deliberately not implemented**:
+no expiry-date field exists anywhere in the schema, and inventing an
+expiry status with nothing behind it would violate Principle 1
+(information before decoration) — a status badge that isn't backed by
+real data is decoration, not information. Revisit only if/when the
+data model gains an actual expiry concept.
+
+**Applicant status**: غیرفعال (archived → neutral) if archived;
+otherwise, if the applicant has any incomplete reminder
+(`isDone: false`) whose `remindAt` has passed → نیازمند پیگیری
+(attention) — this takes priority over deal state, since an overdue
+follow-up is the most urgent signal; otherwise if any deal in
+`current_stage = 'won'` → معامله‌شده (highlight); otherwise if any deal
+in an open stage → در حال تطبیق (inProgress); otherwise فعال (positive).
+Uses the existing `DealRepository.getByApplicant(applicantId)` and the
+existing reminder `propertyId`/`applicantId` linkage — no schema change.
+
+List screens show only the cheap base status (فعال/بایگانی from the
+DB column directly) to avoid an N+1 query per row; the richer derived
+status (with deal/reminder context) is computed only on Detail screens,
+where a single entity's related records are one cheap query away.
 
 ## 7. Component Standards
 
@@ -512,29 +615,46 @@ equally important. A screen where every section looks the same weight
 reads as "unrelated boxes stacked vertically" — that flatness is itself
 a design defect, independent of any single section's own layout.
 
-Standard section order and role, applied to the Dashboard first and to
-any future screen with a similar shape:
+Standard section order and role — the Dashboard is AZAR's **command
+center**, not a KPI dashboard: its job is to answer "what does my
+business look like, and what should I do right now", in that order:
 
 1. **Header / identity** — who is using the app right now (avatar +
    greeting), and the one navigation affordance to account/settings.
    Not a card; sits directly on the screen background.
-2. **Primary overview / KPIs** — the small number of headline metrics
-   that answer "what does my business look like right now." §7.3.1's
-   fixed 2-column grid. No section heading text needed — the header
-   above already establishes context.
-3. **Primary actions** — the small number of things the user most
-   often needs to *do* next (create a record, jump to the most active
-   list). Gets a `titleMd` section heading (§2) since it's the first
-   section that needs one.
-4. **Important activity / follow-ups** — time-sensitive items the user
-   must not miss (upcoming reminders). Ranked above general activity
-   because it can require action; uses the `compact` EmptyState (§7.7)
-   when there's nothing due.
-5. **Secondary information** — general historical context (recent
-   activity log) that's useful but never time-critical; sits last in
-   scroll order precisely because it's the section most safe to require
-   a scroll to reach.
-6. **Persistent navigation** — the bottom tab bar (§7.5), always
+2. **Today / Overview** — the small number of headline counts that
+   answer "what does my business look like right now" (active
+   properties, active applicants, new matches, today's follow-ups).
+   §7.3.1's fixed 2-column grid, kept visually quiet — these are
+   context, not the point of the screen. No section heading text
+   needed — the header above already establishes context.
+3. **Needs Attention** — v2.5.0's addition, and the section that makes
+   this a command center instead of a KPI board: a short, concrete list
+   of things that need the broker's action today (e.g. "۳ متقاضی
+   نیازمند پیگیری", "۲ ملک دارای متقاضی مناسب", "۱ قرارداد در انتظار
+   اقدام"), each row tappable straight to the relevant filtered list or
+   record. Ranked **above** Primary Actions — a broker with something
+   urgent needs to see it before being invited to create something new.
+   Uses `attention`-tone `StatusBadge`-style accents (§6.5), never a
+   full KPI-card treatment — these are compact rows, not tiles. Empty
+   state for this section is simply not rendering it (an empty "Needs
+   Attention" heading with nothing under it is noise, not information).
+4. **Primary Actions** — exactly two: افزودن پرونده ملکی and افزودن
+   متقاضی. These get the only elevated/prominent visual treatment on
+   the Dashboard; every other action reachable from this screen
+   (`مشاهده پیگیری‌ها` etc.) is visually secondary — smaller, lower
+   contrast, no container elevation — so the eye lands on Create first.
+   Only one of the two primary actions may carry the single "loudest"
+   accent treatment at a time if a further distinction is ever needed;
+   by default both are equal-weight primaries. Gets a `titleMd` section
+   heading (§2).
+5. **Recent Activity** — general historical context (activity log)
+   that's useful but never time-critical; sits after Reminders because
+   it's the section most safe to require a scroll to reach.
+6. **Reminders** — upcoming (not yet due) reminders, distinct from
+   Needs Attention's *overdue* ones; uses the `compact` EmptyState
+   (§7.7) when there's nothing upcoming.
+7. **Persistent navigation** — the bottom tab bar (§7.5), always
    present, never part of the scrollable content.
 
 Sections use `theme.layout.sectionSpacing` (32) between them and

@@ -1,7 +1,8 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card } from '@shared/components'
+import { Card, StatusBadge } from '@shared/components'
+import { baseApplicantStatus } from '../statusDerivation'
 import type { Applicant } from '../types'
 
 type Props = {
@@ -24,11 +25,21 @@ export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Elem
   const theme = useTheme()
   const styles = createStyles(theme)
   const budgetLabel = formatBudgetRange(applicant.minBudget, applicant.maxBudget)
+  const status = baseApplicantStatus(applicant.status)
 
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={applicant.fullName} onPress={onPress}>
       <Card>
-        <Text style={[theme.typography('titleSm'), styles.title]}>{applicant.fullName}</Text>
+        <View style={styles.titleRow}>
+          <Text
+            style={[theme.typography('titleSm'), styles.title]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {applicant.fullName}
+          </Text>
+          <StatusBadge label={status.label} tone={status.tone} />
+        </View>
         <Text style={[theme.typography('bodySm'), styles.subtitle]}>
           {applicant.city} • {applicant.phoneNumber}
         </Text>
@@ -62,9 +73,18 @@ export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Elem
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2
+    },
+    // design-system.md §10 — rides inline in a row beside the status
+    // badge, so it needs flexShrink (overflow safety) instead of
+    // alignSelf (that rule is for standalone column-level Text only).
     title: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      flex: 1,
+      flexShrink: 1
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,

@@ -4,12 +4,23 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  ErrorState,
+  FormScreenContainer,
+  LoadingIndicator,
+  StatusBadge
+} from '@shared/components'
 import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
 import { usePropertyDetail } from '../hooks/usePropertyDetail'
 import { usePropertyService } from '../hooks/usePropertyService'
+import { usePropertyActivity } from '../hooks/usePropertyActivity'
 import { PropertyForm } from '../components/PropertyForm'
+import { PropertyActivitySection } from '../components/PropertyActivitySection'
 import { PropertyValidationError } from '../services/PropertyValidationError'
+import { derivePropertyStatus } from '../statusDerivation'
 import type { Property, PropertyFormErrors, PropertyFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'PropertyDetail'>
@@ -33,12 +44,15 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   const styles = createStyles(theme)
   const { propertyId } = route.params
   const { property, isLoading, error, refetch } = usePropertyDetail(propertyId)
+  const activity = usePropertyActivity(propertyId)
   const service = usePropertyService()
   const [isEditing, setIsEditing] = useState(false)
   const [values, setValues] = useState<PropertyFormValues | null>(null)
   const [errors, setErrors] = useState<PropertyFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
 
   function startEditing(): void {
     if (!property) {
@@ -79,6 +93,24 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
     }
   }
 
+  async function handleDelete(): Promise<void> {
+    if (!service || !property) {
+      return
+    }
+    setIsDeleting(true)
+    try {
+      await service.deleteProperty(property.id)
+      navigation.goBack()
+    } catch {
+      setIsDeleteConfirmVisible(false)
+      setSubmitError('حذف پرونده با مشکل مواجه شد. دوباره تلاش کنید.')
+      setIsDeleting(false)
+    }
+  }
+
+  const derivedStatus =
+    property && activity.deals ? derivePropertyStatus(property, activity.deals) : null
+
   return (
     <FormScreenContainer
       headerTitle={isEditing ? 'ویرایش پرونده ملکی' : undefined}
@@ -110,69 +142,121 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
           <PropertyForm values={values} errors={errors} onChange={handleChange} />
         </>
       ) : (
-        <Card variant="detail">
-          <Text style={[theme.typography('headlineMd'), styles.title]}>{property.title}</Text>
-          <View style={styles.detailRow}>
-            <Text style={[theme.typography('bodyMd'), styles.value]}>
+        <>
+          <Card variant="detail">
+            <View style={styles.titleRow}>
+              <Text
+                style={[theme.typography('headlineMd'), styles.title]}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {property.title}
+              </Text>
+              {derivedStatus ? (
+                <StatusBadge label={derivedStatus.label} tone={derivedStatus.tone} />
+              ) : null}
+            </View>
+            <Text style={[theme.typography('bodyMd'), styles.location]}>
               {property.city} • {property.address}
             </Text>
-          </View>
-          {property.propertyType ? (
-            <DetailRow
-              label="نوع ملک"
-              value={property.propertyType}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {property.transactionType ? (
-            <DetailRow
-              label="نوع معامله"
-              value={property.transactionType}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {property.price !== null ? (
-            <DetailRow
-              label="قیمت"
-              value={`${property.price.toLocaleString('fa-IR')} تومان`}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {property.area !== null ? (
-            <DetailRow label="متراژ" value={`${property.area} متر`} theme={theme} styles={styles} />
-          ) : null}
-          {property.rooms !== null ? (
-            <DetailRow
-              label="تعداد اتاق"
-              value={String(property.rooms)}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
-          {property.description ? (
-            <DetailRow label="توضیحات" value={property.description} theme={theme} styles={styles} />
-          ) : null}
-          <Button
-            label="ویرایش"
-            onPress={startEditing}
-            variant="secondary"
-            style={styles.editButton}
+
+            {/* design-system.md Principle 6 — price/area/rooms are what a
+                broker needs first, promoted above every other detail field. */}
+            <View style={styles.headlineStats}>
+              {property.price !== null ? (
+                <Text style={[theme.typography('headlineMd'), styles.priceValue]}>
+                  {property.price.toLocaleString('fa-IR')} تومان
+                </Text>
+              ) : null}
+              {property.area !== null || property.rooms !== null ? (
+                <View style={styles.headlineMetaRow}>
+                  {property.area !== null ? (
+                    <Text style={[theme.typography('bodyMd'), styles.headlineMetaValue]}>
+                      {property.area} متر
+                    </Text>
+                  ) : null}
+                  {property.rooms !== null ? (
+                    <Text style={[theme.typography('bodyMd'), styles.headlineMetaValue]}>
+                      {property.rooms} اتاق
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+
+            {property.propertyType ? (
+              <DetailRow
+                label="نوع ملک"
+                value={property.propertyType}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.transactionType ? (
+              <DetailRow
+                label="نوع معامله"
+                value={property.transactionType}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.description ? (
+              <DetailRow
+                label="توضیحات"
+                value={property.description}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+
+            <View style={styles.actions}>
+              <Button
+                label="ویرایش"
+                onPress={startEditing}
+                variant="secondary"
+                style={styles.actionButton}
+              />
+              <Button
+                label="حذف پرونده"
+                onPress={() => setIsDeleteConfirmVisible(true)}
+                variant="destructive"
+                loading={isDeleting}
+                style={styles.actionButton}
+              />
+            </View>
+            {submitError ? (
+              <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+            ) : null}
+          </Card>
+
+          <SuggestedApplicantsSection
+            property={property}
+            onSelectApplicant={(applicantId) =>
+              navigation.navigate('ApplicantDetail', { applicantId })
+            }
+            onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
           />
-        </Card>
+
+          <PropertyActivitySection
+            deals={activity.deals}
+            reminders={activity.reminders}
+            isLoading={activity.isLoading}
+            error={activity.error}
+            onRetry={activity.refetch}
+          />
+        </>
       )}
 
-      {property && !isEditing ? (
-        <SuggestedApplicantsSection
-          property={property}
-          onSelectApplicant={(applicantId) =>
-            navigation.navigate('ApplicantDetail', { applicantId })
-          }
-          onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
-        />
-      ) : null}
+      <ConfirmDialog
+        visible={isDeleteConfirmVisible}
+        title="حذف پرونده ملکی"
+        description="این پرونده برای همیشه حذف می‌شود. ادامه می‌دهید؟"
+        confirmLabel="حذف"
+        destructive
+        isConfirming={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteConfirmVisible(false)}
+      />
     </FormScreenContainer>
   )
 }
@@ -200,13 +284,44 @@ function createStyles(theme: Theme) {
       justifyContent: 'center',
       paddingVertical: theme.spacing.space12
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.spacing.space2
+    },
+    // design-system.md §10 — rides inline in a row beside the status
+    // badge, so it needs flexShrink (overflow safety) instead of
+    // alignSelf (that rule is for standalone column-level Text only).
     title: {
       color: theme.colors.onSurface,
-      marginBottom: theme.spacing.space3,
+      flex: 1,
+      flexShrink: 1
+    },
+    location: {
+      color: theme.colors.onSurfaceVariant,
+      marginTop: theme.spacing.space2,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
+    // design-system.md Principle 6 — the one deliberately "loud" block on
+    // this screen: price/area/rooms, promoted above every other field.
+    headlineStats: {
+      marginTop: theme.spacing.space5,
+      marginBottom: theme.spacing.space2,
+      gap: theme.spacing.space1
+    },
+    priceValue: {
+      color: theme.colors.primary,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    headlineMetaRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.space4
+    },
+    headlineMetaValue: {
+      color: theme.colors.onSurfaceVariant
+    },
     detailRow: {
-      marginBottom: theme.spacing.space3
+      marginTop: theme.spacing.space3
     },
     label: {
       color: theme.colors.onSurfaceVariant,
@@ -222,10 +337,16 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     submitError: {
       color: theme.colors.error,
+      marginTop: theme.spacing.space3,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    editButton: {
-      marginTop: theme.spacing.space3
+    actions: {
+      flexDirection: 'row',
+      gap: theme.spacing.space3,
+      marginTop: theme.spacing.space5
+    },
+    actionButton: {
+      flex: 1
     }
   })
 }

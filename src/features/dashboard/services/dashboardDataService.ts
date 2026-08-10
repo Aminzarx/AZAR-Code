@@ -9,7 +9,7 @@ import { ApplicantService } from '@features/applicant/services/ApplicantService'
 import { DealService } from '@features/deal/services/DealService'
 import { generateId } from '@infrastructure/auth/idGenerators'
 import { DEAL_STATUS_LABELS } from '@features/deal/dealStatusLabels'
-import type { DashboardActivity, DashboardData } from '../types'
+import type { DashboardActivity, DashboardData, DashboardNeedsAttentionItem } from '../types'
 
 const RECENT_ACTIVITY_LIMIT = 5
 const RECENT_ITEMS_PER_SOURCE = RECENT_ACTIVITY_LIMIT
@@ -44,6 +44,8 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     generateId
   )
 
+  const nowIso = new Date().toISOString()
+
   const [
     propertyCount,
     applicantCount,
@@ -52,7 +54,9 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     recentProperties,
     recentApplicants,
     recentDeals,
-    upcomingReminders
+    upcomingReminders,
+    incompleteReminders,
+    dealCountsByStage
   ] = await Promise.all([
     propertyRepository.countByOwner(ownerId),
     applicantRepository.countByUser(ownerId),
@@ -61,8 +65,44 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     propertyRepository.findAllByOwner(ownerId),
     applicantRepository.getAll(ownerId),
     dealService.listDeals(ownerId),
-    reminderRepository.getUpcoming(ownerId, new Date().toISOString())
+    reminderRepository.getUpcoming(ownerId, nowIso),
+    reminderRepository.getIncomplete(ownerId),
+    dealRepository.countByStage(ownerId)
   ])
+
+  // design-system.md §14 point 3 — "Needs Attention" only renders
+  // categories genuinely backed by a real, already-existing read query.
+  // A "ملک دارای متقاضی مناسب" (matching) category is deliberately
+  // omitted here: computing it correctly would mean re-running the
+  // matching engine, not reading an existing aggregate, which is out of
+  // scope for a read-only dashboard query.
+  const needsAttention: DashboardNeedsAttentionItem[] = []
+
+  const overdueApplicantReminderCount = incompleteReminders.filter(
+    (reminder) => reminder.applicantId !== null && reminder.remindAt < nowIso
+  ).length
+  if (overdueApplicantReminderCount > 0) {
+    needsAttention.push({
+      id: 'overdue-applicant-reminders',
+      label: `${overdueApplicantReminderCount} متقاضی نیازمند پیگیری`,
+      tone: 'attention',
+      target: 'ApplicantList'
+    })
+  }
+
+  // "contract" stage — a deal that has reached contract negotiation but
+  // hasn't closed (won/lost) yet is the concrete "awaiting action" moment
+  // this row represents; earlier pipeline stages are already surfaced by
+  // the calmer "پیگیری‌های فعال" KPI above.
+  const dealsAwaitingActionCount = dealCountsByStage.contract
+  if (dealsAwaitingActionCount > 0) {
+    needsAttention.push({
+      id: 'deals-awaiting-action',
+      label: `${dealsAwaitingActionCount} معامله در انتظار اقدام`,
+      tone: 'inProgress',
+      target: 'DealList'
+    })
+  }
 
   const activity: DashboardActivity[] = [
     ...recentProperties.slice(0, RECENT_ITEMS_PER_SOURCE).map((property) => ({
@@ -98,6 +138,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
       { id: 'deals', label: 'پیگیری‌های فعال', value: String(activeDealCount) },
       { id: 'contracts', label: 'قراردادهای فعال', value: String(activeContractCount) }
     ],
+    needsAttention,
     recentActivity: activity,
     upcomingReminders: upcomingReminders.slice(0, UPCOMING_REMINDERS_LIMIT).map((reminder) => ({
       id: reminder.id,

@@ -152,6 +152,24 @@ export class ReminderRepository {
     return updated
   }
 
+  /** Every reminder linked to a property (done and not-done), soonest first — Property Detail's Activity section + status derivation. */
+  async getByProperty(propertyId: string): Promise<ReminderRecord[]> {
+    const result = await this.db.execute(
+      'SELECT * FROM reminders WHERE property_id = ? ORDER BY remind_at ASC, rowid DESC',
+      [propertyId]
+    )
+    return result.rows.map(toReminder)
+  }
+
+  /** Every reminder linked to an applicant (done and not-done), soonest first — Applicant Detail's Activity section + status derivation. */
+  async getByApplicant(applicantId: string): Promise<ReminderRecord[]> {
+    const result = await this.db.execute(
+      'SELECT * FROM reminders WHERE applicant_id = ? ORDER BY remind_at ASC, rowid DESC',
+      [applicantId]
+    )
+    return result.rows.map(toReminder)
+  }
+
   async delete(id: string): Promise<void> {
     await this.db.execute('DELETE FROM reminders WHERE id = ?', [id])
   }

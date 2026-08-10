@@ -30,6 +30,7 @@ describe('DashboardScreen', () => {
   it('shows a loading indicator, then the stats once data resolves', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '2' }],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -56,6 +57,7 @@ describe('DashboardScreen', () => {
   it('shows the empty state for recent activity when there is none', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -70,6 +72,7 @@ describe('DashboardScreen', () => {
   it('navigates to CreateProperty when the add-property quick action is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '0' }],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -85,6 +88,7 @@ describe('DashboardScreen', () => {
   it('navigates to PropertyList when the properties stat card is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '3' }],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -100,6 +104,7 @@ describe('DashboardScreen', () => {
   it('navigates to CreateApplicant when the add-applicant quick action is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'applicants', label: 'متقاضیان', value: '0' }],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -115,6 +120,7 @@ describe('DashboardScreen', () => {
   it('navigates to ApplicantList when the applicants stat card is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'applicants', label: 'متقاضیان', value: '5' }],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -130,6 +136,7 @@ describe('DashboardScreen', () => {
   it('navigates to DealList when the "مشاهده پیگیری‌ها" quick action is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'deals', label: 'پیگیری‌های فعال', value: '0' }],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -145,6 +152,7 @@ describe('DashboardScreen', () => {
   it('navigates to DealList when the deals stat card is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'deals', label: 'پیگیری‌های فعال', value: '2' }],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -160,6 +168,7 @@ describe('DashboardScreen', () => {
   it('navigates to ContractList when the contracts stat card is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [{ id: 'contracts', label: 'قراردادهای فعال', value: '4' }],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -175,6 +184,7 @@ describe('DashboardScreen', () => {
   it('shows the empty state for upcoming reminders when there are none', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
     })
@@ -189,6 +199,7 @@ describe('DashboardScreen', () => {
   it('navigates to ReminderDetail when an upcoming reminder is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [],
+      needsAttention: [],
       recentActivity: [],
       upcomingReminders: [{ id: 'rem-1', title: 'تماس با متقاضی', timestamp: '۱۴۰۴/۰۵/۲۰' }]
     })
@@ -199,5 +210,46 @@ describe('DashboardScreen', () => {
 
     fireEvent.press(await findByLabelText('تماس با متقاضی'))
     expect(mockNavigate).toHaveBeenCalledWith('ReminderDetail', { reminderId: 'rem-1' })
+  })
+
+  it('does not render a Needs Attention heading when there is nothing to show', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [],
+      needsAttention: [],
+      recentActivity: [],
+      upcomingReminders: []
+    })
+
+    const { queryByText, findByText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    // Wait for the loaded screen before asserting an absence.
+    expect(await findByText('اقدامات سریع')).toBeTruthy()
+    expect(queryByText('نیازمند توجه')).toBeNull()
+  })
+
+  it('renders a Needs Attention row and navigates to its target when pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [],
+      needsAttention: [
+        {
+          id: 'overdue-applicant-reminders',
+          label: '3 متقاضی نیازمند پیگیری',
+          tone: 'attention',
+          target: 'ApplicantList'
+        }
+      ],
+      recentActivity: [],
+      upcomingReminders: []
+    })
+
+    const { findByText, findByLabelText } = await render(
+      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('نیازمند توجه')).toBeTruthy()
+    fireEvent.press(await findByLabelText('3 متقاضی نیازمند پیگیری'))
+    expect(mockNavigate).toHaveBeenCalledWith('ApplicantList')
   })
 })
