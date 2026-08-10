@@ -14,13 +14,12 @@ import {
   LoadingIndicator,
   MatchingResult,
   SegmentedControl,
+  SelectionListItem,
   type MatchingCriterionState
 } from '@shared/components'
 import { useProperties } from '@features/property/hooks/useProperties'
-import { PropertyListItem } from '@features/property/components/PropertyListItem'
 import type { Property } from '@features/property/types'
 import { useApplicants } from '@features/applicant/hooks/useApplicants'
-import { ApplicantListItem } from '@features/applicant/components/ApplicantListItem'
 import type { Applicant } from '@features/applicant/types'
 import { useDealService } from '@features/deal/hooks/useDealService'
 import { useApplicantMatchesForProperty } from '../hooks/useApplicantMatchesForProperty'
@@ -53,6 +52,21 @@ function buildCriteria(matchedCriteria: MatchCriterion[]): MatchingCriterionStat
     label: CRITERION_LABELS[criterion],
     matched: matchedCriteria.includes(criterion)
   }))
+}
+
+/** Just enough context to pick the right record — full detail lives one tap away on its own Detail screen. */
+function propertyPickerSubtitle(property: Property): string {
+  const price = property.price ? `${property.price.toLocaleString('fa-IR')} تومان` : null
+  return [property.city, price].filter(Boolean).join(' • ')
+}
+
+function applicantPickerSubtitle(applicant: Applicant): string {
+  const budget = applicant.maxBudget
+    ? `تا ${applicant.maxBudget.toLocaleString('fa-IR')} تومان`
+    : applicant.minBudget
+      ? `از ${applicant.minBudget.toLocaleString('fa-IR')} تومان`
+      : null
+  return [applicant.city, budget].filter(Boolean).join(' • ')
 }
 
 /**
@@ -178,7 +192,13 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.list}
               renderItem={({ item }) => (
-                <PropertyListItem property={item} onPress={() => setSelectedPropertyId(item.id)} />
+                <SelectionListItem
+                  icon="files"
+                  tone="secondary"
+                  title={item.title}
+                  subtitle={propertyPickerSubtitle(item)}
+                  onPress={() => setSelectedPropertyId(item.id)}
+                />
               )}
             />
           )
@@ -209,7 +229,13 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <ApplicantListItem applicant={item} onPress={() => setSelectedApplicantId(item.id)} />
+              <SelectionListItem
+                icon="person"
+                tone="tertiary"
+                title={item.fullName}
+                subtitle={applicantPickerSubtitle(item)}
+                onPress={() => setSelectedApplicantId(item.id)}
+              />
             )}
           />
         )}

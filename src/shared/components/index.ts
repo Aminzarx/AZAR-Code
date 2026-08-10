@@ -19,5 +19,6 @@ export { MatchingResult, matchTone, type MatchingCriterionState } from './Matchi
 export { PipelineIndicator } from './PipelineIndicator'
 export { ContextHeader } from './ContextHeader'
 export { NextAction } from './NextAction'
+export { SelectionListItem } from './SelectionListItem'
 export { FilterSheet } from './FilterSheet'
 export { ChipGroup } from './ChipGroup'

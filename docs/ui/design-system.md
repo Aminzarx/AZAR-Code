@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.6.0)
+# AZAR Design System — "Minimal Luxury" (v2.7.0)
 
 ## 0. Positioning statement
 
@@ -833,3 +833,31 @@ Match scores, activity, deal status, and contract data must reflect
 real records or the section renders its `EmptyState`/is omitted
 entirely (§14's "Needs Attention" precedent) — never a placeholder
 number or synthetic history row invented to make a screen look fuller.
+
+### 17.8 Selection List Row (v2.7.0)
+
+A dedicated, lighter row for "pick one record to act on next" contexts
+— the Matching Workspace's property/applicant picker step being the
+first (and, as of v2.7.0, only) user — via `SelectionListItem.tsx`. It
+is deliberately distinct from `PropertyListItem`/`ApplicantListItem`
+(which carry status badges, price, and a meta grid, right for their
+own list screens but heavier than a quick picker step needs): a
+circular colored icon badge, a bold single-line title, a quiet
+one-line subtitle, and a trailing chevron (or a check when the row is
+the current selection).
+
+The icon badge's color is intentionally one of AZAR's two existing
+brand accents (`secondary`/bronze or `tertiary`/emerald container
+roles), not an arbitrary new hue — this pattern was prompted by a
+reference screenshot using a generic blue, but per §0.2/§1's "one
+accent, deliberately" rule the badge is re-skinned in AZAR's own
+palette rather than importing a foreign brand color. Exactly one tone
+is used per screen/list (e.g. bronze for the property picker, emerald
+for the applicant picker) — never mixed within a single list.
+
+Use `SelectionListItem` specifically for **transient pick-one-of-many
+steps**, not as a replacement for a feature's own list screen. If a
+future screen needs the same "which one do I want" pattern (e.g. a
+property/applicant field on a form that opens a picker instead of
+free text), reuse this component rather than building another bespoke
+row.
