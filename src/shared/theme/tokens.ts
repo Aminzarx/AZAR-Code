@@ -206,5 +206,41 @@ export const componentTokens = {
     radiusDetail: radius.extraLarge,
     paddingDetail: spacing.space8,
     paddingListItem: spacing.space5
+  },
+  /**
+   * design-system.md §13 — KPI/stat rows are a fixed 2-column percentage
+   * grid, never a minWidth-threshold flex-wrap (that collapses to 1 column
+   * below ~390px content width and produces oversized near-empty cards).
+   */
+  statCardGrid: {
+    columns: 2,
+    gap: spacing.space3,
+    // 46%, not 50% — leaves headroom for `gap` (RN adds gap on top of
+    // percentage widths) so two columns never overflow at the narrowest
+    // supported phone width (320px). See design-tokens.json for the math.
+    columnBasisPercent: '46%'
+  },
+  /** Nested-in-a-section empty state (e.g. dashboard sub-section) — see design-system.md §7.7/§15. */
+  emptyStateCompact: {
+    padding: spacing.space5,
+    iconSize: iconSize.md
   }
 } as const
+
+/**
+ * design-system.md §13 — named layout tokens so every screen shares one
+ * page-composition contract instead of each screen picking a spacing
+ * value from the raw scale by convention/memory.
+ */
+export const layoutTokens = {
+  screenPaddingX: spacing.space6,
+  screenPaddingBottom: spacing.space8,
+  sectionSpacing: spacing.space8,
+  componentSpacing: spacing.space3,
+  textToElementSpacing: spacing.space1,
+  topAppBarHeight: 64,
+  bottomNavHeight: 80
+} as const
+
+/** design-system.md §13 — required phone-width regression set; every screen must render with zero horizontal overflow at all six. */
+export const phoneBreakpoints = [320, 360, 375, 390, 412, 430] as const

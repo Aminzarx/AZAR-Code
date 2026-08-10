@@ -54,7 +54,13 @@ export function StatCard({ stat, onPress }: Props): React.JSX.Element {
           <Icon name={visual.icon} size="sm" color={theme.colors[visual.onContainer]} />
         </View>
         <Text style={[theme.typography('headlineLgMobile'), styles.value]}>{stat.value}</Text>
-        <Text style={[theme.typography('bodySm'), styles.label]}>{stat.label}</Text>
+        <Text
+          style={[theme.typography('bodySm'), styles.label]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {stat.label}
+        </Text>
       </View>
     </Card>
   )
@@ -77,9 +83,12 @@ export function StatCard({ stat, onPress }: Props): React.JSX.Element {
 
 function createStyles(theme: Theme, badgeColor: string) {
   return StyleSheet.create({
+    // design-system.md §7.3.1 — fixed 2-column percentage grid, not a
+    // minWidth/flex threshold (that collapses to 1 column on phones
+    // <=390px wide and produces an oversized, near-empty card).
     card: {
-      flex: 1,
-      minWidth: 140
+      flexBasis: theme.component.statCardGrid.columnBasisPercent,
+      flexGrow: 0
     },
     iconBadge: {
       width: theme.iconSize.xl * 0.6,

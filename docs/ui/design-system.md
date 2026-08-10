@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.0.0)
+# AZAR Design System — "Minimal Luxury" (v2.1.0)
 
 ## 0. Positioning statement
 
@@ -25,6 +25,21 @@ so existing components pick up the new look automatically the moment
 `src/shared/theme/tokens.ts` changes; this document and that file must
 always agree (tokens.ts is copied from `design-tokens.json`, which this
 document explains).
+
+## 0.1 v2.1.0 — Layout hardening (why this section exists)
+
+v2.0.0 corrected color/type/shape but never wrote down a *layout*
+contract — page padding, section rhythm, and phone-width behavior were
+left as unwritten convention. That gap let a real regression ship: the
+Dashboard's KPI row used a `minWidth: 140` + `flex: 1` flex-wrap grid
+which is mathematically guaranteed to collapse to **one column** on any
+device narrower than ~390px of content width (320/360/375px Android
+phones — extremely common), producing an oversized, near-empty card for
+each stat. Nothing in v2.0.0 forbade that pattern because no layout rule
+existed to forbid it. §13–§15 below close that gap; §7.3 and §7.9 are
+updated to point at the new rules. This is a documentation and
+implementation correction, not another visual reset — colors, type,
+radius, and elevation are unchanged from v2.0.0.
 
 ## 1. Color System
 
@@ -85,6 +100,29 @@ whitespace" positioning above.
 clean numeric scale was never the problem; card/section *padding* was
 too tight, which §7.3 corrects at the component-token level
 (`card.paddingListItem`/`paddingDetail`), not by inventing a new scale.
+
+### 3.1 Named layout tokens (v2.1.0)
+
+The raw `spaceN` scale is a palette, not a contract — every screen
+picking its own value by convention is exactly how inconsistent
+spacing happens. `theme.layout` (mirrors `design-tokens.json`'s
+`layout` block) names the five roles every screen actually needs, and
+screens must reference these, not raw `spaceN` values, for these five
+purposes:
+
+| Token | Value | Purpose |
+|---|---|---|
+| `screenPaddingX` | `space6` (24) | Horizontal padding on every top-level screen container — the one number that defines "content max width - safe area" |
+| `screenPaddingBottom` | `space8` (32) | Bottom padding on scrollable screens (clears the last section from the bottom nav / thumb) |
+| `sectionSpacing` | `space8` (32) | Vertical gap **between** the sections listed in §14 (header / KPIs / actions / activity / secondary) |
+| `componentSpacing` | `space3` (12) | Vertical gap **within** a section, between sibling components (e.g. a section heading and its content) |
+| `textToElementSpacing` | `space1` (4) | Gap between a piece of text and an immediately adjacent element it's paired with (label → helper text, title → timestamp) |
+
+`sectionSpacing` (32) is deliberately larger than `componentSpacing`
+(12) — that ratio is what makes section boundaries readable at a
+glance without a divider line. A screen that uses the same gap value
+between sections and within them is the "unrelated boxes stacked
+vertically" failure mode called out in §14.
 
 ## 4. Radius / Shape
 
@@ -151,15 +189,45 @@ when it genuinely groups related information — not as a default wrapper
 for every block of text (see §7.7 for how `EmptyState`/`ErrorState`
 avoid this trap with an icon badge instead of a bare card).
 
+Card **height is always content-driven** — never set a fixed or
+`minHeight` on a Card to force visual uniformity; if cards in a row
+look uneven, fix the grid (§13.2), not the card.
+
+### 7.3.1 KPI / stat card grids (v2.1.0)
+
+Any row of small metric cards (Dashboard KPIs and anywhere the same
+pattern is reused) is a **fixed 2-column percentage grid**
+(`theme.component.statCardGrid`: `columnBasisPercent: '46%'` — not 50%,
+to leave headroom for `gap`, which React Native adds on top of
+percentage widths rather than subtracting from them — `gap: space3`),
+not a `minWidth` + `flex: 1` flex-wrap row. A
+minWidth-threshold grid collapses to 1 column once content width drops
+below `columns × minWidth + gaps` — on this app's phone-only breakpoint
+set (§13) that threshold is crossed on ordinary devices, producing an
+oversized card with mostly empty space around 3 lines of content. The
+2-column percentage grid has no threshold to cross: it is always
+exactly 2 columns, at every width in §13, and the card shrinks/grows
+with the column, never with its own content.
+
 ### 7.4 Segmented Controls / Chips
 Track: `surfaceContainerLow`. Selected segment: `primaryContainer` fill +
 `onPrimaryContainer` label. Chips: `radius.full`, `paddingY(space1)` ×
 `paddingX(space3)`, `labelSm`.
 
 ### 7.5 Navigation
-Bottom tab bar: 5 items (Home, Files, Matching, Contracts, Profile).
-Active state: `secondaryContainer` fill + filled icon, using the shared
-`Icon` component (§6) — never a bare label with no icon.
+Bottom tab bar: 5 items (Home, Files, Matching, Contracts, Profile),
+height `layout.bottomNavHeight` (80). Active state: `secondaryContainer`
+fill (bronze-tinted, §1) + `onSecondaryContainer` icon/label, using the
+shared `Icon` component (§6) — never a bare label with no icon.
+**Selection color is always `secondaryContainer`/`onSecondaryContainer`
+from §1 — never a one-off color (e.g. a raw green/blue) introduced only
+for the nav bar.** If a screenshot or build ever shows a bright,
+palette-unaligned active-tab color, that is a stale build or a direct
+`backgroundColor` override bypassing `theme.colors`, not an intentional
+variant — treat it as a bug, not a design option. The tab bar surface is
+`surfaceContainerLowest` with a 1px `outlineVariant` top border, so it
+reads as a natural continuation of the page rather than a competing
+block.
 
 ### 7.6 Loading / Progress
 `LoadingIndicator` is indeterminate-only (no percentage data exists
@@ -173,6 +241,15 @@ Centered: icon badge (`Icon` inside a `radius.full` circle on
 heading → `bodySm` supporting text → optional action button. Every list
 screen gets one for free from the shared `EmptyState` component — no
 screen should invent its own "nothing here" text block.
+
+Two sizes: the default (`padding: space8`, `icon.lg`) is for a
+**screen-level** empty state (an entire list screen has no rows yet).
+A `compact` variant (`theme.component.emptyStateCompact`: `padding:
+space5`, `icon.md`) is for an empty state **nested inside a page
+section that has other content around it** (e.g. a dashboard
+sub-section) — the full-size variant inside a small section produces
+the "large blank area for one line of text" failure. Use `compact`
+whenever the empty state is not the only thing on the screen.
 
 ### 7.8 Error States
 Same badge-first layout as §7.7 but on `errorContainer` with the `alert`
@@ -197,7 +274,7 @@ Press feedback: scale to `0.98`, no color-only feedback. Success
 animations (OTP verification) use React Native's built-in `Animated` API
 — no animation library dependency.
 
-## 10. RTL / Persian-First Rules
+## 10. RTL / Persian-First Rules — formal system (v2.1.0)
 
 Persian-first by default (`ThemeProvider`'s `isRTL` defaults to `true`,
 not derived from OS locale). RTL correctness means real React Native
@@ -206,6 +283,54 @@ mirroring), not just `textAlign: 'right'` — see `rtl.test.tsx` for the
 enforced contract. The one deliberate exception is OTP digit order,
 which stays strict left-to-right regardless of RTL (digits are read the
 same direction as the SMS containing them) — documented in `OtpInput.tsx`.
+
+RTL is a cross-cutting system, not a per-screen concern — the rules
+below apply to every screen and every shared component, not just the
+Dashboard:
+
+- **No hardcoded `left`/`right`.** Never use `marginLeft`/`marginRight`,
+  `paddingLeft`/`paddingRight`, `left:`/`right:` positioning, or
+  `textAlign: 'left'`/`'right'` written directly in a component. Use
+  `theme.spacing`/`theme.layout` inside a `flexDirection: 'row'`
+  container (React Native mirrors `row` to `row-reverse` automatically
+  under `I18nManager.forceRTL`) and `theme.typography(...)`'s
+  `textAlign`/`writingDirection`, which are already RTL-aware. This is
+  RN's equivalent of CSS logical properties (`margin-inline-start`,
+  etc.) — the mirroring is automatic *only* if you never fight it with
+  a literal `left`/`right`.
+- **Icon placement**: an icon paired with text (chevron, badge, leading
+  glyph) sits in the same `row` as the text, positioned by row order,
+  never by an absolute offset — row-reversal then handles RTL for free.
+  Directional icons (chevrons that imply "back"/"forward") must be
+  drawn to flip with the row, not redrawn per-direction.
+- **Overflow safety is part of RTL correctness, not a separate
+  concern.** Any `Text` acting as a heading/label that shares a `row`
+  with a sibling element (a trailing icon, a badge, a chevron) MUST set
+  `flexShrink: 1` and, unless the design explicitly allows wrapping to
+  a second line, `numberOfLines={1}` + `ellipsizeMode="tail"`. Without
+  `flexShrink: 1`, a `Text` node's intrinsic width can push a row past
+  the container edge — this is precisely the failure class behind a
+  heading being "pushed toward/beyond the edge": the container was
+  never too narrow, the text inside it was simply never told it was
+  allowed to shrink. This rule applies to every row-with-trailing-icon
+  pattern in the app (section headings with an action icon, quick-action
+  rows with a trailing chevron, list rows with a trailing timestamp).
+- **Minimum horizontal safe area**: every top-level screen uses
+  `theme.layout.screenPaddingX` (24) on both sides via its outermost
+  container — never 0, never a screen-specific override. Content never
+  extends into that padding; a component that needs more room reduces
+  its own internal padding, it does not borrow the screen's safe area.
+- **Grids and cards** (§7.3.1, §13.2) use percentage-based column
+  widths (`flexBasis`), never fixed pixel `minWidth` thresholds, for the
+  same reason fixed left/right offsets are banned: a threshold-based
+  layout has a breakpoint where it silently changes shape, and RTL
+  mirroring makes that breakpoint effect exactly as invisible during
+  development (both directions look "fine" until measured at a real
+  device width).
+- **Forms, dialogs, lists**: label position, helper/error text, and
+  field order all follow the same row-order + `theme.typography`
+  mirroring — no separate RTL variant is ever hand-authored for a form
+  layout that already exists for LTR.
 
 ## 11. Dark Theme (Deferred)
 
@@ -220,3 +345,112 @@ not silently bundled into this reset.
 `docs/ui/design-tokens.json` is the numeric source of truth this
 document explains; `src/shared/theme/tokens.ts` is a direct port of it
 into TypeScript. Do not edit one without the other.
+
+## 13. Responsive Rules — phone breakpoints (v2.1.0)
+
+AZAR ships on phones only — the `grid.compact/medium/expanded` block in
+§12's tokens is a tablet/desktop system inherited from the Material 3
+foundation and does not apply to any screen in this app today (revisit
+only if a tablet layout is scoped). What actually governs every screen
+is the phone-width regression set:
+
+**320, 360, 375, 390, 412, 430** (px logical width — narrowest common
+Android phone through large Android phone).
+
+### 13.1 Non-negotiable behavior at every width above
+- Zero horizontal overflow / no horizontal scroll.
+- No Persian text is clipped mid-glyph; text that doesn't fit wraps
+  (`numberOfLines` unset, default multi-line) or truncates with an
+  ellipsis (`numberOfLines={1}` + `ellipsizeMode="tail"`) — never
+  overflows its container silently.
+- No heading, button, or icon is pushed outside the viewport.
+- No button collapses below `touchTarget.minimum` (48dp) — if a
+  two-item row genuinely cannot fit at 48dp each at 320px, it stacks to
+  one column instead of shrinking below the minimum (§13.2).
+
+### 13.2 When a multi-column layout must become one column
+A row-based layout (a KPI grid, an action grid, a paired-field row)
+defines its own minimum viable column width up front (e.g. §7.3.1's
+KPI grid: 2 columns, always). If a layout's *content itself* — not a
+device-width threshold — makes 2 columns unreadable (a label that's
+unavoidably longer than a column can hold even after `numberOfLines`
+truncation is applied, e.g. a 48dp-tall button whose label would
+truncate to nothing useful), the fix is to reduce to 1 column
+*ⓐ for that specific instance* by explicit design decision, not by
+attaching a generic `minWidth` to the shared component — a shared
+component's default is always the fixed-percentage grid from §7.3.1/§15.
+
+### 13.3 Testing expectation
+Because this project has no visual/emulator screenshot tooling wired
+into the current session, responsive validation for this pass is
+static: every layout touched in this correction was checked
+arithmetically against all six widths (see §18 Implementation Review /
+the delivery report's Visual Validation section for the actual numbers
+run for the Dashboard KPI grid). A real device/emulator screenshot pass
+at these six widths remains an open follow-up — see the delivery
+report's "Remaining issues" list.
+
+## 14. Information Hierarchy & Screen Composition
+
+Every screen has a small number of sections, and those sections are not
+equally important. A screen where every section looks the same weight
+(same card style, same spacing before and after, same heading size)
+reads as "unrelated boxes stacked vertically" — that flatness is itself
+a design defect, independent of any single section's own layout.
+
+Standard section order and role, applied to the Dashboard first and to
+any future screen with a similar shape:
+
+1. **Header / identity** — who is using the app right now (avatar +
+   greeting), and the one navigation affordance to account/settings.
+   Not a card; sits directly on the screen background.
+2. **Primary overview / KPIs** — the small number of headline metrics
+   that answer "what does my business look like right now." §7.3.1's
+   fixed 2-column grid. No section heading text needed — the header
+   above already establishes context.
+3. **Primary actions** — the small number of things the user most
+   often needs to *do* next (create a record, jump to the most active
+   list). Gets a `titleMd` section heading (§2) since it's the first
+   section that needs one.
+4. **Important activity / follow-ups** — time-sensitive items the user
+   must not miss (upcoming reminders). Ranked above general activity
+   because it can require action; uses the `compact` EmptyState (§7.7)
+   when there's nothing due.
+5. **Secondary information** — general historical context (recent
+   activity log) that's useful but never time-critical; sits last in
+   scroll order precisely because it's the section most safe to require
+   a scroll to reach.
+6. **Persistent navigation** — the bottom tab bar (§7.5), always
+   present, never part of the scrollable content.
+
+Sections use `theme.layout.sectionSpacing` (32) between them and
+`theme.layout.componentSpacing` (12) inside them (§3.1) — the visible
+gap between section 2 and section 3 is meaningfully larger than the gap
+between a section's own heading and its content, which is what makes
+the hierarchy above legible without relying on card borders to do the
+separating.
+
+## 15. Component Contracts — Quick Actions
+
+`QuickAction` / `QuickActionGrid` (Dashboard's "primary actions"
+section, §14 role 3):
+
+- **Layout**: a single-column vertical list of full-width rows, each a
+  `Card` (`listItem` variant) containing icon badge → label → trailing
+  chevron in a `row`. This is a deliberate choice over a 2-column grid:
+  action labels in Persian ("افزودن پرونده ملکی") are long enough that a
+  2-column grid forces truncation or wrapping on most phone widths,
+  while a full-width row gives every label room to render on one line
+  at every width in §13's set. A 2-column *icon-only* variant may be
+  introduced later (§FUTURE) but is not the current contract.
+- **Row height**: `theme.touchTargetMinimum` (48dp) minimum, driven by
+  icon badge + padding — never shorter.
+- **Label**: `labelMd` typography, `flexShrink: 1`, `numberOfLines={1}`
+  + `ellipsizeMode="tail"` (§10's row-overflow rule applies here by
+  name, since this is exactly a text-sharing-a-row-with-a-trailing-icon
+  case).
+- **Icon badge**: `radius.full` circle, `secondaryContainer` fill,
+  fixed size (`iconSize.xl * 0.6`) — does not grow/shrink with the row.
+- **Spacing between rows**: `componentSpacing` (12, §3.1).
+- **Touch target**: the entire row is the `Pressable`, not just the
+  label or icon (§8).

@@ -36,7 +36,13 @@ export function QuickActions({ actions }: Props): React.JSX.Element {
                 color={theme.colors.onSecondaryContainer}
               />
             </View>
-            <Text style={[theme.typography('labelMd'), styles.label]}>{action.label}</Text>
+            <Text
+              style={[theme.typography('labelMd'), styles.label]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {action.label}
+            </Text>
             <Icon name="chevron" size="xs" color={theme.colors.outline} />
           </Card>
         </Pressable>

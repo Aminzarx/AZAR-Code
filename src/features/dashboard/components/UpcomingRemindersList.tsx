@@ -16,6 +16,7 @@ export function UpcomingRemindersList({ reminders, onSelect }: Props): React.JSX
   if (reminders.length === 0) {
     return (
       <EmptyState
+        compact
         title="یادآوری نزدیکی وجود ندارد"
         description="یادآوری‌های آینده شما اینجا نمایش داده می‌شود."
       />

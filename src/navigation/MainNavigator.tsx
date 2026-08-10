@@ -135,7 +135,7 @@ export function MainNavigator(): React.JSX.Element {
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarActiveBackgroundColor: theme.colors.secondaryContainer,
         tabBarStyle: {
-          height: 80,
+          height: theme.layout.bottomNavHeight,
           backgroundColor: theme.colors.surfaceContainerLowest,
           borderTopColor: theme.colors.outlineVariant
         },

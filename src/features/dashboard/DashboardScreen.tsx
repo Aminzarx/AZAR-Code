@@ -52,9 +52,19 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
         >
           <Avatar name="کاربر آزار" size="lg" />
           <View style={styles.headerText}>
-            <Text style={[theme.typography('headlineLgMobile'), styles.greeting]}>خوش آمدید</Text>
+            <Text
+              style={[theme.typography('headlineLgMobile'), styles.greeting]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              خوش آمدید
+            </Text>
             {session?.referralCode ? (
-              <Text style={[theme.typography('bodySm'), styles.headerSubtitle]}>
+              <Text
+                style={[theme.typography('bodySm'), styles.headerSubtitle]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 کد معرف: {session.referralCode}
               </Text>
             ) : null}
@@ -99,12 +109,22 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
               </View>
 
               <View style={styles.section}>
-                <Text style={[theme.typography('titleMd'), styles.sectionTitle]}>اقدامات سریع</Text>
+                <Text
+                  style={[theme.typography('titleMd'), styles.sectionTitle]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  اقدامات سریع
+                </Text>
                 <QuickActions actions={quickActions} />
               </View>
 
               <View style={styles.section}>
-                <Text style={[theme.typography('titleMd'), styles.sectionTitle]}>
+                <Text
+                  style={[theme.typography('titleMd'), styles.sectionTitle]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   یادآوری‌های نزدیک
                 </Text>
                 <UpcomingRemindersList
@@ -114,7 +134,11 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
               </View>
 
               <View style={styles.section}>
-                <Text style={[theme.typography('titleMd'), styles.sectionTitle]}>
+                <Text
+                  style={[theme.typography('titleMd'), styles.sectionTitle]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   آخرین فعالیت‌ها
                 </Text>
                 <RecentActivityList activity={data.recentActivity} />
@@ -134,8 +158,10 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.background
     },
     content: {
-      padding: theme.spacing.space6,
-      gap: theme.spacing.space8
+      paddingHorizontal: theme.layout.screenPaddingX,
+      paddingTop: theme.layout.screenPaddingX,
+      paddingBottom: theme.layout.screenPaddingBottom,
+      gap: theme.layout.sectionSpacing
     },
     header: {
       flexDirection: 'row',
@@ -143,7 +169,8 @@ function createStyles(theme: Theme) {
       gap: theme.spacing.space4
     },
     headerText: {
-      flex: 1
+      flex: 1,
+      minWidth: 0
     },
     greeting: {
       color: theme.colors.onSurface
@@ -155,13 +182,14 @@ function createStyles(theme: Theme) {
     statsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: theme.spacing.space3
+      gap: theme.component.statCardGrid.gap
     },
     section: {
-      gap: theme.spacing.space3
+      gap: theme.layout.componentSpacing
     },
     sectionTitle: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      flexShrink: 1
     },
     centeredSection: {
       alignItems: 'center',

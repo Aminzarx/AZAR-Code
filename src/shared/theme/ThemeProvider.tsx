@@ -3,6 +3,7 @@ import {
   componentTokens,
   elevation,
   iconSize,
+  layoutTokens,
   lightColors,
   motion,
   radius,
@@ -24,6 +25,7 @@ export type Theme = {
   motion: typeof motion
   touchTargetMinimum: number
   component: typeof componentTokens
+  layout: typeof layoutTokens
   typography: (variant: TypographyVariant) => {
     fontSize: number
     fontWeight: '400' | '500' | '600' | '700'
@@ -46,6 +48,7 @@ function buildTheme(isRTL: boolean): Theme {
     motion,
     touchTargetMinimum,
     component: componentTokens,
+    layout: layoutTokens,
     typography: (variant) => ({
       ...table[variant],
       // Only Vazirmatn (RTL) is bundled as a real asset — LTR falls back
