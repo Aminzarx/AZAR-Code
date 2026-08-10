@@ -4,8 +4,11 @@ import type { Applicant } from '@features/applicant/types'
 
 export type {
   DealRecord as Deal,
-  DealStatus
+  DealStatus,
+  DealStage,
+  DealStageHistoryRecord as DealStageHistory
 } from '@infrastructure/database/repositories/DealRepository'
+export { DEAL_STAGES } from '@infrastructure/database/repositories/DealRepository'
 
 export type DealWithDetails = DealRecord & {
   property: Property | null

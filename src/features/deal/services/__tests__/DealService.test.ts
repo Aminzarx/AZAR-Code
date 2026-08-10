@@ -5,7 +5,7 @@ import { PropertyRepository } from '@infrastructure/database/repositories/Proper
 import { ApplicantRepository } from '@infrastructure/database/repositories/ApplicantRepository'
 import { PropertyService } from '@features/property/services/PropertyService'
 import { ApplicantService } from '@features/applicant/services/ApplicantService'
-import { DealService } from '../DealService'
+import { DealService, DealStageTransitionError } from '../DealService'
 
 const USER_ID = 'user-1'
 
@@ -115,5 +115,34 @@ describe('DealService', () => {
     const created = await service.createDeal(USER_ID, propertyId, applicantId)
     await service.deleteDeal(created.id)
     expect(await service.getDeal(created.id)).toBeNull()
+  })
+
+  it('transitions a deal to a new stage and records history', async () => {
+    const created = await service.createDeal(USER_ID, propertyId, applicantId)
+    const updated = await service.transitionStage(created.id, 'contacted', USER_ID)
+    expect(updated.currentStage).toBe('contacted')
+    expect(await service.getStageHistory(created.id)).toHaveLength(1)
+  })
+
+  it('BR-004: refuses to move a deal to "lost" without a lost reason', async () => {
+    const created = await service.createDeal(USER_ID, propertyId, applicantId)
+    await expect(service.transitionStage(created.id, 'lost', USER_ID)).rejects.toThrow(
+      DealStageTransitionError
+    )
+  })
+
+  it('BR-004: allows "lost" when a lost reason is provided', async () => {
+    const created = await service.createDeal(USER_ID, propertyId, applicantId)
+    const updated = await service.transitionStage(created.id, 'lost', USER_ID, {
+      lostReasonId: 'lost-reason-price-too-high'
+    })
+    expect(updated.currentStage).toBe('lost')
+    expect(updated.lostReasonId).toBe('lost-reason-price-too-high')
+  })
+
+  it('counts deals by stage', async () => {
+    await service.createDeal(USER_ID, propertyId, applicantId)
+    const counts = await service.countDealsByStage(USER_ID)
+    expect(counts.new).toBe(1)
   })
 })

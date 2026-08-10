@@ -49,8 +49,65 @@ describe('DealRepository', () => {
     })
 
     expect(created.status).toBe('new')
+    expect(created.currentStage).toBe('new')
     expect(created.notes).toBeNull()
     expect(created.createdAt).toBe(created.updatedAt)
+  })
+
+  it('transitions a deal to a new stage and records stage history', async () => {
+    await repository.create({
+      id: 'deal-1',
+      userId: USER_ID,
+      propertyId: PROPERTY_ID,
+      applicantId: APPLICANT_ID
+    })
+    const updated = await repository.transitionStage('deal-1', 'contacted', USER_ID)
+    expect(updated.currentStage).toBe('contacted')
+
+    const history = await repository.getStageHistory('deal-1')
+    expect(history).toHaveLength(1)
+    expect(history[0]).toMatchObject({
+      fromStage: 'new',
+      toStage: 'contacted',
+      actorUserId: USER_ID
+    })
+  })
+
+  it('persists the lost reason only when transitioning to "lost"', async () => {
+    await repository.create({
+      id: 'deal-1',
+      userId: USER_ID,
+      propertyId: PROPERTY_ID,
+      applicantId: APPLICANT_ID
+    })
+    const lost = await repository.transitionStage('deal-1', 'lost', USER_ID, {
+      lostReasonId: 'lost-reason-price-too-high'
+    })
+    expect(lost.lostReasonId).toBe('lost-reason-price-too-high')
+
+    const backToNew = await repository.transitionStage('deal-1', 'new', USER_ID)
+    expect(backToNew.lostReasonId).toBeNull()
+  })
+
+  it('counts deals by stage', async () => {
+    await repository.create({
+      id: 'deal-1',
+      userId: USER_ID,
+      propertyId: PROPERTY_ID,
+      applicantId: APPLICANT_ID
+    })
+    await repository.create({
+      id: 'deal-2',
+      userId: USER_ID,
+      propertyId: PROPERTY_ID,
+      applicantId: APPLICANT_ID
+    })
+    await repository.transitionStage('deal-2', 'won', USER_ID)
+
+    const counts = await repository.countByStage(USER_ID)
+    expect(counts.new).toBe(1)
+    expect(counts.won).toBe(1)
+    expect(counts.lost).toBe(0)
   })
 
   it('gets a deal by id', async () => {

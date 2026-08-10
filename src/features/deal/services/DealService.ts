@@ -1,9 +1,17 @@
 import type { DealRepository } from '@infrastructure/database/repositories/DealRepository'
-import type { DealStatus } from '@infrastructure/database/repositories/DealRepository'
+import type { DealStatus, DealStage } from '@infrastructure/database/repositories/DealRepository'
 import type { PropertyService } from '@features/property/services/PropertyService'
 import type { ApplicantService } from '@features/applicant/services/ApplicantService'
-import type { Deal, DealWithDetails } from '../types'
+import type { Deal, DealStageHistory, DealWithDetails } from '../types'
 import { normalizeDealNotes } from '../validation/dealValidation'
+
+/** BR-004 — a deal cannot become 'lost' without a lost reason. */
+export class DealStageTransitionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'DealStageTransitionError'
+  }
+}
 
 /**
  * Thin business-rule wrapper around DealRepository, same shape as
@@ -35,6 +43,31 @@ export class DealService {
 
   async updateStatus(id: string, status: DealStatus): Promise<Deal> {
     return this.repository.updateStatus(id, status)
+  }
+
+  /** BR-004 — `lostReasonId` is required when `toStage === 'lost'`, and ignored otherwise. */
+  async transitionStage(
+    id: string,
+    toStage: DealStage,
+    actorUserId: string,
+    options?: { note?: string; lostReasonId?: string }
+  ): Promise<Deal> {
+    if (toStage === 'lost' && !options?.lostReasonId) {
+      throw new DealStageTransitionError('A lost deal requires a lost reason (BR-004).')
+    }
+    return this.repository.transitionStage(id, toStage, actorUserId, options)
+  }
+
+  async getStageHistory(dealId: string): Promise<DealStageHistory[]> {
+    return this.repository.getStageHistory(dealId)
+  }
+
+  async updateExpectedValue(id: string, expectedValue: number | null): Promise<Deal> {
+    return this.repository.updateExpectedValue(id, expectedValue)
+  }
+
+  async countDealsByStage(userId: string): Promise<Record<DealStage, number>> {
+    return this.repository.countByStage(userId)
   }
 
   async updateNotes(id: string, notes: string): Promise<Deal> {
