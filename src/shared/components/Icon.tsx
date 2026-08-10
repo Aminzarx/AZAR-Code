@@ -189,35 +189,36 @@ function renderGlyph(
         </>
       )
     case 'home':
+      // A solid triangular roof (the classic zero-size + colored-border
+      // CSS-triangle trick) sitting flush on an outlined body — the
+      // previous version rotated a bordered square with two sides
+      // stripped, which draws an open chevron, not a roof, and reads as
+      // a checkmark rather than a house.
       return (
-        <>
+        <View style={{ alignItems: 'center' }}>
           <View
             style={{
-              width: box * 0.62,
-              height: box * 0.62,
-              borderColor: tint,
-              borderWidth: stroke,
-              transform: [{ rotate: '45deg' }],
-              borderBottomWidth: 0,
-              borderRightWidth: 0,
-              marginBottom: box * 0.18
+              width: 0,
+              height: 0,
+              borderLeftWidth: box * 0.32,
+              borderRightWidth: box * 0.32,
+              borderBottomWidth: box * 0.28,
+              borderLeftColor: 'transparent',
+              borderRightColor: 'transparent',
+              borderBottomColor: tint
             }}
           />
           <View
-            style={[
-              styles.absoluteBar,
-              {
-                bottom: box * 0.15,
-                width: box * 0.55,
-                height: box * 0.35,
-                backgroundColor: 'transparent',
-                borderColor: tint,
-                borderWidth: stroke,
-                borderTopWidth: 0
-              }
-            ]}
+            style={{
+              width: box * 0.5,
+              height: box * 0.34,
+              borderColor: tint,
+              borderWidth: stroke,
+              borderTopWidth: 0,
+              marginTop: -stroke
+            }}
           />
-        </>
+        </View>
       )
     case 'files':
       return (
@@ -247,53 +248,35 @@ function renderGlyph(
         </View>
       )
     case 'matching':
+      // Two overlapping circle outlines (a Venn diagram) — the
+      // conventional "compare/overlap" motif. The previous version was
+      // two disconnected bars each capped with a chevron, which reads as
+      // a stray checkmark, not a matching/comparison concept.
       return (
-        <>
+        <View style={{ width: box, height: box, alignItems: 'center', justifyContent: 'center' }}>
           <View
-            style={[
-              styles.absoluteBar,
-              { top: box * 0.28, width: box * 0.55, height: stroke, backgroundColor: tint }
-            ]}
+            style={{
+              position: 'absolute',
+              width: box * 0.56,
+              height: box * 0.56,
+              borderRadius: box,
+              borderWidth: stroke,
+              borderColor: tint,
+              left: box * 0.06
+            }}
           />
           <View
-            style={[
-              styles.chevron,
-              {
-                position: 'absolute',
-                top: box * 0.16,
-                right: box * 0.16,
-                width: box * 0.18,
-                height: box * 0.18,
-                borderColor: tint,
-                borderRightWidth: stroke,
-                borderTopWidth: stroke,
-                transform: [{ rotate: '45deg' }]
-              }
-            ]}
+            style={{
+              position: 'absolute',
+              width: box * 0.56,
+              height: box * 0.56,
+              borderRadius: box,
+              borderWidth: stroke,
+              borderColor: tint,
+              right: box * 0.06
+            }}
           />
-          <View
-            style={[
-              styles.absoluteBar,
-              { top: box * 0.6, width: box * 0.55, height: stroke, backgroundColor: tint }
-            ]}
-          />
-          <View
-            style={[
-              styles.chevron,
-              {
-                position: 'absolute',
-                top: box * 0.48,
-                left: box * 0.16,
-                width: box * 0.18,
-                height: box * 0.18,
-                borderColor: tint,
-                borderLeftWidth: stroke,
-                borderBottomWidth: stroke,
-                transform: [{ rotate: '45deg' }]
-              }
-            ]}
-          />
-        </>
+        </View>
       )
     case 'contract':
       return (

@@ -65,7 +65,10 @@ const TAB_ICONS: Record<TabName, IconName> = {
   FilesTab: 'files',
   MatchingTab: 'matching',
   ContractsTab: 'contract',
-  ProfileTab: 'settings'
+  // Was 'settings' (a bare circle+dot that reads as neither a gear nor a
+  // person) — the Profile tab needs to look like an account, and the icon
+  // set already has a proper minimal person glyph, just wasn't wired here.
+  ProfileTab: 'person'
 }
 
 /**
