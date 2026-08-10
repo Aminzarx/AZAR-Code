@@ -1,5 +1,5 @@
 import React from 'react'
-import { FlatList, StyleSheet, View } from 'react-native'
+import { SectionList, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -8,7 +8,11 @@ import { useTheme, type Theme } from '@shared/theme'
 import { EmptyState, ErrorState, LoadingIndicator } from '@shared/components'
 import { useReminders } from '../hooks/useReminders'
 import { useReminderService } from '../hooks/useReminderService'
+import { useReminderContexts } from '../hooks/useReminderContexts'
 import { ReminderListItem } from '../components/ReminderListItem'
+import { ReminderAttentionHeader } from '../components/ReminderAttentionHeader'
+import { countReminderAttention, groupRemindersByTime } from '../utils/reminderGrouping'
+import type { Reminder } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ReminderList'>
 
@@ -19,6 +23,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
   const userId = session?.userId ?? ''
   const { reminders, isLoading, error, refetch } = useReminders(userId)
   const service = useReminderService()
+  const { resolve: resolveContext } = useReminderContexts(userId)
 
   async function handleToggleDone(id: string, isDone: boolean): Promise<void> {
     if (!service) {
@@ -27,6 +32,12 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
     await service.setDone(id, !isDone)
     refetch()
   }
+
+  const attention = countReminderAttention(reminders ?? [])
+  const sections = groupRemindersByTime(reminders ?? []).map((group) => ({
+    title: group.label,
+    data: group.reminders
+  }))
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -54,13 +65,26 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
             />
           </View>
         ) : (
-          <FlatList
-            data={reminders ?? []}
+          <SectionList
+            sections={sections}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
-            renderItem={({ item }) => (
+            stickySectionHeadersEnabled={false}
+            ListHeaderComponent={
+              <ReminderAttentionHeader
+                overdueCount={attention.overdueCount}
+                dueTodayCount={attention.dueTodayCount}
+              />
+            }
+            renderSectionHeader={({ section }) => (
+              <Text style={[theme.typography('titleSm'), styles.sectionHeader]}>
+                {section.title}
+              </Text>
+            )}
+            renderItem={({ item }: { item: Reminder }) => (
               <ReminderListItem
                 reminder={item}
+                context={resolveContext(item)}
                 onPress={() => navigation.navigate('ReminderDetail', { reminderId: item.id })}
                 onToggleDone={() => handleToggleDone(item.id, item.isDone)}
               />
@@ -85,6 +109,12 @@ function createStyles(theme: Theme) {
     },
     list: {
       gap: theme.spacing.space3
+    },
+    sectionHeader: {
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
+      marginTop: theme.layout.sectionSpacing,
+      marginBottom: theme.spacing.space2
     },
     centeredSection: {
       flex: 1,

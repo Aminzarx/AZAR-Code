@@ -170,6 +170,15 @@ export class ReminderRepository {
     return result.rows.map(toReminder)
   }
 
+  /** Every reminder linked to a deal (done and not-done), soonest first — Deal Detail's Next Action + Activity sections. */
+  async getByDeal(dealId: string): Promise<ReminderRecord[]> {
+    const result = await this.db.execute(
+      'SELECT * FROM reminders WHERE deal_id = ? ORDER BY remind_at ASC, rowid DESC',
+      [dealId]
+    )
+    return result.rows.map(toReminder)
+  }
+
   async delete(id: string): Promise<void> {
     await this.db.execute('DELETE FROM reminders WHERE id = ?', [id])
   }

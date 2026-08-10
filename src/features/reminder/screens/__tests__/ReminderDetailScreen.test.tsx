@@ -4,14 +4,19 @@ import { withTheme } from '@shared/components/testHelpers'
 import { ReminderDetailScreen } from '../ReminderDetailScreen'
 import { useReminderDetail } from '../../hooks/useReminderDetail'
 import { useReminderService } from '../../hooks/useReminderService'
+import { useReminderContext } from '../../hooks/useReminderContext'
 import type { Reminder } from '../../types'
 
 jest.mock('../../hooks/useReminderDetail')
 jest.mock('../../hooks/useReminderService')
+jest.mock('../../hooks/useReminderContext')
 
 const mockedUseReminderDetail = useReminderDetail as jest.MockedFunction<typeof useReminderDetail>
 const mockedUseReminderService = useReminderService as jest.MockedFunction<
   typeof useReminderService
+>
+const mockedUseReminderContext = useReminderContext as jest.MockedFunction<
+  typeof useReminderContext
 >
 const mockUpdateReminder = jest.fn()
 const mockSetDone = jest.fn()
@@ -50,6 +55,7 @@ describe('ReminderDetailScreen', () => {
       setDone: mockSetDone,
       deleteReminder: mockDeleteReminder
     } as never)
+    mockedUseReminderContext.mockReturnValue(null)
   })
 
   it('shows the reminder title and description', async () => {
@@ -66,6 +72,26 @@ describe('ReminderDetailScreen', () => {
 
     expect(await findByText('تماس با متقاضی')).toBeTruthy()
     expect(await findByText('توضیحات')).toBeTruthy()
+  })
+
+  it('shows the linked property/applicant context when the reminder is tied to a deal', async () => {
+    mockedUseReminderDetail.mockReturnValue({
+      reminder: { ...REMINDER, dealId: 'deal-1' },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+    mockedUseReminderContext.mockReturnValue({
+      primary: 'آپارتمان ولیعصر',
+      secondary: 'محمد رضایی'
+    })
+
+    const { findByText } = await render(
+      withTheme(<ReminderDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('آپارتمان ولیعصر')).toBeTruthy()
+    expect(await findByText('محمد رضایی')).toBeTruthy()
   })
 
   it('shows an error state with retry when loading fails', async () => {

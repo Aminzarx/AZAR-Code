@@ -1,9 +1,15 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, EmptyState, ErrorState, LoadingIndicator, StatusBadge } from '@shared/components'
-import { RecentActivityList } from '@features/dashboard/components/RecentActivityList'
-import type { DashboardActivity } from '@features/dashboard/types'
+import {
+  ActivityTimeline,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingIndicator,
+  StatusBadge,
+  type ActivityItem
+} from '@shared/components'
 import type { DealRecord } from '@infrastructure/database/repositories/DealRepository'
 import type { ReminderRecord } from '@infrastructure/database/repositories/ReminderRepository'
 import { DEAL_STAGE_LABELS } from '@shared/data/dealStageLabels'
@@ -19,15 +25,15 @@ type Props = {
 
 const MAX_ITEMS = 8
 
-function toActivity(deals: DealRecord[], reminders: ReminderRecord[]): DashboardActivity[] {
-  const dealItems: (DashboardActivity & { sortKey: string })[] = deals.map((deal) => ({
+function toActivity(deals: DealRecord[], reminders: ReminderRecord[]): ActivityItem[] {
+  const dealItems: (ActivityItem & { sortKey: string })[] = deals.map((deal) => ({
     id: `deal-${deal.id}`,
     title: 'معامله مرتبط با این متقاضی',
     description: DEAL_STAGE_LABELS[deal.currentStage],
     timestamp: formatDate(deal.updatedAt),
     sortKey: deal.updatedAt
   }))
-  const reminderItems: (DashboardActivity & { sortKey: string })[] = reminders.map((reminder) => ({
+  const reminderItems: (ActivityItem & { sortKey: string })[] = reminders.map((reminder) => ({
     id: `reminder-${reminder.id}`,
     title: reminder.title,
     description: reminder.isDone ? 'انجام‌شده' : 'در انتظار پیگیری',
@@ -120,7 +126,7 @@ export function ApplicantActivitySection({
           description="معامله یا یادآوری مرتبط با این متقاضی اینجا نمایش داده می‌شود."
         />
       ) : (
-        <RecentActivityList activity={activity} />
+        <ActivityTimeline activity={activity} />
       )}
     </View>
   )

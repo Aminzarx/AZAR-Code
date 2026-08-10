@@ -1,15 +1,27 @@
-import React, { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import React, { useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, LoadingIndicator, TextInput } from '@shared/components'
+import {
+  Button,
+  Card,
+  ContextHeader,
+  ErrorState,
+  LoadingIndicator,
+  NextAction,
+  PipelineIndicator,
+  StatusBadge
+} from '@shared/components'
+import { formatDateTime } from '@shared/utils/formatDate'
 import { useDealDetail } from '../hooks/useDealDetail'
 import { useDealService } from '../hooks/useDealService'
-import { DealStatusPicker } from '../components/DealStatusPicker'
-import type { DealStatus } from '../types'
+import { useDealActivity } from '../hooks/useDealActivity'
+import { DealActivitySection } from '../components/DealActivitySection'
+import { DealNotesSection } from '../components/DealNotesSection'
+import { dealStageTone } from '../dealPipeline'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'DealDetail'>
 
@@ -18,33 +30,12 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
   const styles = createStyles(theme)
   const { dealId } = route.params
   const { deal, isLoading, error, refetch } = useDealDetail(dealId)
+  const activity = useDealActivity(dealId)
   const service = useDealService()
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
-  const [notes, setNotes] = useState('')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  useEffect(() => {
-    setNotes(deal?.notes ?? '')
-  }, [deal?.notes])
-
-  async function handleStatusChange(status: DealStatus): Promise<void> {
-    if (!service || !deal) {
-      return
-    }
-    setActionError(null)
-    setIsUpdatingStatus(true)
-    try {
-      await service.updateStatus(deal.id, status)
-      refetch()
-    } catch {
-      setActionError('تغییر وضعیت با مشکل مواجه شد. دوباره تلاش کنید.')
-    } finally {
-      setIsUpdatingStatus(false)
-    }
-  }
-
-  async function handleSaveNotes(): Promise<void> {
+  async function handleSaveNotes(notes: string): Promise<void> {
     if (!service || !deal) {
       return
     }
@@ -60,6 +51,14 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
     }
   }
 
+  const isTerminal = deal ? deal.currentStage === 'won' || deal.currentStage === 'lost' : false
+
+  // design-system.md §17.2 — only the soonest not-done reminder actually
+  // linked to this deal (via `dealId`), never a fabricated one.
+  const nextReminder = activity.reminders
+    ?.filter((reminder) => !reminder.isDone)
+    .sort((a, b) => new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime())[0]
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -70,7 +69,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
         ) : error ? (
           <View style={styles.centeredSection}>
             <ErrorState
-              title="بارگذاری پیگیری با مشکل مواجه شد"
+              title="بارگذاری معامله با مشکل مواجه شد"
               description={error.message}
               retryLabel="تلاش مجدد"
               onRetry={refetch}
@@ -78,90 +77,177 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
           </View>
         ) : !deal ? (
           <View style={styles.centeredSection}>
-            <ErrorState title="پیگیری پیدا نشد" />
+            <ErrorState title="معامله پیدا نشد" />
           </View>
         ) : (
           <>
-            <Card variant="detail">
-              <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>ملک</Text>
-              <Text style={[theme.typography('bodyMd'), styles.value]}>
-                {deal.property?.title ?? 'ملک پیدا نشد'}
-              </Text>
-              {deal.property ? (
-                <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                  {deal.property.city} • {deal.property.address}
-                </Text>
+            <View style={styles.headerRow}>
+              <ContextHeader
+                primary={deal.property?.title ?? 'ملک نامشخص'}
+                secondary={deal.applicant?.fullName ?? 'متقاضی نامشخص'}
+              />
+              {isTerminal ? (
+                <StatusBadge
+                  label={deal.currentStage === 'won' ? 'موفق' : 'لغوشده'}
+                  tone={dealStageTone(deal.currentStage)}
+                />
               ) : null}
-            </Card>
+            </View>
 
-            <Card variant="detail">
-              <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>متقاضی</Text>
-              <Text style={[theme.typography('bodyMd'), styles.value]}>
-                {deal.applicant?.fullName ?? 'متقاضی پیدا نشد'}
-              </Text>
-              {deal.applicant ? (
-                <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                  {deal.applicant.city} • {deal.applicant.phoneNumber}
-                </Text>
-              ) : null}
-            </Card>
+            {nextReminder ? (
+              <NextAction
+                title={nextReminder.title}
+                timestamp={formatDateTime(nextReminder.remindAt)}
+                actionLabel="پیگیری"
+                isOverdue={new Date(nextReminder.remindAt).getTime() < Date.now()}
+                onAction={() =>
+                  navigateAcrossTabs(navigation, 'ReminderDetail', { reminderId: nextReminder.id })
+                }
+              />
+            ) : null}
 
             <View style={styles.section}>
-              <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>وضعیت</Text>
-              <DealStatusPicker
-                status={deal.status}
-                onChange={handleStatusChange}
-                disabled={isUpdatingStatus}
+              <Text style={[theme.typography('titleMd'), styles.heading]}>مسیر معامله</Text>
+              <PipelineIndicator stage={deal.currentStage} />
+            </View>
+
+            <View style={styles.summaryRow}>
+              <SummaryBlock
+                title={deal.property?.title ?? 'ملک نامشخص'}
+                detail={
+                  deal.property?.price != null
+                    ? `${deal.property.price.toLocaleString('fa-IR')} تومان`
+                    : deal.property?.city
+                }
+                onPress={
+                  deal.property
+                    ? () =>
+                        navigateAcrossTabs(navigation, 'PropertyDetail', {
+                          propertyId: deal.property!.id
+                        })
+                    : undefined
+                }
+                theme={theme}
+                styles={styles}
+              />
+              <SummaryBlock
+                title={deal.applicant?.fullName ?? 'متقاضی نامشخص'}
+                detail={
+                  deal.applicant?.minBudget != null || deal.applicant?.maxBudget != null
+                    ? `بودجه: ${(deal.applicant?.minBudget ?? 0).toLocaleString('fa-IR')} تا ${(deal.applicant?.maxBudget ?? 0).toLocaleString('fa-IR')} تومان`
+                    : deal.applicant?.city
+                }
+                onPress={
+                  deal.applicant
+                    ? () =>
+                        navigateAcrossTabs(navigation, 'ApplicantDetail', {
+                          applicantId: deal.applicant!.id
+                        })
+                    : undefined
+                }
+                theme={theme}
+                styles={styles}
               />
             </View>
 
-            <View style={styles.section}>
-              <TextInput
-                label="یادداشت"
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="یادداشت‌های این پیگیری"
-              />
-              <Button
-                label="ذخیره یادداشت"
-                onPress={handleSaveNotes}
-                variant="secondary"
-                loading={isSavingNotes}
-              />
-            </View>
+            <DealActivitySection
+              stageHistory={activity.stageHistory}
+              reminders={activity.reminders}
+              isLoading={activity.isLoading}
+              error={activity.error}
+              onRetry={activity.refetch}
+            />
+
+            <DealNotesSection
+              notes={deal.notes}
+              isSaving={isSavingNotes}
+              onSave={handleSaveNotes}
+            />
 
             {actionError ? (
               <Text style={[theme.typography('bodySm'), styles.actionError]}>{actionError}</Text>
             ) : null}
 
-            <Button
-              label="افزودن یادآوری"
-              variant="secondary"
-              onPress={() =>
-                navigateAcrossTabs(navigation, 'CreateReminder', {
-                  dealId: deal.id,
-                  propertyId: deal.propertyId,
-                  applicantId: deal.applicantId
-                })
-              }
-            />
-
-            <Button
-              label="ایجاد قرارداد"
-              variant="secondary"
-              onPress={() =>
-                navigateAcrossTabs(navigation, 'CreateContract', {
-                  dealId: deal.id,
-                  propertyId: deal.propertyId,
-                  applicantId: deal.applicantId
-                })
-              }
-              style={styles.createContractButton}
-            />
+            <View style={styles.actions}>
+              <Button
+                label="ایجاد قرارداد"
+                onPress={() =>
+                  navigateAcrossTabs(navigation, 'CreateContract', {
+                    dealId: deal.id,
+                    propertyId: deal.propertyId,
+                    applicantId: deal.applicantId
+                  })
+                }
+              />
+              <Button
+                label="افزودن پیگیری"
+                variant="secondary"
+                onPress={() =>
+                  navigateAcrossTabs(navigation, 'CreateReminder', {
+                    dealId: deal.id,
+                    propertyId: deal.propertyId,
+                    applicantId: deal.applicantId
+                  })
+                }
+              />
+            </View>
           </>
         )}
       </ScrollView>
     </SafeAreaView>
+  )
+}
+
+type SummaryBlockProps = {
+  title: string
+  detail?: string | null
+  onPress?: () => void
+  theme: Theme
+  styles: ReturnType<typeof createStyles>
+}
+
+/** design-system.md §17.2 — compact two-line block, not a restated full detail card. */
+function SummaryBlock({
+  title,
+  detail,
+  onPress,
+  theme,
+  styles
+}: SummaryBlockProps): React.JSX.Element {
+  const content = (
+    <Card style={styles.summaryCard}>
+      <Text
+        style={[theme.typography('titleSm'), styles.summaryTitle]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {title}
+      </Text>
+      {detail ? (
+        <Text
+          style={[theme.typography('bodySm'), styles.summaryDetail]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {detail}
+        </Text>
+      ) : null}
+    </Card>
+  )
+
+  if (!onPress) {
+    return content
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={styles.summaryPressable}
+    >
+      {content}
+    </Pressable>
   )
 }
 
@@ -172,27 +258,20 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.background
     },
     content: {
-      padding: theme.spacing.space6,
-      gap: theme.spacing.space4
+      padding: theme.layout.screenPaddingX,
+      paddingBottom: theme.layout.screenPaddingBottom,
+      gap: theme.layout.sectionSpacing
     },
     centeredSection: {
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: theme.spacing.space12
     },
-    sectionLabel: {
-      color: theme.colors.onSurfaceVariant,
-      marginBottom: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
-    },
-    value: {
-      color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
-    },
-    subValue: {
-      color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space2
     },
     section: {
       gap: theme.spacing.space3
@@ -200,12 +279,35 @@ function createStyles(theme: Theme) {
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
     // alignSelf explicitly anchors it to the correct edge.
+    heading: {
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.space3
+    },
+    summaryPressable: {
+      flex: 1
+    },
+    summaryCard: {
+      flex: 1
+    },
+    summaryTitle: {
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    summaryDetail: {
+      color: theme.colors.onSurfaceVariant,
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
     actionError: {
       color: theme.colors.error,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    createContractButton: {
-      marginTop: theme.spacing.space3
+    actions: {
+      gap: theme.spacing.space3
     }
   })
 }

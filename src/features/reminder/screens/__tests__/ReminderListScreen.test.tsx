@@ -4,6 +4,7 @@ import { withTheme } from '@shared/components/testHelpers'
 import { ReminderListScreen } from '../ReminderListScreen'
 import { useReminders } from '../../hooks/useReminders'
 import { useReminderService } from '../../hooks/useReminderService'
+import { useReminderContexts } from '../../hooks/useReminderContexts'
 import type { Reminder } from '../../types'
 
 const mockNavigate = jest.fn()
@@ -17,10 +18,14 @@ jest.mock('@features/auth/AuthProvider', () => ({
 
 jest.mock('../../hooks/useReminders')
 jest.mock('../../hooks/useReminderService')
+jest.mock('../../hooks/useReminderContexts')
 
 const mockedUseReminders = useReminders as jest.MockedFunction<typeof useReminders>
 const mockedUseReminderService = useReminderService as jest.MockedFunction<
   typeof useReminderService
+>
+const mockedUseReminderContexts = useReminderContexts as jest.MockedFunction<
+  typeof useReminderContexts
 >
 
 const REMINDER: Reminder = {
@@ -46,6 +51,7 @@ describe('ReminderListScreen', () => {
     mockSetDone.mockReset()
     mockedUseReminders.mockReset()
     mockedUseReminderService.mockReturnValue({ setDone: mockSetDone } as never)
+    mockedUseReminderContexts.mockReturnValue({ isLoading: false, resolve: () => null })
   })
 
   it('shows the empty state when there are no reminders', async () => {
@@ -115,5 +121,59 @@ describe('ReminderListScreen', () => {
 
     await waitFor(() => expect(mockSetDone).toHaveBeenCalledWith('rem-1', true))
     await waitFor(() => expect(refetch).toHaveBeenCalled())
+  })
+
+  it('groups reminders under time-based section headers', async () => {
+    mockedUseReminders.mockReturnValue({
+      reminders: [REMINDER],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(<ReminderListScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('بعداً')).toBeTruthy()
+  })
+
+  it('shows the overdue and due-today attention header when there is something to flag', async () => {
+    const overdue: Reminder = {
+      ...REMINDER,
+      id: 'rem-overdue',
+      remindAt: '2000-01-01T00:00:00.000Z'
+    }
+    mockedUseReminders.mockReturnValue({
+      reminders: [overdue],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(<ReminderListScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('۱ پیگیری عقب‌افتاده')).toBeTruthy()
+  })
+
+  it('shows a linked reminder’s context inline', async () => {
+    mockedUseReminders.mockReturnValue({
+      reminders: [REMINDER],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+    mockedUseReminderContexts.mockReturnValue({
+      isLoading: false,
+      resolve: () => ({ primary: 'آپارتمان ولیعصر' })
+    })
+
+    const { findByText } = await render(
+      withTheme(<ReminderListScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('آپارتمان ولیعصر')).toBeTruthy()
   })
 })

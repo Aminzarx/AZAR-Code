@@ -152,4 +152,39 @@ describe('ReminderRepository', () => {
     expect(created.applicantId).toBe('app-1')
     expect(created.dealId).toBe('deal-1')
   })
+
+  it('gets reminders linked to a deal via getByDeal', async () => {
+    await db.execute(
+      `INSERT INTO properties (id, owner_id, title, city, address, status, created_at, updated_at)
+       VALUES ('prop-1', ?, 'آپارتمان', 'تهران', 'آدرس', 'active', '2026-08-08', '2026-08-08')`,
+      [USER_ID]
+    )
+    await db.execute(
+      `INSERT INTO applicants (id, user_id, full_name, phone_number, city, status, created_at, updated_at)
+       VALUES ('app-1', ?, 'علی رضایی', '09121234567', 'تهران', 'active', '2026-08-08', '2026-08-08')`,
+      [USER_ID]
+    )
+    await db.execute(
+      `INSERT INTO deals (id, user_id, property_id, applicant_id, status, created_at, updated_at)
+       VALUES ('deal-1', ?, 'prop-1', 'app-1', 'new', '2026-08-08', '2026-08-08')`,
+      [USER_ID]
+    )
+    await db.execute(
+      `INSERT INTO deals (id, user_id, property_id, applicant_id, status, created_at, updated_at)
+       VALUES ('deal-2', ?, 'prop-1', 'app-1', 'new', '2026-08-08', '2026-08-08')`,
+      [USER_ID]
+    )
+
+    await repository.create(
+      baseReminder('rem-deal-1', { dealId: 'deal-1', remindAt: '2026-09-05T00:00:00.000Z' })
+    )
+    await repository.create(
+      baseReminder('rem-deal-2', { dealId: 'deal-1', remindAt: '2026-09-01T00:00:00.000Z' })
+    )
+    await repository.create(baseReminder('rem-other-deal', { dealId: 'deal-2' }))
+    await repository.create(baseReminder('rem-unlinked'))
+
+    const results = await repository.getByDeal('deal-1')
+    expect(results.map((r) => r.id)).toEqual(['rem-deal-2', 'rem-deal-1'])
+  })
 })

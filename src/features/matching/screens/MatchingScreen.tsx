@@ -6,11 +6,27 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { EmptyState, ErrorState, LoadingIndicator, SegmentedControl } from '@shared/components'
+import {
+  Button,
+  ContextHeader,
+  EmptyState,
+  ErrorState,
+  LoadingIndicator,
+  MatchingResult,
+  SegmentedControl,
+  type MatchingCriterionState
+} from '@shared/components'
 import { useProperties } from '@features/property/hooks/useProperties'
 import { PropertyListItem } from '@features/property/components/PropertyListItem'
+import type { Property } from '@features/property/types'
 import { useApplicants } from '@features/applicant/hooks/useApplicants'
 import { ApplicantListItem } from '@features/applicant/components/ApplicantListItem'
+import type { Applicant } from '@features/applicant/types'
+import { useDealService } from '@features/deal/hooks/useDealService'
+import { useApplicantMatchesForProperty } from '../hooks/useApplicantMatchesForProperty'
+import { usePropertyMatchesForApplicant } from '../hooks/usePropertyMatchesForApplicant'
+import { CRITERION_LABELS } from '../services/matchingService'
+import type { MatchCriterion } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Matching'>
 
@@ -21,16 +37,31 @@ const OPTIONS = [
   { value: 'applicants' as const, label: 'متقاضیان' }
 ]
 
+/** Fixed order matches CRITERION_LABELS' own declaration — every match result shows all criteria, matched or not. */
+const ALL_CRITERIA: MatchCriterion[] = [
+  'city',
+  'propertyType',
+  'transactionType',
+  'budget',
+  'area',
+  'rooms'
+]
+
+function buildCriteria(matchedCriteria: MatchCriterion[]): MatchingCriterionState[] {
+  return ALL_CRITERIA.map((criterion) => ({
+    key: criterion,
+    label: CRITERION_LABELS[criterion],
+    matched: matchedCriteria.includes(criterion)
+  }))
+}
+
 /**
- * Matching tab root (design-system.md §7.5). Suggested-match browsing
- * itself already exists per-record (SuggestedApplicantsSection /
- * SuggestedPropertiesSection on the property/applicant detail screens) —
- * this is the entry point into that: pick a property or applicant here,
- * land on its detail screen where its matches are shown. Deliberately a
- * lighter list than the Files tab (no search) so the two tabs read as
- * distinct purposes rather than duplicates — but the empty state still
- * offers a way to create the first record right from here, same as
- * every other list screen in the app.
+ * Matching Workspace (design-system.md §17.1) — pick ملک or متقاضی, pick a
+ * specific record, then see its real matches via the shared
+ * `MatchingResult` component. Property/Applicant Detail keep their own
+ * compact suggestion sections (SuggestedPropertiesSection /
+ * SuggestedApplicantsSection); this screen is the full workspace those
+ * sections' "مشاهده همه" would lead to.
  */
 export function MatchingScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
@@ -38,19 +69,73 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
   const { session } = useAuth()
   const userId = session?.userId ?? ''
   const [target, setTarget] = useState<MatchingTarget>('properties')
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
+  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null)
+  const [creatingKey, setCreatingKey] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const dealService = useDealService()
 
   const propertiesResult = useProperties(userId, '')
   const applicantsResult = useApplicants(userId, '')
+
+  const selectedProperty: Property | null =
+    propertiesResult.properties?.find((property) => property.id === selectedPropertyId) ?? null
+  const selectedApplicant: Applicant | null =
+    applicantsResult.applicants?.find((applicant) => applicant.id === selectedApplicantId) ?? null
+
+  const applicantMatchesResult = useApplicantMatchesForProperty(
+    target === 'properties' ? selectedProperty : null
+  )
+  const propertyMatchesResult = usePropertyMatchesForApplicant(
+    target === 'applicants' ? selectedApplicant : null
+  )
+
+  function handleTargetChange(nextTarget: MatchingTarget): void {
+    setTarget(nextTarget)
+    setSelectedPropertyId(null)
+    setSelectedApplicantId(null)
+    setCreateError(null)
+  }
+
+  function clearSelection(): void {
+    setSelectedPropertyId(null)
+    setSelectedApplicantId(null)
+    setCreateError(null)
+  }
+
+  async function handleCreateDeal(propertyId: string, applicantId: string): Promise<void> {
+    if (!dealService) {
+      return
+    }
+    const key = `${propertyId}:${applicantId}`
+    setCreateError(null)
+    setCreatingKey(key)
+    try {
+      const deal = await dealService.createDeal(userId, propertyId, applicantId)
+      // Navigating away makes clearing creatingKey moot (and risks a
+      // post-unmount state update on a fast test double), so only the
+      // failure path resets it.
+      navigation.navigate('DealDetail', { dealId: deal.id })
+    } catch {
+      setCreateError('ایجاد معامله با مشکل مواجه شد. دوباره تلاش کنید.')
+      setCreatingKey(null)
+    }
+  }
+
   const { isLoading, error, refetch } =
     target === 'properties' ? propertiesResult : applicantsResult
+  const hasSelection =
+    target === 'properties' ? selectedProperty !== null : selectedApplicant !== null
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.content}>
-        <Text style={[theme.typography('titleMd'), styles.title]}>
-          برای دیدن پیشنهادهای تطبیق، یک پرونده را انتخاب کنید
-        </Text>
-        <SegmentedControl options={OPTIONS} value={target} onChange={setTarget} />
+        {!hasSelection ? (
+          <Text style={[theme.typography('titleMd'), styles.title]}>
+            برای دیدن پیشنهادهای تطبیق، یک پرونده را انتخاب کنید
+          </Text>
+        ) : null}
+        <SegmentedControl options={OPTIONS} value={target} onChange={handleTargetChange} />
 
         {isLoading ? (
           <View style={styles.centeredSection}>
@@ -66,7 +151,19 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
             />
           </View>
         ) : target === 'properties' ? (
-          (propertiesResult.properties?.length ?? 0) === 0 ? (
+          selectedProperty ? (
+            <PropertyMatches
+              property={selectedProperty}
+              matchesResult={applicantMatchesResult}
+              creatingKey={creatingKey}
+              createError={createError}
+              onChangeSelection={clearSelection}
+              onCreateDeal={handleCreateDeal}
+              onViewApplicant={(applicantId) =>
+                navigateAcrossTabs(navigation, 'ApplicantDetail', { applicantId })
+              }
+            />
+          ) : (propertiesResult.properties?.length ?? 0) === 0 ? (
             <View style={styles.centeredSection}>
               <EmptyState
                 title="هنوز پرونده‌ای ثبت نشده"
@@ -81,15 +178,22 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.list}
               renderItem={({ item }) => (
-                <PropertyListItem
-                  property={item}
-                  onPress={() =>
-                    navigateAcrossTabs(navigation, 'PropertyDetail', { propertyId: item.id })
-                  }
-                />
+                <PropertyListItem property={item} onPress={() => setSelectedPropertyId(item.id)} />
               )}
             />
           )
+        ) : selectedApplicant ? (
+          <ApplicantMatches
+            applicant={selectedApplicant}
+            matchesResult={propertyMatchesResult}
+            creatingKey={creatingKey}
+            createError={createError}
+            onChangeSelection={clearSelection}
+            onCreateDeal={handleCreateDeal}
+            onViewProperty={(propertyId) =>
+              navigateAcrossTabs(navigation, 'PropertyDetail', { propertyId })
+            }
+          />
         ) : (applicantsResult.applicants?.length ?? 0) === 0 ? (
           <View style={styles.centeredSection}>
             <EmptyState
@@ -105,17 +209,171 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <ApplicantListItem
-                applicant={item}
-                onPress={() =>
-                  navigateAcrossTabs(navigation, 'ApplicantDetail', { applicantId: item.id })
-                }
-              />
+              <ApplicantListItem applicant={item} onPress={() => setSelectedApplicantId(item.id)} />
             )}
           />
         )}
       </View>
     </SafeAreaView>
+  )
+}
+
+type PropertyMatchesProps = {
+  property: Property
+  matchesResult: ReturnType<typeof useApplicantMatchesForProperty>
+  creatingKey: string | null
+  createError: string | null
+  onChangeSelection: () => void
+  onCreateDeal: (propertyId: string, applicantId: string) => void
+  onViewApplicant: (applicantId: string) => void
+}
+
+/** Applicant matches shown for a chosen property — same shape as ApplicantMatches below, kept separate for clear prop naming. */
+function PropertyMatches({
+  property,
+  matchesResult,
+  creatingKey,
+  createError,
+  onChangeSelection,
+  onCreateDeal,
+  onViewApplicant
+}: PropertyMatchesProps): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
+  const { matches, isLoading, error, refetch } = matchesResult
+
+  return (
+    <View style={styles.resultsSection}>
+      <SelectionHeader primary={property.title} onChangeSelection={onChangeSelection} />
+
+      {isLoading ? (
+        <View style={styles.centeredSection}>
+          <LoadingIndicator size="large" />
+        </View>
+      ) : error ? (
+        <ErrorState
+          title="محاسبه پیشنهادها با مشکل مواجه شد"
+          description={error.message}
+          retryLabel="تلاش مجدد"
+          onRetry={refetch}
+        />
+      ) : matches && matches.length === 0 ? (
+        <EmptyState
+          title="فعلاً پیشنهادی وجود ندارد"
+          description="متقاضی‌ای که با ویژگی‌های این ملک هم‌خوانی داشته باشد پیدا نشد."
+        />
+      ) : (
+        <FlatList
+          data={matches ?? []}
+          keyExtractor={(match) => match.applicant.id}
+          contentContainerStyle={styles.list}
+          renderItem={({ item: match }) => {
+            const key = `${property.id}:${match.applicant.id}`
+            return (
+              <MatchingResult
+                title={match.applicant.fullName}
+                subtitle={`${match.applicant.city} • ${match.applicant.phoneNumber}`}
+                criteria={buildCriteria(match.matchedCriteria)}
+                onPress={() => onViewApplicant(match.applicant.id)}
+                primaryActionLabel={creatingKey === key ? 'در حال ایجاد…' : 'ایجاد معامله'}
+                onPrimaryAction={() => onCreateDeal(property.id, match.applicant.id)}
+              />
+            )
+          }}
+        />
+      )}
+      {createError ? (
+        <Text style={[theme.typography('bodySm'), styles.error]}>{createError}</Text>
+      ) : null}
+    </View>
+  )
+}
+
+type ApplicantMatchesProps = {
+  applicant: Applicant
+  matchesResult: ReturnType<typeof usePropertyMatchesForApplicant>
+  creatingKey: string | null
+  createError: string | null
+  onChangeSelection: () => void
+  onCreateDeal: (propertyId: string, applicantId: string) => void
+  onViewProperty: (propertyId: string) => void
+}
+
+/** Property matches shown for a chosen applicant. */
+function ApplicantMatches({
+  applicant,
+  matchesResult,
+  creatingKey,
+  createError,
+  onChangeSelection,
+  onCreateDeal,
+  onViewProperty
+}: ApplicantMatchesProps): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
+  const { matches, isLoading, error, refetch } = matchesResult
+
+  return (
+    <View style={styles.resultsSection}>
+      <SelectionHeader primary={applicant.fullName} onChangeSelection={onChangeSelection} />
+
+      {isLoading ? (
+        <View style={styles.centeredSection}>
+          <LoadingIndicator size="large" />
+        </View>
+      ) : error ? (
+        <ErrorState
+          title="محاسبه پیشنهادها با مشکل مواجه شد"
+          description={error.message}
+          retryLabel="تلاش مجدد"
+          onRetry={refetch}
+        />
+      ) : matches && matches.length === 0 ? (
+        <EmptyState
+          title="فعلاً پیشنهادی وجود ندارد"
+          description="ملکی که با ترجیحات این متقاضی هم‌خوانی داشته باشد پیدا نشد."
+        />
+      ) : (
+        <FlatList
+          data={matches ?? []}
+          keyExtractor={(match) => match.property.id}
+          contentContainerStyle={styles.list}
+          renderItem={({ item: match }) => {
+            const key = `${match.property.id}:${applicant.id}`
+            return (
+              <MatchingResult
+                title={match.property.title}
+                subtitle={`${match.property.city} • ${match.property.address}`}
+                criteria={buildCriteria(match.matchedCriteria)}
+                onPress={() => onViewProperty(match.property.id)}
+                primaryActionLabel={creatingKey === key ? 'در حال ایجاد…' : 'ایجاد معامله'}
+                onPrimaryAction={() => onCreateDeal(match.property.id, applicant.id)}
+              />
+            )
+          }}
+        />
+      )}
+      {createError ? (
+        <Text style={[theme.typography('bodySm'), styles.error]}>{createError}</Text>
+      ) : null}
+    </View>
+  )
+}
+
+type SelectionHeaderProps = {
+  primary: string
+  onChangeSelection: () => void
+}
+
+function SelectionHeader({ primary, onChangeSelection }: SelectionHeaderProps): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
+
+  return (
+    <View style={styles.selectionHeaderRow}>
+      <ContextHeader primary={primary} />
+      <Button label="تغییر انتخاب" variant="text" fullWidth={false} onPress={onChangeSelection} />
+    </View>
   )
 }
 
@@ -144,6 +402,20 @@ function createStyles(theme: Theme) {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center'
+    },
+    resultsSection: {
+      flex: 1,
+      gap: theme.spacing.space3
+    },
+    selectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space3
+    },
+    error: {
+      color: theme.colors.error,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     }
   })
 }

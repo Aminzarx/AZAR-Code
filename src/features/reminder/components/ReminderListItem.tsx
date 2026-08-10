@@ -3,11 +3,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Card } from '@shared/components'
 import type { Reminder } from '../types'
+import type { ReminderContext } from '../hooks/useReminderContexts'
 
 type Props = {
   reminder: Reminder
   onPress: () => void
   onToggleDone: () => void
+  /** Linked property/applicant/deal name, when the reminder is tied to one — omit for a bare reminder. */
+  context?: ReminderContext | null
 }
 
 function formatRemindAt(remindAt: string): string {
@@ -15,9 +18,17 @@ function formatRemindAt(remindAt: string): string {
   return `${date.toLocaleDateString('fa-IR')} • ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
 }
 
-export function ReminderListItem({ reminder, onPress, onToggleDone }: Props): React.JSX.Element {
+export function ReminderListItem({
+  reminder,
+  onPress,
+  onToggleDone,
+  context
+}: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
+  const contextText = context
+    ? [context.primary, context.secondary].filter(Boolean).join(' × ')
+    : null
 
   return (
     <Card>
@@ -28,6 +39,11 @@ export function ReminderListItem({ reminder, onPress, onToggleDone }: Props): Re
           onPress={onPress}
           style={styles.content}
         >
+          {contextText ? (
+            <Text style={[theme.typography('labelSm'), styles.context]} numberOfLines={1}>
+              {contextText}
+            </Text>
+          ) : null}
           <Text
             style={[theme.typography('titleSm'), styles.title, reminder.isDone && styles.titleDone]}
           >
@@ -64,6 +80,11 @@ function createStyles(theme: Theme) {
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
     // alignSelf explicitly anchors it to the correct edge.
+    context: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
+      marginBottom: theme.spacing.space1
+    },
     title: {
       color: theme.colors.onSurface,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'

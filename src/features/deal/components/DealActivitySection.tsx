@@ -1,30 +1,33 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { ActivityTimeline, EmptyState, ErrorState, LoadingIndicator } from '@shared/components'
+import { ActivityTimeline, ErrorState, LoadingIndicator } from '@shared/components'
 import type { ActivityItem } from '@shared/components'
-import type { DealRecord } from '@infrastructure/database/repositories/DealRepository'
+import type { DealStageHistoryRecord } from '@infrastructure/database/repositories/DealRepository'
 import type { ReminderRecord } from '@infrastructure/database/repositories/ReminderRepository'
 import { DEAL_STAGE_LABELS } from '@shared/data/dealStageLabels'
-import { formatDate, formatDateTime } from '@shared/utils/formatDate'
+import { formatDateTime } from '@shared/utils/formatDate'
 
 type Props = {
-  deals: DealRecord[] | null
+  stageHistory: DealStageHistoryRecord[] | null
   reminders: ReminderRecord[] | null
   isLoading: boolean
   error: Error | null
   onRetry: () => void
 }
 
-const MAX_ITEMS = 8
-
-function toActivity(deals: DealRecord[], reminders: ReminderRecord[]): ActivityItem[] {
-  const dealItems: (ActivityItem & { sortKey: string })[] = deals.map((deal) => ({
-    id: `deal-${deal.id}`,
-    title: 'معامله مرتبط با این ملک',
-    description: DEAL_STAGE_LABELS[deal.currentStage],
-    timestamp: formatDate(deal.updatedAt),
-    sortKey: deal.updatedAt
+function toActivity(
+  stageHistory: DealStageHistoryRecord[],
+  reminders: ReminderRecord[]
+): ActivityItem[] {
+  const stageItems: (ActivityItem & { sortKey: string })[] = stageHistory.map((entry) => ({
+    id: `stage-${entry.id}`,
+    title: entry.fromStage
+      ? `انتقال از ${DEAL_STAGE_LABELS[entry.fromStage]} به ${DEAL_STAGE_LABELS[entry.toStage]}`
+      : `ایجاد معامله در مرحله ${DEAL_STAGE_LABELS[entry.toStage]}`,
+    description: entry.note ?? '—',
+    timestamp: formatDateTime(entry.changedAt),
+    sortKey: entry.changedAt
   }))
   const reminderItems: (ActivityItem & { sortKey: string })[] = reminders.map((reminder) => ({
     id: `reminder-${reminder.id}`,
@@ -33,21 +36,20 @@ function toActivity(deals: DealRecord[], reminders: ReminderRecord[]): ActivityI
     timestamp: formatDateTime(reminder.remindAt),
     sortKey: reminder.remindAt
   }))
-  return [...dealItems, ...reminderItems]
-    .sort((a, b) => new Date(b.sortKey).getTime() - new Date(a.sortKey).getTime())
-    .slice(0, MAX_ITEMS)
-    .map(({ id, title, description, timestamp }) => ({ id, title, description, timestamp }))
+  return [...stageItems, ...reminderItems].sort(
+    (a, b) => new Date(b.sortKey).getTime() - new Date(a.sortKey).getTime()
+  )
 }
 
 /**
- * Property Detail's Activity section (§13 of the brief) — this
- * property's related deals/reminders, reusing `DealRepository.getByProperty`
- * and the new `ReminderRepository.getByProperty` read methods (already
- * fetched by `usePropertyActivity`, not queried here), rendered with the shared `ActivityTimeline` component (design-system.md
- * §9) instead of a new bespoke list component.
+ * design-system.md §17.2 Deal Detail's Activity section — this deal's
+ * own stage-transition history (`DealRepository.getStageHistory`, real
+ * data, not fabricated) plus its linked reminders, reusing the shared
+ * `ActivityTimeline` component (§9) exactly like
+ * `PropertyActivitySection`.
  */
-export function PropertyActivitySection({
-  deals,
+export function DealActivitySection({
+  stageHistory,
   reminders,
   isLoading,
   error,
@@ -55,7 +57,7 @@ export function PropertyActivitySection({
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const activity = deals && reminders ? toActivity(deals, reminders) : []
+  const activity = stageHistory && reminders ? toActivity(stageHistory, reminders) : []
 
   return (
     <View style={styles.section}>
@@ -71,14 +73,11 @@ export function PropertyActivitySection({
           retryLabel="تلاش مجدد"
           onRetry={onRetry}
         />
-      ) : activity.length === 0 ? (
-        <EmptyState
-          compact
-          title="هنوز فعالیتی ثبت نشده"
-          description="معامله یا یادآوری مرتبط با این ملک اینجا نمایش داده می‌شود."
-        />
       ) : (
-        <ActivityTimeline activity={activity} />
+        <ActivityTimeline
+          activity={activity}
+          emptyDescription="تغییر مرحله یا یادآوری مرتبط با این معامله اینجا نمایش داده می‌شود."
+        />
       )}
     </View>
   )

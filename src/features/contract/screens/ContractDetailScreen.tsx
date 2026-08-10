@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
@@ -9,14 +9,20 @@ import {
   ConfirmDialog,
   ErrorState,
   FormScreenContainer,
-  LoadingIndicator
+  Icon,
+  LoadingIndicator,
+  StatusBadge
 } from '@shared/components'
 import { useContractDetail } from '../hooks/useContractDetail'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
 import { ContractStatusPicker } from '../components/ContractStatusPicker'
 import { ContractValidationError } from '../validation/ContractValidationError'
+import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONES } from '../statusPresentation'
 import type { Contract, ContractFormErrors, ContractFormValues, ContractStatus } from '../types'
+
+/** How long the "وضعیت قرارداد تغییر کرد" flash stays visible — same duration as `FormScreenContainer`'s post-save flash, for one consistent feedback language across the app. */
+const STATUS_FLASH_DURATION_MS = 1600
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ContractDetail'>
 
@@ -42,8 +48,19 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [statusChanged, setStatusChanged] = useState(false)
+  const [showStatusFlash, setShowStatusFlash] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
+
+  useEffect(() => {
+    if (!statusChanged) {
+      return
+    }
+    setShowStatusFlash(true)
+    const timer = setTimeout(() => setShowStatusFlash(false), STATUS_FLASH_DURATION_MS)
+    return () => clearTimeout(timer)
+  }, [statusChanged])
 
   function startEditing(): void {
     if (!contract) {
@@ -93,6 +110,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
     try {
       await service.updateContract(contract.id, toFormValues(contract), status)
       refetch()
+      setStatusChanged(true)
     } catch {
       setSubmitError('تغییر وضعیت با مشکل مواجه شد. دوباره تلاش کنید.')
     } finally {
@@ -138,92 +156,116 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
         <View style={styles.centeredSection}>
           <ErrorState title="قرارداد پیدا نشد" />
         </View>
-      ) : (
+      ) : isEditing && values ? (
         <>
-          <Card variant="detail">
-            <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>ملک</Text>
-            <Text style={[theme.typography('bodyMd'), styles.value]}>
-              {contract.property?.title ?? 'ملک پیدا نشد'}
+          {submitError ? (
+            <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
+          ) : null}
+          <ContractForm values={values} errors={errors} onChange={handleChange} />
+        </>
+      ) : (
+        // design-system.md §0.2/§17.4 — one Card for the whole record,
+        // sections divided by hairlines/whitespace, never a Property
+        // Card + Applicant Card + Detail Card stack.
+        <Card variant="detail">
+          <View style={styles.titleRow}>
+            <Text style={[theme.typography('titleMd'), styles.title]}>
+              {contract.type ? `قرارداد ${contract.type}` : 'قرارداد'}
             </Text>
-            {contract.property ? (
-              <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                {contract.property.city} • {contract.property.address}
-              </Text>
-            ) : null}
-          </Card>
-
-          <Card variant="detail">
-            <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>متقاضی</Text>
-            <Text style={[theme.typography('bodyMd'), styles.value]}>
-              {contract.applicant?.fullName ?? 'متقاضی پیدا نشد'}
-            </Text>
-            {contract.applicant ? (
-              <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                {contract.applicant.city} • {contract.applicant.phoneNumber}
-              </Text>
-            ) : null}
-          </Card>
-
-          <View style={styles.section}>
-            <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>وضعیت</Text>
-            <ContractStatusPicker
-              status={contract.status}
-              onChange={handleStatusChange}
-              disabled={isUpdatingStatus}
+            <StatusBadge
+              label={CONTRACT_STATUS_LABELS[contract.status]}
+              tone={CONTRACT_STATUS_TONES[contract.status]}
             />
           </View>
 
-          {isEditing && values ? (
-            <View style={styles.section}>
-              <ContractForm values={values} errors={errors} onChange={handleChange} />
-            </View>
+          <LinkRow
+            label="ملک"
+            value={contract.property?.title ?? 'ملک پیدا نشد'}
+            onPress={
+              contract.property
+                ? () => navigation.navigate('PropertyDetail', { propertyId: contract.propertyId })
+                : undefined
+            }
+            theme={theme}
+            styles={styles}
+          />
+          <LinkRow
+            label="متقاضی"
+            value={contract.applicant?.fullName ?? 'متقاضی پیدا نشد'}
+            onPress={
+              contract.applicant
+                ? () =>
+                    navigation.navigate('ApplicantDetail', { applicantId: contract.applicantId })
+                : undefined
+            }
+            theme={theme}
+            styles={styles}
+          />
+
+          <View style={styles.divider} />
+
+          <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>اطلاعات مالی</Text>
+          {contract.amount !== null ? (
+            <Text style={[theme.typography('headlineMd'), styles.amountValue]}>
+              {contract.amount.toLocaleString('fa-IR')} تومان
+            </Text>
           ) : (
-            <Card variant="detail">
-              {contract.type ? (
-                <DetailRow
-                  label="نوع قرارداد"
-                  value={contract.type}
-                  theme={theme}
-                  styles={styles}
-                />
-              ) : null}
-              {contract.amount !== null ? (
-                <DetailRow
-                  label="مبلغ"
-                  value={`${contract.amount.toLocaleString('fa-IR')} تومان`}
-                  theme={theme}
-                  styles={styles}
-                />
-              ) : null}
-              <DetailRow
-                label="بازه قرارداد"
-                value={`${contract.startDate} تا ${contract.endDate}`}
-                theme={theme}
-                styles={styles}
-              />
-              {contract.notes ? (
-                <DetailRow label="یادداشت" value={contract.notes} theme={theme} styles={styles} />
-              ) : null}
-              <Button
-                label="ویرایش"
-                onPress={startEditing}
-                variant="secondary"
-                style={styles.actionButton}
-              />
-              <Button
-                label="حذف قرارداد"
-                onPress={() => setIsDeleteConfirmVisible(true)}
-                variant="destructive"
-                loading={isDeleting}
-                style={styles.actionButton}
-              />
-            </Card>
+            <Text style={[theme.typography('bodyMd'), styles.value]}>مبلغی ثبت نشده</Text>
           )}
+
+          <View style={styles.divider} />
+
+          <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>اطلاعات قرارداد</Text>
+          {contract.type ? (
+            <DetailRow label="نوع قرارداد" value={contract.type} theme={theme} styles={styles} />
+          ) : null}
+          <DetailRow
+            label="بازه قرارداد"
+            value={`${contract.startDate} تا ${contract.endDate}`}
+            theme={theme}
+            styles={styles}
+          />
+          {contract.notes ? (
+            <DetailRow label="یادداشت" value={contract.notes} theme={theme} styles={styles} />
+          ) : null}
+
+          <View style={styles.divider} />
+
+          <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>وضعیت قرارداد</Text>
+          <ContractStatusPicker
+            status={contract.status}
+            onChange={handleStatusChange}
+            disabled={isUpdatingStatus}
+          />
+          {showStatusFlash ? (
+            <View style={styles.statusFlash}>
+              <Icon name="check" size="xs" color={theme.colors.onSuccessContainer} />
+              <Text style={[theme.typography('labelMd'), styles.statusFlashLabel]}>
+                وضعیت قرارداد تغییر کرد
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.divider} />
+
+          <View style={styles.actions}>
+            <Button label="ویرایش" onPress={startEditing} variant="secondary" />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="حذف قرارداد"
+              onPress={() => setIsDeleteConfirmVisible(true)}
+              style={styles.deleteAction}
+            >
+              <Text style={[theme.typography('labelMd'), styles.deleteActionLabel]}>
+                {isDeleting ? 'در حال حذف...' : 'حذف قرارداد'}
+              </Text>
+            </Pressable>
+          </View>
 
           {submitError ? (
             <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
           ) : null}
-        </>
+        </Card>
       )}
 
       <ConfirmDialog
@@ -237,6 +279,43 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
         onCancel={() => setIsDeleteConfirmVisible(false)}
       />
     </FormScreenContainer>
+  )
+}
+
+type LinkRowProps = {
+  label: string
+  value: string
+  onPress?: () => void
+  theme: Theme
+  styles: ReturnType<typeof createStyles>
+}
+
+/** ملک/متقاضی identity row — compact, tappable through to that record's own Detail screen when it still resolves. */
+function LinkRow({ label, value, onPress, theme, styles }: LinkRowProps): React.JSX.Element {
+  const content = (
+    <View style={styles.linkRow}>
+      <View style={styles.linkTextGroup}>
+        <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
+        <Text
+          style={[theme.typography('bodyMd'), styles.value]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {value}
+        </Text>
+      </View>
+      {onPress ? <Icon name="chevron" size="sm" color={theme.colors.outline} /> : null}
+    </View>
+  )
+
+  if (!onPress) {
+    return content
+  }
+
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={value} onPress={onPress}>
+      {content}
+    </Pressable>
   )
 }
 
@@ -263,13 +342,45 @@ function createStyles(theme: Theme) {
       justifyContent: 'center',
       paddingVertical: theme.spacing.space12
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space2,
+      marginBottom: theme.spacing.space4
+    },
+    title: {
+      color: theme.colors.onSurface,
+      flex: 1,
+      flexShrink: 1
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.colors.outlineVariant,
+      marginVertical: theme.spacing.space4
+    },
+    linkRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space2,
+      paddingVertical: theme.spacing.space2
+    },
+    linkTextGroup: {
+      flex: 1,
+      gap: theme.spacing.space1
+    },
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     sectionLabel: {
       color: theme.colors.onSurfaceVariant,
-      marginBottom: theme.spacing.space1,
+      marginBottom: theme.spacing.space2,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    section: {
-      gap: theme.spacing.space3
+    amountValue: {
+      color: theme.colors.primary,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     detailRow: {
       marginBottom: theme.spacing.space3
@@ -282,20 +393,44 @@ function createStyles(theme: Theme) {
       color: theme.colors.onSurface,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    subValue: {
-      color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    statusFlash: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
+      gap: theme.spacing.space1,
+      marginTop: theme.spacing.space3,
+      paddingHorizontal: theme.spacing.space4,
+      paddingVertical: theme.spacing.space2,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.successContainer
+    },
+    statusFlashLabel: {
+      color: theme.colors.onSuccessContainer
+    },
+    // design-system.md §17.4/§7.1 — the primary action (edit) is a
+    // full-weight button; the destructive action (delete) is a plain
+    // text-weight affordance below it, visually de-emphasized rather
+    // than stacked at equal weight in a two-button row.
+    actions: {
+      gap: theme.spacing.space3,
+      alignItems: 'center'
+    },
+    deleteAction: {
+      minHeight: theme.touchTargetMinimum,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: theme.spacing.space4
+    },
+    deleteActionLabel: {
+      color: theme.colors.error
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
     // alignSelf explicitly anchors it to the correct edge.
     submitError: {
       color: theme.colors.error,
+      marginTop: theme.spacing.space3,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
-    },
-    actionButton: {
-      marginTop: theme.spacing.space3
     }
   })
 }

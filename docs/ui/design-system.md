@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.5.0)
+# AZAR Design System — "Minimal Luxury" (v2.6.0)
 
 ## 0. Positioning statement
 
@@ -724,3 +724,112 @@ a path through a different tab. Do not reach for a screen-name lookup
 table or manual tab-switch call to get this behavior — it is what
 nested tab+stack navigators already do by default once each screen is
 registered exactly once.
+
+## 17. Phase 2 — CRM Workflow (v2.6.0)
+
+v2.5.0 redesigned Part 1 (Dashboard, Property, Applicant). v2.6.0 does
+the same for Part 2 — Matching, Deal, Reminder, Contract — around one
+explicit entity relationship the UI must make legible, not just
+functional:
+
+```
+PROPERTY ──MATCHING── APPLICANT
+      \                    /
+       \                  /
+            → DEAL ←
+           /        \
+    REMINDER       ACTIVITY
+        │
+        ↓
+    CONTRACT
+```
+
+**Matching** finds the opportunity → **Deal** manages the process →
+**Reminder** is the next concrete step → **Activity** is the history →
+**Contract** is the formal outcome once a Deal is won. A screen in this
+part of the app that doesn't visibly serve one of these five roles is
+the wrong screen.
+
+### 17.1 Matching Workspace (not a picker)
+
+Matching's entry point lets the user choose ملک or متقاضی, then shows
+results for the selected record using the shared `MatchingResult`
+component (`src/shared/components/MatchingResult.tsx`) — see that
+file's doc comment for the exact, deliberately-honest scoring rule:
+the matching engine's `score` (`matchingService.ts`) is real but not
+normalized against a shifting maximum, so the UI never shows it as a
+bare percentage. It shows **"X از Y معیار منطبق"** (an unambiguous
+count) plus a qualitative tone (`matchTone`: تطابق بالا / مناسب /
+محدود) derived from the matched *fraction*. Every result gets one
+clear primary action (`ایجاد معامله` most commonly) — never more than
+one loud CTA per result card, per §0.2's UI-overload ban.
+
+Property/Applicant Detail keep a **compact** matching section (already
+built in v2.5.0 via `SuggestedPropertiesSection`/
+`SuggestedApplicantsSection`) — that section is not the Workspace and
+should stay compact; "مشاهده همه" is how a user reaches the full
+Workspace for that record.
+
+### 17.2 Deal Pipeline
+
+`DealStage`'s real 9 stages (`DealRepository.ts`) collapse into 4
+visual groups + 2 terminal outcomes for a compact, non-stepper mobile
+indicator — see `PipelineIndicator.tsx`'s doc comment for the exact
+grouping. The underlying `currentStage` value is never altered by this
+grouping; it's a display concern only.
+
+Deal Detail structure, top to bottom: **Header** (property × applicant
+identity + `StatusBadge`) → **Next Action** (`NextAction.tsx` — only
+rendered when a real upcoming/overdue reminder exists for this deal;
+never fabricated) → **Pipeline** (`PipelineIndicator`) → **Property +
+Applicant summary** (compact, not two full detail cards restated) →
+**Activity** (`ActivityTimeline`) → **Notes** → **Actions**
+(hierarchical per §7.1: `ایجاد قرارداد` primary, `افزودن پیگیری`
+secondary, no destructive action stacked at equal visual weight).
+
+### 17.3 Reminder
+
+Reminder List is **time-grouped** (امروز / فردا / بعداً — a plain date
+comparison against `remindAt`, not a new scheduling concept) with a
+compact **Needs Attention**-style header row for overdue + due-today
+counts (reuses the `attention` `StatusBadge` tone, not a new pattern).
+A Reminder tied to a property/applicant/deal shows that context via
+`ContextHeader.tsx` — never a bare title-only row when real linkage
+data exists on the record (`propertyId`/`applicantId`/`dealId`, all
+already on `ReminderRecord`).
+
+### 17.4 Contract
+
+Contract is explicitly **the formal outcome**, distinct from Deal (the
+process). Contract Detail avoids a card stack (§0.2's ban) in favor of
+sectioned content with dividers — see the brief's own worked example.
+Contract status changes go through a `SegmentedControl`/bottom-sheet
+selection with a short success confirmation, not a silent state flip.
+Existing `ContractStatus` values are kept as-is; this is presentation,
+not a schema change.
+
+### 17.5 Money input for large amounts
+
+For fields expecting large amounts (contract value), the existing
+`MoneyInput` quick-scale chips (میلیون/میلیارد, v2.4.0) already solve
+"don't make the user type many zeros" — Phase 2 doesn't need a second,
+different large-amount input pattern; reuse `MoneyInput` as-is rather
+than inventing a scale-unit dropdown that would fragment the pattern
+already established for Property/Applicant.
+
+### 17.6 Reusable components introduced in v2.6.0
+
+`ActivityTimeline` (relocated from a Dashboard-only component to
+`src/shared/components/`, used by Dashboard/Property/Applicant already
+and now Deal/Contract too — one pattern, never re-implemented per
+entity), `MatchingResult`, `PipelineIndicator`, `ContextHeader`,
+`NextAction`. All follow the existing `createStyles(theme)` /
+`StatusBadge`-for-state / RTL-`alignSelf` conventions established in
+Part 1 — no new architectural pattern was introduced solely for Part 2.
+
+### 17.7 No fabricated data (restated, applies everywhere in Part 2)
+
+Match scores, activity, deal status, and contract data must reflect
+real records or the section renders its `EmptyState`/is omitted
+entirely (§14's "Needs Attention" precedent) — never a placeholder
+number or synthetic history row invented to make a screen look fuller.

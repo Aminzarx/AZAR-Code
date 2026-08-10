@@ -7,12 +7,14 @@ import {
   Button,
   Card,
   ConfirmDialog,
+  ContextHeader,
   ErrorState,
   FormScreenContainer,
   LoadingIndicator
 } from '@shared/components'
 import { useReminderDetail } from '../hooks/useReminderDetail'
 import { useReminderService } from '../hooks/useReminderService'
+import { useReminderContext } from '../hooks/useReminderContext'
 import { ReminderForm } from '../components/ReminderForm'
 import { ReminderValidationError } from '../validation/ReminderValidationError'
 import { toFormDateTime } from '../validation/reminderValidation'
@@ -31,6 +33,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
   const { reminderId } = route.params
   const { reminder, isLoading, error, refetch } = useReminderDetail(reminderId)
   const service = useReminderService()
+  const context = useReminderContext(reminder)
   const [isEditing, setIsEditing] = useState(false)
   const [values, setValues] = useState<ReminderFormValues | null>(null)
   const [initialValues, setInitialValues] = useState<ReminderFormValues | null>(null)
@@ -162,6 +165,11 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
       ) : (
         <Card variant="detail">
           <Text style={[theme.typography('headlineMd'), styles.title]}>{reminder.title}</Text>
+          {context ? (
+            <View style={styles.context}>
+              <ContextHeader primary={context.primary} secondary={context.secondary} />
+            </View>
+          ) : null}
           <Text style={[theme.typography('bodyMd'), styles.value]}>
             {new Date(reminder.remindAt).toLocaleDateString('fa-IR')} •{' '}
             {new Date(reminder.remindAt).toLocaleTimeString('fa-IR', {
@@ -226,6 +234,9 @@ function createStyles(theme: Theme) {
       color: theme.colors.onSurface,
       marginBottom: theme.spacing.space3,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    context: {
+      marginBottom: theme.spacing.space3
     },
     value: {
       color: theme.colors.onSurface,

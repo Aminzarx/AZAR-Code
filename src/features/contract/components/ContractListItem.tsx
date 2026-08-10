@@ -1,14 +1,9 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card } from '@shared/components'
+import { Card, StatusBadge } from '@shared/components'
+import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONES } from '../statusPresentation'
 import type { ContractWithDetails } from '../types'
-
-const STATUS_LABELS: Record<ContractWithDetails['status'], string> = {
-  active: 'فعال',
-  completed: 'تکمیل‌شده',
-  cancelled: 'لغوشده'
-}
 
 type Props = {
   contract: ContractWithDetails
@@ -27,11 +22,10 @@ export function ContractListItem({ contract, onPress }: Props): React.JSX.Elemen
           <Text style={[theme.typography('titleSm'), styles.title]}>
             {contract.property?.title ?? 'ملک نامشخص'}
           </Text>
-          <View style={styles.statusBadge}>
-            <Text style={[theme.typography('labelSm'), styles.statusText]}>
-              {STATUS_LABELS[contract.status]}
-            </Text>
-          </View>
+          <StatusBadge
+            label={CONTRACT_STATUS_LABELS[contract.status]}
+            tone={CONTRACT_STATUS_TONES[contract.status]}
+          />
         </View>
         <Text style={[theme.typography('bodySm'), styles.subtitle]}>
           {contract.applicant?.fullName ?? 'متقاضی نامشخص'}
@@ -70,15 +64,6 @@ function createStyles(theme: Theme) {
       color: theme.colors.primary,
       marginTop: theme.spacing.space2,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
-    },
-    statusBadge: {
-      backgroundColor: theme.colors.secondaryContainer,
-      borderRadius: theme.radius.full,
-      paddingVertical: theme.spacing.space1,
-      paddingHorizontal: theme.spacing.space3
-    },
-    statusText: {
-      color: theme.colors.onSecondaryContainer
     }
   })
 }

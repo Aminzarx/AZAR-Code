@@ -1,25 +1,39 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { EmptyState } from '@shared/components'
-import type { DashboardActivity } from '../types'
+import { EmptyState } from './EmptyState'
 
-type Props = {
-  activity: DashboardActivity[]
+export type ActivityItem = {
+  id: string
+  title: string
+  description: string
+  timestamp: string
 }
 
-/** A connected timeline (dot + rail) instead of a plain list of cards — reads as chronological activity, not just a stack of boxes. */
-export function RecentActivityList({ activity }: Props): React.JSX.Element {
+type Props = {
+  activity: ActivityItem[]
+  emptyTitle?: string
+  emptyDescription?: string
+}
+
+/**
+ * design-system.md §9 (v2.6.0) — the one reusable Activity pattern for
+ * every entity that has a history (Dashboard, Property, Applicant, Deal,
+ * Contract): a connected timeline (dot + rail), not a stack of cards.
+ * Each feature builds its own `toActivity()` mapper from its own records
+ * (deals/reminders/notes/...) into this generic shape and renders it here
+ * — the timeline itself never knows what kind of record produced a row.
+ */
+export function ActivityTimeline({
+  activity,
+  emptyTitle = 'هنوز فعالیتی ثبت نشده',
+  emptyDescription
+}: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
 
   if (activity.length === 0) {
-    return (
-      <EmptyState
-        title="هنوز فعالیتی ثبت نشده"
-        description="با افزودن پرونده‌های ملکی و متقاضیان، آخرین فعالیت‌های شما اینجا نمایش داده می‌شود."
-      />
-    )
+    return <EmptyState title={emptyTitle} description={emptyDescription} />
   }
 
   return (

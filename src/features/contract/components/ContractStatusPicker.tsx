@@ -1,14 +1,9 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { useTheme, type Theme } from '@shared/theme'
+import { StyleSheet, View } from 'react-native'
+import { SegmentedControl } from '@shared/components'
 import { CONTRACT_STATUSES } from '@infrastructure/database/repositories/ContractRepository'
+import { CONTRACT_STATUS_LABELS } from '../statusPresentation'
 import type { ContractStatus } from '../types'
-
-const STATUS_LABELS: Record<ContractStatus, string> = {
-  active: 'فعال',
-  completed: 'تکمیل‌شده',
-  cancelled: 'لغوشده'
-}
 
 type Props = {
   status: ContractStatus
@@ -16,64 +11,30 @@ type Props = {
   disabled?: boolean
 }
 
-export function ContractStatusPicker({ status, onChange, disabled }: Props): React.JSX.Element {
-  const theme = useTheme()
-  const styles = createStyles(theme)
+const OPTIONS = CONTRACT_STATUSES.map((status) => ({
+  value: status,
+  label: CONTRACT_STATUS_LABELS[status]
+}))
 
+/**
+ * design-system.md §17.4 — contract status change goes through the same
+ * `SegmentedControl` used for every other fixed, always-fits-one-row,
+ * mutually-exclusive choice in the app, instead of a bespoke chip row.
+ * `disabled` (mid-request) isn't part of `SegmentedControl`'s own API,
+ * so it's applied here as a wrapping `pointerEvents`/opacity guard —
+ * the same disabled treatment `Button` uses.
+ */
+export function ContractStatusPicker({ status, onChange, disabled }: Props): React.JSX.Element {
   return (
-    <View style={styles.row}>
-      {CONTRACT_STATUSES.map((candidate) => {
-        const isSelected = candidate === status
-        return (
-          <Pressable
-            key={candidate}
-            accessibilityRole="button"
-            accessibilityLabel={STATUS_LABELS[candidate]}
-            accessibilityState={{ selected: isSelected, disabled }}
-            disabled={disabled}
-            onPress={() => onChange(candidate)}
-            style={[styles.chip, isSelected ? styles.chipSelected : styles.chipDefault]}
-          >
-            <Text
-              style={[
-                theme.typography('labelSm'),
-                isSelected ? styles.labelSelected : styles.labelDefault
-              ]}
-            >
-              {STATUS_LABELS[candidate]}
-            </Text>
-          </Pressable>
-        )
-      })}
+    <View style={disabled ? styles.disabled : undefined} pointerEvents={disabled ? 'none' : 'auto'}>
+      <SegmentedControl options={OPTIONS} value={status} onChange={onChange} />
     </View>
   )
 }
 
-function createStyles(theme: Theme) {
-  return StyleSheet.create({
-    row: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.space2
-    },
-    chip: {
-      borderRadius: theme.radius.full,
-      paddingVertical: theme.spacing.space2,
-      paddingHorizontal: theme.spacing.space4,
-      minHeight: theme.touchTargetMinimum
-    },
-    chipDefault: {
-      borderWidth: 1,
-      borderColor: theme.colors.outlineVariant
-    },
-    chipSelected: {
-      backgroundColor: theme.colors.primary
-    },
-    labelDefault: {
-      color: theme.colors.onSurfaceVariant
-    },
-    labelSelected: {
-      color: theme.colors.onPrimary
-    }
-  })
-}
+// Same disabled treatment as `Button` (design-system.md §7.1).
+const styles = StyleSheet.create({
+  disabled: {
+    opacity: 0.5
+  }
+})

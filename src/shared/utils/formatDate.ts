@@ -8,3 +8,13 @@ export function formatDateTime(isoTimestamp: string): string {
   const date = new Date(isoTimestamp)
   return `${date.toLocaleDateString('fa-IR')} • ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
 }
+
+/** Plain calendar-day comparison (year/month/day only, ignores time-of-day) — reminder time-grouping (§17.3) needs this, not a new scheduling concept. */
+export function isSameCalendarDay(isoTimestamp: string, reference: Date): boolean {
+  const date = new Date(isoTimestamp)
+  return (
+    date.getFullYear() === reference.getFullYear() &&
+    date.getMonth() === reference.getMonth() &&
+    date.getDate() === reference.getDate()
+  )
+}

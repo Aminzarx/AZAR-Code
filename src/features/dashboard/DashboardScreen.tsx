@@ -6,12 +6,11 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Avatar, ErrorState, Icon, LoadingIndicator } from '@shared/components'
+import { ActivityTimeline, Avatar, ErrorState, Icon, LoadingIndicator } from '@shared/components'
 import { useDashboardData } from './hooks/useDashboardData'
 import { StatCard } from './components/StatCard'
 import { NeedsAttentionList } from './components/NeedsAttentionList'
 import { QuickActions, type QuickAction } from './components/QuickActions'
-import { RecentActivityList } from './components/RecentActivityList'
 import { UpcomingRemindersList } from './components/UpcomingRemindersList'
 import type { DashboardNeedsAttentionItem } from './types'
 
@@ -161,7 +160,10 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                 >
                   آخرین فعالیت‌ها
                 </Text>
-                <RecentActivityList activity={data.recentActivity} />
+                <ActivityTimeline
+                  activity={data.recentActivity}
+                  emptyDescription="با افزودن پرونده‌های ملکی و متقاضیان، آخرین فعالیت‌های شما اینجا نمایش داده می‌شود."
+                />
               </View>
 
               <View style={styles.section}>
