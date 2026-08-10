@@ -77,7 +77,7 @@ describe('MainNavigator', () => {
   it('renders all 5 bottom tab labels', async () => {
     const { findByText } = await renderMainNavigator()
     expect(await findByText('خانه')).toBeTruthy()
-    expect(await findByText('پرونده‌ها')).toBeTruthy()
+    expect(await findByText('فایل‌ها')).toBeTruthy()
     expect(await findByText('تطبیق')).toBeTruthy()
     expect(await findByText('قراردادها')).toBeTruthy()
     expect(await findByText('پروفایل')).toBeTruthy()
@@ -85,7 +85,7 @@ describe('MainNavigator', () => {
 
   it('switches to the Files tab root when pressed', async () => {
     const { findByText } = await renderMainNavigator()
-    fireEvent.press(await findByText('پرونده‌ها'))
+    fireEvent.press(await findByText('فایل‌ها'))
     expect(await findByText('صفحه پرونده‌ها')).toBeTruthy()
   })
 

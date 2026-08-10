@@ -103,7 +103,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
       navigation.goBack()
     } catch {
       setIsDeleteConfirmVisible(false)
-      setSubmitError('حذف پرونده با مشکل مواجه شد. دوباره تلاش کنید.')
+      setSubmitError('حذف فایل با مشکل مواجه شد. دوباره تلاش کنید.')
       setIsDeleting(false)
     }
   }
@@ -113,7 +113,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
 
   return (
     <FormScreenContainer
-      headerTitle={isEditing ? 'ویرایش پرونده ملکی' : undefined}
+      headerTitle={isEditing ? 'ویرایش فایل ملکی' : undefined}
       onSave={isEditing ? handleSubmit : undefined}
       isSaving={isSubmitting}
     >
@@ -124,7 +124,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
       ) : error ? (
         <View style={styles.centeredSection}>
           <ErrorState
-            title="بارگذاری پرونده با مشکل مواجه شد"
+            title="بارگذاری فایل با مشکل مواجه شد"
             description={error.message}
             retryLabel="تلاش مجدد"
             onRetry={refetch}
@@ -132,7 +132,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
         </View>
       ) : !property ? (
         <View style={styles.centeredSection}>
-          <ErrorState title="پرونده پیدا نشد" />
+          <ErrorState title="فایل پیدا نشد" />
         </View>
       ) : isEditing && values ? (
         <>
@@ -217,7 +217,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
                 style={styles.actionButton}
               />
               <Button
-                label="حذف پرونده"
+                label="حذف فایل"
                 onPress={() => setIsDeleteConfirmVisible(true)}
                 variant="destructive"
                 loading={isDeleting}
@@ -249,8 +249,8 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
 
       <ConfirmDialog
         visible={isDeleteConfirmVisible}
-        title="حذف پرونده ملکی"
-        description="این پرونده برای همیشه حذف می‌شود. ادامه می‌دهید؟"
+        title="حذف فایل ملکی"
+        description="این فایل برای همیشه حذف می‌شود. ادامه می‌دهید؟"
         confirmLabel="حذف"
         destructive
         isConfirming={isDeleting}

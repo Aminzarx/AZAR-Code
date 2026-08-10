@@ -102,7 +102,7 @@ function createStyles(theme: Theme, badgeColor: string) {
       // Denser than the default listItem padding — a KPI card holds a
       // single number + a short label, not paragraph content, so the
       // generous default padding reads as wasted space at this scale.
-      padding: theme.spacing.space3
+      padding: theme.spacing.space2
     },
     // Horizontal icon+text layout instead of a stacked badge-over-number
     // layout — shorter overall card height for the same content.

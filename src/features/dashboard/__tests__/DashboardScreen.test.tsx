@@ -29,7 +29,7 @@ describe('DashboardScreen', () => {
 
   it('shows a loading indicator, then the stats once data resolves', async () => {
     mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '2' }],
+      stats: [{ id: 'properties', label: 'فایل‌های ملکی', value: '2' }],
       needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
@@ -39,7 +39,7 @@ describe('DashboardScreen', () => {
       withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    expect(await findByText('پرونده‌های ملکی')).toBeTruthy()
+    expect(await findByText('فایل‌های ملکی')).toBeTruthy()
     expect(mockedFetchDashboardData).toHaveBeenCalledWith('u1')
   })
 
@@ -71,7 +71,7 @@ describe('DashboardScreen', () => {
 
   it('navigates to CreateProperty when the add-property quick action is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '0' }],
+      stats: [{ id: 'properties', label: 'فایل‌های ملکی', value: '0' }],
       needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
@@ -81,13 +81,13 @@ describe('DashboardScreen', () => {
       withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByLabelText('افزودن پرونده ملکی'))
+    fireEvent.press(await findByLabelText('افزودن فایل ملکی'))
     expect(mockNavigate).toHaveBeenCalledWith('CreateProperty')
   })
 
   it('navigates to PropertyList when the properties stat card is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'properties', label: 'پرونده‌های ملکی', value: '3' }],
+      stats: [{ id: 'properties', label: 'فایل‌های ملکی', value: '3' }],
       needsAttention: [],
       recentActivity: [],
       upcomingReminders: []
@@ -97,7 +97,7 @@ describe('DashboardScreen', () => {
       withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByLabelText('پرونده‌های ملکی: 3'))
+    fireEvent.press(await findByLabelText('فایل‌های ملکی: 3'))
     expect(mockNavigate).toHaveBeenCalledWith('PropertyList')
   })
 

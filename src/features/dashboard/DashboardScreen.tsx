@@ -28,7 +28,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const primaryActions: QuickAction[] = [
     {
       id: 'add-property',
-      label: 'افزودن پرونده ملکی',
+      label: 'افزودن فایل ملکی',
       icon: 'files',
       onPress: () => navigateAcrossTabs(navigation, 'CreateProperty', undefined)
     },
@@ -162,7 +162,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                 </Text>
                 <ActivityTimeline
                   activity={data.recentActivity}
-                  emptyDescription="با افزودن پرونده‌های ملکی و متقاضیان، آخرین فعالیت‌های شما اینجا نمایش داده می‌شود."
+                  emptyDescription="با افزودن فایل‌های ملکی و متقاضیان، آخرین فعالیت‌های شما اینجا نمایش داده می‌شود."
                 />
               </View>
 

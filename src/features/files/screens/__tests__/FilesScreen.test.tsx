@@ -41,7 +41,7 @@ describe('FilesScreen', () => {
       withTheme(<FilesScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    expect(await findByText('هنوز پرونده‌ای ثبت نشده')).toBeTruthy()
+    expect(await findByText('هنوز فایلی ثبت نشده')).toBeTruthy()
   })
 
   it('switches to the applicants list when that segment is pressed', async () => {

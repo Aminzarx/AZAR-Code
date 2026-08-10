@@ -146,7 +146,7 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
       <View style={styles.content}>
         {!hasSelection ? (
           <Text style={[theme.typography('titleMd'), styles.title]}>
-            برای دیدن پیشنهادهای تطبیق، یک پرونده را انتخاب کنید
+            برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید
           </Text>
         ) : null}
         <SegmentedControl options={OPTIONS} value={target} onChange={handleTargetChange} />
@@ -180,9 +180,9 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
           ) : (propertiesResult.properties?.length ?? 0) === 0 ? (
             <View style={styles.centeredSection}>
               <EmptyState
-                title="هنوز پرونده‌ای ثبت نشده"
-                description="با افزودن یک پرونده ملکی از تب املاک، پیشنهادهای تطبیق اینجا در دسترس می‌شود."
-                actionLabel="افزودن پرونده ملکی"
+                title="هنوز فایلی ثبت نشده"
+                description="با افزودن یک فایل ملکی از تب املاک، پیشنهادهای تطبیق اینجا در دسترس می‌شود."
+                actionLabel="افزودن فایل ملکی"
                 onAction={() => navigateAcrossTabs(navigation, 'CreateProperty', undefined)}
               />
             </View>

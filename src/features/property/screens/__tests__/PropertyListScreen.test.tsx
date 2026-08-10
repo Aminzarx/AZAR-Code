@@ -63,7 +63,7 @@ describe('PropertyListScreen', () => {
     const { queryByText } = await render(
       withTheme(<PropertyListScreen navigation={navigationProp} route={routeProp} />)
     )
-    expect(queryByText('هنوز پرونده‌ای ثبت نشده')).toBeNull()
+    expect(queryByText('هنوز فایلی ثبت نشده')).toBeNull()
   })
 
   it('shows the empty state when there are no properties', async () => {
@@ -77,7 +77,7 @@ describe('PropertyListScreen', () => {
     const { findByText } = await render(
       withTheme(<PropertyListScreen navigation={navigationProp} route={routeProp} />)
     )
-    expect(await findByText('هنوز پرونده‌ای ثبت نشده')).toBeTruthy()
+    expect(await findByText('هنوز فایلی ثبت نشده')).toBeTruthy()
   })
 
   it('shows an error state with retry', async () => {
@@ -92,7 +92,7 @@ describe('PropertyListScreen', () => {
     const { findByText } = await render(
       withTheme(<PropertyListScreen navigation={navigationProp} route={routeProp} />)
     )
-    expect(await findByText('بارگذاری پرونده‌ها با مشکل مواجه شد')).toBeTruthy()
+    expect(await findByText('بارگذاری فایل‌ها با مشکل مواجه شد')).toBeTruthy()
 
     fireEvent.press(await findByText('تلاش مجدد'))
     expect(refetch).toHaveBeenCalledTimes(1)

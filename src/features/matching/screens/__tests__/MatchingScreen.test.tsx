@@ -117,7 +117,7 @@ describe('MatchingScreen', () => {
     expect(await findByText('علی رضایی')).toBeTruthy()
     expect(await findByText('1 از 6 معیار منطبق')).toBeTruthy()
     // The picker list step is gone once a record is selected.
-    expect(queryByText('برای دیدن پیشنهادهای تطبیق، یک پرونده را انتخاب کنید')).toBeNull()
+    expect(queryByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeNull()
   })
 
   it('navigates to ApplicantDetail when a match result is pressed', async () => {
@@ -167,7 +167,7 @@ describe('MatchingScreen', () => {
     fireEvent.press(await findByText('آپارتمان دو خوابه'))
     fireEvent.press(await findByText('تغییر انتخاب'))
 
-    expect(await findByText('برای دیدن پیشنهادهای تطبیق، یک پرونده را انتخاب کنید')).toBeTruthy()
+    expect(await findByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeTruthy()
   })
 
   it('shows the create-property empty state when there are no properties', async () => {
@@ -182,6 +182,6 @@ describe('MatchingScreen', () => {
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    expect(await findByText('هنوز پرونده‌ای ثبت نشده')).toBeTruthy()
+    expect(await findByText('هنوز فایلی ثبت نشده')).toBeTruthy()
   })
 })

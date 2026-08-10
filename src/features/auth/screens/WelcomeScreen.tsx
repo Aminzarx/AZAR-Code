@@ -17,7 +17,7 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
       <View>
         <Text style={[theme.typography('headlineLgMobile'), styles.title]}>به آزار خوش آمدید</Text>
         <Text style={[theme.typography('bodyLg'), styles.subtitle]}>
-          مدیریت پرونده‌های ملکی، متقاضیان و قراردادها — همه به‌صورت آفلاین و امن روی دستگاه شما.
+          مدیریت فایل‌های ملکی، متقاضیان و قراردادها — همه به‌صورت آفلاین و امن روی دستگاه شما.
         </Text>
       </View>
       <Button label="شروع کنید" onPress={() => navigation.navigate('PhoneEntry')} />

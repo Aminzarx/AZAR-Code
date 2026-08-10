@@ -23,7 +23,7 @@ describe('PropertyForm', () => {
       withTheme(<PropertyForm values={EMPTY_VALUES} errors={{}} onChange={onChange} />)
     )
 
-    fireEvent.changeText(getByLabelText('عنوان پرونده'), 'آپارتمان جدید')
+    fireEvent.changeText(getByLabelText('عنوان فایل'), 'آپارتمان جدید')
     expect(onChange).toHaveBeenCalledWith('title', 'آپارتمان جدید')
   })
 

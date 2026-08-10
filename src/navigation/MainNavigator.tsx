@@ -20,8 +20,10 @@ import { CreateContractScreen } from '@features/contract/screens/CreateContractS
 import { ContractDetailScreen } from '@features/contract/screens/ContractDetailScreen'
 import { SettingsScreen } from '@features/settings/screens/SettingsScreen'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useTheme } from '@shared/theme'
+import { StyleSheet, View } from 'react-native'
+import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
+import { TabBarButton } from './TabBarButton'
 
 export type MainStackParamList = {
   Home: undefined
@@ -54,7 +56,7 @@ type TabName = 'HomeTab' | 'FilesTab' | 'MatchingTab' | 'ContractsTab' | 'Profil
 
 const TAB_LABELS: Record<TabName, string> = {
   HomeTab: 'خانه',
-  FilesTab: 'پرونده‌ها',
+  FilesTab: 'فایل‌ها',
   MatchingTab: 'تطبیق',
   ContractsTab: 'قراردادها',
   ProfileTab: 'پروفایل'
@@ -133,8 +135,37 @@ function ProfileStack(): React.JSX.Element {
   )
 }
 
+/**
+ * design-system.md §7.5 (v2.7.2) — a compact pill behind just the icon
+ * (Material 3's "active indicator" pattern) instead of the previous
+ * `tabBarActiveBackgroundColor`, which filled the *entire* tab segment's
+ * full height/width — a much blunter, less refined active state.
+ */
 function makeTabIcon(name: IconName) {
-  return ({ color }: { color: string }) => <Icon name={name} size="md" color={color} />
+  return function TabIcon({ color, focused }: { color: string; focused: boolean }) {
+    const theme = useTheme()
+    const styles = createTabIconStyles(theme)
+    return (
+      <View style={[styles.pill, focused && styles.pillActive]}>
+        <Icon name={name} size="sm" color={color} />
+      </View>
+    )
+  }
+}
+
+function createTabIconStyles(theme: Theme) {
+  return StyleSheet.create({
+    pill: {
+      width: 56,
+      height: 32,
+      borderRadius: theme.radius.full,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    pillActive: {
+      backgroundColor: theme.colors.secondaryContainer
+    }
+  })
 }
 
 /**
@@ -164,9 +195,12 @@ export function MainNavigator(): React.JSX.Element {
         // in a sibling tab's nested navigator state, which lazy mounting
         // would leave empty until that tab is first visited.
         lazy: false,
+        // design-system.md §7.5 (v2.7.2) — the icon's own active-indicator
+        // pill (makeTabIcon) now carries the active fill; the tab bar's
+        // own background/ripple no longer does (see TabBarButton).
+        tabBarButton: TabBarButton,
         tabBarActiveTintColor: theme.colors.onSecondaryContainer,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarActiveBackgroundColor: theme.colors.secondaryContainer,
         tabBarStyle: {
           height: tabBarHeight,
           paddingBottom: insets.bottom,

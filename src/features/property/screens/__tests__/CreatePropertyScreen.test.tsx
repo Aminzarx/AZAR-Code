@@ -65,7 +65,7 @@ describe('CreatePropertyScreen', () => {
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('عنوان پرونده'), 'آپارتمان جدید'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('عنوان فایل'), 'آپارتمان جدید'))
     await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
     await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
     await waitFor(() => fireEvent.press(getByText('ذخیره')))
@@ -88,7 +88,7 @@ describe('CreatePropertyScreen', () => {
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('عنوان پرونده'), 'آپارتمان جدید'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('عنوان فایل'), 'آپارتمان جدید'))
     await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
     await waitFor(() => fireEvent.press(getByText('ذخیره')))
 

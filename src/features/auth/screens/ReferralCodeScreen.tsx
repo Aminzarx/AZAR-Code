@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '@navigation/AuthNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, TextInput } from '@shared/components'
+import { Button, Icon, QrCodeScanner, TextInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
 import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
 
@@ -18,6 +18,16 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
   const [referralCode, setReferralCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isScannerVisible, setIsScannerVisible] = useState(false)
+
+  // Auto-fills the field from the QR — the real check against the
+  // database happens exactly where it already did for manual entry, in
+  // handleSubmit's register() call (ValidationFailureError('invalid_referral_code')).
+  function handleScan(value: string): void {
+    setIsScannerVisible(false)
+    setReferralCode(value.trim().toUpperCase().slice(0, 8))
+    setError(null)
+  }
 
   async function handleSubmit(): Promise<void> {
     setError(null)
@@ -56,6 +66,15 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
           errorMessage={error ?? undefined}
           autoFocus
         />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="اسکن بارکد کد معرف"
+          onPress={() => setIsScannerVisible(true)}
+          style={styles.scanButton}
+        >
+          <Icon name="scan" size="xs" color={theme.colors.secondary} />
+          <Text style={[theme.typography('labelMd'), styles.scanButtonLabel]}>اسکن بارکد</Text>
+        </Pressable>
         <Button
           label="تکمیل ثبت‌نام"
           onPress={handleSubmit}
@@ -63,6 +82,13 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
           disabled={referralCode.length < 8}
         />
       </View>
+
+      <QrCodeScanner
+        visible={isScannerVisible}
+        title="اسکن بارکد کد معرف"
+        onScan={handleScan}
+        onClose={() => setIsScannerVisible(false)}
+      />
     </AuthScreenContainer>
   )
 }
@@ -86,6 +112,17 @@ function createStyles(theme: Theme) {
     },
     form: {
       gap: theme.spacing.space6
+    },
+    scanButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.space2,
+      minHeight: theme.touchTargetMinimum,
+      marginTop: -theme.spacing.space4
+    },
+    scanButtonLabel: {
+      color: theme.colors.secondary
     }
   })
 }

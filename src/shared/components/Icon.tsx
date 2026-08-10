@@ -21,6 +21,7 @@ export type IconName =
   | 'chevronDouble'
   | 'deal'
   | 'filter'
+  | 'scan'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -518,6 +519,95 @@ function renderGlyph(
           <View style={{ width: box * 0.18, height: stroke, backgroundColor: tint }} />
         </View>
       )
+    case 'scan': {
+      // A viewfinder: 4 independent corner brackets — the universal
+      // "point a camera here" symbol, distinct from any other glyph.
+      const bracket = box * 0.28
+      return (
+        <View style={{ width: box * 0.8, height: box * 0.8 }}>
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: bracket,
+              height: stroke,
+              backgroundColor: tint
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: stroke,
+              height: bracket,
+              backgroundColor: tint
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: bracket,
+              height: stroke,
+              backgroundColor: tint
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: stroke,
+              height: bracket,
+              backgroundColor: tint
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              width: bracket,
+              height: stroke,
+              backgroundColor: tint
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              width: stroke,
+              height: bracket,
+              backgroundColor: tint
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: bracket,
+              height: stroke,
+              backgroundColor: tint
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: stroke,
+              height: bracket,
+              backgroundColor: tint
+            }}
+          />
+        </View>
+      )
+    }
   }
 }
 

@@ -93,7 +93,7 @@ describe('PropertyDetailScreen', () => {
       withTheme(<PropertyDetailScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    expect(await findByText('بارگذاری پرونده با مشکل مواجه شد')).toBeTruthy()
+    expect(await findByText('بارگذاری فایل با مشکل مواجه شد')).toBeTruthy()
     fireEvent.press(await findByText('تلاش مجدد'))
     expect(refetch).toHaveBeenCalledTimes(1)
   })
@@ -114,7 +114,7 @@ describe('PropertyDetailScreen', () => {
     fireEvent.press(await findByText('ویرایش'))
     expect(await findByText('ذخیره')).toBeTruthy()
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('عنوان پرونده'), 'عنوان جدید'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('عنوان فایل'), 'عنوان جدید'))
     await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
@@ -139,7 +139,7 @@ describe('PropertyDetailScreen', () => {
       withTheme(<PropertyDetailScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByText('حذف پرونده'))
+    fireEvent.press(await findByText('حذف فایل'))
     fireEvent.press(await findByText('حذف'))
 
     await waitFor(() => expect(mockDeleteProperty).toHaveBeenCalledWith('prop-1'))

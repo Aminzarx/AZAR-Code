@@ -107,7 +107,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
   const activity: DashboardActivity[] = [
     ...recentProperties.slice(0, RECENT_ITEMS_PER_SOURCE).map((property) => ({
       id: `property-${property.id}`,
-      title: `پرونده ملکی جدید: ${property.title}`,
+      title: `فایل ملکی جدید: ${property.title}`,
       description: `${property.city} • ${property.address}`,
       timestamp: formatDate(property.createdAt),
       createdAt: property.createdAt
@@ -133,7 +133,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
 
   return {
     stats: [
-      { id: 'properties', label: 'پرونده‌های ملکی', value: String(propertyCount) },
+      { id: 'properties', label: 'فایل‌های ملکی', value: String(propertyCount) },
       { id: 'applicants', label: 'متقاضیان', value: String(applicantCount) },
       { id: 'deals', label: 'پیگیری‌های فعال', value: String(activeDealCount) },
       { id: 'contracts', label: 'قراردادهای فعال', value: String(activeContractCount) }

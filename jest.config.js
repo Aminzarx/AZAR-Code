@@ -12,7 +12,8 @@ module.exports = {
     '^@op-engineering/op-sqlite$':
       '<rootDir>/node_modules/@op-engineering/op-sqlite/node/dist/index.js',
     '^react-native-quick-crypto$': '<rootDir>/testutils/reactNativeQuickCryptoNodeShim.js',
-    '^react-native-keychain$': '<rootDir>/testutils/reactNativeKeychainNodeShim.js'
+    '^react-native-keychain$': '<rootDir>/testutils/reactNativeKeychainNodeShim.js',
+    '^react-native-camera-kit$': '<rootDir>/testutils/reactNativeCameraKitShim.js'
   },
   setupFiles: ['react-native-gesture-handler/jestSetup'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

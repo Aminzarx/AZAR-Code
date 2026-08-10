@@ -114,7 +114,7 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="فیلتر پرونده‌ها"
+            accessibilityLabel="فیلتر فایل‌ها"
             onPress={openFilterSheet}
             style={[styles.filterButton, hasActiveFilters && styles.filterButtonActive]}
           >
@@ -133,7 +133,7 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
         ) : error ? (
           <View style={styles.centeredSection}>
             <ErrorState
-              title="بارگذاری پرونده‌ها با مشکل مواجه شد"
+              title="بارگذاری فایل‌ها با مشکل مواجه شد"
               description={error.message}
               retryLabel="تلاش مجدد"
               onRetry={refetch}
@@ -142,16 +142,16 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
         ) : properties && properties.length === 0 ? (
           <View style={styles.centeredSection}>
             <EmptyState
-              title="هنوز پرونده‌ای ثبت نشده"
-              description="با افزودن اولین پرونده ملکی، اینجا نمایش داده می‌شود."
-              actionLabel="افزودن پرونده ملکی"
+              title="هنوز فایلی ثبت نشده"
+              description="با افزودن اولین فایل ملکی، اینجا نمایش داده می‌شود."
+              actionLabel="افزودن فایل ملکی"
               onAction={() => navigation.navigate('CreateProperty')}
             />
           </View>
         ) : filteredProperties && filteredProperties.length === 0 ? (
           <View style={styles.centeredSection}>
             <EmptyState
-              title="پرونده‌ای با این فیلتر پیدا نشد"
+              title="فایلی با این فیلتر پیدا نشد"
               description="فیلترها را تغییر دهید یا پاک کنید."
               actionLabel="پاک کردن فیلتر"
               onAction={clearFilters}
@@ -175,7 +175,7 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
 
       <FilterSheet
         visible={isFilterVisible}
-        title="فیلتر پرونده‌های ملکی"
+        title="فیلتر فایل‌های ملکی"
         hasActiveFilters={statusFilter !== null || transactionFilter !== null}
         onApply={applyFilters}
         onClear={clearFilters}

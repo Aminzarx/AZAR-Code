@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Clipboard, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
@@ -60,12 +61,15 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="تنظیمات">
         <Text style={[theme.typography('headlineLgMobile'), styles.title]}>تنظیمات</Text>
 
-        <Card variant="detail" style={styles.card}>
+        {/* design-system.md §0.2's card-stack ban — one Card, sectioned by
+            hairlines, instead of a separate Card per field (the pattern
+            already established in ContractDetailScreen). */}
+        <Card variant="detail">
           <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>شماره موبایل</Text>
           <Text style={[theme.typography('titleMd'), styles.value]}>{phoneNumber ?? '-'}</Text>
-        </Card>
 
-        <Card variant="detail" style={styles.card}>
+          <View style={styles.divider} />
+
           <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>کد معرف شما</Text>
           <View style={styles.codeRow}>
             <Text
@@ -89,9 +93,25 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
               ? 'کد معرف کپی شد.'
               : 'این کد را برای دعوت افراد جدید به آزار به اشتراک بگذارید.'}
           </Text>
-        </Card>
 
-        <Card variant="detail" style={styles.card}>
+          {session?.referralCode ? (
+            <View style={styles.qrSection}>
+              <View style={styles.qrFrame}>
+                <QRCode
+                  value={session.referralCode}
+                  size={140}
+                  color={theme.colors.primary}
+                  backgroundColor={theme.colors.surfaceContainerLowest}
+                />
+              </View>
+              <Text style={[theme.typography('labelMd'), styles.qrCode]}>
+                {session.referralCode}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.divider} />
+
           <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>وضعیت نشست</Text>
           <View style={styles.statusRow}>
             <View style={styles.statusDot} />
@@ -133,21 +153,25 @@ function createStyles(theme: Theme) {
       color: theme.colors.primary,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    card: {
-      gap: theme.spacing.space2
-    },
     cardLabel: {
       color: theme.colors.onSurfaceVariant,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     value: {
       color: theme.colors.onSurface,
+      marginTop: theme.spacing.space1,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.colors.outlineVariant,
+      marginVertical: theme.spacing.space4
     },
     codeRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      marginTop: theme.spacing.space1
     },
     code: {
       color: theme.colors.primary,
@@ -161,12 +185,30 @@ function createStyles(theme: Theme) {
     },
     hint: {
       color: theme.colors.onSurfaceVariant,
+      marginTop: theme.spacing.space1,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    qrSection: {
+      alignItems: 'center',
+      marginTop: theme.spacing.space4,
+      gap: theme.spacing.space2
+    },
+    qrFrame: {
+      padding: theme.spacing.space3,
+      borderRadius: theme.radius.large,
+      borderWidth: 1,
+      borderColor: theme.colors.outlineVariant,
+      backgroundColor: theme.colors.surfaceContainerLowest
+    },
+    qrCode: {
+      color: theme.colors.onSurfaceVariant,
+      letterSpacing: 2
     },
     statusRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space2
+      gap: theme.spacing.space2,
+      marginTop: theme.spacing.space1
     },
     statusDot: {
       width: 8,

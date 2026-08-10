@@ -25,7 +25,7 @@ export function PropertyForm({ values, errors, onChange }: Props): React.JSX.Ele
   return (
     <View style={styles.form}>
       <TextInput
-        label="عنوان پرونده"
+        label="عنوان فایل"
         required
         value={values.title}
         onChangeText={(value) => onChange('title', value)}

@@ -40,7 +40,7 @@ describe('fetchDashboardData', () => {
     const result = await fetchDashboardData(USER_ID)
 
     expect(result.stats).toEqual([
-      { id: 'properties', label: 'پرونده‌های ملکی', value: '0' },
+      { id: 'properties', label: 'فایل‌های ملکی', value: '0' },
       { id: 'applicants', label: 'متقاضیان', value: '0' },
       { id: 'deals', label: 'پیگیری‌های فعال', value: '0' },
       { id: 'contracts', label: 'قراردادهای فعال', value: '0' }
@@ -111,7 +111,7 @@ describe('fetchDashboardData', () => {
     const result = await fetchDashboardData(USER_ID)
 
     expect(result.stats).toEqual([
-      { id: 'properties', label: 'پرونده‌های ملکی', value: '1' },
+      { id: 'properties', label: 'فایل‌های ملکی', value: '1' },
       { id: 'applicants', label: 'متقاضیان', value: '1' },
       { id: 'deals', label: 'پیگیری‌های فعال', value: '1' },
       { id: 'contracts', label: 'قراردادهای فعال', value: '0' }
@@ -274,7 +274,7 @@ describe('fetchDashboardData', () => {
       'property-prop-1'
     ])
     expect(result.recentActivity.find((item) => item.id === 'property-prop-1')?.title).toBe(
-      'پرونده ملکی جدید: آپارتمان دو خوابه'
+      'فایل ملکی جدید: آپارتمان دو خوابه'
     )
     expect(result.recentActivity.find((item) => item.id === 'applicant-app-1')?.title).toBe(
       'متقاضی جدید: علی رضایی'

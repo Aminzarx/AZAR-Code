@@ -55,7 +55,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       if (caughtError instanceof PropertyValidationError) {
         setErrors(caughtError.fieldErrors)
       } else {
-        setSubmitError('ثبت پرونده با مشکل مواجه شد. دوباره تلاش کنید.')
+        setSubmitError('ثبت فایل با مشکل مواجه شد. دوباره تلاش کنید.')
       }
     } finally {
       setIsSubmitting(false)
@@ -64,7 +64,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <FormScreenContainer
-      headerTitle="افزودن پرونده ملکی"
+      headerTitle="افزودن فایل ملکی"
       onSave={handleSubmit}
       isSaving={isSubmitting}
     >
