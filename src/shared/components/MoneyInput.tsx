@@ -80,23 +80,31 @@ export function MoneyInput({
         disabled={disabled}
       />
       {!disabled && quickZeroCounts.length > 0 ? (
-        <View style={styles.chipRow}>
-          {quickZeroCounts.map((count) => {
-            const unitLabel = ZERO_LABELS[count]
-            const chipText = unitLabel ? `+ ${unitLabel}` : `+${count} صفر`
-            return (
-              <Pressable
-                key={count}
-                accessibilityRole="button"
-                accessibilityLabel={`افزودن ${count} صفر${unitLabel ? ` (${unitLabel})` : ''}`}
-                onPress={() => handleAddZeros(count)}
-                disabled={!value}
-                style={[styles.chip, !value && styles.chipDisabled]}
-              >
-                <Text style={[theme.typography('labelSm'), styles.chipLabel]}>{chipText}</Text>
-              </Pressable>
-            )
-          })}
+        <View style={styles.chipGroup}>
+          <Text style={[theme.typography('labelSm'), styles.chipCaption]}>
+            برای تکمیل سریع رقم، واحد را انتخاب کنید
+          </Text>
+          <View style={styles.chipRow}>
+            {quickZeroCounts.map((count) => {
+              const unitLabel = ZERO_LABELS[count]
+              // "×" (multiply), never "+" — these chips scale the digits
+              // already typed (e.g. "500" -> "500000000"), they don't add
+              // a flat amount, and a "+" prefix reads as addition.
+              const chipText = unitLabel ? `× ${unitLabel}` : `×۱۰^${count}`
+              return (
+                <Pressable
+                  key={count}
+                  accessibilityRole="button"
+                  accessibilityLabel={`ضرب عدد وارد شده در ${unitLabel ?? `ده به توان ${count}`}`}
+                  onPress={() => handleAddZeros(count)}
+                  disabled={!value}
+                  style={[styles.chip, !value && styles.chipDisabled]}
+                >
+                  <Text style={[theme.typography('labelSm'), styles.chipLabel]}>{chipText}</Text>
+                </Pressable>
+              )
+            })}
+          </View>
         </View>
       ) : null}
     </View>
@@ -108,6 +116,12 @@ function createStyles(theme: Theme) {
     group: {
       gap: theme.spacing.space2
     },
+    chipGroup: {
+      gap: theme.spacing.space1
+    },
+    chipCaption: {
+      color: theme.colors.onSurfaceVariant
+    },
     chipRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -117,14 +131,15 @@ function createStyles(theme: Theme) {
       borderRadius: theme.radius.full,
       paddingVertical: theme.spacing.space1,
       paddingHorizontal: theme.spacing.space3,
+      backgroundColor: theme.colors.secondaryContainer,
       borderWidth: 1,
-      borderColor: theme.colors.outlineVariant
+      borderColor: theme.colors.secondaryContainer
     },
     chipDisabled: {
       opacity: 0.5
     },
     chipLabel: {
-      color: theme.colors.primary
+      color: theme.colors.onSecondaryContainer
     }
   })
 }

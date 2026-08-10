@@ -37,22 +37,24 @@ export function PropertyForm({
         placeholder="مثلاً آپارتمان دو خوابه ولیعصر"
         errorMessage={errors.title}
       />
-      <AutocompleteInput
-        label="نوع ملک"
-        value={values.propertyType}
-        onChangeValue={(value) => onChange('propertyType', value)}
-        suggestions={PROPERTY_TYPES}
-        placeholder="آپارتمان، ویلا، زمین..."
-        errorMessage={errors.propertyType}
-      />
-      <AutocompleteInput
-        label="نوع معامله"
-        value={values.transactionType}
-        onChangeValue={(value) => onChange('transactionType', value)}
-        suggestions={PROPERTY_TRANSACTION_TYPES}
-        placeholder="فروش، رهن و اجاره..."
-        errorMessage={errors.transactionType}
-      />
+      <FormRow>
+        <AutocompleteInput
+          label="نوع ملک"
+          value={values.propertyType}
+          onChangeValue={(value) => onChange('propertyType', value)}
+          suggestions={PROPERTY_TYPES}
+          placeholder="آپارتمان، ویلا..."
+          errorMessage={errors.propertyType}
+        />
+        <AutocompleteInput
+          label="نوع معامله"
+          value={values.transactionType}
+          onChangeValue={(value) => onChange('transactionType', value)}
+          suggestions={PROPERTY_TRANSACTION_TYPES}
+          placeholder="فروش، رهن..."
+          errorMessage={errors.transactionType}
+        />
+      </FormRow>
       <AutocompleteInput
         label="شهر"
         required

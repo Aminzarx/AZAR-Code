@@ -57,7 +57,7 @@ export function SuggestedPropertiesSection({
                   {match.property.title}
                 </Text>
                 <Text style={[theme.typography('bodySm'), styles.subtitle]}>
-                  {match.property.city} — {match.property.address}
+                  {match.property.city} • {match.property.address}
                 </Text>
                 <MatchScoreBadge score={match.score} />
                 <Text style={[theme.typography('labelSm'), styles.reason]}>

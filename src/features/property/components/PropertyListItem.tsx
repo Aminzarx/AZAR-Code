@@ -26,7 +26,7 @@ export function PropertyListItem({ property, onPress }: Props): React.JSX.Elemen
       <Card>
         <Text style={[theme.typography('titleSm'), styles.title]}>{property.title}</Text>
         <Text style={[theme.typography('bodySm'), styles.subtitle]}>
-          {property.city} — {property.address}
+          {property.city} • {property.address}
         </Text>
         <View style={styles.metaRow}>
           {priceLabel ? (

@@ -57,7 +57,7 @@ export function SuggestedApplicantsSection({
                   {match.applicant.fullName}
                 </Text>
                 <Text style={[theme.typography('bodySm'), styles.subtitle]}>
-                  {match.applicant.city} — {match.applicant.phoneNumber}
+                  {match.applicant.city} • {match.applicant.phoneNumber}
                 </Text>
                 <MatchScoreBadge score={match.score} />
                 <Text style={[theme.typography('labelSm'), styles.reason]}>

@@ -47,6 +47,8 @@ export function ApplicantListScreen({ navigation }: Props): React.JSX.Element {
             <EmptyState
               title="هنوز متقاضی‌ای ثبت نشده"
               description="با افزودن اولین متقاضی، اینجا نمایش داده می‌شود."
+              actionLabel="افزودن متقاضی"
+              onAction={() => navigation.navigate('CreateApplicant')}
             />
           </View>
         ) : (

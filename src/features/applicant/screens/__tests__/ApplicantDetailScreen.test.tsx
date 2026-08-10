@@ -1,5 +1,4 @@
 import React from 'react'
-import { Alert } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { ApplicantDetailScreen } from '../ApplicantDetailScreen'
@@ -130,20 +129,14 @@ describe('ApplicantDetailScreen', () => {
       refetch: jest.fn()
     })
 
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
-      const destructive = buttons?.find((button) => button.style === 'destructive')
-      destructive?.onPress?.()
-    })
-
     const { findByText } = await render(
       withTheme(<ApplicantDetailScreen navigation={navigationProp} route={routeProp} />)
     )
 
     fireEvent.press(await findByText('حذف متقاضی'))
+    fireEvent.press(await findByText('حذف'))
 
     await waitFor(() => expect(mockDeleteApplicant).toHaveBeenCalledWith('app-1'))
     await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1))
-
-    alertSpy.mockRestore()
   })
 })

@@ -25,7 +25,7 @@ describe('MoneyInput', () => {
     const { getByLabelText } = await render(
       withTheme(<MoneyInput label="قیمت" value="5" onChangeValue={onChangeValue} />)
     )
-    fireEvent.press(getByLabelText('افزودن 6 صفر (میلیون)'))
+    fireEvent.press(getByLabelText('ضرب عدد وارد شده در میلیون'))
     expect(onChangeValue).toHaveBeenCalledWith('5000000')
   })
 
@@ -34,7 +34,7 @@ describe('MoneyInput', () => {
     const { getByLabelText } = await render(
       withTheme(<MoneyInput label="قیمت" value="5" onChangeValue={onChangeValue} />)
     )
-    fireEvent.press(getByLabelText('افزودن 4 صفر (ده هزار)'))
+    fireEvent.press(getByLabelText('ضرب عدد وارد شده در ده هزار'))
     await waitFor(() => expect(onChangeValue).toHaveBeenCalledWith('50000'))
   })
 
@@ -43,7 +43,7 @@ describe('MoneyInput', () => {
     const { getByLabelText } = await render(
       withTheme(<MoneyInput label="قیمت" value="5" onChangeValue={onChangeValue} />)
     )
-    fireEvent.press(getByLabelText('افزودن 5 صفر (صد هزار)'))
+    fireEvent.press(getByLabelText('ضرب عدد وارد شده در صد هزار'))
     await waitFor(() => expect(onChangeValue).toHaveBeenCalledWith('500000'))
   })
 
@@ -52,7 +52,7 @@ describe('MoneyInput', () => {
     const { getByLabelText } = await render(
       withTheme(<MoneyInput label="قیمت" value="" onChangeValue={onChangeValue} />)
     )
-    fireEvent.press(getByLabelText('افزودن 3 صفر (هزار)'))
+    fireEvent.press(getByLabelText('ضرب عدد وارد شده در هزار'))
     expect(onChangeValue).not.toHaveBeenCalled()
   })
 

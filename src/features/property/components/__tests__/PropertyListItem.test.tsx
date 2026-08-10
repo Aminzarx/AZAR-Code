@@ -28,7 +28,7 @@ describe('PropertyListItem', () => {
     )
 
     expect(getByText('آپارتمان دو خوابه')).toBeTruthy()
-    expect(getByText('تهران — خیابان ولیعصر')).toBeTruthy()
+    expect(getByText('تهران • خیابان ولیعصر')).toBeTruthy()
   })
 
   it('calls onPress when tapped', async () => {

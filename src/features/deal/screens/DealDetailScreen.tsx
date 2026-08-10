@@ -88,7 +88,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
               </Text>
               {deal.property ? (
                 <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                  {deal.property.city} — {deal.property.address}
+                  {deal.property.city} • {deal.property.address}
                 </Text>
               ) : null}
             </Card>
@@ -100,7 +100,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
               </Text>
               {deal.applicant ? (
                 <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                  {deal.applicant.city} — {deal.applicant.phoneNumber}
+                  {deal.applicant.city} • {deal.applicant.phoneNumber}
                 </Text>
               ) : null}
             </Card>

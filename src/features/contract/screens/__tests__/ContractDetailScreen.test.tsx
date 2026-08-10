@@ -1,5 +1,4 @@
 import React from 'react'
-import { Alert } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { ContractDetailScreen } from '../ContractDetailScreen'
@@ -186,20 +185,14 @@ describe('ContractDetailScreen', () => {
       refetch: jest.fn()
     })
 
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
-      const destructive = buttons?.find((button) => button.style === 'destructive')
-      destructive?.onPress?.()
-    })
-
     const { findByText } = await render(
       withTheme(<ContractDetailScreen navigation={navigationProp} route={routeProp} />)
     )
 
     fireEvent.press(await findByText('حذف قرارداد'))
+    fireEvent.press(await findByText('حذف'))
 
     await waitFor(() => expect(mockDeleteContract).toHaveBeenCalledWith('con-1'))
     await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1))
-
-    alertSpy.mockRestore()
   })
 })

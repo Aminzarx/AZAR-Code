@@ -65,8 +65,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   }
 
   return (
-    <FormScreenContainer>
-      <Text style={[theme.typography('titleMd'), styles.heading]}>افزودن متقاضی</Text>
+    <FormScreenContainer headerTitle="افزودن متقاضی" onSave={handleSubmit} isSaving={isSubmitting}>
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
@@ -84,9 +83,6 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    heading: {
-      color: theme.colors.onSurface
-    },
     submitError: {
       color: theme.colors.error
     }

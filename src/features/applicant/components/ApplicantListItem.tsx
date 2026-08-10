@@ -30,7 +30,7 @@ export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Elem
       <Card>
         <Text style={[theme.typography('titleSm'), styles.title]}>{applicant.fullName}</Text>
         <Text style={[theme.typography('bodySm'), styles.subtitle]}>
-          {applicant.city} — {applicant.phoneNumber}
+          {applicant.city} • {applicant.phoneNumber}
         </Text>
         <View style={styles.metaRow}>
           {budgetLabel ? (

@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.1.0)
+# AZAR Design System — "Minimal Luxury" (v2.2.0)
 
 ## 0. Positioning statement
 
@@ -43,22 +43,25 @@ radius, and elevation are unchanged from v2.0.0.
 
 ## 1. Color System
 
-Two neutral families (ink + warm parchment) plus two restrained accents,
-plus the usual semantic set (error/success/warning/info) kept close to
-their conventional hues so they still read correctly at a glance.
+v2.2.0 swaps the neutral family only, per explicit user direction: warm
+ivory/near-black-warm-ink neutrals → a **cool off-white-gray + charcoal-
+black** scale (`background #F6F6F7`, `primary #1E1E20`). The two brand
+accents (bronze `secondary`, emerald `tertiary`) and every semantic
+color are unchanged — this is a neutral-temperature correction, not
+another full reset.
 
 | Role | Light value | Usage |
 |---|---|---|
-| `primary` | `#1C1B19` (near-black ink) | Primary buttons, high-emphasis text, active nav state |
-| `onPrimary` | `#FAF8F5` | Text/icons on `primary` |
+| `primary` | `#1E1E20` (charcoal black) | Primary buttons, high-emphasis text, active nav state |
+| `onPrimary` | `#F6F6F7` | Text/icons on `primary` |
 | `secondary` | `#8A6D3B` (muted bronze/gold) | The one deliberate accent — brand marks, selected states, referral code, quick-action badges |
 | `onSecondary` | `#FFFFFF` | Text/icons on `secondary` |
 | `tertiary` | `#2F4F3E` (deep emerald) | A second, sparingly-used accent — kept visually distinct from `secondary` so two accents never compete on one screen |
 | `error` / `success` / `warning` / `info` | `#B3261E` / `#2F6B4F` / `#8A5A00` / `#3D5A73` | Conventional semantic hues — never repurposed as decoration |
-| `background` / `surface` | `#FAF8F5` (warm ivory) | Screen background |
-| `surfaceContainerLowest` → `surfaceContainerHighest` | `#FFFFFF` → `#E3DDD1` | Card/sheet/input backgrounds, ascending "how raised" |
-| `onSurface` / `onSurfaceVariant` | `#1C1B19` / `#57534A` | Primary / secondary text on surfaces |
-| `outline` / `outlineVariant` | `#8A8578` / `#D8D2C4` | Hairline borders, disabled/placeholder text |
+| `background` / `surface` | `#F6F6F7` (off-white gray) | Screen background |
+| `surfaceContainerLowest` → `surfaceContainerHighest` | `#FFFFFF` → `#DADADD` | Card/sheet/input backgrounds, ascending "how raised" |
+| `onSurface` / `onSurfaceVariant` | `#1E1E20` / `#57575B` | Primary / secondary text on surfaces |
+| `outline` / `outlineVariant` | `#8B8B90` / `#D1D1D4` | Hairline borders, disabled/placeholder text |
 
 **Rule**: `secondary` (the bronze accent) is used *deliberately and
 sparingly* — one accent moment per screen region, not on every icon. A
@@ -141,8 +144,8 @@ Rounder than v1.1.0 across the board — soft corners read calmer:
 
 Shadows are soft, low-opacity, and large-blur — a card should feel
 *lifted*, not *dropped a shadow on*. Shadow color is the ink primary
-(`#1C1B19`) rather than pure black, which keeps shadows from reading
-cold/harsh against the warm ivory background.
+(`#1E1E20`) rather than pure black, which keeps shadows from reading
+harsh against the off-white-gray background.
 
 - `level0`: flat, no shadow (inline/nested content).
 - `level1`: default card elevation — 5% opacity, 20px blur, 6px offset.
@@ -162,6 +165,18 @@ which glyph is used where. Default tint is `onSurface`; accent icons
 `on*Container` color from §1.
 
 Sizes: `xs`(16) `sm`(18) `md`(24, default) `lg`(32) `xl`(48).
+
+### 6.1 v2.2.0 — glyph audit
+
+Corner rounding on every glyph bumped by one step (e.g. 1→2, 2→3, 3→4)
+for a softer, rounder read, consistent with §4's rounder shape scale.
+Added `deal` — a flag-on-pole glyph for the Deal/پیگیری pipeline,
+replacing a reuse of `matching`'s crossed-chevron glyph for that
+purpose. `matching` is the Matching tab's own icon (property/applicant
+compatibility); using it a second time for an unrelated concept (the
+deal pipeline) made two different ideas share one glyph, which is
+exactly the "wrong icon" failure class — every concept gets its own
+glyph, glyphs are never reused across unrelated meanings.
 
 ## 7. Component Standards
 
@@ -200,7 +215,12 @@ pattern is reused) is a **fixed 2-column percentage grid**
 (`theme.component.statCardGrid`: `columnBasisPercent: '46%'` — not 50%,
 to leave headroom for `gap`, which React Native adds on top of
 percentage widths rather than subtracting from them — `gap: space3`),
-not a `minWidth` + `flex: 1` flex-wrap row. A
+not a `minWidth` + `flex: 1` flex-wrap row. Internally, a KPI card is a
+**horizontal** icon-badge + (value, label) layout with `space3` padding
+— not the vertical badge-above-number layout with full `card.paddingListItem`
+used by other list-item cards — because a KPI card's content is a single
+number and a short label, and the default list-item padding/stacking
+reads as excess empty space at that content size. A
 minWidth-threshold grid collapses to 1 column once content width drops
 below `columns × minWidth + gaps` — on this app's phone-only breakpoint
 set (§13) that threshold is crossed on ordinary devices, producing an
@@ -216,7 +236,15 @@ Track: `surfaceContainerLow`. Selected segment: `primaryContainer` fill +
 
 ### 7.5 Navigation
 Bottom tab bar: 5 items (Home, Files, Matching, Contracts, Profile),
-height `layout.bottomNavHeight` (80). Active state: `secondaryContainer`
+height `layout.bottomNavHeight` (80) **plus the device's bottom
+safe-area inset** (`useSafeAreaInsets().bottom`, added to both `height`
+and `paddingBottom`) — never a bare literal height. A fixed height with
+no inset silently overrides `@react-navigation/bottom-tabs`' own
+safe-area-aware sizing, which is exactly what let tab labels render
+behind a phone's gesture-navigation bar (reported on a Samsung A06,
+which has a tall gesture strip). Every fixed-position element anchored
+to a screen edge — bottom tab bar, any future bottom sheet/toolbar —
+follows the same rule. Active state: `secondaryContainer`
 fill (bronze-tinted, §1) + `onSecondaryContainer` icon/label, using the
 shared `Icon` component (§6) — never a bare label with no icon.
 **Selection color is always `secondaryContainer`/`onSecondaryContainer`
@@ -256,6 +284,22 @@ Same badge-first layout as §7.7 but on `errorContainer` with the `alert`
 glyph, plus an optional retry button. Reserved for operation-level
 failures (failed fetch, corrupted data) — inline field-validation errors
 use §7.2's error state instead, never this component.
+
+### 7.9 Confirmation Dialogs
+
+`ConfirmDialog` (shared component) replaces the OS-native `Alert.alert`
+for every in-app confirmation (logout, delete record) — a dimmed
+backdrop (`rgba(30,30,32,0.45)`, the ink primary tinted, tap to cancel)
+behind a centered "glass" card: a translucent surface
+(`rgba(255,255,255,0.86)`) with a soft light border standing in for a
+glass edge highlight, `radius.extraLarge`, and `elevation.level4`. This
+is deliberately not a real blurred backdrop — no native blur library is
+bundled, consistent with the zero-extra-native-dependency stance
+elsewhere in the app (§6) — the translucency plus soft shadow is the
+achievable "glass" read without one. Always paired buttons: `cancel`
+(secondary) + `confirm` (`primary` or `destructive` per the action).
+Reserved for confirmation/destructive-action prompts; not a general
+modal/sheet component.
 
 ## 8. Touch Targets & Accessibility
 

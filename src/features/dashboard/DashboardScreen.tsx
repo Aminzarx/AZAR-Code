@@ -36,7 +36,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
     {
       id: 'deals',
       label: 'مشاهده پیگیری‌ها',
-      icon: 'matching',
+      icon: 'deal',
       onPress: () => navigation.navigate('DealList')
     }
   ]

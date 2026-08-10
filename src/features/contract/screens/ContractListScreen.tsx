@@ -39,6 +39,8 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
             <EmptyState
               title="هنوز قراردادی ثبت نشده"
               description="قراردادها را از صفحه پیگیری ایجاد کنید."
+              actionLabel="مشاهده پیگیری‌ها"
+              onAction={() => navigation.navigate('DealList')}
             />
           </View>
         ) : (

@@ -1,5 +1,4 @@
 import React from 'react'
-import { Alert } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { ReminderDetailScreen } from '../ReminderDetailScreen'
@@ -145,20 +144,14 @@ describe('ReminderDetailScreen', () => {
       refetch: jest.fn()
     })
 
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
-      const destructive = buttons?.find((button) => button.style === 'destructive')
-      destructive?.onPress?.()
-    })
-
     const { findByText } = await render(
       withTheme(<ReminderDetailScreen navigation={navigationProp} route={routeProp} />)
     )
 
     fireEvent.press(await findByText('حذف یادآوری'))
+    fireEvent.press(await findByText('حذف'))
 
     await waitFor(() => expect(mockDeleteReminder).toHaveBeenCalledWith('rem-1'))
     await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1))
-
-    alertSpy.mockRestore()
   })
 })

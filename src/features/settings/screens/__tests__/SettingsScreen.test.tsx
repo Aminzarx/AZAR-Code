@@ -1,5 +1,5 @@
 import React from 'react'
-import { Alert, Clipboard } from 'react-native'
+import { Clipboard } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { SettingsScreen } from '../SettingsScreen'
@@ -38,7 +38,6 @@ describe('SettingsScreen', () => {
       createdAt: '',
       updatedAt: ''
     })
-    jest.spyOn(Alert, 'alert').mockImplementation(() => undefined)
     jest.spyOn(Clipboard, 'setString').mockImplementation(() => undefined)
   })
 
@@ -72,19 +71,18 @@ describe('SettingsScreen', () => {
   })
 
   it('asks for confirmation before logging out and does not log out on cancel', async () => {
-    const { findByText } = await render(
+    const { findByText, queryByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
     fireEvent.press(await findByText('خروج از حساب'))
+    expect(
+      await findByText('آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟')
+    ).toBeTruthy()
 
-    expect(Alert.alert).toHaveBeenCalledWith(
-      'خروج از حساب',
-      'آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟',
-      expect.arrayContaining([
-        expect.objectContaining({ text: 'انصراف' }),
-        expect.objectContaining({ text: 'خروج' })
-      ])
+    fireEvent.press(await findByText('انصراف'))
+    await waitFor(() =>
+      expect(queryByText('آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟')).toBeNull()
     )
     expect(mockLogout).not.toHaveBeenCalled()
   })
@@ -95,11 +93,7 @@ describe('SettingsScreen', () => {
     )
 
     fireEvent.press(await findByText('خروج از حساب'))
-
-    const alertMock = Alert.alert as jest.Mock
-    const buttons = alertMock.mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>
-    const logoutButton = buttons.find((button) => button.text === 'خروج')
-    logoutButton?.onPress?.()
+    fireEvent.press(await findByText('خروج'))
 
     await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1))
   })

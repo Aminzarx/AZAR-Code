@@ -39,6 +39,8 @@ export function DealListScreen({ navigation }: Props): React.JSX.Element {
             <EmptyState
               title="هنوز پیگیری‌ای ثبت نشده"
               description="با ایجاد پیگیری از پیشنهادهای تطابق، اینجا نمایش داده می‌شود."
+              actionLabel="رفتن به تطبیق"
+              onAction={() => navigation.navigate('Matching')}
             />
           </View>
         ) : (

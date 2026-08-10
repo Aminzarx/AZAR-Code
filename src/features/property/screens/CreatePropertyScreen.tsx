@@ -63,8 +63,11 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   }
 
   return (
-    <FormScreenContainer>
-      <Text style={[theme.typography('titleMd'), styles.heading]}>افزودن پرونده ملکی</Text>
+    <FormScreenContainer
+      headerTitle="افزودن پرونده ملکی"
+      onSave={handleSubmit}
+      isSaving={isSubmitting}
+    >
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
@@ -82,9 +85,6 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    heading: {
-      color: theme.colors.onSurface
-    },
     submitError: {
       color: theme.colors.error
     }

@@ -1,9 +1,16 @@
 import React, { useState } from 'react'
-import { Alert, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  ErrorState,
+  FormScreenContainer,
+  LoadingIndicator
+} from '@shared/components'
 import { useReminderDetail } from '../hooks/useReminderDetail'
 import { useReminderService } from '../hooks/useReminderService'
 import { ReminderForm } from '../components/ReminderForm'
@@ -30,6 +37,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
 
   function startEditing(): void {
     if (!reminder) {
@@ -82,16 +90,6 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
     refetch()
   }
 
-  function confirmDelete(): void {
-    if (!reminder) {
-      return
-    }
-    Alert.alert('حذف یادآوری', 'این یادآوری برای همیشه حذف می‌شود. ادامه می‌دهید؟', [
-      { text: 'انصراف', style: 'cancel' },
-      { text: 'حذف', style: 'destructive', onPress: handleDelete }
-    ])
-  }
-
   async function handleDelete(): Promise<void> {
     if (!service || !reminder) {
       return
@@ -101,13 +99,18 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
       await service.deleteReminder(reminder.id)
       navigation.goBack()
     } catch {
+      setIsDeleteConfirmVisible(false)
       setSubmitError('حذف یادآوری با مشکل مواجه شد. دوباره تلاش کنید.')
       setIsDeleting(false)
     }
   }
 
   return (
-    <FormScreenContainer>
+    <FormScreenContainer
+      headerTitle={isEditing ? 'ویرایش یادآوری' : undefined}
+      onSave={isEditing ? handleSubmit : undefined}
+      isSaving={isSubmitting}
+    >
       {isLoading ? (
         <View style={styles.centeredSection}>
           <LoadingIndicator size="large" />
@@ -143,7 +146,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
         <Card variant="detail">
           <Text style={[theme.typography('headlineMd'), styles.title]}>{reminder.title}</Text>
           <Text style={[theme.typography('bodyMd'), styles.value]}>
-            {new Date(reminder.remindAt).toLocaleDateString('fa-IR')} —{' '}
+            {new Date(reminder.remindAt).toLocaleDateString('fa-IR')} •{' '}
             {new Date(reminder.remindAt).toLocaleTimeString('fa-IR', {
               hour: '2-digit',
               minute: '2-digit'
@@ -173,13 +176,24 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
           />
           <Button
             label="حذف یادآوری"
-            onPress={confirmDelete}
+            onPress={() => setIsDeleteConfirmVisible(true)}
             variant="destructive"
             loading={isDeleting}
             style={styles.actionButton}
           />
         </Card>
       )}
+
+      <ConfirmDialog
+        visible={isDeleteConfirmVisible}
+        title="حذف یادآوری"
+        description="این یادآوری برای همیشه حذف می‌شود. ادامه می‌دهید؟"
+        confirmLabel="حذف"
+        destructive
+        isConfirming={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteConfirmVisible(false)}
+      />
     </FormScreenContainer>
   )
 }

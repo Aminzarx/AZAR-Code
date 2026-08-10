@@ -12,7 +12,7 @@ type Props = {
 
 function formatRemindAt(remindAt: string): string {
   const date = new Date(remindAt)
-  return `${date.toLocaleDateString('fa-IR')} — ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
+  return `${date.toLocaleDateString('fa-IR')} • ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
 }
 
 export function ReminderListItem({ reminder, onPress, onToggleDone }: Props): React.JSX.Element {

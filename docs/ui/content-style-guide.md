@@ -271,6 +271,20 @@ Copy must never imply otherwise, even accidentally through word choice like
   Latin.
 - Colon «:» is used sparingly, mainly to introduce a short list or a
   labeled value ("وضعیت: فعال"), not as a dramatic pause.
+- **No em dash («—»)** anywhere in Persian UI copy — it's a Latin/AI
+  writing habit, not a Persian typographic convention, and reads as
+  machine-generated. Use the punctuation that actually matches what the
+  dash was doing:
+  - Two related facts shown as one line (city + address, city + phone,
+    date + time, name + status): a middle dot **«•»** — e.g.
+    "تهران • خیابان ولیعصر". This is what `PropertyListItem`,
+    `ApplicantListItem`, `DealDetailScreen`, `ContractDetailScreen`,
+    the matching suggestion cards, and the dashboard's recent-activity/
+    reminder rows use.
+  - A missing/unset value in a detail row: a plain hyphen **«-»** (not
+    an em dash, not the math minus «−») — e.g. `phoneNumber ?? '-'`.
+  - A genuine parenthetical aside in a full sentence: Persian comma «،»
+    or a full stop and a new sentence — never a dash.
 
 ### English
 

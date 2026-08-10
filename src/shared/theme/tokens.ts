@@ -21,20 +21,19 @@
  */
 
 /**
- * Warm ivory/charcoal neutrals + two restrained accents (a muted
- * bronze/gold for primary brand actions, a deep emerald for
- * success/positive-money states) instead of the old cool-gray,
- * near-black-on-everything Material palette. Semantic reds/ambers stay
- * close to their conventional hues — they're functional signals, not
- * brand expression, so tests/users read them correctly regardless of
- * theme.
+ * Cool off-white-gray + charcoal-black neutrals (v2.2.0) + two
+ * restrained accents (a muted bronze/gold for primary brand actions, a
+ * deep emerald for success/positive-money states). Semantic reds/ambers
+ * stay close to their conventional hues — they're functional signals,
+ * not brand expression, so tests/users read them correctly regardless
+ * of theme.
  */
 export const lightColors = {
-  primary: '#1C1B19',
-  onPrimary: '#FAF8F5',
-  primaryContainer: '#2B2A27',
-  onPrimaryContainer: '#C9C4BA',
-  inversePrimary: '#D8D2C4',
+  primary: '#1E1E20',
+  onPrimary: '#F6F6F7',
+  primaryContainer: '#2C2C2F',
+  onPrimaryContainer: '#C7C7CB',
+  inversePrimary: '#D1D1D4',
   secondary: '#8A6D3B',
   onSecondary: '#FFFFFF',
   secondaryContainer: '#F1E6D2',
@@ -59,23 +58,23 @@ export const lightColors = {
   onInfo: '#FFFFFF',
   infoContainer: '#E1E9EF',
   onInfoContainer: '#263B4C',
-  background: '#FAF8F5',
-  onBackground: '#1C1B19',
-  surface: '#FAF8F5',
-  surfaceDim: '#E7E3DC',
-  surfaceBright: '#FAF8F5',
+  background: '#F6F6F7',
+  onBackground: '#1E1E20',
+  surface: '#F6F6F7',
+  surfaceDim: '#E4E4E6',
+  surfaceBright: '#F6F6F7',
   surfaceContainerLowest: '#FFFFFF',
-  surfaceContainerLow: '#F5F2EC',
-  surfaceContainer: '#EFEBE3',
-  surfaceContainerHigh: '#E9E4DA',
-  surfaceContainerHighest: '#E3DDD1',
-  surfaceVariant: '#E3DDD1',
-  onSurface: '#1C1B19',
-  onSurfaceVariant: '#57534A',
-  inverseSurface: '#302E2A',
-  inverseOnSurface: '#F5F2EC',
-  outline: '#8A8578',
-  outlineVariant: '#D8D2C4'
+  surfaceContainerLow: '#F0F0F1',
+  surfaceContainer: '#EAEAEC',
+  surfaceContainerHigh: '#E3E3E5',
+  surfaceContainerHighest: '#DADADD',
+  surfaceVariant: '#DADADD',
+  onSurface: '#1E1E20',
+  onSurfaceVariant: '#57575B',
+  inverseSurface: '#2C2C2F',
+  inverseOnSurface: '#F0F0F1',
+  outline: '#8B8B90',
+  outlineVariant: '#D1D1D4'
 } as const
 
 export const spacing = {
@@ -112,21 +111,21 @@ export const radius = {
 export const elevation = {
   level0: { shadowOpacity: 0, elevation: 0 },
   level1: {
-    shadowColor: '#1C1B19',
+    shadowColor: '#1E1E20',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
     shadowRadius: 20,
     elevation: 1
   },
   level2: {
-    shadowColor: '#1C1B19',
+    shadowColor: '#1E1E20',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2
   },
   level4: {
-    shadowColor: '#1C1B19',
+    shadowColor: '#1E1E20',
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.18,
     shadowRadius: 40,

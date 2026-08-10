@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Alert, Clipboard, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Clipboard, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, Icon } from '@shared/components'
+import { Button, Card, ConfirmDialog, Icon } from '@shared/components'
 import { getDatabase } from '@infrastructure/database/connection'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
 
@@ -23,6 +23,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   const { session, logout } = useAuth()
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [isLogoutConfirmVisible, setIsLogoutConfirmVisible] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -49,11 +50,9 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
     setCopied(true)
   }
 
-  function confirmLogout(): void {
-    Alert.alert('خروج از حساب', 'آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟', [
-      { text: 'انصراف', style: 'cancel' },
-      { text: 'خروج', style: 'destructive', onPress: () => logout() }
-    ])
+  function handleConfirmLogout(): void {
+    setIsLogoutConfirmVisible(false)
+    logout()
   }
 
   return (
@@ -63,7 +62,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
 
         <Card variant="detail" style={styles.card}>
           <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>شماره موبایل</Text>
-          <Text style={[theme.typography('titleMd'), styles.value]}>{phoneNumber ?? '—'}</Text>
+          <Text style={[theme.typography('titleMd'), styles.value]}>{phoneNumber ?? '-'}</Text>
         </Card>
 
         <Card variant="detail" style={styles.card}>
@@ -100,8 +99,22 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
           </View>
         </Card>
 
-        <Button label="خروج از حساب" variant="secondary" onPress={confirmLogout} />
+        <Button
+          label="خروج از حساب"
+          variant="secondary"
+          onPress={() => setIsLogoutConfirmVisible(true)}
+        />
       </ScrollView>
+
+      <ConfirmDialog
+        visible={isLogoutConfirmVisible}
+        title="خروج از حساب"
+        description="آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟"
+        confirmLabel="خروج"
+        destructive
+        onConfirm={handleConfirmLogout}
+        onCancel={() => setIsLogoutConfirmVisible(false)}
+      />
     </SafeAreaView>
   )
 }

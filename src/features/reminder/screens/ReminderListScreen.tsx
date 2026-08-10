@@ -49,6 +49,8 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
             <EmptyState
               title="هنوز یادآوری‌ای ثبت نشده"
               description="یادآوری‌های خود را از داشبورد یا صفحه پیگیری اضافه کنید."
+              actionLabel="افزودن یادآوری"
+              onAction={() => navigation.navigate('CreateReminder', undefined)}
             />
           </View>
         ) : (

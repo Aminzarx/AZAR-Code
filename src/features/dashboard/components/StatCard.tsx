@@ -28,7 +28,7 @@ const STAT_VISUALS: Record<string, StatVisual> = {
     container: 'secondaryContainer',
     onContainer: 'onSecondaryContainer'
   },
-  deals: { icon: 'matching', container: 'warningContainer', onContainer: 'onWarningContainer' },
+  deals: { icon: 'deal', container: 'warningContainer', onContainer: 'onWarningContainer' },
   contracts: {
     icon: 'contract',
     container: 'tertiaryContainer',
@@ -49,18 +49,24 @@ export function StatCard({ stat, onPress }: Props): React.JSX.Element {
 
   const content = (
     <Card style={styles.card}>
-      <View accessible={!onPress} accessibilityLabel={onPress ? undefined : label}>
+      <View
+        style={styles.row}
+        accessible={!onPress}
+        accessibilityLabel={onPress ? undefined : label}
+      >
         <View style={styles.iconBadge}>
-          <Icon name={visual.icon} size="sm" color={theme.colors[visual.onContainer]} />
+          <Icon name={visual.icon} size="xs" color={theme.colors[visual.onContainer]} />
         </View>
-        <Text style={[theme.typography('headlineLgMobile'), styles.value]}>{stat.value}</Text>
-        <Text
-          style={[theme.typography('bodySm'), styles.label]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {stat.label}
-        </Text>
+        <View style={styles.textColumn}>
+          <Text style={[theme.typography('titleMd'), styles.value]}>{stat.value}</Text>
+          <Text
+            style={[theme.typography('labelSm'), styles.label]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {stat.label}
+          </Text>
+        </View>
       </View>
     </Card>
   )
@@ -88,23 +94,37 @@ function createStyles(theme: Theme, badgeColor: string) {
     // <=390px wide and produces an oversized, near-empty card).
     card: {
       flexBasis: theme.component.statCardGrid.columnBasisPercent,
-      flexGrow: 0
+      flexGrow: 0,
+      // Denser than the default listItem padding — a KPI card holds a
+      // single number + a short label, not paragraph content, so the
+      // generous default padding reads as wasted space at this scale.
+      padding: theme.spacing.space3
+    },
+    // Horizontal icon+text layout instead of a stacked badge-over-number
+    // layout — shorter overall card height for the same content.
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2
     },
     iconBadge: {
-      width: theme.iconSize.xl * 0.6,
-      height: theme.iconSize.xl * 0.6,
+      width: theme.iconSize.lg,
+      height: theme.iconSize.lg,
       borderRadius: theme.radius.full,
       backgroundColor: badgeColor,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: theme.spacing.space3
+      flexShrink: 0
+    },
+    textColumn: {
+      flexShrink: 1,
+      minWidth: 0
     },
     value: {
       color: theme.colors.onSurface
     },
     label: {
-      color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
+      color: theme.colors.onSurfaceVariant
     }
   })
 }

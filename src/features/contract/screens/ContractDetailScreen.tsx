@@ -1,9 +1,16 @@
 import React, { useState } from 'react'
-import { Alert, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  ErrorState,
+  FormScreenContainer,
+  LoadingIndicator
+} from '@shared/components'
 import { useContractDetail } from '../hooks/useContractDetail'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
@@ -36,6 +43,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
 
   function startEditing(): void {
     if (!contract) {
@@ -92,16 +100,6 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
     }
   }
 
-  function confirmDelete(): void {
-    if (!contract) {
-      return
-    }
-    Alert.alert('حذف قرارداد', 'این قرارداد برای همیشه حذف می‌شود. ادامه می‌دهید؟', [
-      { text: 'انصراف', style: 'cancel' },
-      { text: 'حذف', style: 'destructive', onPress: handleDelete }
-    ])
-  }
-
   async function handleDelete(): Promise<void> {
     if (!service || !contract) {
       return
@@ -111,13 +109,18 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
       await service.deleteContract(contract.id)
       navigation.goBack()
     } catch {
+      setIsDeleteConfirmVisible(false)
       setSubmitError('حذف قرارداد با مشکل مواجه شد. دوباره تلاش کنید.')
       setIsDeleting(false)
     }
   }
 
   return (
-    <FormScreenContainer>
+    <FormScreenContainer
+      headerTitle={isEditing ? 'ویرایش قرارداد' : undefined}
+      onSave={isEditing ? handleSubmit : undefined}
+      isSaving={isSubmitting}
+    >
       {isLoading ? (
         <View style={styles.centeredSection}>
           <LoadingIndicator size="large" />
@@ -144,7 +147,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
             </Text>
             {contract.property ? (
               <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                {contract.property.city} — {contract.property.address}
+                {contract.property.city} • {contract.property.address}
               </Text>
             ) : null}
           </Card>
@@ -156,7 +159,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
             </Text>
             {contract.applicant ? (
               <Text style={[theme.typography('bodySm'), styles.subValue]}>
-                {contract.applicant.city} — {contract.applicant.phoneNumber}
+                {contract.applicant.city} • {contract.applicant.phoneNumber}
               </Text>
             ) : null}
           </Card>
@@ -216,7 +219,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
               />
               <Button
                 label="حذف قرارداد"
-                onPress={confirmDelete}
+                onPress={() => setIsDeleteConfirmVisible(true)}
                 variant="destructive"
                 loading={isDeleting}
                 style={styles.actionButton}
@@ -229,6 +232,17 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
           ) : null}
         </>
       )}
+
+      <ConfirmDialog
+        visible={isDeleteConfirmVisible}
+        title="حذف قرارداد"
+        description="این قرارداد برای همیشه حذف می‌شود. ادامه می‌دهید؟"
+        confirmLabel="حذف"
+        destructive
+        isConfirming={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteConfirmVisible(false)}
+      />
     </FormScreenContainer>
   )
 }

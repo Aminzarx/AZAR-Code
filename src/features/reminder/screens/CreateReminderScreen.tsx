@@ -63,8 +63,7 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
   }
 
   return (
-    <FormScreenContainer>
-      <Text style={[theme.typography('titleMd'), styles.heading]}>افزودن یادآوری</Text>
+    <FormScreenContainer headerTitle="افزودن یادآوری" onSave={handleSubmit} isSaving={isSubmitting}>
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
@@ -82,9 +81,6 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    heading: {
-      color: theme.colors.onSurface
-    },
     submitError: {
       color: theme.colors.error
     }

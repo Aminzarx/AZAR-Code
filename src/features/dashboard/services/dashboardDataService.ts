@@ -21,7 +21,7 @@ function formatDate(isoTimestamp: string): string {
 
 function formatDateTime(isoTimestamp: string): string {
   const date = new Date(isoTimestamp)
-  return `${date.toLocaleDateString('fa-IR')} — ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
+  return `${date.toLocaleDateString('fa-IR')} • ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
 }
 
 /**
@@ -68,7 +68,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     ...recentProperties.slice(0, RECENT_ITEMS_PER_SOURCE).map((property) => ({
       id: `property-${property.id}`,
       title: `پرونده ملکی جدید: ${property.title}`,
-      description: `${property.city} — ${property.address}`,
+      description: `${property.city} • ${property.address}`,
       timestamp: formatDate(property.createdAt),
       createdAt: property.createdAt
     })),
@@ -82,7 +82,7 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
     ...recentDeals.slice(0, RECENT_ITEMS_PER_SOURCE).map((deal) => ({
       id: `deal-${deal.id}`,
       title: `پیگیری جدید: ${deal.property?.title ?? 'ملک نامشخص'}`,
-      description: `${deal.applicant?.fullName ?? 'متقاضی نامشخص'} — ${DEAL_STATUS_LABELS[deal.status]}`,
+      description: `${deal.applicant?.fullName ?? 'متقاضی نامشخص'} • ${DEAL_STATUS_LABELS[deal.status]}`,
       timestamp: formatDate(deal.createdAt),
       createdAt: deal.createdAt
     }))

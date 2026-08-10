@@ -64,8 +64,7 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   }
 
   return (
-    <FormScreenContainer>
-      <Text style={[theme.typography('titleMd'), styles.heading]}>افزودن قرارداد</Text>
+    <FormScreenContainer headerTitle="افزودن قرارداد" onSave={handleSubmit} isSaving={isSubmitting}>
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
@@ -83,9 +82,6 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    heading: {
-      color: theme.colors.onSurface
-    },
     submitError: {
       color: theme.colors.error
     }

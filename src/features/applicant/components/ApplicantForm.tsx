@@ -46,22 +46,24 @@ export function ApplicantForm({
         keyboardType="phone-pad"
         errorMessage={errors.phoneNumber}
       />
-      <AutocompleteInput
-        label="نوع معامله مدنظر"
-        value={values.preferredTransactionType}
-        onChangeValue={(value) => onChange('preferredTransactionType', value)}
-        suggestions={APPLICANT_TRANSACTION_TYPES}
-        placeholder="خرید، اجاره..."
-        errorMessage={errors.preferredTransactionType}
-      />
-      <AutocompleteInput
-        label="نوع ملک مدنظر"
-        value={values.preferredPropertyType}
-        onChangeValue={(value) => onChange('preferredPropertyType', value)}
-        suggestions={PROPERTY_TYPES}
-        placeholder="آپارتمان، ویلا..."
-        errorMessage={errors.preferredPropertyType}
-      />
+      <FormRow>
+        <AutocompleteInput
+          label="نوع معامله مدنظر"
+          value={values.preferredTransactionType}
+          onChangeValue={(value) => onChange('preferredTransactionType', value)}
+          suggestions={APPLICANT_TRANSACTION_TYPES}
+          placeholder="خرید، اجاره..."
+          errorMessage={errors.preferredTransactionType}
+        />
+        <AutocompleteInput
+          label="نوع ملک مدنظر"
+          value={values.preferredPropertyType}
+          onChangeValue={(value) => onChange('preferredPropertyType', value)}
+          suggestions={PROPERTY_TYPES}
+          placeholder="آپارتمان، ویلا..."
+          errorMessage={errors.preferredPropertyType}
+        />
+      </FormRow>
       <AutocompleteInput
         label="شهر"
         required

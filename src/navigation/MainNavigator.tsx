@@ -19,6 +19,7 @@ import { ContractListScreen } from '@features/contract/screens/ContractListScree
 import { CreateContractScreen } from '@features/contract/screens/CreateContractScreen'
 import { ContractDetailScreen } from '@features/contract/screens/ContractDetailScreen'
 import { SettingsScreen } from '@features/settings/screens/SettingsScreen'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
 
@@ -126,6 +127,13 @@ function makeTabIcon(name: IconName) {
  */
 export function MainNavigator(): React.JSX.Element {
   const theme = useTheme()
+  // §13.4 (safe area) — a literal `height` here would silently override
+  // @react-navigation/bottom-tabs' own safe-area-aware sizing, which is
+  // exactly what let tab labels render behind a phone's gesture-nav bar
+  // (reported on Samsung A06). Add the bottom inset explicitly instead
+  // of hardcoding a fixed height that assumes no gesture bar exists.
+  const insets = useSafeAreaInsets()
+  const tabBarHeight = theme.layout.bottomNavHeight + insets.bottom
 
   return (
     <Tab.Navigator
@@ -135,7 +143,9 @@ export function MainNavigator(): React.JSX.Element {
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarActiveBackgroundColor: theme.colors.secondaryContainer,
         tabBarStyle: {
-          height: theme.layout.bottomNavHeight,
+          height: tabBarHeight,
+          paddingBottom: insets.bottom,
+          paddingTop: theme.spacing.space2,
           backgroundColor: theme.colors.surfaceContainerLowest,
           borderTopColor: theme.colors.outlineVariant
         },

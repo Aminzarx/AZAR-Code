@@ -79,7 +79,11 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   }
 
   return (
-    <FormScreenContainer>
+    <FormScreenContainer
+      headerTitle={isEditing ? 'ویرایش پرونده ملکی' : undefined}
+      onSave={isEditing ? handleSubmit : undefined}
+      isSaving={isSubmitting}
+    >
       {isLoading ? (
         <View style={styles.centeredSection}>
           <LoadingIndicator size="large" />
@@ -116,7 +120,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
           <Text style={[theme.typography('headlineMd'), styles.title]}>{property.title}</Text>
           <View style={styles.detailRow}>
             <Text style={[theme.typography('bodyMd'), styles.value]}>
-              {property.city} — {property.address}
+              {property.city} • {property.address}
             </Text>
           </View>
           {property.propertyType ? (

@@ -1,9 +1,16 @@
 import React, { useState } from 'react'
-import { Alert, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  ErrorState,
+  FormScreenContainer,
+  LoadingIndicator
+} from '@shared/components'
 import { SuggestedPropertiesSection } from '@features/matching/components/SuggestedPropertiesSection'
 import { useApplicantDetail } from '../hooks/useApplicantDetail'
 import { useApplicantService } from '../hooks/useApplicantService'
@@ -41,6 +48,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
 
   function startEditing(): void {
     if (!applicant) {
@@ -81,16 +89,6 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
     }
   }
 
-  function confirmDelete(): void {
-    if (!applicant) {
-      return
-    }
-    Alert.alert('حذف متقاضی', 'این متقاضی برای همیشه حذف می‌شود. ادامه می‌دهید؟', [
-      { text: 'انصراف', style: 'cancel' },
-      { text: 'حذف', style: 'destructive', onPress: handleDelete }
-    ])
-  }
-
   async function handleDelete(): Promise<void> {
     if (!service || !applicant) {
       return
@@ -100,13 +98,18 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
       await service.deleteApplicant(applicant.id)
       navigation.goBack()
     } catch {
+      setIsDeleteConfirmVisible(false)
       setSubmitError('حذف متقاضی با مشکل مواجه شد. دوباره تلاش کنید.')
       setIsDeleting(false)
     }
   }
 
   return (
-    <FormScreenContainer>
+    <FormScreenContainer
+      headerTitle={isEditing ? 'ویرایش متقاضی' : undefined}
+      onSave={isEditing ? handleSubmit : undefined}
+      isSaving={isSubmitting}
+    >
       {isLoading ? (
         <View style={styles.centeredSection}>
           <LoadingIndicator size="large" />
@@ -167,7 +170,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
           {applicant.minBudget !== null || applicant.maxBudget !== null ? (
             <DetailRow
               label="بودجه"
-              value={`${applicant.minBudget?.toLocaleString('fa-IR') ?? '—'} تا ${applicant.maxBudget?.toLocaleString('fa-IR') ?? '—'} تومان`}
+              value={`${applicant.minBudget?.toLocaleString('fa-IR') ?? '-'} تا ${applicant.maxBudget?.toLocaleString('fa-IR') ?? '-'} تومان`}
               theme={theme}
               styles={styles}
             />
@@ -175,7 +178,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
           {applicant.minArea !== null || applicant.maxArea !== null ? (
             <DetailRow
               label="متراژ"
-              value={`${applicant.minArea ?? '—'} تا ${applicant.maxArea ?? '—'} متر`}
+              value={`${applicant.minArea ?? '-'} تا ${applicant.maxArea ?? '-'} متر`}
               theme={theme}
               styles={styles}
             />
@@ -207,7 +210,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
           />
           <Button
             label="حذف متقاضی"
-            onPress={confirmDelete}
+            onPress={() => setIsDeleteConfirmVisible(true)}
             variant="destructive"
             loading={isDeleting}
             style={styles.deleteButton}
@@ -222,6 +225,17 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
           onDealCreated={(dealId) => navigation.navigate('DealDetail', { dealId })}
         />
       ) : null}
+
+      <ConfirmDialog
+        visible={isDeleteConfirmVisible}
+        title="حذف متقاضی"
+        description="این متقاضی برای همیشه حذف می‌شود. ادامه می‌دهید؟"
+        confirmLabel="حذف"
+        destructive
+        isConfirming={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteConfirmVisible(false)}
+      />
     </FormScreenContainer>
   )
 }

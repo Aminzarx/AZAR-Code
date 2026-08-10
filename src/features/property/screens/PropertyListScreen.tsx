@@ -47,6 +47,8 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
             <EmptyState
               title="هنوز پرونده‌ای ثبت نشده"
               description="با افزودن اولین پرونده ملکی، اینجا نمایش داده می‌شود."
+              actionLabel="افزودن پرونده ملکی"
+              onAction={() => navigation.navigate('CreateProperty')}
             />
           </View>
         ) : (

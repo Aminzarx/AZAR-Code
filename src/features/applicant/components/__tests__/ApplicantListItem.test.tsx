@@ -32,7 +32,7 @@ describe('ApplicantListItem', () => {
     )
 
     expect(getByText('علی رضایی')).toBeTruthy()
-    expect(getByText('تهران — 09121234567')).toBeTruthy()
+    expect(getByText('تهران • 09121234567')).toBeTruthy()
   })
 
   it('calls onPress when tapped', async () => {

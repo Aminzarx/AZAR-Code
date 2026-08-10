@@ -19,6 +19,7 @@ export type IconName =
   | 'person'
   | 'calendar'
   | 'chevronDouble'
+  | 'deal'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -225,7 +226,7 @@ function renderGlyph(
             height: box * 0.58,
             borderColor: tint,
             borderWidth: stroke,
-            borderRadius: 2
+            borderRadius: 3
           }}
         >
           <View
@@ -301,7 +302,7 @@ function renderGlyph(
             height: box * 0.78,
             borderColor: tint,
             borderWidth: stroke,
-            borderRadius: 2,
+            borderRadius: 3,
             justifyContent: 'center',
             gap: box * 0.1
           }}
@@ -350,7 +351,7 @@ function renderGlyph(
               height: box * 0.5,
               borderColor: tint,
               borderWidth: stroke,
-              borderRadius: 2,
+              borderRadius: 3,
               position: 'absolute',
               top: box * 0.12,
               [isRTL ? 'left' : 'right']: box * 0.1
@@ -362,7 +363,7 @@ function renderGlyph(
               height: box * 0.5,
               borderColor: tint,
               borderWidth: stroke,
-              borderRadius: 2,
+              borderRadius: 3,
               position: 'absolute',
               bottom: box * 0.12,
               [isRTL ? 'right' : 'left']: box * 0.1
@@ -398,7 +399,7 @@ function renderGlyph(
             height: box * 0.55,
             borderColor: tint,
             borderWidth: stroke,
-            borderRadius: 2,
+            borderRadius: 3,
             justifyContent: 'center'
           }}
         >
@@ -436,12 +437,46 @@ function renderGlyph(
             height: box * 0.64,
             borderColor: tint,
             borderWidth: stroke,
-            borderRadius: 3,
+            borderRadius: 4,
             justifyContent: 'flex-start'
           }}
         >
-          <View style={{ height: box * 0.16, backgroundColor: tint, borderRadius: 1 }} />
+          <View style={{ height: box * 0.16, backgroundColor: tint, borderRadius: 2 }} />
         </View>
+      )
+    case 'deal':
+      // A flag on a pole — a pipeline/pursuit marker, deliberately
+      // distinct from 'matching' (the crossed-chevron compare glyph):
+      // 'matching' is the Matching tab's own icon, and reusing it for
+      // Deals conflated two different concepts under one glyph.
+      return (
+        <>
+          <View
+            style={{
+              width: Math.max(stroke, box * 0.07),
+              height: box * 0.68,
+              backgroundColor: tint,
+              borderRadius: stroke,
+              position: 'absolute',
+              bottom: box * 0.12,
+              [isRTL ? 'right' : 'left']: box * 0.22
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: box * 0.14,
+              [isRTL ? 'right' : 'left']: box * 0.22 + Math.max(stroke, box * 0.07),
+              width: box * 0.42,
+              height: box * 0.3,
+              backgroundColor: tint,
+              borderTopRightRadius: isRTL ? 2 : box * 0.14,
+              borderBottomRightRadius: isRTL ? 2 : box * 0.14,
+              borderTopLeftRadius: isRTL ? box * 0.14 : 2,
+              borderBottomLeftRadius: isRTL ? box * 0.14 : 2
+            }}
+          />
+        </>
       )
     case 'chevronDouble':
       return (
@@ -485,13 +520,13 @@ const styles = StyleSheet.create({
   },
   absoluteBar: {
     position: 'absolute',
-    borderRadius: 1
+    borderRadius: 2
   },
   chevron: {
-    borderRadius: 1
+    borderRadius: 2
   },
   check: {
     transform: [{ rotate: '-45deg' }],
-    borderRadius: 1
+    borderRadius: 2
   }
 })
