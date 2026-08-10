@@ -1,11 +1,12 @@
 import React from 'react'
-import { Clipboard } from 'react-native'
+import { Clipboard, Share } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { SettingsScreen } from '../SettingsScreen'
 
 const mockLogout = jest.fn()
 const mockFindById = jest.fn()
+const mockCreateBackupFile = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -24,6 +25,10 @@ jest.mock('@infrastructure/database/repositories/UserRepository', () => ({
   }))
 }))
 
+jest.mock('@infrastructure/backup/BackupService', () => ({
+  createBackupFile: (...args: unknown[]) => mockCreateBackupFile(...args)
+}))
+
 const navigationProp = {} as never
 const routeProp = { key: 'Settings', name: 'Settings' as const, params: undefined }
 
@@ -39,6 +44,8 @@ describe('SettingsScreen', () => {
       updatedAt: ''
     })
     jest.spyOn(Clipboard, 'setString').mockImplementation(() => undefined)
+    mockCreateBackupFile.mockReset()
+    jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction })
   })
 
   afterEach(() => {
@@ -96,5 +103,38 @@ describe('SettingsScreen', () => {
     fireEvent.press(await findByText('خروج'))
 
     await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1))
+  })
+
+  it('creates and shares a backup once a password is entered', async () => {
+    mockCreateBackupFile.mockResolvedValue('/mock/caches/azar-backup-20260810-120000.azarbackup')
+    const { findByText, findByLabelText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('تهیه نسخه پشتیبان'))
+    fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
+    fireEvent.press(await findByText('تهیه و اشتراک‌گذاری'))
+
+    await waitFor(() => expect(mockCreateBackupFile).toHaveBeenCalledWith({}, 'a strong password'))
+    await waitFor(() =>
+      expect(Share.share).toHaveBeenCalledWith({
+        url: 'file:///mock/caches/azar-backup-20260810-120000.azarbackup',
+        title: 'نسخه پشتیبان آزار'
+      })
+    )
+  })
+
+  it('shows an error and keeps the dialog open when backup creation fails', async () => {
+    mockCreateBackupFile.mockRejectedValue(new Error('disk full'))
+    const { findByText, findByLabelText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('تهیه نسخه پشتیبان'))
+    fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
+    fireEvent.press(await findByText('تهیه و اشتراک‌گذاری'))
+
+    expect(await findByText('تهیه نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.')).toBeTruthy()
+    expect(Share.share).not.toHaveBeenCalled()
   })
 })

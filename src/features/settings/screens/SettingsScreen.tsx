@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react'
-import { Clipboard, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Clipboard, Pressable, Share, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ConfirmDialog, Icon } from '@shared/components'
+import { Button, Card, ConfirmDialog, Icon, PasswordPromptDialog } from '@shared/components'
 import { getDatabase } from '@infrastructure/database/connection'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
+import { createBackupFile } from '@infrastructure/backup/BackupService'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>
 
@@ -25,6 +26,9 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [isLogoutConfirmVisible, setIsLogoutConfirmVisible] = useState(false)
+  const [isBackupDialogVisible, setIsBackupDialogVisible] = useState(false)
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false)
+  const [backupError, setBackupError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -54,6 +58,24 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   function handleConfirmLogout(): void {
     setIsLogoutConfirmVisible(false)
     logout()
+  }
+
+  async function handleCreateBackup(password: string): Promise<void> {
+    setBackupError(null)
+    setIsCreatingBackup(true)
+    try {
+      const db = await getDatabase()
+      const path = await createBackupFile(db, password)
+      setIsBackupDialogVisible(false)
+      // Writing the file only puts it in the app's private cache
+      // (BackupService.ts) — the OS share sheet is what actually lets the
+      // user pick a real destination (Drive, Files, another app) for it.
+      await Share.share({ url: `file://${path}`, title: 'نسخه پشتیبان آزار' })
+    } catch {
+      setBackupError('تهیه نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.')
+    } finally {
+      setIsCreatingBackup(false)
+    }
   }
 
   return (
@@ -116,6 +138,20 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
               <Text style={[theme.typography('titleMd'), styles.statusText]}>فعال</Text>
             </View>
           </View>
+
+          <View style={styles.divider} />
+
+          <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>پشتیبان‌گیری</Text>
+          <Text style={[theme.typography('bodySm'), styles.hint]}>
+            یک نسخه پشتیبان رمزگذاری‌شده از اطلاعات این دستگاه تهیه کنید تا در جای امنی نگه‌داری یا
+            به دستگاه دیگری منتقل کنید.
+          </Text>
+          <Button
+            label="تهیه نسخه پشتیبان"
+            variant="secondary"
+            onPress={() => setIsBackupDialogVisible(true)}
+            style={styles.backupButton}
+          />
         </Card>
 
         <Button
@@ -133,6 +169,20 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
         destructive
         onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutConfirmVisible(false)}
+      />
+
+      <PasswordPromptDialog
+        visible={isBackupDialogVisible}
+        title="تهیه نسخه پشتیبان"
+        description="یک رمز عبور برای این نسخه پشتیبان انتخاب کنید (حداقل ۸ نویسه). این رمز برای بازیابی اطلاعات لازم است — آن را جایی امن یادداشت کنید."
+        confirmLabel="تهیه و اشتراک‌گذاری"
+        isSubmitting={isCreatingBackup}
+        errorMessage={backupError ?? undefined}
+        onConfirm={handleCreateBackup}
+        onCancel={() => {
+          setBackupError(null)
+          setIsBackupDialogVisible(false)
+        }}
       />
     </SafeAreaView>
   )
@@ -216,6 +266,9 @@ function createStyles(theme: Theme) {
       height: 8,
       borderRadius: theme.radius.full,
       backgroundColor: theme.colors.success
+    },
+    backupButton: {
+      marginTop: theme.spacing.space3
     }
   })
 }
