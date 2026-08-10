@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.7.0)
+# AZAR Design System — "Minimal Luxury" (v2.7.1)
 
 ## 0. Positioning statement
 
@@ -463,6 +463,25 @@ mirroring), not just `textAlign: 'right'` — see `rtl.test.tsx` for the
 enforced contract. The one deliberate exception is OTP digit order,
 which stays strict left-to-right regardless of RTL (digits are read the
 same direction as the SMS containing them) — documented in `OtpInput.tsx`.
+
+**v2.7.1 — the real remaining root cause, fixed for good.** After the
+exhaustive v2.4.0 per-file `alignSelf` audit, RTL was still reported
+broken on fresh installs and app updates. The actual cause was
+upstream of any component code: `I18nManager.forceRTL(true)` only
+*persists* the RTL flag for native layout mirroring — it does not
+retroactively re-mirror the Activity/root view Android already created
+before the JS bundle ran. On the very first launch of a brand-new
+process (every fresh install, and every app update — both start a new
+process), that first session still renders row-direction layout
+LTR-mirrored, and only the *next* launch reads the persisted flag
+correctly. Previously this meant a user had to manually force-close
+and reopen the app once after installing/updating before RTL mirroring
+actually applied — reading, indistinguishably, as "RTL is still
+broken." `index.js` now calls `react-native-restart` immediately after
+flipping the flag for the first time, so that manual step happens
+automatically and invisibly — the app self-corrects within the same
+install/update, with no user action required. See `index.js`'s comment
+for the full mechanism.
 
 RTL is a cross-cutting system, not a per-screen concern — the rules
 below apply to every screen and every shared component, not just the
