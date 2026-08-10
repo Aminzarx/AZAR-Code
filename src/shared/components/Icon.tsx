@@ -376,18 +376,31 @@ function renderGlyph(
         </View>
       )
     case 'inbox':
+      // An open box (lid line above an open-top container) — the
+      // previous version was a closed rectangle bisected by one line,
+      // which reads as an arbitrary divided box, not "empty/nothing
+      // here yet." This is EmptyState's default glyph, so it's one of
+      // the most frequently seen icons in the app on a fresh install.
       return (
-        <View
-          style={{
-            width: box * 0.7,
-            height: box * 0.55,
-            borderColor: tint,
-            borderWidth: stroke,
-            borderRadius: 3,
-            justifyContent: 'center'
-          }}
-        >
-          <View style={{ height: stroke, backgroundColor: tint }} />
+        <View style={{ alignItems: 'center' }}>
+          <View
+            style={{
+              width: box * 0.26,
+              height: stroke,
+              backgroundColor: tint,
+              marginBottom: box * 0.12
+            }}
+          />
+          <View
+            style={{
+              width: box * 0.7,
+              height: box * 0.48,
+              borderColor: tint,
+              borderWidth: stroke,
+              borderTopWidth: 0,
+              borderRadius: 2
+            }}
+          />
         </View>
       )
     case 'person':
