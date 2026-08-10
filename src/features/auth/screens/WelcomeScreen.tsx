@@ -27,12 +27,17 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     title: {
       color: theme.colors.primary,
-      marginBottom: theme.spacing.space3
+      marginBottom: theme.spacing.space3,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     subtitle: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     }
   })
 }

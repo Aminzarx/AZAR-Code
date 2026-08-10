@@ -61,8 +61,12 @@ function createStyles(theme: Theme) {
     content: {
       flex: 1
     },
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     title: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     titleDone: {
       color: theme.colors.onSurfaceVariant,
@@ -70,7 +74,8 @@ function createStyles(theme: Theme) {
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     checkbox: {
       width: theme.touchTargetMinimum,

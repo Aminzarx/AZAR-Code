@@ -128,7 +128,8 @@ function createStyles(theme: Theme) {
       gap: theme.spacing.space1
     },
     chipCaption: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     chipRow: {
       flexDirection: 'row',

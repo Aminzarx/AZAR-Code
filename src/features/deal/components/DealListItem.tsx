@@ -51,9 +51,13 @@ function createStyles(theme: Theme) {
       color: theme.colors.onSurface,
       flex: 1
     },
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     subtitle: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     statusBadge: {
       backgroundColor: theme.colors.secondaryContainer,

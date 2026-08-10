@@ -160,7 +160,8 @@ function createStyles(theme: Theme) {
       justifyContent: 'center'
     },
     hint: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     statusRow: {
       flexDirection: 'row',

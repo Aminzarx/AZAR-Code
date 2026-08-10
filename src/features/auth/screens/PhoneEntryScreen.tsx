@@ -72,11 +72,16 @@ function createStyles(theme: Theme) {
       gap: theme.spacing.space2,
       marginBottom: theme.spacing.space8
     },
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     headerTitle: {
-      color: theme.colors.primary
+      color: theme.colors.primary,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     headerSubtitle: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     form: {
       gap: theme.spacing.space6

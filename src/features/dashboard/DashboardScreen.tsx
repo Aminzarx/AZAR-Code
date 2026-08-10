@@ -173,12 +173,17 @@ function createStyles(theme: Theme) {
       flex: 1,
       minWidth: 0
     },
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     greeting: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     headerSubtitle: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     statsRow: {
       flexDirection: 'row',
@@ -190,7 +195,8 @@ function createStyles(theme: Theme) {
     },
     sectionTitle: {
       color: theme.colors.onSurface,
-      flexShrink: 1
+      flexShrink: 1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     centeredSection: {
       alignItems: 'center',

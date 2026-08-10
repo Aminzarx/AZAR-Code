@@ -130,10 +130,12 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.surfaceContainerLow
     },
     errorText: {
-      color: theme.colors.error
+      color: theme.colors.error,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     helperText: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     }
   })
 }

@@ -75,8 +75,12 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     submitError: {
-      color: theme.colors.error
+      color: theme.colors.error,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     }
   })
 }

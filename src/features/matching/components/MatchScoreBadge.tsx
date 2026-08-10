@@ -20,7 +20,7 @@ export function MatchScoreBadge({ score }: Props): React.JSX.Element {
 function createStyles(theme: Theme) {
   return StyleSheet.create({
     badge: {
-      alignSelf: 'flex-start',
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
       backgroundColor: theme.colors.secondaryContainer,
       borderRadius: theme.radius.full,
       paddingVertical: theme.spacing.space1,

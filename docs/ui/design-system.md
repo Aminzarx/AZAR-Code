@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.3.0)
+# AZAR Design System — "Minimal Luxury" (v2.4.0)
 
 ## 0. Positioning statement
 
@@ -427,6 +427,24 @@ Dashboard:
   card `DetailRow` label, section caption, and any other short text
   that is not itself full-width — full-width/wrapping body text (which
   already spans the container) is unaffected and does not need this.
+  **This is not a forms-only rule.** v2.3.0 fixed it in the files that
+  happened to be visible in one screenshot; that partial fix is exactly
+  why the bug was still reported after v2.3.0 shipped — dozens of other
+  standalone `Text` nodes across list screens, empty/error states,
+  dialogs, and shared components had the identical bug and were simply
+  never looked at. As of v2.4.0 the rule is enforced app-wide: **every
+  `<Text>` that is a standalone block-level line inside a column
+  container must carry this `alignSelf`, full stop, checked file by
+  file, not screen by screen.** The one exception is a `Text` that sits
+  inline in a `row` beside an icon or another `Text` (badges, chips,
+  icon+label pairs) — there, `alignSelf` controls the *vertical*
+  cross-axis position instead, so adding it would break vertical
+  centering instead of fixing anything; those are positioned correctly
+  by row order alone (see the icon-placement rule above) and need no
+  RTL-specific treatment. When adding any new `Text` node to this
+  codebase, default to asking "is this a standalone line in a column,
+  or is it riding inside a row with something else?" — the former needs
+  `alignSelf`, the latter must not have it.
 
 ## 11. Dark Theme (Deferred)
 

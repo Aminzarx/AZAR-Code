@@ -197,8 +197,12 @@ function createStyles(theme: Theme) {
     section: {
       gap: theme.spacing.space3
     },
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     actionError: {
-      color: theme.colors.error
+      color: theme.colors.error,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     createContractButton: {
       marginTop: theme.spacing.space3
