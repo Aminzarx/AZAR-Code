@@ -22,7 +22,7 @@ class AzarRestartModule(reactContext: ReactApplicationContext) :
 
   @ReactMethod
   fun recreateActivity() {
-    val activity = currentActivity ?: return
+    val activity = reactApplicationContext.currentActivity ?: return
     activity.runOnUiThread { activity.recreate() }
   }
 }
