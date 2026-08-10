@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, StatusBadge } from '@shared/components'
+import { Card, EntityIconBadge, StatusBadge } from '@shared/components'
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONES } from '../statusPresentation'
 import type { ContractWithDetails } from '../types'
 
@@ -19,17 +19,28 @@ export function ContractListItem({ contract, onPress }: Props): React.JSX.Elemen
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
       <Card>
         <View style={styles.header}>
-          <Text style={[theme.typography('titleSm'), styles.title]}>
-            {contract.property?.title ?? 'ملک نامشخص'}
-          </Text>
+          <EntityIconBadge icon="contract" tone="secondary" />
+          <View style={styles.identity}>
+            <Text
+              style={[theme.typography('titleSm'), styles.title]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {contract.property?.title ?? 'ملک نامشخص'}
+            </Text>
+            <Text
+              style={[theme.typography('bodySm'), styles.subtitle]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {contract.applicant?.fullName ?? 'متقاضی نامشخص'}
+            </Text>
+          </View>
           <StatusBadge
             label={CONTRACT_STATUS_LABELS[contract.status]}
             tone={CONTRACT_STATUS_TONES[contract.status]}
           />
         </View>
-        <Text style={[theme.typography('bodySm'), styles.subtitle]}>
-          {contract.applicant?.fullName ?? 'متقاضی نامشخص'}
-        </Text>
         {contract.amount !== null ? (
           <Text style={[theme.typography('labelMd'), styles.amount]}>
             {contract.amount.toLocaleString('fa-IR')} تومان
@@ -44,20 +55,24 @@ function createStyles(theme: Theme) {
   return StyleSheet.create({
     header: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      gap: theme.spacing.space2
+      gap: theme.spacing.space3
     },
+    identity: {
+      flex: 1,
+      gap: theme.spacing.space1
+    },
+    // design-system.md §10 — a short Text in a column container (here,
+    // `identity`) doesn't reliably stretch to full width, so alignSelf
+    // anchors the box to the correct edge.
     title: {
       color: theme.colors.onSurface,
-      flex: 1
+      flexShrink: 1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    // design-system.md §10 — a short Text in a column container doesn't
-    // reliably stretch to full width, so textAlign alone isn't enough;
-    // alignSelf explicitly anchors it to the correct edge.
     subtitle: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1,
+      flexShrink: 1,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     amount: {

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, Icon, StatusBadge } from '@shared/components'
+import { Card, EntityIconBadge, Icon, StatusBadge } from '@shared/components'
 import { basePropertyStatus } from '../statusDerivation'
 import type { Property } from '../types'
 
@@ -34,18 +34,25 @@ export function PropertyListItem({ property, onPress, matchCount }: Props): Reac
     <Pressable accessibilityRole="button" accessibilityLabel={property.title} onPress={onPress}>
       <Card>
         <View style={styles.titleRow}>
-          <Text
-            style={[theme.typography('titleSm'), styles.title]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {property.title}
-          </Text>
+          <EntityIconBadge icon="files" tone="secondary" />
+          <View style={styles.identity}>
+            <Text
+              style={[theme.typography('titleSm'), styles.title]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {property.title}
+            </Text>
+            <Text
+              style={[theme.typography('bodySm'), styles.subtitle]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {property.city} • {property.address}
+            </Text>
+          </View>
           <StatusBadge label={status.label} tone={status.tone} />
         </View>
-        <Text style={[theme.typography('bodySm'), styles.subtitle]}>
-          {property.city} • {property.address}
-        </Text>
         {priceLabel ? (
           <Text style={[theme.typography('labelMd'), styles.price]}>{priceLabel}</Text>
         ) : null}
@@ -87,19 +94,25 @@ function createStyles(theme: Theme) {
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space2
+      gap: theme.spacing.space3
     },
-    // design-system.md §10 — rides inline in a row beside the status
-    // badge, so it needs flexShrink (overflow safety) instead of
-    // alignSelf (that rule is for standalone column-level Text only).
+    identity: {
+      flex: 1,
+      gap: theme.spacing.space1
+    },
+    // design-system.md §10 — a short Text in a column container (here,
+    // `identity`) doesn't reliably stretch to full width, so alignSelf
+    // anchors the box to the correct edge; flexShrink is separately
+    // needed so long titles/subtitles truncate instead of overflowing
+    // the row now that a badge and StatusBadge also share it.
     title: {
       color: theme.colors.onSurface,
-      flex: 1,
-      flexShrink: 1
+      flexShrink: 1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1,
+      flexShrink: 1,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     price: {

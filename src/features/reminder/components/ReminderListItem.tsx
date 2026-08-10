@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card } from '@shared/components'
+import { Card, EntityIconBadge } from '@shared/components'
 import type { Reminder } from '../types'
 import type { ReminderContext } from '../hooks/useReminderContexts'
 
@@ -33,6 +33,7 @@ export function ReminderListItem({
   return (
     <Card>
       <View style={styles.row}>
+        <EntityIconBadge icon="calendar" tone="secondary" />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={reminder.title}

@@ -3,15 +3,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Card } from './Card'
 import { Icon, type IconName } from './Icon'
-
-type Tone = 'secondary' | 'tertiary'
+import { EntityIconBadge, type EntityBadgeTone } from './EntityIconBadge'
 
 type Props = {
   icon: IconName
   title: string
   subtitle?: string
   /** Which brand accent tints the icon badge — one tone per list, never mixed within a single screen (design-system.md §0.2's "one accent moment"). */
-  tone?: Tone
+  tone?: EntityBadgeTone
   onPress: () => void
   selected?: boolean
 }
@@ -38,17 +37,13 @@ export function SelectionListItem({
   selected = false
 }: Props): React.JSX.Element {
   const theme = useTheme()
-  const onContainer =
-    tone === 'secondary' ? theme.colors.onSecondaryContainer : theme.colors.onTertiaryContainer
-  const styles = createStyles(theme, tone, selected)
+  const styles = createStyles(theme, selected)
 
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress}>
       <Card style={styles.card}>
         <View style={styles.row}>
-          <View style={styles.badge}>
-            <Icon name={icon} size="sm" color={onContainer} />
-          </View>
+          <EntityIconBadge icon={icon} tone={tone} />
           <View style={styles.textColumn}>
             <Text
               style={[theme.typography('titleSm'), styles.title]}
@@ -78,10 +73,7 @@ export function SelectionListItem({
   )
 }
 
-function createStyles(theme: Theme, tone: Tone, selected: boolean) {
-  const container =
-    tone === 'secondary' ? theme.colors.secondaryContainer : theme.colors.tertiaryContainer
-
+function createStyles(theme: Theme, selected: boolean) {
   return StyleSheet.create({
     card: {
       borderWidth: selected ? 1 : 0,
@@ -91,14 +83,6 @@ function createStyles(theme: Theme, tone: Tone, selected: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.space3
-    },
-    badge: {
-      width: 44,
-      height: 44,
-      borderRadius: theme.radius.full,
-      backgroundColor: container,
-      alignItems: 'center',
-      justifyContent: 'center'
     },
     textColumn: {
       flex: 1,

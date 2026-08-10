@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, StatusBadge } from '@shared/components'
+import { Card, EntityIconBadge, StatusBadge } from '@shared/components'
 import { baseApplicantStatus } from '../statusDerivation'
 import type { Applicant } from '../types'
 
@@ -31,18 +31,25 @@ export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Elem
     <Pressable accessibilityRole="button" accessibilityLabel={applicant.fullName} onPress={onPress}>
       <Card>
         <View style={styles.titleRow}>
-          <Text
-            style={[theme.typography('titleSm'), styles.title]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {applicant.fullName}
-          </Text>
+          <EntityIconBadge icon="person" tone="tertiary" />
+          <View style={styles.identity}>
+            <Text
+              style={[theme.typography('titleSm'), styles.title]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {applicant.fullName}
+            </Text>
+            <Text
+              style={[theme.typography('bodySm'), styles.subtitle]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {applicant.city} • {applicant.phoneNumber}
+            </Text>
+          </View>
           <StatusBadge label={status.label} tone={status.tone} />
         </View>
-        <Text style={[theme.typography('bodySm'), styles.subtitle]}>
-          {applicant.city} • {applicant.phoneNumber}
-        </Text>
         {budgetLabel ? (
           <Text style={[theme.typography('labelMd'), styles.budget]}>{budgetLabel}</Text>
         ) : null}
@@ -76,19 +83,25 @@ function createStyles(theme: Theme) {
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space2
+      gap: theme.spacing.space3
     },
-    // design-system.md §10 — rides inline in a row beside the status
-    // badge, so it needs flexShrink (overflow safety) instead of
-    // alignSelf (that rule is for standalone column-level Text only).
+    identity: {
+      flex: 1,
+      gap: theme.spacing.space1
+    },
+    // design-system.md §10 — a short Text in a column container (here,
+    // `identity`) doesn't reliably stretch to full width, so alignSelf
+    // anchors the box to the correct edge; flexShrink is separately
+    // needed so long titles/subtitles truncate instead of overflowing
+    // the row now that a badge and StatusBadge also share it.
     title: {
       color: theme.colors.onSurface,
-      flex: 1,
-      flexShrink: 1
+      flexShrink: 1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1,
+      flexShrink: 1,
       alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     budget: {
