@@ -7,6 +7,7 @@ import { useTheme, type Theme } from '@shared/theme'
 import { OtpInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
 import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
+import { formatIranPhoneNumberForDisplay } from '@shared/utils/iranPhoneNumber'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'OtpVerification'>
 
@@ -59,7 +60,7 @@ export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.E
       <View style={styles.header}>
         <Text style={[theme.typography('titleMd'), styles.headerTitle]}>کد تأیید را وارد کنید</Text>
         <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>
-          کد ارسال‌شده به {phoneNumber} را وارد کنید.
+          کد ارسال‌شده به {formatIranPhoneNumberForDisplay(phoneNumber)} را وارد کنید.
         </Text>
       </View>
       <View style={styles.form}>

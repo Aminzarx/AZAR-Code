@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.8.0)
+# AZAR Design System — "Minimal Luxury" (v2.8.1)
 
 ## 0. Positioning statement
 

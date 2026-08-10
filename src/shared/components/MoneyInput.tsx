@@ -83,9 +83,6 @@ export function MoneyInput({
       />
       {!disabled && quickZeroCounts.length > 0 ? (
         <View style={styles.chipGroup}>
-          <Text style={[theme.typography('labelSm'), styles.chipCaption]}>
-            برای تکمیل سریع رقم، واحد را انتخاب کنید
-          </Text>
           <View style={styles.chipRow}>
             {quickZeroCounts.map((count) => {
               // The chip's own label IS the zero group it appends
@@ -126,10 +123,6 @@ function createStyles(theme: Theme) {
     },
     chipGroup: {
       gap: theme.spacing.space1
-    },
-    chipCaption: {
-      color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     chipRow: {
       flexDirection: 'row',

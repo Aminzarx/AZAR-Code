@@ -7,6 +7,7 @@ import { useTheme, type Theme } from '@shared/theme'
 import { Button, TextInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
 import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
+import { canonicalizeIranPhoneNumber } from '@shared/utils/iranPhoneNumber'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'PhoneEntry'>
 
@@ -20,10 +21,19 @@ export function PhoneEntryScreen({ navigation }: Props): React.JSX.Element {
 
   async function handleSubmit(): Promise<void> {
     setError(null)
+    // Iranian mobile numbers are entered locally (09121234567) — the
+    // backend/mock API stores and keys OTP state on the canonical
+    // +989121234567 form, so that conversion happens once, here, rather
+    // than requiring the user to type the +98 prefix themselves.
+    const canonicalPhoneNumber = canonicalizeIranPhoneNumber(phoneNumber)
+    if (!canonicalPhoneNumber) {
+      setError('شماره موبایل معتبر نیست. مثال: 09121234567')
+      return
+    }
     setIsSubmitting(true)
     try {
-      await sendOtp(phoneNumber)
-      navigation.navigate('OtpVerification', { phoneNumber })
+      await sendOtp(canonicalPhoneNumber)
+      navigation.navigate('OtpVerification', { phoneNumber: canonicalPhoneNumber })
     } catch (caughtError) {
       if (caughtError instanceof ValidationFailureError) {
         setError(caughtError.message)
@@ -50,7 +60,7 @@ export function PhoneEntryScreen({ navigation }: Props): React.JSX.Element {
           label="شماره موبایل"
           value={phoneNumber}
           onChangeText={setPhoneNumber}
-          placeholder="+989121234567"
+          placeholder="09121234567"
           keyboardType="phone-pad"
           errorMessage={error ?? undefined}
           autoFocus

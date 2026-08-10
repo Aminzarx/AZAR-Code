@@ -71,23 +71,6 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
           <View style={styles.divider} />
 
           <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>کد معرف شما</Text>
-          <View style={styles.codeRow}>
-            <Text
-              accessibilityLabel="کد معرف شما"
-              style={[theme.typography('headlineLgMobile'), styles.code]}
-            >
-              {session?.referralCode}
-            </Text>
-            <Pressable
-              onPress={handleCopyReferralCode}
-              accessibilityRole="button"
-              accessibilityLabel="کپی کد معرف"
-              style={styles.copyButton}
-              hitSlop={theme.spacing.space2}
-            >
-              <Icon name="copy" size="sm" color={theme.colors.primary} />
-            </Pressable>
-          </View>
           <Text style={[theme.typography('bodySm'), styles.hint]}>
             {copied
               ? 'کد معرف کپی شد.'
@@ -104,18 +87,34 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
                   backgroundColor={theme.colors.surfaceContainerLowest}
                 />
               </View>
-              <Text style={[theme.typography('labelMd'), styles.qrCode]}>
-                {session.referralCode}
-              </Text>
+              <View style={styles.codeRow}>
+                <Text
+                  accessibilityLabel="کد معرف شما"
+                  style={[theme.typography('titleMd'), styles.qrCode]}
+                >
+                  {session.referralCode}
+                </Text>
+                <Pressable
+                  onPress={handleCopyReferralCode}
+                  accessibilityRole="button"
+                  accessibilityLabel="کپی کد معرف"
+                  style={styles.copyButton}
+                  hitSlop={theme.spacing.space2}
+                >
+                  <Icon name="copy" size="sm" color={theme.colors.primary} />
+                </Pressable>
+              </View>
             </View>
           ) : null}
 
           <View style={styles.divider} />
 
-          <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>وضعیت نشست</Text>
           <View style={styles.statusRow}>
-            <View style={styles.statusDot} />
-            <Text style={[theme.typography('titleMd'), styles.value]}>فعال</Text>
+            <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>وضعیت نشست</Text>
+            <View style={styles.statusValue}>
+              <View style={styles.statusDot} />
+              <Text style={[theme.typography('titleMd'), styles.statusText]}>فعال</Text>
+            </View>
           </View>
         </Card>
 
@@ -170,12 +169,7 @@ function createStyles(theme: Theme) {
     codeRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: theme.spacing.space1
-    },
-    code: {
-      color: theme.colors.primary,
-      letterSpacing: 4
+      gap: theme.spacing.space2
     },
     copyButton: {
       minWidth: theme.touchTargetMinimum,
@@ -201,14 +195,21 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.surfaceContainerLowest
     },
     qrCode: {
-      color: theme.colors.onSurfaceVariant,
+      color: theme.colors.primary,
       letterSpacing: 2
     },
     statusRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space2,
-      marginTop: theme.spacing.space1
+      justifyContent: 'space-between'
+    },
+    statusValue: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2
+    },
+    statusText: {
+      color: theme.colors.onSurface
     },
     statusDot: {
       width: 8,
