@@ -96,7 +96,21 @@ export function OtpInput({
     index: number,
     event: NativeSyntheticEvent<TextInputKeyPressEventData>
   ): void {
-    if (event.nativeEvent.key === 'Backspace' && !digits[index] && index > 0) {
+    if (event.nativeEvent.key !== 'Backspace') {
+      return
+    }
+    if (digits[index]) {
+      // Deleting must work from any box, not just the last one — handled
+      // explicitly here (not left to onChangeText) because a maxLength=1
+      // RNTextInput on Android doesn't reliably fire onChangeText for a
+      // backspace on an already-full box once the cursor sits before its
+      // one character, which otherwise silently made a box's digit
+      // un-deletable unless the user first backed all the way into it
+      // from the end.
+      setDigitAt(index, '')
+      return
+    }
+    if (index > 0) {
       inputRefs.current[index - 1]?.focus()
       setDigitAt(index - 1, '')
     }
@@ -140,6 +154,7 @@ export function OtpInput({
           editable={!disabled}
           textAlign="center"
           selectionColor={theme.colors.primary}
+          selectTextOnFocus
         />
       </Animated.View>
     )

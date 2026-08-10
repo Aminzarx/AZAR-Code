@@ -21,7 +21,7 @@ import type { ReferralRelationshipRepository } from '../database/repositories/Re
 // Not shown anywhere in the app UI (OtpVerificationScreen's placeholder is
 // intentionally generic, not this value) — this is a real SMS provider is
 // not wired up yet (docs/00-project-overview.md's Decision 2, still open).
-const DEV_OTP_CODE = '518322'
+const DEV_OTP_CODE = '555555'
 const OTP_EXPIRY_MS = 5 * 60 * 1000 // 5 minutes — illustrative default, ADR-009 §"Open items"
 
 type OtpState = {

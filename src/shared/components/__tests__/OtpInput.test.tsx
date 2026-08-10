@@ -46,6 +46,18 @@ describe('OtpInput', () => {
     expect(onChangeValue).toHaveBeenCalledWith('1')
   })
 
+  it('deletes a middle box directly via backspace, without needing to reach it from the last box', async () => {
+    const onChangeValue = jest.fn()
+    const { getByLabelText } = await render(
+      withTheme(<OtpInput value="123456" onChangeValue={onChangeValue} />)
+    )
+
+    fireEvent(getByLabelText('رقم 3 کد تأیید'), 'keyPress', {
+      nativeEvent: { key: 'Backspace' }
+    })
+    expect(onChangeValue).toHaveBeenCalledWith('12456')
+  })
+
   it('calls onSuccessAnimationComplete once the success sweep finishes', async () => {
     const onComplete = jest.fn()
     await render(
