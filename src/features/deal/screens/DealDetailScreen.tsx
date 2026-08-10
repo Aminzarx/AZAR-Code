@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
+import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Card, ErrorState, LoadingIndicator, TextInput } from '@shared/components'
 import { useDealDetail } from '../hooks/useDealDetail'
@@ -137,7 +138,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
               label="افزودن یادآوری"
               variant="secondary"
               onPress={() =>
-                navigation.navigate('CreateReminder', {
+                navigateAcrossTabs(navigation, 'CreateReminder', {
                   dealId: deal.id,
                   propertyId: deal.propertyId,
                   applicantId: deal.applicantId
@@ -149,7 +150,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
               label="ایجاد قرارداد"
               variant="secondary"
               onPress={() =>
-                navigation.navigate('CreateContract', {
+                navigateAcrossTabs(navigation, 'CreateContract', {
                   dealId: deal.id,
                   propertyId: deal.propertyId,
                   applicantId: deal.applicantId
@@ -181,14 +182,17 @@ function createStyles(theme: Theme) {
     },
     sectionLabel: {
       color: theme.colors.onSurfaceVariant,
-      marginBottom: theme.spacing.space1
+      marginBottom: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     value: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     subValue: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     section: {
       gap: theme.spacing.space3

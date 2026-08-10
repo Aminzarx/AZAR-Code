@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { AutocompleteInput, Button, FormRow, MoneyInput, TextInput } from '@shared/components'
+import { AutocompleteInput, FormRow, MoneyInput, TextInput } from '@shared/components'
 import { IRANIAN_CITIES } from '@shared/data/iranianCities'
 import { APPLICANT_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
 import type { ApplicantFormErrors, ApplicantFormValues } from '../types'
@@ -10,20 +10,15 @@ type Props = {
   values: ApplicantFormValues
   errors: ApplicantFormErrors
   onChange: <K extends keyof ApplicantFormValues>(field: K, value: ApplicantFormValues[K]) => void
-  onSubmit: () => void
-  submitLabel: string
-  isSubmitting: boolean
 }
 
-/** Shared by CreateApplicantScreen and ApplicantDetailScreen's edit mode — same fields, same validation. */
-export function ApplicantForm({
-  values,
-  errors,
-  onChange,
-  onSubmit,
-  submitLabel,
-  isSubmitting
-}: Props): React.JSX.Element {
+/**
+ * Shared by CreateApplicantScreen and ApplicantDetailScreen's edit
+ * mode — same fields, same validation. Submitting happens via
+ * FormScreenContainer's persistent header save action (screen-level,
+ * not rendered here) — no duplicate bottom submit button.
+ */
+export function ApplicantForm({ values, errors, onChange }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
 
@@ -117,7 +112,6 @@ export function ApplicantForm({
         placeholder="توضیحات تکمیلی (اختیاری)"
         errorMessage={errors.description}
       />
-      <Button label={submitLabel} onPress={onSubmit} loading={isSubmitting} style={styles.submit} />
     </View>
   )
 }
@@ -126,9 +120,6 @@ function createStyles(theme: Theme) {
   return StyleSheet.create({
     form: {
       gap: theme.spacing.space5
-    },
-    submit: {
-      marginTop: theme.spacing.space3
     }
   })
 }

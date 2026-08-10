@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
+import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Card, ErrorState, FormScreenContainer, LoadingIndicator } from '@shared/components'
 import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
@@ -106,14 +107,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
           {submitError ? (
             <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
           ) : null}
-          <PropertyForm
-            values={values}
-            errors={errors}
-            onChange={handleChange}
-            onSubmit={handleSubmit}
-            submitLabel="ذخیره تغییرات"
-            isSubmitting={isSubmitting}
-          />
+          <PropertyForm values={values} errors={errors} onChange={handleChange} />
         </>
       ) : (
         <Card variant="detail">
@@ -176,7 +170,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
           onSelectApplicant={(applicantId) =>
             navigation.navigate('ApplicantDetail', { applicantId })
           }
-          onDealCreated={(dealId) => navigation.navigate('DealDetail', { dealId })}
+          onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
         />
       ) : null}
     </FormScreenContainer>
@@ -214,11 +208,13 @@ function createStyles(theme: Theme) {
       marginBottom: theme.spacing.space3
     },
     label: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     value: {
       color: theme.colors.onSurface,
-      marginTop: theme.spacing.space1
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     submitError: {
       color: theme.colors.error

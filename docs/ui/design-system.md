@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.2.0)
+# AZAR Design System — "Minimal Luxury" (v2.3.0)
 
 ## 0. Positioning statement
 
@@ -159,24 +159,37 @@ Zero-dependency, hand-drawn pure-`View`/border composition (see
 is bundled (native-linking risk during a period where getting *any*
 Android build working was already fragile; revisit only if that
 constraint changes). All glyphs share one stroke-weight formula and one
-corner-rounding convention so the set reads as one family regardless of
-which glyph is used where. Default tint is `onSurface`; accent icons
-(stat badges, quick actions) tint with the matching container's
+corner-rounding convention, rounded corners (soft, not sharp — matches
+§4's shape scale) so the set reads as one family regardless of which
+glyph is used where. Default tint is `onSurface`; accent icons (stat
+badges, quick actions) tint with the matching container's
 `on*Container` color from §1.
 
 Sizes: `xs`(16) `sm`(18) `md`(24, default) `lg`(32) `xl`(48).
 
-### 6.1 v2.2.0 — glyph audit
+This document deliberately does **not** enumerate which glyph maps to
+which screen/concept, or hold a running catalogue of icon names — that
+mapping lives in code (`Icon.tsx`'s glyph switch and each call site),
+where it can't drift out of sync with what's actually shipped, and
+where it's someone's job to keep it correct as screens change. What
+this document owns is the *rules* every glyph choice must satisfy:
 
-Corner rounding on every glyph bumped by one step (e.g. 1→2, 2→3, 3→4)
-for a softer, rounder read, consistent with §4's rounder shape scale.
-Added `deal` — a flag-on-pole glyph for the Deal/پیگیری pipeline,
-replacing a reuse of `matching`'s crossed-chevron glyph for that
-purpose. `matching` is the Matching tab's own icon (property/applicant
-compatibility); using it a second time for an unrelated concept (the
-deal pipeline) made two different ideas share one glyph, which is
-exactly the "wrong icon" failure class — every concept gets its own
-glyph, glyphs are never reused across unrelated meanings.
+- **One glyph per concept, never reused across unrelated meanings.**
+  Two different ideas sharing one glyph (e.g. a tab's own icon reused
+  for an unrelated stat/action elsewhere) is a defect — pick or draw a
+  distinct glyph instead. This is the standard the whole set is held
+  to; it's not a one-time audit item to check off.
+- **The glyph must depict the concept it labels**, recognizably, at a
+  glance, at `md` size — not an abstract or approximate stand-in.
+  Prefer a real object/action metaphor (a flag for a pipeline stage, a
+  document for a file, a person for a contact) over a generic shape.
+- **Directional glyphs mirror under RTL** (§10); non-directional
+  glyphs never need a per-direction variant.
+- Icons are never load-bearing on their own for meaning — every
+  icon-only interactive control still carries a real
+  `accessibilityLabel` (§8), and every icon paired with a label in a
+  row stays paired with that label, never presented alone as the sole
+  identifier of an action.
 
 ## 7. Component Standards
 
@@ -194,6 +207,26 @@ Label above field. States: default (1px `outlineVariant`), focused (1px
 `required` prop renders a red `error`-colored asterisk beside the label
 — the app-wide required-field indicator (never invent a per-screen
 variant of this).
+
+#### 7.2.1 Money fields
+A price/budget field's quick-magnitude chips scale the digits already
+typed (append zeros) — they do not add a flat amount, so their label
+must read as scaling, never as addition. Real-estate prices in this
+app are effectively always stated in میلیون/میلیارد, so the chip set
+is exactly two: **میلیون** (×10⁶) and **میلیارد** (×10⁹) — no
+هزار/ده‌هزار/صد‌هزار chips, which added choices without adding real
+usefulness at this app's price scale. Label format is the literal
+zero-group the chip appends, comma-grouped (`"000,000"` for میلیون,
+`"000,000,000"` for میلیارد) rather than a Persian word — the digit
+groups show unambiguously what happens to the number when tapped,
+which a word name does not.
+
+#### 7.2.2 Search fields
+A list screen's search field matches every attribute a user would
+plausibly search by for that entity — for Property/Applicant that
+includes price, not just title/city/address/phone. A search field that
+silently ignores a visible, prominent field (price) reads as broken,
+not as "not supported."
 
 ### 7.3 Cards
 Two variants: `listItem` (`radius.large`, `paddingListItem` =
@@ -375,6 +408,25 @@ Dashboard:
   field order all follow the same row-order + `theme.typography`
   mirroring — no separate RTL variant is ever hand-authored for a form
   layout that already exists for LTR.
+- **A short standalone `Text` inside a `flexDirection: 'column'`
+  container MUST also set `alignSelf: theme.isRTL ? 'flex-end' :
+  'flex-start'` — `textAlign: 'right'` alone is not sufficient.**
+  This is a real, shipped bug class (v2.3.0): every field label in the
+  create/edit forms (`آدرس`, `قیمت`, `توضیحات`, …) rendered flush against
+  the screen's *left* edge despite `textAlign: 'right'` being set,
+  because a short `Text` node in a column flex container does not
+  reliably stretch to the container's full width the way a `View`
+  does — with no explicit width, its own bounding box shrinks to its
+  content size, and `textAlign` only aligns text *within that box*, so
+  a shrunk box sitting at the column's un-mirrored cross-axis start
+  (always the left edge, regardless of RTL, since RTL mirroring is a
+  *row*-direction concept) reads as fully left-aligned no matter what
+  `textAlign` says. `alignSelf` sidesteps this entirely by explicitly
+  placing the (still content-sized) box at the correct edge, instead of
+  depending on the box stretching first. Applies to every field label,
+  card `DetailRow` label, section caption, and any other short text
+  that is not itself full-width — full-width/wrapping body text (which
+  already spans the container) is unaffected and does not need this.
 
 ## 11. Dark Theme (Deferred)
 
@@ -498,3 +550,39 @@ section, §14 role 3):
 - **Spacing between rows**: `componentSpacing` (12, §3.1).
 - **Touch target**: the entire row is the `Pressable`, not just the
   label or icon (§8).
+
+## 16. Navigation Architecture
+
+Each screen belongs to **exactly one** bottom tab's stack — never
+duplicated into every tab. Ownership by tab:
+
+| Tab | Owns |
+|---|---|
+| Home | Dashboard, and everything reached only from the dashboard with no more specific owner (reminders) |
+| Files | Property list/create/detail, Applicant list/create/detail |
+| Matching | Matching entry screen, Deal list/detail |
+| Contracts | Contract list/create/detail |
+| Profile | Settings |
+
+**Why this matters (v2.3.0 — real regression this corrects):** an
+earlier structure mounted the *same* full screen stack identically
+inside all five tabs, so that any `navigation.navigate('X')` call
+"just worked" regardless of which tab it was called from. That
+convenience came at a real UX cost: tapping a Dashboard shortcut into
+Property detail pushed Property detail onto the *Home* tab's own
+stack — the tab bar still highlighted Home while the user was
+looking at a Files-owned screen, and the hardware/gesture back button
+retraced the full cross-tab journey step by step instead of behaving
+like a normal tab app.
+
+**The fix, and the rule going forward:** register each screen in
+exactly one tab's stack navigator. `navigation.navigate('ScreenName',
+params)` called from anywhere in the app still works unchanged —
+React Navigation's nested-navigator bubbling finds the screen in its
+owning tab's stack and switches to that tab automatically — but now
+the tab bar correctly reflects which section the user is actually in,
+and the back button pops within that tab's own stack, never replaying
+a path through a different tab. Do not reach for a screen-name lookup
+table or manual tab-switch call to get this behavior — it is what
+nested tab+stack navigators already do by default once each screen is
+registered exactly once.

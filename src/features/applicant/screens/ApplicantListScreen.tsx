@@ -26,7 +26,7 @@ export function ApplicantListScreen({ navigation }: Props): React.JSX.Element {
           label="جستجو"
           value={search}
           onChangeText={setSearch}
-          placeholder="نام، شهر یا شماره تماس"
+          placeholder="نام، شهر، شماره تماس یا بودجه"
         />
 
         {isLoading ? (

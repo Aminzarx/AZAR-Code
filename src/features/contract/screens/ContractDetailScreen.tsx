@@ -175,14 +175,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
 
           {isEditing && values ? (
             <View style={styles.section}>
-              <ContractForm
-                values={values}
-                errors={errors}
-                onChange={handleChange}
-                onSubmit={handleSubmit}
-                submitLabel="ذخیره تغییرات"
-                isSubmitting={isSubmitting}
-              />
+              <ContractForm values={values} errors={errors} onChange={handleChange} />
             </View>
           ) : (
             <Card variant="detail">
@@ -272,7 +265,8 @@ function createStyles(theme: Theme) {
     },
     sectionLabel: {
       color: theme.colors.onSurfaceVariant,
-      marginBottom: theme.spacing.space1
+      marginBottom: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     section: {
       gap: theme.spacing.space3
@@ -281,14 +275,17 @@ function createStyles(theme: Theme) {
       marginBottom: theme.spacing.space3
     },
     label: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     value: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     subValue: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     submitError: {
       color: theme.colors.error

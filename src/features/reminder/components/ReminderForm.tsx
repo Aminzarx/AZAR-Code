@@ -1,27 +1,22 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, FormRow, TextInput } from '@shared/components'
+import { FormRow, TextInput } from '@shared/components'
 import type { ReminderFormErrors, ReminderFormValues } from '../types'
 
 type Props = {
   values: ReminderFormValues
   errors: ReminderFormErrors
   onChange: <K extends keyof ReminderFormValues>(field: K, value: ReminderFormValues[K]) => void
-  onSubmit: () => void
-  submitLabel: string
-  isSubmitting: boolean
 }
 
-/** Shared by CreateReminderScreen and ReminderDetailScreen's edit mode. */
-export function ReminderForm({
-  values,
-  errors,
-  onChange,
-  onSubmit,
-  submitLabel,
-  isSubmitting
-}: Props): React.JSX.Element {
+/**
+ * Shared by CreateReminderScreen and ReminderDetailScreen's edit mode.
+ * Submitting happens via FormScreenContainer's persistent header save
+ * action (screen-level, not rendered here) — no duplicate bottom submit
+ * button.
+ */
+export function ReminderForm({ values, errors, onChange }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
 
@@ -60,7 +55,6 @@ export function ReminderForm({
         placeholder="توضیحات تکمیلی (اختیاری)"
         errorMessage={errors.description}
       />
-      <Button label={submitLabel} onPress={onSubmit} loading={isSubmitting} style={styles.submit} />
     </View>
   )
 }
@@ -69,9 +63,6 @@ function createStyles(theme: Theme) {
   return StyleSheet.create({
     form: {
       gap: theme.spacing.space5
-    },
-    submit: {
-      marginTop: theme.spacing.space3
     }
   })
 }

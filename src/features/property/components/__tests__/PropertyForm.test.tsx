@@ -20,16 +20,7 @@ describe('PropertyForm', () => {
   it('calls onChange with the field and new value', async () => {
     const onChange = jest.fn()
     const { getByLabelText } = await render(
-      withTheme(
-        <PropertyForm
-          values={EMPTY_VALUES}
-          errors={{}}
-          onChange={onChange}
-          onSubmit={jest.fn()}
-          submitLabel="ثبت پرونده"
-          isSubmitting={false}
-        />
-      )
+      withTheme(<PropertyForm values={EMPTY_VALUES} errors={{}} onChange={onChange} />)
     )
 
     fireEvent.changeText(getByLabelText('عنوان پرونده'), 'آپارتمان جدید')
@@ -43,32 +34,10 @@ describe('PropertyForm', () => {
           values={EMPTY_VALUES}
           errors={{ title: 'عنوان الزامی است.' }}
           onChange={jest.fn()}
-          onSubmit={jest.fn()}
-          submitLabel="ثبت پرونده"
-          isSubmitting={false}
         />
       )
     )
 
     expect(getByText('عنوان الزامی است.')).toBeTruthy()
-  })
-
-  it('calls onSubmit when the submit button is pressed', async () => {
-    const onSubmit = jest.fn()
-    const { getByText } = await render(
-      withTheme(
-        <PropertyForm
-          values={EMPTY_VALUES}
-          errors={{}}
-          onChange={jest.fn()}
-          onSubmit={onSubmit}
-          submitLabel="ثبت پرونده"
-          isSubmitting={false}
-        />
-      )
-    )
-
-    fireEvent.press(getByText('ثبت پرونده'))
-    expect(onSubmit).toHaveBeenCalledTimes(1)
   })
 })

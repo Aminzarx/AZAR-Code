@@ -68,31 +68,29 @@ const TAB_ICONS: Record<TabName, IconName> = {
   ProfileTab: 'settings'
 }
 
-const TAB_INITIAL_ROUTE: Record<TabName, keyof MainStackParamList> = {
-  HomeTab: 'Home',
-  FilesTab: 'Files',
-  MatchingTab: 'Matching',
-  ContractsTab: 'ContractList',
-  ProfileTab: 'Settings'
+/**
+ * design-system.md §16 — each screen is registered in exactly ONE tab's
+ * stack (never duplicated across all five, as it used to be). This is
+ * what makes `navigation.navigate('X')` called from any screen correctly
+ * switch to the tab that owns 'X' — React Navigation's nested-navigator
+ * bubbling finds it there — instead of pushing it onto whichever tab
+ * happened to be active, which used to leave the tab bar pointing at the
+ * wrong tab and made the back button retrace a full cross-tab journey.
+ */
+function HomeStack(): React.JSX.Element {
+  return (
+    <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Home" component={DashboardScreen} />
+      <Stack.Screen name="ReminderList" component={ReminderListScreen} />
+      <Stack.Screen name="CreateReminder" component={CreateReminderScreen} />
+      <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
+    </Stack.Navigator>
+  )
 }
 
-/**
- * One shared screen set, mounted once per tab with a different
- * initialRouteName — every navigation.navigate('X') call anywhere in the
- * app keeps working unchanged regardless of which tab it's called from,
- * since 'X' is registered identically in all five. Each tab still keeps
- * its own independent push history, which is the whole point of a
- * bottom-tab layout (standard React Navigation nested-stack-per-tab
- * pattern).
- */
-function MainStack({
-  initialRouteName
-}: {
-  initialRouteName: keyof MainStackParamList
-}): React.JSX.Element {
+function FilesStack(): React.JSX.Element {
   return (
-    <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Home" component={DashboardScreen} />
+    <Stack.Navigator initialRouteName="Files" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Files" component={FilesScreen} />
       <Stack.Screen name="PropertyList" component={PropertyListScreen} />
       <Stack.Screen name="CreateProperty" component={CreatePropertyScreen} />
@@ -100,15 +98,33 @@ function MainStack({
       <Stack.Screen name="ApplicantList" component={ApplicantListScreen} />
       <Stack.Screen name="CreateApplicant" component={CreateApplicantScreen} />
       <Stack.Screen name="ApplicantDetail" component={ApplicantDetailScreen} />
+    </Stack.Navigator>
+  )
+}
+
+function MatchingStack(): React.JSX.Element {
+  return (
+    <Stack.Navigator initialRouteName="Matching" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Matching" component={MatchingScreen} />
       <Stack.Screen name="DealList" component={DealListScreen} />
       <Stack.Screen name="DealDetail" component={DealDetailScreen} />
-      <Stack.Screen name="ReminderList" component={ReminderListScreen} />
-      <Stack.Screen name="CreateReminder" component={CreateReminderScreen} />
-      <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
+    </Stack.Navigator>
+  )
+}
+
+function ContractsStack(): React.JSX.Element {
+  return (
+    <Stack.Navigator initialRouteName="ContractList" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ContractList" component={ContractListScreen} />
       <Stack.Screen name="CreateContract" component={CreateContractScreen} />
       <Stack.Screen name="ContractDetail" component={ContractDetailScreen} />
+    </Stack.Navigator>
+  )
+}
+
+function ProfileStack(): React.JSX.Element {
+  return (
+    <Stack.Navigator initialRouteName="Settings" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   )
@@ -139,6 +155,12 @@ export function MainNavigator(): React.JSX.Element {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        // §16 — all 5 tab stacks are registered from app start, not
+        // lazily on first visit: `navigation.navigate('ScreenOwnedByAnotherTab')`
+        // relies on React Navigation finding that screen already present
+        // in a sibling tab's nested navigator state, which lazy mounting
+        // would leave empty until that tab is first visited.
+        lazy: false,
         tabBarActiveTintColor: theme.colors.onSecondaryContainer,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarActiveBackgroundColor: theme.colors.secondaryContainer,
@@ -158,12 +180,12 @@ export function MainNavigator(): React.JSX.Element {
       <Tab.Screen
         name="HomeTab"
         options={{ tabBarLabel: TAB_LABELS.HomeTab, tabBarIcon: makeTabIcon(TAB_ICONS.HomeTab) }}
-        children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.HomeTab} />}
+        component={HomeStack}
       />
       <Tab.Screen
         name="FilesTab"
         options={{ tabBarLabel: TAB_LABELS.FilesTab, tabBarIcon: makeTabIcon(TAB_ICONS.FilesTab) }}
-        children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.FilesTab} />}
+        component={FilesStack}
       />
       <Tab.Screen
         name="MatchingTab"
@@ -171,7 +193,7 @@ export function MainNavigator(): React.JSX.Element {
           tabBarLabel: TAB_LABELS.MatchingTab,
           tabBarIcon: makeTabIcon(TAB_ICONS.MatchingTab)
         }}
-        children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.MatchingTab} />}
+        component={MatchingStack}
       />
       <Tab.Screen
         name="ContractsTab"
@@ -179,7 +201,7 @@ export function MainNavigator(): React.JSX.Element {
           tabBarLabel: TAB_LABELS.ContractsTab,
           tabBarIcon: makeTabIcon(TAB_ICONS.ContractsTab)
         }}
-        children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.ContractsTab} />}
+        component={ContractsStack}
       />
       <Tab.Screen
         name="ProfileTab"
@@ -187,7 +209,7 @@ export function MainNavigator(): React.JSX.Element {
           tabBarLabel: TAB_LABELS.ProfileTab,
           tabBarIcon: makeTabIcon(TAB_ICONS.ProfileTab)
         }}
-        children={() => <MainStack initialRouteName={TAB_INITIAL_ROUTE.ProfileTab} />}
+        component={ProfileStack}
       />
     </Tab.Navigator>
   )

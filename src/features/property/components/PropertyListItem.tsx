@@ -28,17 +28,29 @@ export function PropertyListItem({ property, onPress }: Props): React.JSX.Elemen
         <Text style={[theme.typography('bodySm'), styles.subtitle]}>
           {property.city} • {property.address}
         </Text>
-        <View style={styles.metaRow}>
-          {priceLabel ? (
-            <Text style={[theme.typography('labelMd'), styles.price]}>{priceLabel}</Text>
-          ) : null}
-          {property.area !== null ? (
-            <Text style={[theme.typography('labelSm'), styles.meta]}>{property.area} متر</Text>
-          ) : null}
-          {property.rooms !== null ? (
-            <Text style={[theme.typography('labelSm'), styles.meta]}>{property.rooms} اتاق</Text>
-          ) : null}
-        </View>
+        {priceLabel ? (
+          <Text style={[theme.typography('labelMd'), styles.price]}>{priceLabel}</Text>
+        ) : null}
+        {property.area !== null || property.rooms !== null ? (
+          <View style={styles.metaGrid}>
+            {property.area !== null ? (
+              <View style={styles.metaCell}>
+                <Text style={[theme.typography('bodySm'), styles.metaLabel]}>متراژ</Text>
+                <Text style={[theme.typography('labelMd'), styles.metaValue]}>
+                  {property.area} متر
+                </Text>
+              </View>
+            ) : null}
+            {property.rooms !== null ? (
+              <View style={styles.metaCell}>
+                <Text style={[theme.typography('bodySm'), styles.metaLabel]}>تعداد اتاق</Text>
+                <Text style={[theme.typography('labelMd'), styles.metaValue]}>
+                  {property.rooms} اتاق
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </Card>
     </Pressable>
   )
@@ -47,22 +59,40 @@ export function PropertyListItem({ property, onPress }: Props): React.JSX.Elemen
 function createStyles(theme: Theme) {
   return StyleSheet.create({
     title: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
-    },
-    metaRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.space3,
-      marginTop: theme.spacing.space2
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     price: {
-      color: theme.colors.primary
+      color: theme.colors.primary,
+      marginTop: theme.spacing.space2,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    meta: {
-      color: theme.colors.outline
+    // design-system.md §7.3.1's fixed 2-column percentage grid, reused
+    // here for secondary meta (area/rooms) — content-driven card height,
+    // never a minWidth-threshold row.
+    metaGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.space3,
+      marginTop: theme.spacing.space3
+    },
+    metaCell: {
+      flexBasis: theme.component.statCardGrid.columnBasisPercent,
+      flexGrow: 0,
+      gap: theme.spacing.space1
+    },
+    metaLabel: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    metaValue: {
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     }
   })
 }

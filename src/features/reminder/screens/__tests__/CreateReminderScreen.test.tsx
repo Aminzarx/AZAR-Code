@@ -39,7 +39,7 @@ describe('CreateReminderScreen', () => {
       withTheme(<CreateReminderScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.press(getByText('ثبت یادآوری')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     expect(await findByText('عنوان الزامی است.')).toBeTruthy()
     expect(mockReplace).not.toHaveBeenCalled()
@@ -56,7 +56,7 @@ describe('CreateReminderScreen', () => {
     await waitFor(() => fireEvent.changeText(getByLabelText('عنوان'), 'تماس با متقاضی'))
     await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ'), '2026-09-01'))
     await waitFor(() => fireEvent.changeText(getByLabelText('زمان'), '14:30'))
-    await waitFor(() => fireEvent.press(getByText('ثبت یادآوری')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
       expect(mockCreateReminder).toHaveBeenCalledWith(
@@ -85,7 +85,7 @@ describe('CreateReminderScreen', () => {
     await waitFor(() => fireEvent.changeText(getByLabelText('عنوان'), 'پیگیری قرارداد'))
     await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ'), '2026-09-01'))
     await waitFor(() => fireEvent.changeText(getByLabelText('زمان'), '14:30'))
-    await waitFor(() => fireEvent.press(getByText('ثبت یادآوری')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
       expect(mockCreateReminder).toHaveBeenCalledWith(

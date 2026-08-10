@@ -130,16 +130,19 @@ function createStyles(theme: Theme) {
       gap: theme.spacing.space6
     },
     title: {
-      color: theme.colors.primary
+      color: theme.colors.primary,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     card: {
       gap: theme.spacing.space2
     },
     cardLabel: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     value: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     codeRow: {
       flexDirection: 'row',

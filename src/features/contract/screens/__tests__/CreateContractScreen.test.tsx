@@ -43,7 +43,7 @@ describe('CreateContractScreen', () => {
       withTheme(<CreateContractScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.press(getByText('ثبت قرارداد')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     expect(await findByText('تاریخ شروع را وارد کنید.')).toBeTruthy()
     expect(mockReplace).not.toHaveBeenCalled()
@@ -58,7 +58,7 @@ describe('CreateContractScreen', () => {
 
     await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ شروع'), '2026-09-01'))
     await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ پایان'), '2027-09-01'))
-    await waitFor(() => fireEvent.press(getByText('ثبت قرارداد')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
       expect(mockCreateContract).toHaveBeenCalledWith(

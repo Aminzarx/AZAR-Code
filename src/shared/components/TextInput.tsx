@@ -96,8 +96,12 @@ function createStyles(theme: Theme) {
     group: {
       gap: theme.spacing.space2
     },
+    // design-system.md §10 — a short Text in a column container doesn't
+    // reliably stretch to full width, so textAlign alone isn't enough;
+    // alignSelf explicitly anchors it to the correct edge.
     label: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     requiredMark: {
       color: theme.colors.error

@@ -133,14 +133,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
           {submitError ? (
             <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
           ) : null}
-          <ReminderForm
-            values={values}
-            errors={errors}
-            onChange={handleChange}
-            onSubmit={handleSubmit}
-            submitLabel="ذخیره تغییرات"
-            isSubmitting={isSubmitting}
-          />
+          <ReminderForm values={values} errors={errors} onChange={handleChange} />
         </>
       ) : (
         <Card variant="detail">
@@ -210,11 +203,13 @@ function createStyles(theme: Theme) {
       marginBottom: theme.spacing.space3
     },
     value: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     description: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space2
+      marginTop: theme.spacing.space2,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     submitError: {
       color: theme.colors.error

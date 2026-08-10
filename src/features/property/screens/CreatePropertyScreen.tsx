@@ -71,14 +71,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
-      <PropertyForm
-        values={values}
-        errors={errors}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-        submitLabel="ثبت پرونده"
-        isSubmitting={isSubmitting}
-      />
+      <PropertyForm values={values} errors={errors} onChange={handleChange} />
     </FormScreenContainer>
   )
 }

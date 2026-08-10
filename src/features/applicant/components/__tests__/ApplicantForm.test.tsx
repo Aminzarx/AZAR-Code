@@ -22,16 +22,7 @@ describe('ApplicantForm', () => {
   it('calls onChange with the field and new value', async () => {
     const onChange = jest.fn()
     const { getByLabelText } = await render(
-      withTheme(
-        <ApplicantForm
-          values={EMPTY_VALUES}
-          errors={{}}
-          onChange={onChange}
-          onSubmit={jest.fn()}
-          submitLabel="ثبت متقاضی"
-          isSubmitting={false}
-        />
-      )
+      withTheme(<ApplicantForm values={EMPTY_VALUES} errors={{}} onChange={onChange} />)
     )
 
     fireEvent.changeText(getByLabelText('نام و نام خانوادگی'), 'علی رضایی')
@@ -45,32 +36,10 @@ describe('ApplicantForm', () => {
           values={EMPTY_VALUES}
           errors={{ fullName: 'نام الزامی است.' }}
           onChange={jest.fn()}
-          onSubmit={jest.fn()}
-          submitLabel="ثبت متقاضی"
-          isSubmitting={false}
         />
       )
     )
 
     expect(getByText('نام الزامی است.')).toBeTruthy()
-  })
-
-  it('calls onSubmit when the submit button is pressed', async () => {
-    const onSubmit = jest.fn()
-    const { getByText } = await render(
-      withTheme(
-        <ApplicantForm
-          values={EMPTY_VALUES}
-          errors={{}}
-          onChange={jest.fn()}
-          onSubmit={onSubmit}
-          submitLabel="ثبت متقاضی"
-          isSubmitting={false}
-        />
-      )
-    )
-
-    fireEvent.press(getByText('ثبت متقاضی'))
-    expect(onSubmit).toHaveBeenCalledTimes(1)
   })
 })

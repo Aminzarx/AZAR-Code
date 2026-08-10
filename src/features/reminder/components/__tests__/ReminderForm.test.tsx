@@ -10,16 +10,7 @@ describe('ReminderForm', () => {
   it('calls onChange with the field and new value', async () => {
     const onChange = jest.fn()
     const { getByLabelText } = await render(
-      withTheme(
-        <ReminderForm
-          values={EMPTY_VALUES}
-          errors={{}}
-          onChange={onChange}
-          onSubmit={jest.fn()}
-          submitLabel="ثبت یادآوری"
-          isSubmitting={false}
-        />
-      )
+      withTheme(<ReminderForm values={EMPTY_VALUES} errors={{}} onChange={onChange} />)
     )
 
     fireEvent.changeText(getByLabelText('عنوان'), 'تماس با متقاضی')
@@ -33,32 +24,10 @@ describe('ReminderForm', () => {
           values={EMPTY_VALUES}
           errors={{ title: 'عنوان الزامی است.' }}
           onChange={jest.fn()}
-          onSubmit={jest.fn()}
-          submitLabel="ثبت یادآوری"
-          isSubmitting={false}
         />
       )
     )
 
     expect(getByText('عنوان الزامی است.')).toBeTruthy()
-  })
-
-  it('calls onSubmit when the submit button is pressed', async () => {
-    const onSubmit = jest.fn()
-    const { getByText } = await render(
-      withTheme(
-        <ReminderForm
-          values={EMPTY_VALUES}
-          errors={{}}
-          onChange={jest.fn()}
-          onSubmit={onSubmit}
-          submitLabel="ثبت یادآوری"
-          isSubmitting={false}
-        />
-      )
-    )
-
-    fireEvent.press(getByText('ثبت یادآوری'))
-    expect(onSubmit).toHaveBeenCalledTimes(1)
   })
 })

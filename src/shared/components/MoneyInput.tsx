@@ -13,7 +13,11 @@ type Props = {
   errorMessage?: string
   required?: boolean
   disabled?: boolean
-  /** Zero counts for the quick-add chip row — each renders as its Persian unit name (see ZERO_LABELS) or "+N صفر" if unnamed. Defaults to [3, 4, 5, 6]. */
+  /**
+   * Zero counts for the quick-scale chip row — real-estate prices in
+   * this app are effectively always stated in میلیون/میلیارد, so the
+   * default is exactly those two magnitudes (design-system.md §7.2.1).
+   */
   quickZeroCounts?: number[]
 }
 
@@ -24,10 +28,8 @@ function formatWithSeparators(rawDigits: string): string {
   return rawDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
-const ZERO_LABELS: Record<number, string> = {
-  3: 'هزار',
-  4: 'ده هزار',
-  5: 'صد هزار',
+/** Screen-reader label only — the visible chip shows the comma-grouped zero string itself, not a word. */
+const UNIT_NAMES: Record<number, string> = {
   6: 'میلیون',
   9: 'میلیارد'
 }
@@ -49,7 +51,7 @@ export function MoneyInput({
   errorMessage,
   required,
   disabled,
-  quickZeroCounts = [3, 4, 5, 6]
+  quickZeroCounts = [6, 9]
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -86,16 +88,22 @@ export function MoneyInput({
           </Text>
           <View style={styles.chipRow}>
             {quickZeroCounts.map((count) => {
-              const unitLabel = ZERO_LABELS[count]
-              // "×" (multiply), never "+" — these chips scale the digits
-              // already typed (e.g. "500" -> "500000000"), they don't add
-              // a flat amount, and a "+" prefix reads as addition.
-              const chipText = unitLabel ? `× ${unitLabel}` : `×۱۰^${count}`
+              // The chip's own label IS the zero group it appends
+              // ("000,000" for میلیون) — a digit string shows unambiguously
+              // what happens to the number when tapped, unlike a word name
+              // ("میلیون") or a "+"/"×" prefix, which both still require
+              // the reader to know what the operation actually does.
+              const chipText = formatWithSeparators('0'.repeat(count))
+              const unitName = UNIT_NAMES[count]
               return (
                 <Pressable
                   key={count}
                   accessibilityRole="button"
-                  accessibilityLabel={`ضرب عدد وارد شده در ${unitLabel ?? `ده به توان ${count}`}`}
+                  accessibilityLabel={
+                    unitName
+                      ? `ضرب عدد وارد شده در یک ${unitName}`
+                      : `افزودن ${count} صفر به عدد وارد شده`
+                  }
                   onPress={() => handleAddZeros(count)}
                   disabled={!value}
                   style={[styles.chip, !value && styles.chipDisabled]}

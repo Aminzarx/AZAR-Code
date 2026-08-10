@@ -69,14 +69,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
-      <ApplicantForm
-        values={values}
-        errors={errors}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-        submitLabel="ثبت متقاضی"
-        isSubmitting={isSubmitting}
-      />
+      <ApplicantForm values={values} errors={errors} onChange={handleChange} />
     </FormScreenContainer>
   )
 }

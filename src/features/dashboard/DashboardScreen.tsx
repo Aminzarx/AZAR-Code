@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
+import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { Avatar, ErrorState, Icon, LoadingIndicator } from '@shared/components'
@@ -25,19 +26,19 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
       id: 'add-property',
       label: 'افزودن پرونده ملکی',
       icon: 'files',
-      onPress: () => navigation.navigate('CreateProperty')
+      onPress: () => navigateAcrossTabs(navigation, 'CreateProperty', undefined)
     },
     {
       id: 'add-applicant',
       label: 'افزودن متقاضی',
       icon: 'person',
-      onPress: () => navigation.navigate('CreateApplicant')
+      onPress: () => navigateAcrossTabs(navigation, 'CreateApplicant', undefined)
     },
     {
       id: 'deals',
       label: 'مشاهده پیگیری‌ها',
       icon: 'deal',
-      onPress: () => navigation.navigate('DealList')
+      onPress: () => navigateAcrossTabs(navigation, 'DealList', undefined)
     }
   ]
 
@@ -45,7 +46,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="داشبورد">
         <Pressable
-          onPress={() => navigation.navigate('Settings')}
+          onPress={() => navigateAcrossTabs(navigation, 'Settings', undefined)}
           accessibilityRole="button"
           accessibilityLabel="مشاهده پروفایل و تنظیمات"
           style={styles.header}
@@ -95,13 +96,13 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                     stat={stat}
                     onPress={
                       stat.id === 'properties'
-                        ? () => navigation.navigate('PropertyList')
+                        ? () => navigateAcrossTabs(navigation, 'PropertyList', undefined)
                         : stat.id === 'applicants'
-                          ? () => navigation.navigate('ApplicantList')
+                          ? () => navigateAcrossTabs(navigation, 'ApplicantList', undefined)
                           : stat.id === 'deals'
-                            ? () => navigation.navigate('DealList')
+                            ? () => navigateAcrossTabs(navigation, 'DealList', undefined)
                             : stat.id === 'contracts'
-                              ? () => navigation.navigate('ContractList')
+                              ? () => navigateAcrossTabs(navigation, 'ContractList', undefined)
                               : undefined
                     }
                   />

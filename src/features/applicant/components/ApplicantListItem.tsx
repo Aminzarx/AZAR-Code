@@ -32,14 +32,29 @@ export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Elem
         <Text style={[theme.typography('bodySm'), styles.subtitle]}>
           {applicant.city} • {applicant.phoneNumber}
         </Text>
-        <View style={styles.metaRow}>
-          {budgetLabel ? (
-            <Text style={[theme.typography('labelMd'), styles.budget]}>{budgetLabel}</Text>
-          ) : null}
-          {applicant.rooms !== null ? (
-            <Text style={[theme.typography('labelSm'), styles.meta]}>{applicant.rooms} اتاق</Text>
-          ) : null}
-        </View>
+        {budgetLabel ? (
+          <Text style={[theme.typography('labelMd'), styles.budget]}>{budgetLabel}</Text>
+        ) : null}
+        {applicant.rooms !== null || applicant.preferredPropertyType ? (
+          <View style={styles.metaGrid}>
+            {applicant.preferredPropertyType ? (
+              <View style={styles.metaCell}>
+                <Text style={[theme.typography('bodySm'), styles.metaLabel]}>نوع ملک مدنظر</Text>
+                <Text style={[theme.typography('labelMd'), styles.metaValue]}>
+                  {applicant.preferredPropertyType}
+                </Text>
+              </View>
+            ) : null}
+            {applicant.rooms !== null ? (
+              <View style={styles.metaCell}>
+                <Text style={[theme.typography('bodySm'), styles.metaLabel]}>تعداد اتاق</Text>
+                <Text style={[theme.typography('labelMd'), styles.metaValue]}>
+                  {applicant.rooms} اتاق
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </Card>
     </Pressable>
   )
@@ -48,22 +63,37 @@ export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Elem
 function createStyles(theme: Theme) {
   return StyleSheet.create({
     title: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1
-    },
-    metaRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.space3,
-      marginTop: theme.spacing.space2
+      marginTop: theme.spacing.space1,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
     budget: {
-      color: theme.colors.primary
+      color: theme.colors.primary,
+      marginTop: theme.spacing.space2,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     },
-    meta: {
-      color: theme.colors.outline
+    metaGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.space3,
+      marginTop: theme.spacing.space3
+    },
+    metaCell: {
+      flexBasis: theme.component.statCardGrid.columnBasisPercent,
+      flexGrow: 0,
+      gap: theme.spacing.space1
+    },
+    metaLabel: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+    },
+    metaValue: {
+      color: theme.colors.onSurface,
+      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
     }
   })
 }

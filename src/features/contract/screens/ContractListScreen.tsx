@@ -3,6 +3,7 @@ import { FlatList, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
+import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { EmptyState, ErrorState, LoadingIndicator } from '@shared/components'
@@ -40,7 +41,7 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
               title="هنوز قراردادی ثبت نشده"
               description="قراردادها را از صفحه پیگیری ایجاد کنید."
               actionLabel="مشاهده پیگیری‌ها"
-              onAction={() => navigation.navigate('DealList')}
+              onAction={() => navigateAcrossTabs(navigation, 'DealList', undefined)}
             />
           </View>
         ) : (

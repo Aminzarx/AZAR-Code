@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { AutocompleteInput, Button, FormRow, MoneyInput, TextInput } from '@shared/components'
+import { AutocompleteInput, FormRow, MoneyInput, TextInput } from '@shared/components'
 import { PROPERTY_TRANSACTION_TYPES } from '@shared/data/realEstateOptions'
 import type { ContractFormErrors, ContractFormValues } from '../types'
 
@@ -9,20 +9,15 @@ type Props = {
   values: ContractFormValues
   errors: ContractFormErrors
   onChange: <K extends keyof ContractFormValues>(field: K, value: ContractFormValues[K]) => void
-  onSubmit: () => void
-  submitLabel: string
-  isSubmitting: boolean
 }
 
-/** Shared by CreateContractScreen and ContractDetailScreen's edit mode. */
-export function ContractForm({
-  values,
-  errors,
-  onChange,
-  onSubmit,
-  submitLabel,
-  isSubmitting
-}: Props): React.JSX.Element {
+/**
+ * Shared by CreateContractScreen and ContractDetailScreen's edit mode.
+ * Submitting happens via FormScreenContainer's persistent header save
+ * action (screen-level, not rendered here) — no duplicate bottom submit
+ * button.
+ */
+export function ContractForm({ values, errors, onChange }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
 
@@ -67,7 +62,6 @@ export function ContractForm({
         placeholder="توضیحات تکمیلی (اختیاری)"
         errorMessage={errors.notes}
       />
-      <Button label={submitLabel} onPress={onSubmit} loading={isSubmitting} style={styles.submit} />
     </View>
   )
 }
@@ -76,9 +70,6 @@ function createStyles(theme: Theme) {
   return StyleSheet.create({
     form: {
       gap: theme.spacing.space5
-    },
-    submit: {
-      marginTop: theme.spacing.space3
     }
   })
 }

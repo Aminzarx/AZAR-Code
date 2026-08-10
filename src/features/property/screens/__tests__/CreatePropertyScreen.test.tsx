@@ -52,7 +52,7 @@ describe('CreatePropertyScreen', () => {
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.press(getByText('ثبت پرونده')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     expect(await findByText('عنوان الزامی است.')).toBeTruthy()
     expect(mockReplace).not.toHaveBeenCalled()
@@ -68,7 +68,7 @@ describe('CreatePropertyScreen', () => {
     await waitFor(() => fireEvent.changeText(getByLabelText('عنوان پرونده'), 'آپارتمان جدید'))
     await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
     await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
-    await waitFor(() => fireEvent.press(getByText('ثبت پرونده')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
       expect(mockCreateProperty).toHaveBeenCalledWith(
@@ -90,7 +90,7 @@ describe('CreatePropertyScreen', () => {
 
     await waitFor(() => fireEvent.changeText(getByLabelText('عنوان پرونده'), 'آپارتمان جدید'))
     await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
-    await waitFor(() => fireEvent.press(getByText('ثبت پرونده')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     expect(await findByText('شهر الزامی است.')).toBeTruthy()
   })

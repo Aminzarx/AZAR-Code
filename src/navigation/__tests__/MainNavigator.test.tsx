@@ -9,9 +9,28 @@ import { MainNavigator } from '../MainNavigator'
 // those are stubbed here to keep this test about navigation structure,
 // not re-testing every screen's internals.
 jest.mock('@features/dashboard/DashboardScreen', () => ({
-  DashboardScreen: () => {
+  DashboardScreen: ({
+    navigation
+  }: {
+    navigation: import('@react-navigation/native').NavigationProp<object>
+  }) => {
+    const { Text: RNText, Pressable } = require('react-native')
+    const { navigateAcrossTabs } = require('../crossTabNavigate')
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="برو به جزئیات پرونده"
+        onPress={() => navigateAcrossTabs(navigation, 'PropertyDetail', { propertyId: 'p1' })}
+      >
+        <RNText>صفحه خانه</RNText>
+      </Pressable>
+    )
+  }
+}))
+jest.mock('@features/property/screens/PropertyDetailScreen', () => ({
+  PropertyDetailScreen: () => {
     const { Text: RNText } = require('react-native')
-    return <RNText>صفحه خانه</RNText>
+    return <RNText>صفحه جزئیات پرونده</RNText>
   }
 }))
 jest.mock('@features/files/screens/FilesScreen', () => ({
@@ -74,5 +93,17 @@ describe('MainNavigator', () => {
     const { findByText } = await renderMainNavigator()
     fireEvent.press(await findByText('پروفایل'))
     expect(await findByText('صفحه پروفایل')).toBeTruthy()
+  })
+
+  it('navigating from Home to a Files-owned screen switches to the Files tab, not a push within Home', async () => {
+    const { findByLabelText, findByText, queryByText } = await renderMainNavigator()
+    fireEvent.press(await findByLabelText('برو به جزئیات پرونده'))
+
+    expect(await findByText('صفحه جزئیات پرونده')).toBeTruthy()
+    // The Home tab's own root screen is no longer mounted on top of a
+    // pushed PropertyDetail — the whole HomeTab stack was left behind in
+    // favor of switching to FilesTab, which is what makes the back
+    // button land on Files (not retrace through Home) afterward.
+    expect(queryByText('صفحه خانه')).toBeNull()
   })
 })

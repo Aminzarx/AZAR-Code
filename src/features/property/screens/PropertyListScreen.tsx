@@ -26,7 +26,7 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
           label="جستجو"
           value={search}
           onChangeText={setSearch}
-          placeholder="عنوان، شهر یا آدرس"
+          placeholder="عنوان، شهر، آدرس یا قیمت"
         />
 
         {isLoading ? (

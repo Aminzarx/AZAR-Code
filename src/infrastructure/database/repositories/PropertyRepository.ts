@@ -104,15 +104,23 @@ export class PropertyRepository {
     return row ? toProperty(row) : null
   }
 
-  /** `search` matches against title, city, and address (simple substring, case-insensitive via SQLite's default LIKE collation). */
+  /**
+   * design-system.md §7.2.2 — `search` matches against title, city,
+   * address, and price (simple substring, case-insensitive via SQLite's
+   * default LIKE collation; price is cast to text since it's stored as
+   * a plain-digit number, so a search like "500" also finds it inside a
+   * price value).
+   */
   async findAllByOwner(ownerId: string, search?: string): Promise<PropertyRecord[]> {
     if (search && search.trim().length > 0) {
       const pattern = `%${search.trim()}%`
       const result = await this.db.execute(
         `SELECT * FROM properties
-         WHERE owner_id = ? AND (title LIKE ? OR city LIKE ? OR address LIKE ?)
+         WHERE owner_id = ? AND (
+           title LIKE ? OR city LIKE ? OR address LIKE ? OR CAST(price AS TEXT) LIKE ?
+         )
          ORDER BY created_at DESC, rowid DESC`,
-        [ownerId, pattern, pattern, pattern]
+        [ownerId, pattern, pattern, pattern, pattern]
       )
       return result.rows.map(toProperty)
     }

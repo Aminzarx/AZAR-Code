@@ -138,6 +138,39 @@ describe('PropertyRepository', () => {
     expect(results[0]?.id).toBe('prop-2')
   })
 
+  it('filters by search text against price', async () => {
+    await repository.create({
+      id: 'prop-1',
+      ownerId: OWNER_ID,
+      title: 'آپارتمان لوکس',
+      propertyType: null,
+      transactionType: null,
+      city: 'تهران',
+      address: 'آدرس ۱',
+      price: 500000000,
+      area: null,
+      rooms: null,
+      description: null
+    })
+    await repository.create({
+      id: 'prop-2',
+      ownerId: OWNER_ID,
+      title: 'ویلای شمال',
+      propertyType: null,
+      transactionType: null,
+      city: 'شیراز',
+      address: 'آدرس ۲',
+      price: 900000000,
+      area: null,
+      rooms: null,
+      description: null
+    })
+
+    const results = await repository.findAllByOwner(OWNER_ID, '500000000')
+    expect(results).toHaveLength(1)
+    expect(results[0]?.id).toBe('prop-1')
+  })
+
   it('counts properties for an owner', async () => {
     expect(await repository.countByOwner(OWNER_ID)).toBe(0)
     await repository.create({

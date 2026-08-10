@@ -67,14 +67,7 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
-      <ReminderForm
-        values={values}
-        errors={errors}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-        submitLabel="ثبت یادآوری"
-        isSubmitting={isSubmitting}
-      />
+      <ReminderForm values={values} errors={errors} onChange={handleChange} />
     </FormScreenContainer>
   )
 }

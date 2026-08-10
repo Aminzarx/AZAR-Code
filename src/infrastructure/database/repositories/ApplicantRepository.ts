@@ -134,14 +134,21 @@ export class ApplicantRepository {
     return result.rows.map(toApplicant)
   }
 
-  /** Matches against full name, city, and phone number (simple substring). */
+  /**
+   * design-system.md §7.2.2 — matches against full name, city, phone
+   * number, and budget (min/max, cast to text since they're stored as
+   * plain-digit numbers) — simple substring.
+   */
   async search(userId: string, query: string): Promise<ApplicantRecord[]> {
     const pattern = `%${query.trim()}%`
     const result = await this.db.execute(
       `SELECT * FROM applicants
-       WHERE user_id = ? AND (full_name LIKE ? OR city LIKE ? OR phone_number LIKE ?)
+       WHERE user_id = ? AND (
+         full_name LIKE ? OR city LIKE ? OR phone_number LIKE ?
+         OR CAST(min_budget AS TEXT) LIKE ? OR CAST(max_budget AS TEXT) LIKE ?
+       )
        ORDER BY created_at DESC, rowid DESC`,
-      [userId, pattern, pattern, pattern]
+      [userId, pattern, pattern, pattern, pattern, pattern]
     )
     return result.rows.map(toApplicant)
   }

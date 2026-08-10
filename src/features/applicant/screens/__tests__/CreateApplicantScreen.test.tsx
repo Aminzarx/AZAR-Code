@@ -54,7 +54,7 @@ describe('CreateApplicantScreen', () => {
       withTheme(<CreateApplicantScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.press(getByText('ثبت متقاضی')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     expect(await findByText('نام الزامی است.')).toBeTruthy()
     expect(mockReplace).not.toHaveBeenCalled()
@@ -70,7 +70,7 @@ describe('CreateApplicantScreen', () => {
     await waitFor(() => fireEvent.changeText(getByLabelText('نام و نام خانوادگی'), 'علی رضایی'))
     await waitFor(() => fireEvent.changeText(getByLabelText('شماره تماس'), '09121234567'))
     await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
-    await waitFor(() => fireEvent.press(getByText('ثبت متقاضی')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
       expect(mockCreateApplicant).toHaveBeenCalledWith(

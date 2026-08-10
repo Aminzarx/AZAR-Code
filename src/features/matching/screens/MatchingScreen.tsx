@@ -3,6 +3,7 @@ import { FlatList, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
+import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { EmptyState, ErrorState, LoadingIndicator, SegmentedControl } from '@shared/components'
@@ -26,8 +27,10 @@ const OPTIONS = [
  * SuggestedPropertiesSection on the property/applicant detail screens) —
  * this is the entry point into that: pick a property or applicant here,
  * land on its detail screen where its matches are shown. Deliberately a
- * lighter list than the Files tab (no search, no create action) so the
- * two tabs read as distinct purposes rather than duplicates.
+ * lighter list than the Files tab (no search) so the two tabs read as
+ * distinct purposes rather than duplicates — but the empty state still
+ * offers a way to create the first record right from here, same as
+ * every other list screen in the app.
  */
 export function MatchingScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
@@ -68,6 +71,8 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
               <EmptyState
                 title="هنوز پرونده‌ای ثبت نشده"
                 description="با افزودن یک پرونده ملکی از تب املاک، پیشنهادهای تطبیق اینجا در دسترس می‌شود."
+                actionLabel="افزودن پرونده ملکی"
+                onAction={() => navigateAcrossTabs(navigation, 'CreateProperty', undefined)}
               />
             </View>
           ) : (
@@ -78,7 +83,9 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
               renderItem={({ item }) => (
                 <PropertyListItem
                   property={item}
-                  onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.id })}
+                  onPress={() =>
+                    navigateAcrossTabs(navigation, 'PropertyDetail', { propertyId: item.id })
+                  }
                 />
               )}
             />
@@ -88,6 +95,8 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
             <EmptyState
               title="هنوز متقاضی‌ای ثبت نشده"
               description="با افزودن یک متقاضی از تب املاک، پیشنهادهای تطبیق اینجا در دسترس می‌شود."
+              actionLabel="افزودن متقاضی"
+              onAction={() => navigateAcrossTabs(navigation, 'CreateApplicant', undefined)}
             />
           </View>
         ) : (
@@ -98,7 +107,9 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
             renderItem={({ item }) => (
               <ApplicantListItem
                 applicant={item}
-                onPress={() => navigation.navigate('ApplicantDetail', { applicantId: item.id })}
+                onPress={() =>
+                  navigateAcrossTabs(navigation, 'ApplicantDetail', { applicantId: item.id })
+                }
               />
             )}
           />

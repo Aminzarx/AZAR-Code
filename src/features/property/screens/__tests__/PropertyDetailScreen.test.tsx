@@ -93,10 +93,10 @@ describe('PropertyDetailScreen', () => {
     )
 
     fireEvent.press(await findByText('ویرایش'))
-    expect(await findByText('ذخیره تغییرات')).toBeTruthy()
+    expect(await findByText('ذخیره')).toBeTruthy()
 
     await waitFor(() => fireEvent.changeText(getByLabelText('عنوان پرونده'), 'عنوان جدید'))
-    await waitFor(() => fireEvent.press(getByText('ذخیره تغییرات')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
       expect(mockUpdateProperty).toHaveBeenCalledWith(

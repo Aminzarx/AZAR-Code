@@ -106,10 +106,10 @@ describe('ApplicantDetailScreen', () => {
     )
 
     fireEvent.press(await findByText('ویرایش'))
-    expect(await findByText('ذخیره تغییرات')).toBeTruthy()
+    expect(await findByText('ذخیره')).toBeTruthy()
 
     await waitFor(() => fireEvent.changeText(getByLabelText('نام و نام خانوادگی'), 'نام جدید'))
-    await waitFor(() => fireEvent.press(getByText('ذخیره تغییرات')))
+    await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
       expect(mockUpdateApplicant).toHaveBeenCalledWith(
