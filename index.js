@@ -2,8 +2,7 @@
  * @format
  */
 
-import { AppRegistry, I18nManager } from 'react-native'
-import RNRestart from 'react-native-restart'
+import { AppRegistry, I18nManager, NativeModules } from 'react-native'
 import { App } from './src/app/App'
 import { name as appName } from './app.json'
 
@@ -14,29 +13,25 @@ import { name as appName } from './app.json'
 // Without this, the app renders LTR-mirrored on any device whose OS
 // locale isn't RTL.
 //
-// The real bug this fixes (found after RTL issues kept being reported
-// despite exhaustive per-screen alignSelf audits): forceRTL() only
-// *persists* the setting for the native layout engine — it does not
-// retroactively mirror the Activity/root view that Android already
-// created before this JS ever ran. On the very first launch after a
-// fresh install *or an app update* (both start a brand-new process),
-// I18nManager.isRTL reads false, forceRTL(true) sets the flag for next
-// time, but that same first session still renders LTR-mirrored rows
-// (flexDirection: 'row' order, ScrollView direction, etc.) because the
-// native side never re-reads the flag mid-session. Previously this
-// required the user to manually force-close and reopen the app once
-// before RTL mirroring actually took effect — which reads as "RTL is
-// still broken" on every fresh install/update. Fixing it for real means
-// not waiting for that: force one immediate, automatic restart the
-// moment we flip the flag, so the *next* process (which the user never
-// has to trigger themselves) boots directly in the correct RTL state.
+// The real bug: forceRTL() only *persists* the setting for the native
+// layout engine — Android applies it when a ReactRootView is created, not
+// mid-session. On the very first launch after a fresh install or app
+// update (both start a brand-new process), that first ReactRootView is
+// already created before this code runs, so it still renders
+// LTR-mirrored until something creates a *new* ReactRootView.
+//
+// A previous attempt used the `react-native-restart` package, which
+// turned out not to fix this: on Android its `Restart()` only calls
+// `ReactInstanceManager.recreateReactContextInBackground()`, which
+// reloads the JS bundle inside the *same* Activity/ReactRootView — the
+// layout direction never gets re-read. `AzarRestart.recreateActivity()`
+// (android/app/src/main/java/com/azarapp/AzarRestartModule.kt) calls the
+// real `Activity.recreate()`, which creates a fresh ReactRootView that
+// picks up the now-persisted RTL flag.
 AppRegistry.registerComponent(appName, () => App)
 
 if (!I18nManager.isRTL) {
   I18nManager.allowRTL(true)
   I18nManager.forceRTL(true)
-  // Registered above first as a safety net in case restart() doesn't
-  // fire instantly on some device — better a correctly-registered root
-  // component for a stray frame than none at all.
-  RNRestart.restart()
+  NativeModules.AzarRestart?.recreateActivity()
 }

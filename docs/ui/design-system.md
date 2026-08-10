@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.7.2)
+# AZAR Design System — "Minimal Luxury" (v2.8.0)
 
 ## 0. Positioning statement
 
@@ -205,16 +205,22 @@ harsh against the off-white-gray background.
 
 ## 6. Iconography
 
-Zero-dependency, hand-drawn pure-`View`/border composition (see
-`src/shared/components/Icon.tsx`) — no icon font or vector-icon library
-is bundled (native-linking risk during a period where getting *any*
-Android build working was already fragile; revisit only if that
-constraint changes). All glyphs share one stroke-weight formula and one
-corner-rounding convention, rounded corners (soft, not sharp — matches
-§4's shape scale) so the set reads as one family regardless of which
-glyph is used where. Default tint is `onSurface`; accent icons (stat
-badges, quick actions) tint with the matching container's
-`on*Container` color from §1.
+**v2.8.0 — switched to `react-native-vector-icons` (Ionicons font).**
+The previous hand-drawn pure-`View`/border composition kept shipping
+visibly wrong shapes across multiple fix rounds (broken tab icons, a
+crude 'inbox' glyph, etc.) because every glyph was redrawn from scratch
+by eye instead of coming from a real, professionally designed set. That
+zero-dependency approach was chosen early on to avoid native-linking
+risk during a period where getting *any* Android build working was
+fragile; that constraint no longer holds (`react-native-svg` and
+`react-native-camera-kit` are already linked and building successfully),
+so there's no remaining reason to hand-draw icons. `Icon.tsx` now maps
+each `IconName` to an Ionicons glyph name and renders it via
+`react-native-vector-icons/Ionicons`; `android/app/build.gradle` links
+only the `Ionicons.ttf` font (not the whole bundled font set) via
+`fonts.gradle`. Default tint is `onSurface`; accent icons (stat badges,
+quick actions) tint with the matching container's `on*Container` color
+from §1.
 
 Sizes: `xs`(16) `sm`(18) `md`(24, default) `lg`(32) `xl`(48).
 
@@ -464,24 +470,39 @@ enforced contract. The one deliberate exception is OTP digit order,
 which stays strict left-to-right regardless of RTL (digits are read the
 same direction as the SMS containing them) — documented in `OtpInput.tsx`.
 
-**v2.7.1 — the real remaining root cause, fixed for good.** After the
+**v2.7.1 attempted a fix that didn't actually work — v2.8.0 replaces
+it with one verified against the library's own source.** After the
 exhaustive v2.4.0 per-file `alignSelf` audit, RTL was still reported
-broken on fresh installs and app updates. The actual cause was
-upstream of any component code: `I18nManager.forceRTL(true)` only
-*persists* the RTL flag for native layout mirroring — it does not
-retroactively re-mirror the Activity/root view Android already created
-before the JS bundle ran. On the very first launch of a brand-new
-process (every fresh install, and every app update — both start a new
-process), that first session still renders row-direction layout
-LTR-mirrored, and only the *next* launch reads the persisted flag
-correctly. Previously this meant a user had to manually force-close
-and reopen the app once after installing/updating before RTL mirroring
-actually applied — reading, indistinguishably, as "RTL is still
-broken." `index.js` now calls `react-native-restart` immediately after
-flipping the flag for the first time, so that manual step happens
-automatically and invisibly — the app self-corrects within the same
-install/update, with no user action required. See `index.js`'s comment
-for the full mechanism.
+broken on fresh installs and app updates. The cause was correctly
+diagnosed as upstream of any component code: `I18nManager.forceRTL(true)`
+only *persists* the RTL flag for native layout mirroring — Android
+applies it when a `ReactRootView` is created, not mid-session, so the
+very first `ReactRootView` of a fresh install or app update (created
+before this JS ever runs) still renders LTR-mirrored.
+
+v2.7.1's fix — calling `react-native-restart`'s `restart()` right after
+flipping the flag — turned out not to fix this at all. Reading that
+package's own Android source
+(`node_modules/react-native-restart/android/.../RestartModule.java`)
+shows `Restart()` calls `ReactInstanceManager.recreateReactContextInBackground()`,
+which reloads the JS bundle *inside the same Activity/ReactRootView* —
+it never creates a new root view, so the layout direction is never
+re-read. (The module even imports `ProcessPhoenix`, which *would* do a
+real process restart, but never actually calls it — dead code left
+over from an earlier version of the library.) This is why RTL kept
+being reported broken even after that "fix" shipped and built
+successfully.
+
+v2.8.0's fix is a ~15-line custom native module,
+`AzarRestart.recreateActivity()`
+(`android/app/src/main/java/com/azarapp/AzarRestartModule.kt`), that
+calls the real `Activity.recreate()` — which *does* create a fresh
+`ReactRootView` and picks up the now-persisted RTL flag. `index.js`
+calls it immediately after flipping the flag for the first time, so
+the correction happens automatically within the same install/update,
+no manual force-close required. `react-native-restart` has been
+removed as a dependency — it added native-dependency risk for a fix
+that never worked.
 
 RTL is a cross-cutting system, not a per-screen concern — the rules
 below apply to every screen and every shared component, not just the

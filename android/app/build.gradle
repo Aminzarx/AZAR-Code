@@ -129,3 +129,12 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// react-native-vector-icons: copies just the Ionicons .ttf into the build
+// output at build time (project.ext.vectoricons restricts fonts.gradle's
+// default "every bundled family" copy to only the one this app uses), so
+// Android can render the icon glyphs without any font linked in JS.
+project.ext.vectoricons = [
+    iconFontNames: ["Ionicons.ttf"]
+]
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
