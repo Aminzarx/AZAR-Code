@@ -10,8 +10,18 @@ const router = express.Router()
 
 // Per-route limits, not global — matches ADR-009's "every one of these five
 // operations must be individually rate-limited" instruction.
-const otpLimiter = rateLimit({ windowMs: 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false })
-const registerLimiter = rateLimit({ windowMs: 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false })
+const otpLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false
+})
+const registerLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false
+})
 
 function fail(res, status, code, message) {
   res.status(status).json({ error: { code, message } })
@@ -100,7 +110,12 @@ router.post('/register', registerLimiter, (req, res) => {
     return fail(res, 422, 'self_referral', 'You cannot use your own referral code.')
   }
   if (findUserByPhone(phoneNumber)) {
-    return fail(res, 422, 'phone_already_registered', 'This phone number is already registered. Log in instead.')
+    return fail(
+      res,
+      422,
+      'phone_already_registered',
+      'This phone number is already registered. Log in instead.'
+    )
   }
 
   const user = {
@@ -127,7 +142,12 @@ router.post('/register', registerLimiter, (req, res) => {
     // update/delete statement for this table exists anywhere in this file.
     db.prepare(
       'INSERT INTO referral_relationships (id, referrer_user_id, referred_user_id, created_at) VALUES (?, ?, ?, ?)'
-    ).run(relationship.id, relationship.referrer_user_id, relationship.referred_user_id, relationship.created_at)
+    ).run(
+      relationship.id,
+      relationship.referrer_user_id,
+      relationship.referred_user_id,
+      relationship.created_at
+    )
     db.prepare('INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)').run(
       sessionToken,
       user.id,
@@ -163,6 +183,43 @@ router.post('/login', registerLimiter, (req, res) => {
   })()
 
   res.status(200).json({ userId: user.id, referralCode: user.referral_code, sessionToken })
+})
+
+// Requires the same fresh OTP-verified state as register/login — deleting
+// an account is at least as sensitive as creating one, so it gets the same
+// re-confirmation, not a bare "are you sure" tap.
+router.post('/delete-account', registerLimiter, (req, res) => {
+  const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
+
+  const otpState = db.prepare('SELECT * FROM otp_requests WHERE phone_number = ?').get(phoneNumber)
+  if (!otpState?.verified) {
+    return fail(
+      res,
+      401,
+      'authentication_required',
+      'Verify your phone number before deleting your account.'
+    )
+  }
+
+  const user = findUserByPhone(phoneNumber)
+  if (!user) {
+    return fail(res, 422, 'invalid_phone_number', 'No account found for this number.')
+  }
+
+  db.transaction(() => {
+    // referral_relationships has no ON DELETE action on its user
+    // references, so this account's referral trail (both as referrer and
+    // as referred) has to go first, or the FK constraint blocks the user
+    // row's own delete.
+    db.prepare(
+      'DELETE FROM referral_relationships WHERE referrer_user_id = ? OR referred_user_id = ?'
+    ).run(user.id, user.id)
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
+    db.prepare('DELETE FROM users WHERE id = ?').run(user.id)
+    db.prepare('DELETE FROM otp_requests WHERE phone_number = ?').run(phoneNumber)
+  })()
+
+  res.status(204).end()
 })
 
 module.exports = router

@@ -13,6 +13,9 @@ export type PropertyRecord = {
   price: number | null
   area: number | null
   rooms: number | null
+  depositAmount: number | null
+  rentAmount: number | null
+  isConvertible: boolean
   description: string | null
   status: PropertyStatus
   createdAt: string
@@ -30,6 +33,9 @@ export type CreatePropertyRecord = {
   price: number | null
   area: number | null
   rooms: number | null
+  depositAmount: number | null
+  rentAmount: number | null
+  isConvertible: boolean
   description: string | null
 }
 
@@ -42,6 +48,9 @@ export type UpdatePropertyRecord = {
   price: number | null
   area: number | null
   rooms: number | null
+  depositAmount: number | null
+  rentAmount: number | null
+  isConvertible: boolean
   description: string | null
   status: PropertyStatus
 }
@@ -58,6 +67,9 @@ function toProperty(row: Record<string, unknown>): PropertyRecord {
     price: row.price as number | null,
     area: row.area as number | null,
     rooms: row.rooms as number | null,
+    depositAmount: row.deposit_amount as number | null,
+    rentAmount: row.rent_amount as number | null,
+    isConvertible: Boolean(row.is_convertible),
     description: row.description as string | null,
     status: row.status as PropertyStatus,
     createdAt: row.created_at as string,
@@ -72,8 +84,9 @@ export class PropertyRepository {
     const now = new Date().toISOString()
     await this.db.execute(
       `INSERT INTO properties
-        (id, owner_id, title, property_type, transaction_type, city, address, price, area, rooms, description, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+        (id, owner_id, title, property_type, transaction_type, city, address, price, area, rooms,
+         deposit_amount, rent_amount, is_convertible, description, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
       [
         property.id,
         property.ownerId,
@@ -85,6 +98,9 @@ export class PropertyRepository {
         property.price,
         property.area,
         property.rooms,
+        property.depositAmount,
+        property.rentAmount,
+        property.isConvertible ? 1 : 0,
         property.description,
         now,
         now
@@ -145,7 +161,8 @@ export class PropertyRepository {
     await this.db.execute(
       `UPDATE properties
        SET title = ?, property_type = ?, transaction_type = ?, city = ?, address = ?,
-           price = ?, area = ?, rooms = ?, description = ?, status = ?, updated_at = ?
+           price = ?, area = ?, rooms = ?, deposit_amount = ?, rent_amount = ?, is_convertible = ?,
+           description = ?, status = ?, updated_at = ?
        WHERE id = ?`,
       [
         property.title,
@@ -156,6 +173,9 @@ export class PropertyRepository {
         property.price,
         property.area,
         property.rooms,
+        property.depositAmount,
+        property.rentAmount,
+        property.isConvertible ? 1 : 0,
         property.description,
         property.status,
         now,

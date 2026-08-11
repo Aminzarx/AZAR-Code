@@ -134,4 +134,18 @@ export class MockAuthApiClient implements AuthApiClient {
       sessionToken: this.generateId()
     }
   }
+
+  async deleteAccount(phoneNumber: string): Promise<void> {
+    const state = this.otpState.get(phoneNumber)
+    if (!state?.verified) {
+      throw new AuthenticationFailureError('Verify your phone number before deleting your account.')
+    }
+
+    const user = await this.userRepository.findByPhoneNumber(phoneNumber)
+    if (!user) {
+      throw new ValidationFailureError('No account found for this number.', 'invalid_phone_number')
+    }
+
+    this.otpState.delete(phoneNumber)
+  }
 }

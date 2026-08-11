@@ -15,6 +15,9 @@ const EMPTY_VALUES: ApplicantFormValues = {
   minArea: '',
   maxArea: '',
   rooms: '',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 

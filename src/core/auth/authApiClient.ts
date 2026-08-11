@@ -24,4 +24,6 @@ export type AuthApiClient = {
   verifyOtp(phoneNumber: string, code: string): Promise<void>
   register(phoneNumber: string, referralCode: string): Promise<RegisterResult>
   login(phoneNumber: string): Promise<LoginResult>
+  /** Requires the same fresh OTP-verified state as register/login — see server/README.md. */
+  deleteAccount(phoneNumber: string): Promise<void>
 }

@@ -18,6 +18,9 @@ const EMPTY_VALUES: ApplicantFormValues = {
   minArea: '',
   maxArea: '',
   rooms: '',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 
@@ -36,7 +39,7 @@ const mockedUseApplicantService = useApplicantService as jest.MockedFunction<
   typeof useApplicantService
 >
 
-const navigationProp = { replace: mockReplace } as never
+const navigationProp = { replace: mockReplace, addListener: jest.fn(() => jest.fn()) } as never
 const routeProp = { key: 'CreateApplicant', name: 'CreateApplicant' as const, params: undefined }
 
 describe('CreateApplicantScreen', () => {

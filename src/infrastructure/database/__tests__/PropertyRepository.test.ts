@@ -40,6 +40,9 @@ describe('PropertyRepository', () => {
       price: 5000000000,
       area: 120,
       rooms: 2,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -61,6 +64,9 @@ describe('PropertyRepository', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -84,6 +90,9 @@ describe('PropertyRepository', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     await repository.create({
@@ -97,6 +106,9 @@ describe('PropertyRepository', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -117,6 +129,9 @@ describe('PropertyRepository', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     await repository.create({
@@ -130,6 +145,9 @@ describe('PropertyRepository', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -150,6 +168,9 @@ describe('PropertyRepository', () => {
       price: 500000000,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     await repository.create({
@@ -163,6 +184,9 @@ describe('PropertyRepository', () => {
       price: 900000000,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -184,6 +208,9 @@ describe('PropertyRepository', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     expect(await repository.countByOwner(OWNER_ID)).toBe(1)
@@ -201,6 +228,9 @@ describe('PropertyRepository', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -213,6 +243,9 @@ describe('PropertyRepository', () => {
       price: 1000000,
       area: 80,
       rooms: 1,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: 'توضیحات',
       status: 'archived'
     })
@@ -234,6 +267,9 @@ describe('PropertyRepository', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -254,6 +290,9 @@ describe('PropertyRepository', () => {
         price: null,
         area: null,
         rooms: null,
+        depositAmount: null,
+        rentAmount: null,
+        isConvertible: false,
         description: null
       })
     ).rejects.toThrow()

@@ -60,6 +60,9 @@ describe('ContractService', () => {
       price: '',
       area: '',
       rooms: '',
+      depositAmount: '',
+      rentAmount: '',
+      isConvertible: false,
       description: ''
     })
     propertyId = property.id
@@ -75,6 +78,9 @@ describe('ContractService', () => {
       minArea: '',
       maxArea: '',
       rooms: '',
+      depositAmount: '',
+      rentAmount: '',
+      isConvertible: false,
       description: ''
     })
     applicantId = applicant.id

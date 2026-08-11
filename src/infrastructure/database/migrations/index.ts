@@ -12,6 +12,7 @@ import { migration0010DealPipeline } from './0010_deal_pipeline'
 import { migration0011ActivityAndAuditLog } from './0011_activity_and_audit_log'
 import { migration0012ReminderAndContractExpansion } from './0012_reminder_and_contract_expansion'
 import { migration0013PropertyOwnerContact } from './0013_property_owner_contact'
+import { migration0014RentMortgageFields } from './0014_rent_mortgage_fields'
 
 /**
  * Ordered by version, ascending — docs/architecture/migration-strategy.md
@@ -30,5 +31,6 @@ export const migrations: readonly Migration[] = [
   migration0010DealPipeline,
   migration0011ActivityAndAuditLog,
   migration0012ReminderAndContractExpansion,
-  migration0013PropertyOwnerContact
+  migration0013PropertyOwnerContact,
+  migration0014RentMortgageFields
 ]

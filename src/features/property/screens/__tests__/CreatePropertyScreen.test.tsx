@@ -16,6 +16,9 @@ const EMPTY_VALUES: PropertyFormValues = {
   price: '',
   area: '',
   rooms: '',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 
@@ -34,7 +37,7 @@ const mockedUsePropertyService = usePropertyService as jest.MockedFunction<
   typeof usePropertyService
 >
 
-const navigationProp = { replace: mockReplace } as never
+const navigationProp = { replace: mockReplace, addListener: jest.fn(() => jest.fn()) } as never
 const routeProp = { key: 'CreateProperty', name: 'CreateProperty' as const, params: undefined }
 
 describe('CreatePropertyScreen', () => {

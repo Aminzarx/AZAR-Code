@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.8.5)
+# AZAR Design System — "Minimal Luxury" (v2.8.6)
 
 ## 0. Positioning statement
 
@@ -469,6 +469,20 @@ mirroring), not just `textAlign: 'right'` — see `rtl.test.tsx` for the
 enforced contract. The one deliberate exception is OTP digit order,
 which stays strict left-to-right regardless of RTL (digits are read the
 same direction as the SMS containing them) — documented in `OtpInput.tsx`.
+
+**Mandatory rule (v2.8.6), codified per explicit product direction: Persian
+text starts from the right edge of the screen, everywhere, with no
+per-screen exceptions.** The enforcement mechanism is `theme.typography()`
+(`ThemeProvider.tsx`) — every call returns `textAlign: 'right'` and
+`writingDirection: 'rtl'` whenever `isRTL` is true, unconditionally, for
+every variant. A component is only exempt from this rule if it never calls
+`theme.typography()` for a given piece of Persian text and instead hardcodes
+its own `textAlign`; an app-wide audit (`grep -rn "textAlign:\s*'left'"
+src/`) confirms zero such hardcoded exceptions exist anywhere in `src/` as
+of this version — the only match is the conditional definition inside
+`ThemeProvider.tsx` itself. Any future component that renders Persian text
+outside `theme.typography()` must still resolve to right/`rtl` under
+`isRTL`, or it is a bug against this rule, not a stylistic choice.
 
 **v2.7.1 attempted a fix that didn't actually work — v2.8.0 replaces
 it with one verified against the library's own source.** After the

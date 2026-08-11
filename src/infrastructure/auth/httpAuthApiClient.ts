@@ -48,6 +48,10 @@ export class HttpAuthApiClient implements AuthApiClient {
     return this.post('/auth/login', { phoneNumber })
   }
 
+  async deleteAccount(phoneNumber: string): Promise<void> {
+    await this.post('/auth/delete-account', { phoneNumber })
+  }
+
   private async post<T>(path: string, body: unknown): Promise<T> {
     let response: Response
     try {

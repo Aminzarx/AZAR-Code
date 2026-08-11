@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button } from './Button'
-import { TextInput } from './TextInput'
+import { OtpInput } from './OtpInput'
 
 type Props = {
   visible: boolean
@@ -20,19 +20,21 @@ type Props = {
   cancelLabel?: string
   isSubmitting?: boolean
   errorMessage?: string
-  onConfirm: (password: string) => void
+  onConfirm: (code: string) => void
   onCancel: () => void
 }
 
+const CODE_LENGTH = 6
+
 /**
- * Same "glass" dialog shell as ConfirmDialog (design-system.md §7.9),
- * with a password field instead of a yes/no choice — currently used to
- * collect the encryption password for a database backup
- * (BackupService.createBackupFile). Clears its own field state on close
- * so a cancelled/dismissed dialog never leaves a password sitting in
- * memory in a component that stays mounted.
+ * Same "glass" dialog shell as ConfirmDialog/PasswordPromptDialog
+ * (design-system.md §7.9), with the 6-box OTP entry instead of a yes/no
+ * choice or a password field — for actions that need a fresh SMS-code
+ * confirmation on top of an already-active session (currently: account
+ * deletion). Clears its own code state on close, same reasoning as
+ * PasswordPromptDialog.
  */
-export function PasswordPromptDialog({
+export function OtpPromptDialog({
   visible,
   title,
   description,
@@ -45,28 +47,23 @@ export function PasswordPromptDialog({
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
 
   function handleCancel(): void {
-    setPassword('')
+    setCode('')
     onCancel()
   }
 
   function handleConfirm(): void {
-    onConfirm(password)
+    onConfirm(code)
   }
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleCancel}>
-      {/* RN's Modal renders in its own native window, outside the
-          Activity's normal view hierarchy — AndroidManifest's
-          windowSoftInputMode=adjustResize (which handles this for every
-          regular screen, see FormScreenContainer's own comment) doesn't
-          reach in here, so the keyboard would otherwise sit on top of the
-          field with no avoidance at all. `card`'s maxHeight bounds how far
-          this can push the dialog up, so on a short screen with a keyboard
-          covering more than half of it, the dialog shrinks and scrolls
-          internally instead of climbing off the top edge. */}
+      {/* See PasswordPromptDialog's comment — Modal renders outside the
+          normal view hierarchy, so it needs its own explicit keyboard
+          avoidance; `card`'s maxHeight keeps it from climbing off the top
+          edge on a short screen. */}
       <KeyboardAvoidingView
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -80,14 +77,10 @@ export function PasswordPromptDialog({
           <Pressable style={styles.card} onPress={(event) => event.stopPropagation()}>
             <Text style={[theme.typography('titleMd'), styles.title]}>{title}</Text>
             <Text style={[theme.typography('bodyMd'), styles.description]}>{description}</Text>
-            <TextInput
-              label="رمز عبور"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              errorMessage={errorMessage}
-              autoFocus
-            />
+            <OtpInput value={code} onChangeValue={setCode} disabled={isSubmitting} />
+            {errorMessage ? (
+              <Text style={[theme.typography('bodySm'), styles.errorText]}>{errorMessage}</Text>
+            ) : null}
             <View style={styles.actions}>
               <Button
                 label={cancelLabel}
@@ -100,7 +93,7 @@ export function PasswordPromptDialog({
                 label={confirmLabel}
                 onPress={handleConfirm}
                 loading={isSubmitting}
-                disabled={password.length < 8}
+                disabled={code.length < CODE_LENGTH}
                 style={styles.action}
               />
             </View>
@@ -141,6 +134,10 @@ function createStyles(theme: Theme) {
     },
     description: {
       color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+    },
+    errorText: {
+      color: theme.colors.error,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     actions: {

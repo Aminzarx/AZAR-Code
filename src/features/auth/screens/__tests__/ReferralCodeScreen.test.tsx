@@ -26,7 +26,8 @@ describe('ReferralCodeScreen', () => {
       verifyOtp: jest.fn(),
       register: mockRegister,
       login: jest.fn(),
-      logout: jest.fn()
+      logout: jest.fn(),
+      deleteAccount: jest.fn()
     })
   })
 

@@ -9,6 +9,9 @@ export type ValidatedPropertyInput = {
   price: number | null
   area: number | null
   rooms: number | null
+  depositAmount: number | null
+  rentAmount: number | null
+  isConvertible: boolean
   description: string | null
 }
 
@@ -24,6 +27,27 @@ function parsePositiveNumber(
   const value = Number(trimmed)
   if (!Number.isFinite(value) || value <= 0) {
     errors[field as keyof PropertyFormValues] = 'عدد معتبر و بزرگ‌تر از صفر وارد کنید.'
+    return null
+  }
+  return value
+}
+
+// Distinct from parsePositiveNumber: an explicit 0 is meaningful here
+// (rentStatus.ts reads it as "رهن کامل"/"فقط اجاره"), so it must be a
+// valid, non-error value rather than rejected the way it is for
+// price/area/rooms.
+function parseNonNegativeNumber(
+  raw: string,
+  field: string,
+  errors: PropertyFormErrors
+): number | null {
+  const trimmed = raw.trim()
+  if (trimmed.length === 0) {
+    return null
+  }
+  const value = Number(trimmed)
+  if (!Number.isFinite(value) || value < 0) {
+    errors[field as keyof PropertyFormValues] = 'عدد معتبر و بزرگ‌تر یا مساوی صفر وارد کنید.'
     return null
   }
   return value
@@ -53,6 +77,8 @@ export function validatePropertyForm(
   const price = parsePositiveNumber(values.price, 'price', errors)
   const area = parsePositiveNumber(values.area, 'area', errors)
   const rooms = parsePositiveNumber(values.rooms, 'rooms', errors)
+  const depositAmount = parseNonNegativeNumber(values.depositAmount, 'depositAmount', errors)
+  const rentAmount = parseNonNegativeNumber(values.rentAmount, 'rentAmount', errors)
 
   if (Object.keys(errors).length > 0) {
     return { input: null, errors }
@@ -68,6 +94,9 @@ export function validatePropertyForm(
       price,
       area,
       rooms,
+      depositAmount,
+      rentAmount,
+      isConvertible: values.isConvertible,
       description: values.description.trim() || null
     },
     errors: null

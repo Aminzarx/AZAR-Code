@@ -45,7 +45,7 @@ project's deploy-key handoff doc. The workflow:
 The container has no public IP of its own — reaching it from a real phone
 requires an nginx vhost on the VPS host (outside the container, set up by
 the server admin) proxying a public HTTPS subdomain to `127.0.0.1:8787`
-*inside* the container's own network namespace. The app is hardcoded to
+_inside_ the container's own network namespace. The app is hardcoded to
 call `https://api.zarandix.ir`.
 
 Required GitHub repo secrets (Settings → Secrets and variables → Actions):

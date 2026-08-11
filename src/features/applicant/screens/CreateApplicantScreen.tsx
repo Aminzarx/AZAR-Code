@@ -5,6 +5,7 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { FormScreenContainer } from '@shared/components'
+import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { useApplicantService } from '../hooks/useApplicantService'
 import { ApplicantForm } from '../components/ApplicantForm'
 import { ApplicantValidationError } from '../validation/ApplicantValidationError'
@@ -23,6 +24,9 @@ const EMPTY_VALUES: ApplicantFormValues = {
   minArea: '',
   maxArea: '',
   rooms: '',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 
@@ -35,12 +39,16 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   const [errors, setErrors] = useState<ApplicantFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+
+  useUnsavedChangesGuard(navigation, isDirty)
 
   function handleChange<K extends keyof ApplicantFormValues>(
     field: K,
     value: ApplicantFormValues[K]
   ): void {
     setValues((current) => ({ ...current, [field]: value }))
+    setIsDirty(true)
   }
 
   async function handleSubmit(): Promise<void> {
@@ -52,6 +60,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
     setIsSubmitting(true)
     try {
       const applicant = await service.createApplicant(session.userId, values)
+      setIsDirty(false)
       navigation.replace('ApplicantDetail', { applicantId: applicant.id })
     } catch (caughtError) {
       if (caughtError instanceof ApplicantValidationError) {

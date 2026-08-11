@@ -39,13 +39,16 @@ const APPLICANT: Applicant = {
   minArea: null,
   maxArea: null,
   rooms: null,
+  depositAmount: null,
+  rentAmount: null,
+  isConvertible: false,
   description: null,
   status: 'active',
   createdAt: '2026-08-08T00:00:00.000Z',
   updatedAt: '2026-08-08T00:00:00.000Z'
 }
 
-const navigationProp = { goBack: mockGoBack } as never
+const navigationProp = { goBack: mockGoBack, addListener: jest.fn(() => jest.fn()) } as never
 const routeProp = {
   key: 'ApplicantDetail',
   name: 'ApplicantDetail' as const,

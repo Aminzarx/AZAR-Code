@@ -55,6 +55,9 @@ describe('ListingService', () => {
       price: null,
       area: 100,
       rooms: 2,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     idCounter = 0
@@ -114,6 +117,9 @@ describe('ListingService', () => {
       price: null,
       area: 100,
       rooms: 2,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null,
       status: 'archived'
     })

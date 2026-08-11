@@ -13,6 +13,9 @@ const EMPTY_VALUES: PropertyFormValues = {
   price: '',
   area: '',
   rooms: '',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 

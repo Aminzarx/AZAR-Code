@@ -16,6 +16,7 @@ type AuthContextValue = {
   register: (phoneNumber: string, referralCode: string) => Promise<CurrentSession>
   login: (phoneNumber: string) => Promise<CurrentSession>
   logout: () => Promise<void>
+  deleteAccount: (phoneNumber: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -106,6 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       logout: async () => {
         await sessionManager.logout()
         setSession(null)
+      },
+      deleteAccount: async (phoneNumber) => {
+        await authApiClient.deleteAccount(phoneNumber)
+        await sessionManager.logout()
+        setSession(null)
       }
     }
   }, [authApiClient, sessionManager, session, isInitializing, userRepository])
@@ -124,7 +130,8 @@ const placeholderValue: AuthContextValue = {
   verifyOtp: () => Promise.reject(new Error('Auth is still initializing.')),
   register: () => Promise.reject(new Error('Auth is still initializing.')),
   login: () => Promise.reject(new Error('Auth is still initializing.')),
-  logout: () => Promise.reject(new Error('Auth is still initializing.'))
+  logout: () => Promise.reject(new Error('Auth is still initializing.')),
+  deleteAccount: () => Promise.reject(new Error('Auth is still initializing.'))
 }
 
 export function useAuth(): AuthContextValue {

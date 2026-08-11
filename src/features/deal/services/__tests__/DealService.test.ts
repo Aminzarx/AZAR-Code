@@ -45,6 +45,9 @@ describe('DealService', () => {
       price: '',
       area: '',
       rooms: '',
+      depositAmount: '',
+      rentAmount: '',
+      isConvertible: false,
       description: ''
     })
     propertyId = property.id
@@ -60,6 +63,9 @@ describe('DealService', () => {
       minArea: '',
       maxArea: '',
       rooms: '',
+      depositAmount: '',
+      rentAmount: '',
+      isConvertible: false,
       description: ''
     })
     applicantId = applicant.id

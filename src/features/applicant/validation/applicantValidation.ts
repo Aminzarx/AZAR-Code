@@ -11,6 +11,9 @@ export type ValidatedApplicantInput = {
   minArea: number | null
   maxArea: number | null
   rooms: number | null
+  depositAmount: number | null
+  rentAmount: number | null
+  isConvertible: boolean
   description: string | null
 }
 
@@ -26,6 +29,27 @@ function parsePositiveNumber(
   const value = Number(trimmed)
   if (!Number.isFinite(value) || value <= 0) {
     errors[field as keyof ApplicantFormValues] = 'عدد معتبر و بزرگ‌تر از صفر وارد کنید.'
+    return null
+  }
+  return value
+}
+
+// Distinct from parsePositiveNumber: an explicit 0 is meaningful here
+// (rentStatus.ts reads it as "رهن کامل"/"فقط اجاره"), so it must be a
+// valid, non-error value rather than rejected the way it is for the
+// budget/area/rooms fields above.
+function parseNonNegativeNumber(
+  raw: string,
+  field: string,
+  errors: ApplicantFormErrors
+): number | null {
+  const trimmed = raw.trim()
+  if (trimmed.length === 0) {
+    return null
+  }
+  const value = Number(trimmed)
+  if (!Number.isFinite(value) || value < 0) {
+    errors[field as keyof ApplicantFormValues] = 'عدد معتبر و بزرگ‌تر یا مساوی صفر وارد کنید.'
     return null
   }
   return value
@@ -56,6 +80,8 @@ export function validateApplicantForm(
   const minArea = parsePositiveNumber(values.minArea, 'minArea', errors)
   const maxArea = parsePositiveNumber(values.maxArea, 'maxArea', errors)
   const rooms = parsePositiveNumber(values.rooms, 'rooms', errors)
+  const depositAmount = parseNonNegativeNumber(values.depositAmount, 'depositAmount', errors)
+  const rentAmount = parseNonNegativeNumber(values.rentAmount, 'rentAmount', errors)
 
   if (minBudget !== null && maxBudget !== null && maxBudget < minBudget) {
     errors.maxBudget = 'سقف بودجه باید بزرگ‌تر یا مساوی حداقل بودجه باشد.'
@@ -80,6 +106,9 @@ export function validateApplicantForm(
       minArea,
       maxArea,
       rooms,
+      depositAmount,
+      rentAmount,
+      isConvertible: values.isConvertible,
       description: values.description.trim() || null
     },
     errors: null

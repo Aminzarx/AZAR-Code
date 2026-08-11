@@ -17,6 +17,9 @@ export type ApplicantRecord = {
   minArea: number | null
   maxArea: number | null
   rooms: number | null
+  depositAmount: number | null
+  rentAmount: number | null
+  isConvertible: boolean
   description: string | null
   status: ApplicantStatus
   createdAt: string
@@ -38,6 +41,9 @@ export type CreateApplicantRecord = {
   minArea: number | null
   maxArea: number | null
   rooms: number | null
+  depositAmount: number | null
+  rentAmount: number | null
+  isConvertible: boolean
   description: string | null
 }
 
@@ -54,6 +60,9 @@ export type UpdateApplicantRecord = {
   minArea: number | null
   maxArea: number | null
   rooms: number | null
+  depositAmount: number | null
+  rentAmount: number | null
+  isConvertible: boolean
   description: string | null
   status: ApplicantStatus
 }
@@ -74,6 +83,9 @@ function toApplicant(row: Record<string, unknown>): ApplicantRecord {
     minArea: row.min_area as number | null,
     maxArea: row.max_area as number | null,
     rooms: row.rooms as number | null,
+    depositAmount: row.deposit_amount as number | null,
+    rentAmount: row.rent_amount as number | null,
+    isConvertible: Boolean(row.is_convertible),
     description: row.description as string | null,
     status: row.status as ApplicantStatus,
     createdAt: row.created_at as string,
@@ -90,8 +102,8 @@ export class ApplicantRepository {
       `INSERT INTO applicants
         (id, user_id, full_name, phone_number, email, applicant_type, preferred_transaction_type,
          preferred_property_type, city, min_budget, max_budget, min_area, max_area, rooms,
-         description, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+         deposit_amount, rent_amount, is_convertible, description, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
       [
         applicant.id,
         applicant.userId,
@@ -107,6 +119,9 @@ export class ApplicantRepository {
         applicant.minArea,
         applicant.maxArea,
         applicant.rooms,
+        applicant.depositAmount,
+        applicant.rentAmount,
+        applicant.isConvertible ? 1 : 0,
         applicant.description,
         now,
         now
@@ -168,6 +183,7 @@ export class ApplicantRepository {
        SET full_name = ?, phone_number = ?, email = ?, applicant_type = ?,
            preferred_transaction_type = ?, preferred_property_type = ?, city = ?,
            min_budget = ?, max_budget = ?, min_area = ?, max_area = ?, rooms = ?,
+           deposit_amount = ?, rent_amount = ?, is_convertible = ?,
            description = ?, status = ?, updated_at = ?
        WHERE id = ?`,
       [
@@ -183,6 +199,9 @@ export class ApplicantRepository {
         applicant.minArea,
         applicant.maxArea,
         applicant.rooms,
+        applicant.depositAmount,
+        applicant.rentAmount,
+        applicant.isConvertible ? 1 : 0,
         applicant.description,
         applicant.status,
         now,

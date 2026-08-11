@@ -8,7 +8,9 @@ import { ValidationFailureError } from '@core/auth/errors'
 jest.mock('@features/auth/AuthProvider')
 
 const mockedUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+const mockSendOtp = jest.fn()
 const mockVerifyOtp = jest.fn()
+const mockLogin = jest.fn()
 const mockNavigate = jest.fn()
 
 const navigationProp = { navigate: mockNavigate } as never
@@ -29,21 +31,35 @@ async function typeCode(getByLabelText: (label: string) => any, code: string): P
 
 describe('OtpVerificationScreen', () => {
   beforeEach(() => {
+    jest.useFakeTimers({ legacyFakeTimers: false })
+    mockSendOtp.mockReset()
     mockVerifyOtp.mockReset()
+    mockLogin.mockReset()
     mockNavigate.mockReset()
     mockedUseAuth.mockReturnValue({
       isInitializing: false,
       session: null,
-      sendOtp: jest.fn(),
+      sendOtp: mockSendOtp,
       verifyOtp: mockVerifyOtp,
       register: jest.fn(),
-      login: jest.fn(),
-      logout: jest.fn()
+      login: mockLogin,
+      logout: jest.fn(),
+      deleteAccount: jest.fn()
     })
   })
 
-  it('auto-submits once all 6 digits are entered and navigates after the success animation', async () => {
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  it('logs an already-registered number straight in without asking for a referral code', async () => {
     mockVerifyOtp.mockResolvedValue(undefined)
+    mockLogin.mockResolvedValue({
+      sessionId: 's1',
+      userId: 'u1',
+      referralCode: 'ABCD1234',
+      sessionToken: 'tok'
+    })
     const { getByLabelText } = await render(
       withTheme(<OtpVerificationScreen navigation={navigationProp} route={routeProp} />)
     )
@@ -51,6 +67,21 @@ describe('OtpVerificationScreen', () => {
     await typeCode(getByLabelText, '518322')
 
     await waitFor(() => expect(mockVerifyOtp).toHaveBeenCalledWith('+989121234567', '518322'))
+    await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('+989121234567'))
+    expect(mockNavigate).not.toHaveBeenCalledWith('ReferralCode', expect.anything())
+  })
+
+  it('sends a new number to the referral-code screen when no account exists yet', async () => {
+    mockVerifyOtp.mockResolvedValue(undefined)
+    mockLogin.mockRejectedValue(
+      new ValidationFailureError('No account found for this number.', 'invalid_phone_number')
+    )
+    const { getByLabelText } = await render(
+      withTheme(<OtpVerificationScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    await typeCode(getByLabelText, '518322')
+
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith('ReferralCode', { phoneNumber: '+989121234567' })
     )
@@ -66,5 +97,24 @@ describe('OtpVerificationScreen', () => {
 
     expect(await findByText('کد نامعتبر است.')).toBeTruthy()
     expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('disables resend until the 2-minute cooldown elapses, then allows it', async () => {
+    mockSendOtp.mockResolvedValue(undefined)
+    const { getByLabelText } = await render(
+      withTheme(<OtpVerificationScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    const resendButton = getByLabelText('ارسال مجدد کد')
+    expect(resendButton.props.accessibilityState?.disabled).toBe(true)
+
+    await waitFor(() => {
+      jest.advanceTimersByTime(120000)
+    })
+
+    expect(getByLabelText('ارسال مجدد کد').props.accessibilityState?.disabled).toBeFalsy()
+
+    await fireEvent.press(getByLabelText('ارسال مجدد کد'))
+    expect(mockSendOtp).toHaveBeenCalledWith('+989121234567')
   })
 })

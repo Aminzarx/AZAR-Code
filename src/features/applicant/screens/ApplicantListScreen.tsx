@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { FlatList, Pressable, StyleSheet, View } from 'react-native'
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -10,6 +10,7 @@ import {
   EmptyState,
   ErrorState,
   FilterSheet,
+  FloatingActionButton,
   Icon,
   LoadingIndicator,
   TextInput
@@ -147,6 +148,14 @@ export function ApplicantListScreen({ navigation }: Props): React.JSX.Element {
             data={filteredApplicants ?? []}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={refetch}
+                tintColor={theme.colors.primary}
+                colors={[theme.colors.primary]}
+              />
+            }
             renderItem={({ item }) => (
               <ApplicantListItem
                 applicant={item}
@@ -155,6 +164,13 @@ export function ApplicantListScreen({ navigation }: Props): React.JSX.Element {
             )}
           />
         )}
+
+        {applicants && applicants.length > 0 ? (
+          <FloatingActionButton
+            accessibilityLabel="افزودن متقاضی"
+            onPress={() => navigation.navigate('CreateApplicant')}
+          />
+        ) : null}
       </View>
 
       <FilterSheet

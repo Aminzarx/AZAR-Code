@@ -14,6 +14,7 @@ import {
   StatusBadge
 } from '@shared/components'
 import { SuggestedPropertiesSection } from '@features/matching/components/SuggestedPropertiesSection'
+import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { useApplicantDetail } from '../hooks/useApplicantDetail'
 import { useApplicantService } from '../hooks/useApplicantService'
 import { useApplicantActivity } from '../hooks/useApplicantActivity'
@@ -21,6 +22,7 @@ import { ApplicantForm } from '../components/ApplicantForm'
 import { ApplicantActivitySection } from '../components/ApplicantActivitySection'
 import { ApplicantValidationError } from '../validation/ApplicantValidationError'
 import { deriveApplicantStatus } from '../statusDerivation'
+import { deriveRentStatusLabel } from '@shared/utils/rentStatus'
 import type { Applicant, ApplicantFormErrors, ApplicantFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ApplicantDetail'>
@@ -37,6 +39,9 @@ function toFormValues(applicant: Applicant): ApplicantFormValues {
     minArea: applicant.minArea === null ? '' : String(applicant.minArea),
     maxArea: applicant.maxArea === null ? '' : String(applicant.maxArea),
     rooms: applicant.rooms === null ? '' : String(applicant.rooms),
+    depositAmount: applicant.depositAmount === null ? '' : String(applicant.depositAmount),
+    rentAmount: applicant.rentAmount === null ? '' : String(applicant.rentAmount),
+    isConvertible: applicant.isConvertible,
     description: applicant.description ?? ''
   }
 }
@@ -55,6 +60,8 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
+
+  useUnsavedChangesGuard(navigation, isEditing)
 
   function startEditing(): void {
     if (!applicant) {
@@ -114,6 +121,9 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
     applicant && activity.deals && activity.reminders
       ? deriveApplicantStatus(applicant, activity.deals, activity.reminders)
       : null
+  const rentStatusLabel = applicant
+    ? deriveRentStatusLabel(applicant.depositAmount, applicant.rentAmount)
+    : null
 
   return (
     <FormScreenContainer
@@ -206,6 +216,33 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
                 theme={theme}
                 styles={styles}
               />
+            ) : null}
+            {rentStatusLabel ? (
+              <DetailRow
+                label="وضعیت رهن/اجاره"
+                value={rentStatusLabel}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.depositAmount !== null ? (
+              <DetailRow
+                label="میزان رهن موردنظر"
+                value={`${applicant.depositAmount.toLocaleString('fa-IR')} تومان`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.rentAmount !== null ? (
+              <DetailRow
+                label="میزان اجاره موردنظر"
+                value={`${applicant.rentAmount.toLocaleString('fa-IR')} تومان`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.isConvertible ? (
+              <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} />
             ) : null}
             {applicant.description ? (
               <DetailRow

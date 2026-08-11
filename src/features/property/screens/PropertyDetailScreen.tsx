@@ -14,6 +14,7 @@ import {
   StatusBadge
 } from '@shared/components'
 import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
+import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { usePropertyDetail } from '../hooks/usePropertyDetail'
 import { usePropertyService } from '../hooks/usePropertyService'
 import { usePropertyActivity } from '../hooks/usePropertyActivity'
@@ -21,6 +22,7 @@ import { PropertyForm } from '../components/PropertyForm'
 import { PropertyActivitySection } from '../components/PropertyActivitySection'
 import { PropertyValidationError } from '../services/PropertyValidationError'
 import { derivePropertyStatus } from '../statusDerivation'
+import { deriveRentStatusLabel } from '@shared/utils/rentStatus'
 import type { Property, PropertyFormErrors, PropertyFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'PropertyDetail'>
@@ -35,6 +37,9 @@ function toFormValues(property: Property): PropertyFormValues {
     price: property.price === null ? '' : String(property.price),
     area: property.area === null ? '' : String(property.area),
     rooms: property.rooms === null ? '' : String(property.rooms),
+    depositAmount: property.depositAmount === null ? '' : String(property.depositAmount),
+    rentAmount: property.rentAmount === null ? '' : String(property.rentAmount),
+    isConvertible: property.isConvertible,
     description: property.description ?? ''
   }
 }
@@ -53,6 +58,8 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
+
+  useUnsavedChangesGuard(navigation, isEditing)
 
   function startEditing(): void {
     if (!property) {
@@ -110,6 +117,9 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
 
   const derivedStatus =
     property && activity.deals ? derivePropertyStatus(property, activity.deals) : null
+  const rentStatusLabel = property
+    ? deriveRentStatusLabel(property.depositAmount, property.rentAmount)
+    : null
 
   return (
     <FormScreenContainer
@@ -199,6 +209,33 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
                 theme={theme}
                 styles={styles}
               />
+            ) : null}
+            {rentStatusLabel ? (
+              <DetailRow
+                label="وضعیت رهن/اجاره"
+                value={rentStatusLabel}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.depositAmount !== null ? (
+              <DetailRow
+                label="میزان رهن"
+                value={`${property.depositAmount.toLocaleString('fa-IR')} تومان`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.rentAmount !== null ? (
+              <DetailRow
+                label="میزان اجاره"
+                value={`${property.rentAmount.toLocaleString('fa-IR')} تومان`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.isConvertible ? (
+              <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} />
             ) : null}
             {property.description ? (
               <DetailRow

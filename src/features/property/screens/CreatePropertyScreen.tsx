@@ -5,6 +5,7 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { FormScreenContainer } from '@shared/components'
+import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { usePropertyService } from '../hooks/usePropertyService'
 import { PropertyForm } from '../components/PropertyForm'
 import { PropertyValidationError } from '../services/PropertyValidationError'
@@ -21,6 +22,9 @@ const EMPTY_VALUES: PropertyFormValues = {
   price: '',
   area: '',
   rooms: '',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 
@@ -33,12 +37,16 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const [errors, setErrors] = useState<PropertyFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+
+  useUnsavedChangesGuard(navigation, isDirty)
 
   function handleChange<K extends keyof PropertyFormValues>(
     field: K,
     value: PropertyFormValues[K]
   ): void {
     setValues((current) => ({ ...current, [field]: value }))
+    setIsDirty(true)
   }
 
   async function handleSubmit(): Promise<void> {
@@ -50,6 +58,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
     setIsSubmitting(true)
     try {
       const property = await service.createProperty(session.userId, values)
+      setIsDirty(false)
       navigation.replace('PropertyDetail', { propertyId: property.id })
     } catch (caughtError) {
       if (caughtError instanceof PropertyValidationError) {

@@ -32,6 +32,9 @@ const PROPERTY: Property = {
   price: 5000000000,
   area: 120,
   rooms: 2,
+  depositAmount: null,
+  rentAmount: null,
+  isConvertible: false,
   description: null,
   status: 'active',
   createdAt: '2026-08-08T00:00:00.000Z',
@@ -39,7 +42,7 @@ const PROPERTY: Property = {
 }
 
 const mockGoBack = jest.fn()
-const navigationProp = { goBack: mockGoBack } as never
+const navigationProp = { goBack: mockGoBack, addListener: jest.fn(() => jest.fn()) } as never
 const routeProp = {
   key: 'PropertyDetail',
   name: 'PropertyDetail' as const,

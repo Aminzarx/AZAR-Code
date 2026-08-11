@@ -8,8 +8,8 @@
  */
 export const PROPERTY_TYPES = ['آپارتمان', 'ویلایی', 'زمین', 'مغازه', 'دفتر'] as const
 
-/** What a property listing itself is: for sale, for rent, or mortgage+rent. */
-export const PROPERTY_TRANSACTION_TYPES = ['فروش', 'اجاره', 'رهن و اجاره'] as const
+/** What a property listing itself is: for sale, for rent, mortgage+rent, or barter/exchange. */
+export const PROPERTY_TRANSACTION_TYPES = ['فروش', 'اجاره', 'رهن و اجاره', 'تهاتر'] as const
 
 /** What an applicant is looking to do — the buyer/tenant side of the same transaction. */
-export const APPLICANT_TRANSACTION_TYPES = ['خرید', 'اجاره', 'رهن و اجاره'] as const
+export const APPLICANT_TRANSACTION_TYPES = ['خرید', 'اجاره', 'رهن و اجاره', 'تهاتر'] as const

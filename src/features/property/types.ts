@@ -12,6 +12,9 @@ export type PropertyFormValues = {
   price: string
   area: string
   rooms: string
+  depositAmount: string
+  rentAmount: string
+  isConvertible: boolean
   description: string
 }
 

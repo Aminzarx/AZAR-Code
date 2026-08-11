@@ -12,6 +12,9 @@ const VALID_VALUES: ApplicantFormValues = {
   minArea: '80',
   maxArea: '150',
   rooms: '2',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 
@@ -30,6 +33,9 @@ describe('validateApplicantForm', () => {
       minArea: 80,
       maxArea: 150,
       rooms: 2,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
   })
@@ -54,7 +60,10 @@ describe('validateApplicantForm', () => {
       maxBudget: '',
       minArea: '',
       maxArea: '',
-      rooms: ''
+      rooms: '',
+      depositAmount: '',
+      rentAmount: '',
+      isConvertible: false
     })
     expect(result.errors).toBeNull()
     expect(result.input?.minBudget).toBeNull()

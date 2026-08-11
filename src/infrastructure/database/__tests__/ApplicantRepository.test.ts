@@ -44,6 +44,9 @@ describe('ApplicantRepository', () => {
       minArea: 80,
       maxArea: 150,
       rooms: 2,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -103,6 +106,9 @@ describe('ApplicantRepository', () => {
       minArea: 50,
       maxArea: 100,
       rooms: 3,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: 'توضیحات',
       status: 'archived'
     })
@@ -144,6 +150,9 @@ function baseApplicant(
     minArea: null,
     maxArea: null,
     rooms: null,
+    depositAmount: null,
+    rentAmount: null,
+    isConvertible: false,
     description: null,
     ...overrides
   }

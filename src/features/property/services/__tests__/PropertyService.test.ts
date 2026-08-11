@@ -16,6 +16,9 @@ const VALID_VALUES: PropertyFormValues = {
   price: '5000000000',
   area: '120',
   rooms: '2',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 

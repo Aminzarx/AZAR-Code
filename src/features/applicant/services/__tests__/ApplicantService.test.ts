@@ -18,6 +18,9 @@ const VALID_VALUES: ApplicantFormValues = {
   minArea: '80',
   maxArea: '150',
   rooms: '2',
+  depositAmount: '',
+  rentAmount: '',
+  isConvertible: false,
   description: ''
 }
 

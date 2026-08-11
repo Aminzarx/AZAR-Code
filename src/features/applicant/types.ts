@@ -14,6 +14,9 @@ export type ApplicantFormValues = {
   minArea: string
   maxArea: string
   rooms: string
+  depositAmount: string
+  rentAmount: string
+  isConvertible: boolean
   description: string
 }
 

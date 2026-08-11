@@ -5,6 +5,13 @@
  * Arabic-vs-Persian Yeh/Kaf (keyboards and pasted text mix both) and
  * inconsistent whitespace/ZWNJ usage (e.g. "می‌خواهم" vs "می خواهم").
  */
+const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹']
+
+/** Converts ASCII digits in a string (e.g. a formatted mm:ss countdown) to Persian glyphs. */
+export function toPersianDigits(input: string): string {
+  return input.replace(/[0-9]/g, (digit) => PERSIAN_DIGITS[Number(digit)])
+}
+
 export function normalizePersianText(input: string): string {
   return input
     .replace(/ي/g, 'ی') // Arabic Yeh -> Persian Yeh (ي -> ی)

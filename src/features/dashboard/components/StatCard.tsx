@@ -1,5 +1,6 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { useTheme, type Theme } from '@shared/theme'
 import { Card, Icon, type IconName } from '@shared/components'
 import type { DashboardStat } from '../types'
@@ -11,54 +12,87 @@ type Props = {
 
 type StatVisual = {
   icon: IconName
-  container: keyof Theme['colors']
+  from: keyof Theme['colors']
+  to: keyof Theme['colors']
   onContainer: keyof Theme['colors']
 }
 
 /**
- * Visual accent per stat id — icon + a container/on-container color pair
- * already in the design system (design-tokens.json), not new colors.
+ * Visual accent per stat id — icon + a two-color gradient (both stops
+ * already in the design system, design-tokens.json — no new colors), the
+ * same "designed, not flat" treatment Avatar.tsx uses for its own badge.
  * Falls back to the secondary pair for any stat id this map doesn't know
  * about yet, so a future stat never renders without an accent.
  */
 const STAT_VISUALS: Record<string, StatVisual> = {
-  properties: { icon: 'files', container: 'primaryContainer', onContainer: 'onPrimaryContainer' },
+  properties: {
+    icon: 'files',
+    from: 'primary',
+    to: 'primaryContainer',
+    onContainer: 'onPrimaryContainer'
+  },
   applicants: {
     icon: 'person',
-    container: 'secondaryContainer',
+    from: 'secondary',
+    to: 'secondaryContainer',
     onContainer: 'onSecondaryContainer'
   },
-  deals: { icon: 'deal', container: 'warningContainer', onContainer: 'onWarningContainer' },
+  deals: {
+    icon: 'deal',
+    from: 'warning',
+    to: 'warningContainer',
+    onContainer: 'onWarningContainer'
+  },
   contracts: {
     icon: 'contract',
-    container: 'tertiaryContainer',
+    from: 'tertiary',
+    to: 'tertiaryContainer',
     onContainer: 'onTertiaryContainer'
   }
 }
 const DEFAULT_VISUAL: StatVisual = {
   icon: 'inbox',
-  container: 'secondaryContainer',
+  from: 'secondary',
+  to: 'secondaryContainer',
   onContainer: 'onSecondaryContainer'
 }
 
 export function StatCard({ stat, onPress }: Props): React.JSX.Element {
   const theme = useTheme()
   const visual = STAT_VISUALS[stat.id] ?? DEFAULT_VISUAL
-  const styles = createStyles(theme, theme.colors[visual.container])
+  const styles = createStyles(theme)
   const label = `${stat.label}: ${stat.value}`
+  const gradientId = `statCardGradient-${stat.id}`
+  const badgeSize = theme.iconSize.lg
 
   const content = (
     // design-system.md §14 point 2 — the KPI row is context, not the point
-    // of the screen; `flat` (hairline border, no shadow) keeps it visually
-    // quieter than the Needs Attention section below it, which is the
-    // section that should actually read as urgent/important.
-    <Card style={styles.card} flat>
+    // of the screen, so this stays visually quieter than the Needs
+    // Attention section below it; a soft level1 shadow (the same "barely
+    // visible in isolation, reads as lifted in context" treatment every
+    // other card in the app uses) reads as more considered than a bare
+    // hairline border without competing for attention.
+    <Card style={styles.card}>
       <View
         style={styles.row}
         accessible={!onPress}
         accessibilityLabel={onPress ? undefined : label}
       >
         <View style={styles.iconBadge}>
+          <Svg width={badgeSize} height={badgeSize} style={StyleSheet.absoluteFill}>
+            <Defs>
+              <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor={theme.colors[visual.from]} />
+                <Stop offset="1" stopColor={theme.colors[visual.to]} />
+              </LinearGradient>
+            </Defs>
+            <Circle
+              cx={badgeSize / 2}
+              cy={badgeSize / 2}
+              r={badgeSize / 2}
+              fill={`url(#${gradientId})`}
+            />
+          </Svg>
           <Icon name={visual.icon} size="xs" color={theme.colors[visual.onContainer]} />
         </View>
         <View style={styles.textColumn}>
@@ -91,7 +125,7 @@ export function StatCard({ stat, onPress }: Props): React.JSX.Element {
   )
 }
 
-function createStyles(theme: Theme, badgeColor: string) {
+function createStyles(theme: Theme) {
   return StyleSheet.create({
     // design-system.md §7.3.1 — fixed 2-column percentage grid, not a
     // minWidth/flex threshold (that collapses to 1 column on phones
@@ -117,10 +151,10 @@ function createStyles(theme: Theme, badgeColor: string) {
       width: theme.iconSize.lg,
       height: theme.iconSize.lg,
       borderRadius: theme.radius.full,
-      backgroundColor: badgeColor,
       alignItems: 'center',
       justifyContent: 'center',
-      flexShrink: 0
+      flexShrink: 0,
+      overflow: 'hidden'
     },
     textColumn: {
       flexShrink: 1,

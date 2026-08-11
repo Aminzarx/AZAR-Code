@@ -43,6 +43,7 @@ const TRANSACTION_COMPATIBILITY: Record<string, readonly string[]> = {
   اجاره: ['اجاره', 'رهن و اجاره', 'رهن', 'استیجاری'],
   'رهن و اجاره': ['اجاره', 'رهن و اجاره', 'رهن', 'استیجاری'],
   رهن: ['اجاره', 'رهن و اجاره', 'رهن', 'استیجاری'],
+  تهاتر: ['تهاتر'],
   // Applicant-only vocabulary — a property's own transaction type is never
   // "buyer", so it can never be compatible with anything on the property side.
   خرید: []

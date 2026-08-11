@@ -67,6 +67,9 @@ describe('fetchDashboardData', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     const applicant = await applicantRepository.create({
@@ -84,6 +87,9 @@ describe('fetchDashboardData', () => {
       minArea: null,
       maxArea: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     await dealRepository.create({
@@ -105,6 +111,9 @@ describe('fetchDashboardData', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -136,6 +145,9 @@ describe('fetchDashboardData', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     const applicant = await applicantRepository.create({
@@ -153,6 +165,9 @@ describe('fetchDashboardData', () => {
       minArea: null,
       maxArea: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     const deal = await dealRepository.create({
@@ -185,6 +200,9 @@ describe('fetchDashboardData', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     const applicant = await applicantRepository.create({
@@ -202,6 +220,9 @@ describe('fetchDashboardData', () => {
       minArea: null,
       maxArea: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     const contract = await contractRepository.create({
@@ -246,6 +267,9 @@ describe('fetchDashboardData', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     await applicantRepository.create({
@@ -263,6 +287,9 @@ describe('fetchDashboardData', () => {
       minArea: null,
       maxArea: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
 
@@ -302,6 +329,9 @@ describe('fetchDashboardData', () => {
       minArea: null,
       maxArea: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     await reminderRepository.create({
@@ -346,6 +376,9 @@ describe('fetchDashboardData', () => {
       minArea: null,
       maxArea: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     await reminderRepository.create({
@@ -382,6 +415,9 @@ describe('fetchDashboardData', () => {
       price: null,
       area: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     const applicant = await applicantRepository.create({
@@ -399,6 +435,9 @@ describe('fetchDashboardData', () => {
       minArea: null,
       maxArea: null,
       rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
       description: null
     })
     const deal = await dealRepository.create({
