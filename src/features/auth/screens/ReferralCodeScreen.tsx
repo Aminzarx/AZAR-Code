@@ -80,9 +80,9 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
           onPress={handleSubmit}
           loading={isSubmitting}
           // The normal generated code is 8 characters, but the mother
-          // referral code (AMINZX) is deliberately 7 — this only guards
-          // against an obviously-incomplete entry, not a fixed length.
-          disabled={referralCode.length < 7}
+          // referral code (AMINZX) is only 6 — this only guards against an
+          // obviously-incomplete entry, not a fixed length.
+          disabled={referralCode.length < 6}
         />
       </View>
 

@@ -5,10 +5,11 @@ state, referral validation/relationships, and sessions. No business data —
 properties/applicants/deals/etc. all stay on-device (ADR-002).
 
 **OTP delivery is disabled by product decision.** No SMS is ever sent;
-`/auth/verify-otp` requires the fixed code `555555` as long as
-`/auth/send-otp` was called for that number first. The two-step screen flow
-in the app is unchanged — it just never gets an SMS. Remove
-`FIXED_OTP_CODE` in `authRoutes.js` once a real SMS panel exists.
+`/auth/verify-otp` accepts the fixed code `555555` for any phone number, on
+any device, whether or not `/auth/send-otp` was called for it first (and
+with no expiry). The two-step screen flow in the app is unchanged — it just
+never gets an SMS. Remove `FIXED_OTP_CODE` (and the state-free acceptance)
+in `authRoutes.js` once a real SMS panel exists.
 
 **`AMINZX` is a "mother" referral code**, always valid at `/auth/register`
 regardless of whether any user actually holds it, until told otherwise —

@@ -4,7 +4,6 @@ const db = require('./db')
 const { generateId, generateReferralCode, generateSessionToken } = require('./ids')
 
 const PHONE_NUMBER_PATTERN = /^\+?[1-9]\d{7,14}$/
-const OTP_REQUEST_EXPIRY_MS = 15 * 60 * 1000
 
 // Fixed by explicit product decision until a real SMS panel exists —
 // remove this constant (and go back to accepting anything) once that
@@ -15,7 +14,7 @@ const FIXED_OTP_CODE = '555555'
 // whether it's ever actually stored as a real user.referral_code, until
 // explicitly told otherwise (also explicitly product-decided, unlike every
 // other referral code which must resolve to a real user row). Deliberately
-// 7 characters, one shorter than every generated code (8).
+// 6 characters, two shorter than every generated code (8).
 const MASTER_REFERRAL_CODE = 'AMINZX'
 
 const router = express.Router()
@@ -63,10 +62,11 @@ function uniqueReferralCode() {
 
 // OTP delivery is disabled by product decision: no SMS is ever sent, and
 // verify-otp requires the fixed FIXED_OTP_CODE instead of a real one. This
-// endpoint only records that a code was "requested" for this phone number,
-// so the existing two-step screen flow (request -> enter code) still has
-// server-side state to check against, exactly like the OTP-enabled flow
-// will once a provider is wired up (ADR-003).
+// endpoint just upserts an unverified "requested" row so the existing
+// two-step screen flow (request -> enter code) still has server-side state
+// afterward, exactly like the OTP-enabled flow will once a provider is
+// wired up (ADR-003) — but verify-otp itself no longer depends on this
+// having run first (see its own comment).
 router.post('/send-otp', otpLimiter, (req, res) => {
   const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
   if (!PHONE_NUMBER_PATTERN.test(phoneNumber)) {
@@ -80,25 +80,29 @@ router.post('/send-otp', otpLimiter, (req, res) => {
   res.status(204).end()
 })
 
+// OTP verification is fully disabled by explicit product decision (not just
+// the code — the whole send-otp-first / expiry gate too): any phone number
+// on any device is accepted with the fixed FIXED_OTP_CODE, whether or not
+// send-otp was ever called for it first. This upserts a verified
+// otp_requests row unconditionally so register/login's `otpState?.verified`
+// check downstream still finds one, without depending on prior state.
 router.post('/verify-otp', otpLimiter, (req, res) => {
   const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
   const code = typeof req.body?.code === 'string' ? req.body.code : ''
 
-  const state = db.prepare('SELECT * FROM otp_requests WHERE phone_number = ?').get(phoneNumber)
-  if (!state) {
-    return fail(res, 422, 'invalid_otp', 'Request a new verification code first.')
-  }
-  if (Date.now() - new Date(state.requested_at).getTime() > OTP_REQUEST_EXPIRY_MS) {
-    return fail(res, 422, 'otp_expired', 'This code has expired. Request a new one.')
+  if (!PHONE_NUMBER_PATTERN.test(phoneNumber)) {
+    return fail(res, 422, 'invalid_phone_number', 'Enter a valid phone number.')
   }
   if (code !== FIXED_OTP_CODE) {
     return fail(res, 422, 'invalid_otp', 'That code is incorrect.')
   }
 
-  db.prepare('UPDATE otp_requests SET verified = 1, verified_at = ? WHERE phone_number = ?').run(
-    new Date().toISOString(),
-    phoneNumber
-  )
+  const now = new Date().toISOString()
+  db.prepare(
+    `INSERT INTO otp_requests (phone_number, verified, requested_at, verified_at)
+     VALUES (?, 1, ?, ?)
+     ON CONFLICT(phone_number) DO UPDATE SET verified = 1, verified_at = excluded.verified_at`
+  ).run(phoneNumber, now, now)
   res.status(204).end()
 })
 

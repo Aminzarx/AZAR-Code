@@ -58,4 +58,28 @@ describe('ReferralCodeScreen', () => {
 
     await waitFor(() => expect(mockRegister).toHaveBeenCalledWith('+989121234567', 'ABCD1234'))
   })
+
+  it('enables the submit button for the 6-character AMINZX mother code', async () => {
+    mockRegister.mockResolvedValue(undefined)
+    const { getByLabelText, getByText } = await render(
+      withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
+    )
+
+    await fireEvent.changeText(getByLabelText('کد معرف'), 'AMINZX')
+    await fireEvent.press(getByText('تکمیل ثبت‌نام'))
+
+    await waitFor(() => expect(mockRegister).toHaveBeenCalledWith('+989121234567', 'AMINZX'))
+  })
+
+  it('keeps the submit button disabled below 6 characters', async () => {
+    mockRegister.mockResolvedValue(undefined)
+    const { getByLabelText, getByText } = await render(
+      withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
+    )
+
+    await fireEvent.changeText(getByLabelText('کد معرف'), 'AMIN')
+    await fireEvent.press(getByText('تکمیل ثبت‌نام'))
+
+    expect(mockRegister).not.toHaveBeenCalled()
+  })
 })
