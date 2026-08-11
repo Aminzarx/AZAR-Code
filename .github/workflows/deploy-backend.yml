@@ -1,0 +1,47 @@
+name: Deploy Auth Backend
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Trust the VPS host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync server source to the VPS
+        run: |
+          rsync -az --delete \
+            --exclude 'node_modules' \
+            --exclude 'data' \
+            -e "ssh -p ${{ secrets.VPS_PORT }}" \
+            server/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/azar-server/"
+
+      - name: Install dependencies and (re)start the service
+        run: |
+          ssh -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" '
+            set -e
+            cd ~/azar-server
+            npm ci --omit=dev
+            command -v pm2 >/dev/null 2>&1 || npm install -g pm2
+            pm2 describe azar-api > /dev/null 2>&1 && pm2 restart azar-api --update-env || pm2 start src/index.js --name azar-api
+            pm2 save
+          '
