@@ -299,7 +299,6 @@ function createStyles(theme: Theme) {
     // alignSelf (that rule is for standalone column-level Text only).
     title: {
       color: theme.colors.onSurface,
-      flex: 1,
       flexShrink: 1
     },
     location: {

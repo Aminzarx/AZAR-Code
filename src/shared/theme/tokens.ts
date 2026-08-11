@@ -215,18 +215,18 @@ export const componentTokens = {
    */
   statCardGrid: {
     columns: 2,
-    // v2.8.1: tightened again from space2(8) — still read as too much air
-    // after the v2.7.2 pass. space1(4) is the smallest step above 0 on
-    // the spacing scale that still reads as an intentional gap rather
-    // than the cards touching.
-    gap: spacing.space1,
-    // 48%, not 50% — leaves headroom for `gap` (RN adds gap on top of
+    // v2.8.5: explicit literal 10px per direct user request, not a value
+    // from the space* scale — space1(4) (the v2.8.1 value) actually read
+    // as too tight once the cards themselves grew a bit (see StatCard's
+    // padding bump in the same pass), the opposite complaint from
+    // v2.7.2/v2.8.1.
+    gap: 10,
+    // 47%, not 50% — leaves headroom for `gap` (RN adds gap on top of
     // percentage widths) so two columns never overflow at the narrowest
-    // supported phone width (320px); nudged up from 47% now that `gap`
-    // itself is smaller, so the pair still fills the row tightly instead
-    // of leaving a visibly uneven trailing margin. See design-tokens.json
-    // for the math.
-    columnBasisPercent: '48%'
+    // supported phone width (320px); nudged back down from 48% now that
+    // `gap` grew to 10px, so the pair still fills the row tightly instead
+    // of overflowing. See design-tokens.json for the math.
+    columnBasisPercent: '47%'
   },
   /** Nested-in-a-section empty state (e.g. dashboard sub-section) — see design-system.md §7.7/§15. */
   emptyStateCompact: {

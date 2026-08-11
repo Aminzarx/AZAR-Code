@@ -6,10 +6,18 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, Card, ConfirmDialog, Icon, PasswordPromptDialog } from '@shared/components'
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  Icon,
+  PasswordPromptDialog,
+  TextInput
+} from '@shared/components'
 import { getDatabase } from '@infrastructure/database/connection'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
 import { createBackupFile } from '@infrastructure/backup/BackupService'
+import { useDisplayName } from '@shared/hooks/useDisplayName'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>
 
@@ -23,6 +31,8 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session, logout } = useAuth()
+  const { displayName, setDisplayName } = useDisplayName()
+  const [nameInput, setNameInput] = useState('')
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [isLogoutConfirmVisible, setIsLogoutConfirmVisible] = useState(false)
@@ -46,6 +56,18 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
       cancelled = true
     }
   }, [session])
+
+  useEffect(() => {
+    if (displayName !== null) {
+      setNameInput(displayName)
+    }
+  }, [displayName])
+
+  function handleNameBlur(): void {
+    if (nameInput.trim() !== (displayName ?? '')) {
+      setDisplayName(nameInput)
+    }
+  }
 
   function handleCopyReferralCode(): void {
     if (!session?.referralCode) {
@@ -87,6 +109,16 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
             hairlines, instead of a separate Card per field (the pattern
             already established in ContractDetailScreen). */}
         <Card variant="detail">
+          <TextInput
+            label="نام"
+            value={nameInput}
+            onChangeText={setNameInput}
+            onBlur={handleNameBlur}
+            placeholder="نام خود را وارد کنید"
+          />
+
+          <View style={styles.divider} />
+
           <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>شماره موبایل</Text>
           <Text style={[theme.typography('titleMd'), styles.value]}>{phoneNumber ?? '-'}</Text>
 

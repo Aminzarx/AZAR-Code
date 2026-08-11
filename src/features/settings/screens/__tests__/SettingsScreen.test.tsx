@@ -7,6 +7,8 @@ import { SettingsScreen } from '../SettingsScreen'
 const mockLogout = jest.fn()
 const mockFindById = jest.fn()
 const mockCreateBackupFile = jest.fn()
+const mockGetDisplayName = jest.fn()
+const mockSetDisplayName = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -29,6 +31,10 @@ jest.mock('@infrastructure/backup/BackupService', () => ({
   createBackupFile: (...args: unknown[]) => mockCreateBackupFile(...args)
 }))
 
+jest.mock('@shared/hooks/useDisplayName', () => ({
+  useDisplayName: () => mockGetDisplayName()
+}))
+
 const navigationProp = {} as never
 const routeProp = { key: 'Settings', name: 'Settings' as const, params: undefined }
 
@@ -46,6 +52,13 @@ describe('SettingsScreen', () => {
     jest.spyOn(Clipboard, 'setString').mockImplementation(() => undefined)
     mockCreateBackupFile.mockReset()
     jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction })
+    mockGetDisplayName.mockReset()
+    mockSetDisplayName.mockReset()
+    mockGetDisplayName.mockReturnValue({
+      displayName: null,
+      isLoading: false,
+      setDisplayName: mockSetDisplayName
+    })
   })
 
   afterEach(() => {
@@ -136,5 +149,31 @@ describe('SettingsScreen', () => {
 
     expect(await findByText('تهیه نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.')).toBeTruthy()
     expect(Share.share).not.toHaveBeenCalled()
+  })
+
+  it('saves the name once the field loses focus', async () => {
+    const { findByLabelText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    const nameField = await findByLabelText('نام')
+    await fireEvent.changeText(nameField, 'محمد رضایی')
+    await fireEvent(nameField, 'blur')
+
+    expect(mockSetDisplayName).toHaveBeenCalledWith('محمد رضایی')
+  })
+
+  it('pre-fills the name field with the already-stored display name', async () => {
+    mockGetDisplayName.mockReturnValue({
+      displayName: 'محمد رضایی',
+      isLoading: false,
+      setDisplayName: mockSetDisplayName
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect((await findByLabelText('نام')).props.value).toBe('محمد رضایی')
   })
 })

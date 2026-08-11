@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.8.4)
+# AZAR Design System — "Minimal Luxury" (v2.8.5)
 
 ## 0. Positioning statement
 
@@ -639,6 +639,18 @@ of just moving the wrong-side problem — this fix could not be verified
 against a live Yoga layout pass (Jest's RN renderer doesn't compute real
 layout), only reasoned through from symptoms and RN's documented RTL
 mirroring behavior.
+
+**v2.8.5 — confirmed on-device, and closed out the audit.** A real
+device screenshot after v2.8.4 shipped confirmed the `alignSelf`
+inversion fix actually landed right ("این باگ هایی که در آخر گرفتی کار
+رو درست کرد"). Per explicit direction to sweep every remaining screen,
+an app-wide script search for `flex: 1` set directly on a `<Text>`
+(the other bug class, §10's v2.8.3 note) found two more instances that
+earlier passes missed — `ApplicantDetailScreen.tsx` and
+`PropertyDetailScreen.tsx`'s `titleRow` title, sitting beside a
+`StatusBadge`. Both fixed to `flexShrink: 1` alone, matching the
+pattern already established in `ContractDetailScreen.tsx`. A repeat of
+the same script against the whole tree now returns zero matches.
 
 ## 11. Dark Theme (Deferred)
 

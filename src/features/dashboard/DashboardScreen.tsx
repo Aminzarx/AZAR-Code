@@ -7,6 +7,8 @@ import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { ActivityTimeline, Avatar, ErrorState, Icon, LoadingIndicator } from '@shared/components'
+import { useDisplayName } from '@shared/hooks/useDisplayName'
+import { getTimeBasedGreeting } from '@shared/utils/greeting'
 import { useDashboardData } from './hooks/useDashboardData'
 import { StatCard } from './components/StatCard'
 import { NeedsAttentionList } from './components/NeedsAttentionList'
@@ -21,6 +23,8 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const styles = createStyles(theme)
   const { session } = useAuth()
   const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
+  const { displayName } = useDisplayName()
+  const greeting = getTimeBasedGreeting()
 
   // design-system.md §14 point 4 — exactly the two primary actions get the
   // elevated/prominent treatment; every other Dashboard action (below)
@@ -54,24 +58,16 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           style={styles.header}
         >
           <View style={styles.headerLeading}>
-            <Avatar name="کاربر آزار" size="lg" />
+            <Avatar name={displayName ?? 'کاربر آزار'} size="lg" />
             <View style={styles.headerText}>
               <Text
                 style={[theme.typography('headlineLgMobile'), styles.greeting]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                خوش آمدید
+                {greeting}
+                {displayName ? `، ${displayName}` : ''}
               </Text>
-              {session?.referralCode ? (
-                <Text
-                  style={[theme.typography('bodySm'), styles.headerSubtitle]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  کد معرف: {session.referralCode}
-                </Text>
-              ) : null}
             </View>
           </View>
           <Icon name="chevron" size="sm" color={theme.colors.outline} />
@@ -227,11 +223,6 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     greeting: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    headerSubtitle: {
-      color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space1,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     statsRow: {

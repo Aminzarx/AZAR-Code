@@ -99,10 +99,12 @@ function createStyles(theme: Theme, badgeColor: string) {
     card: {
       flexBasis: theme.component.statCardGrid.columnBasisPercent,
       flexGrow: 0,
-      // Denser than the default listItem padding — a KPI card holds a
-      // single number + a short label, not paragraph content, so the
-      // generous default padding reads as wasted space at this scale.
-      padding: theme.spacing.space2
+      // v2.8.5: bumped back up from space2(8) — the cards read as too
+      // small/cramped at that padding, especially after the icon scale
+      // grew a step. Still denser than the default listItem padding (a
+      // KPI card holds a single number + short label, not paragraph
+      // content).
+      padding: theme.spacing.space3
     },
     // Horizontal icon+text layout instead of a stacked badge-over-number
     // layout — shorter overall card height for the same content.
