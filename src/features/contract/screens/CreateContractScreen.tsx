@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { StyleSheet, Text } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { FormScreenContainer } from '@shared/components'
+import { ChipGroup, FormScreenContainer } from '@shared/components'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
 import { ContractValidationError } from '../validation/ContractValidationError'
@@ -21,6 +21,15 @@ const EMPTY_VALUES: ContractFormValues = {
   trackingCode: ''
 }
 
+type ReminderOffset = '0' | '1' | '2' | '3'
+
+const REMINDER_OFFSET_OPTIONS: readonly { value: ReminderOffset; label: string }[] = [
+  { value: '0', label: 'بدون یادآور' },
+  { value: '1', label: '۱ ماه قبل' },
+  { value: '2', label: '۲ ماه قبل' },
+  { value: '3', label: '۳ ماه قبل' }
+]
+
 export function CreateContractScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -29,6 +38,7 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   const { propertyId, applicantId, dealId } = route.params
   const [values, setValues] = useState<ContractFormValues>(EMPTY_VALUES)
   const [errors, setErrors] = useState<ContractFormErrors>({})
+  const [reminderOffset, setReminderOffset] = useState<ReminderOffset>('0')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -52,6 +62,13 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
         { propertyId, applicantId, dealId },
         values
       )
+      const offsetMonths = Number(reminderOffset)
+      if (offsetMonths > 0) {
+        // Best-effort — createContract already succeeded, a calendar
+        // permission problem shouldn't block navigating to the new
+        // contract (setEndDateReminder itself swallows calendar errors).
+        await service.setEndDateReminder(contract.id, offsetMonths)
+      }
       navigation.replace('ContractDetail', { contractId: contract.id })
     } catch (caughtError) {
       if (caughtError instanceof ContractValidationError) {
@@ -70,6 +87,14 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
       <ContractForm values={values} errors={errors} onChange={handleChange} />
+      <View style={styles.reminderSection}>
+        <ChipGroup
+          label="یادآور پایان قرارداد در تقویم گوشی"
+          options={REMINDER_OFFSET_OPTIONS}
+          value={reminderOffset}
+          onChange={(value) => setReminderOffset(value ?? '0')}
+        />
+      </View>
     </FormScreenContainer>
   )
 }
@@ -82,6 +107,9 @@ function createStyles(theme: Theme) {
     submitError: {
       color: theme.colors.error,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+    },
+    reminderSection: {
+      marginTop: theme.spacing.space5
     }
   })
 }

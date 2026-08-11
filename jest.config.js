@@ -16,7 +16,8 @@ module.exports = {
     '^react-native-camera-kit$': '<rootDir>/testutils/reactNativeCameraKitShim.js',
     '^react-native-fs$': '<rootDir>/testutils/reactNativeFsShim.js',
     '^react-native-share$': '<rootDir>/testutils/reactNativeShareShim.js',
-    '^@react-native-documents/picker$': '<rootDir>/testutils/reactNativeDocumentsPickerShim.js'
+    '^@react-native-documents/picker$': '<rootDir>/testutils/reactNativeDocumentsPickerShim.js',
+    '^react-native-calendar-events$': '<rootDir>/testutils/reactNativeCalendarEventsShim.js'
   },
   setupFiles: ['react-native-gesture-handler/jestSetup'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

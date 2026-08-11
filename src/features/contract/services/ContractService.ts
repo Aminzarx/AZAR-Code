@@ -1,6 +1,10 @@
 import type { ContractRepository } from '@infrastructure/database/repositories/ContractRepository'
 import type { PropertyService } from '@features/property/services/PropertyService'
 import type { ApplicantService } from '@features/applicant/services/ApplicantService'
+import {
+  createContractEndReminder,
+  deleteContractReminder
+} from '@infrastructure/calendar/calendarService'
 import type { Contract, ContractFormValues, ContractStatus, ContractWithDetails } from '../types'
 import { validateContractForm } from '../validation/contractValidation'
 import { ContractValidationError } from '../validation/ContractValidationError'
@@ -71,7 +75,49 @@ export class ContractService {
   }
 
   async deleteContract(id: string): Promise<void> {
+    const contract = await this.repository.getById(id)
+    if (contract?.calendarEventId) {
+      await deleteContractReminder(contract.calendarEventId)
+    }
     return this.repository.delete(id)
+  }
+
+  /**
+   * Creates (or replaces, if one already exists) this contract's
+   * end-date reminder in the phone's calendar, `offsetMonths` before
+   * `endDate`. `offsetMonths <= 0` means "no reminder" — clears any
+   * existing one instead. Calendar failures (permission denied, etc.)
+   * are swallowed by `createContractEndReminder` itself; this never
+   * throws over a reminder not being creatable.
+   */
+  async setEndDateReminder(id: string, offsetMonths: number): Promise<Contract> {
+    const contract = await this.repository.getById(id)
+    if (!contract) {
+      throw new Error(`Contract ${id} not found`)
+    }
+
+    if (contract.calendarEventId) {
+      await deleteContractReminder(contract.calendarEventId)
+      await this.repository.setCalendarEventId(id, null)
+    }
+
+    if (offsetMonths > 0) {
+      const eventId = await createContractEndReminder({
+        contractId: id,
+        endDateIso: contract.endDate,
+        offsetMonths,
+        title: `پایان قرارداد${contract.type ? ` (${contract.type})` : ''}`
+      })
+      if (eventId) {
+        await this.repository.setCalendarEventId(id, eventId)
+      }
+    }
+
+    const updated = await this.repository.getById(id)
+    if (!updated) {
+      throw new Error(`Contract ${id} not found after setting reminder`)
+    }
+    return updated
   }
 
   private async attachDetails(contract: Contract): Promise<ContractWithDetails> {

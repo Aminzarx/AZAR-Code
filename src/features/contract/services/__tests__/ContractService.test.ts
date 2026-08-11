@@ -9,6 +9,23 @@ import { ContractService } from '../ContractService'
 import { ContractValidationError } from '../../validation/ContractValidationError'
 import type { ContractFormValues } from '../../types'
 
+jest.mock('@infrastructure/calendar/calendarService', () => ({
+  createContractEndReminder: jest.fn(),
+  deleteContractReminder: jest.fn()
+}))
+
+import {
+  createContractEndReminder,
+  deleteContractReminder
+} from '@infrastructure/calendar/calendarService'
+
+const mockCreateContractEndReminder = createContractEndReminder as jest.MockedFunction<
+  typeof createContractEndReminder
+>
+const mockDeleteContractReminder = deleteContractReminder as jest.MockedFunction<
+  typeof deleteContractReminder
+>
+
 const USER_ID = 'user-1'
 
 const VALID_VALUES: ContractFormValues = {
@@ -89,6 +106,7 @@ describe('ContractService', () => {
 
   afterEach(() => {
     db.close()
+    jest.clearAllMocks()
   })
 
   it('creates a contract with status "active"', async () => {
@@ -152,5 +170,89 @@ describe('ContractService', () => {
     const created = await service.createContract(USER_ID, { propertyId, applicantId }, VALID_VALUES)
     await service.deleteContract(created.id)
     expect(await service.getContract(created.id)).toBeNull()
+  })
+
+  it('removes the calendar reminder when deleting a contract that has one', async () => {
+    mockCreateContractEndReminder.mockResolvedValue('event-1')
+    const created = await service.createContract(USER_ID, { propertyId, applicantId }, VALID_VALUES)
+    await service.setEndDateReminder(created.id, 3)
+
+    await service.deleteContract(created.id)
+
+    expect(mockDeleteContractReminder).toHaveBeenCalledWith('event-1')
+  })
+
+  it('does not attempt to remove a reminder when deleting a contract that has none', async () => {
+    const created = await service.createContract(USER_ID, { propertyId, applicantId }, VALID_VALUES)
+    await service.deleteContract(created.id)
+    expect(mockDeleteContractReminder).not.toHaveBeenCalled()
+  })
+
+  describe('setEndDateReminder', () => {
+    it('creates a calendar event and stores its id on the contract', async () => {
+      mockCreateContractEndReminder.mockResolvedValue('event-1')
+      const created = await service.createContract(
+        USER_ID,
+        { propertyId, applicantId },
+        VALID_VALUES
+      )
+
+      const updated = await service.setEndDateReminder(created.id, 3)
+
+      expect(mockCreateContractEndReminder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contractId: created.id,
+          endDateIso: created.endDate,
+          offsetMonths: 3
+        })
+      )
+      expect(updated.calendarEventId).toBe('event-1')
+    })
+
+    it('replaces an existing reminder rather than stacking a second one', async () => {
+      mockCreateContractEndReminder
+        .mockResolvedValueOnce('event-1')
+        .mockResolvedValueOnce('event-2')
+      const created = await service.createContract(
+        USER_ID,
+        { propertyId, applicantId },
+        VALID_VALUES
+      )
+      await service.setEndDateReminder(created.id, 3)
+
+      const updated = await service.setEndDateReminder(created.id, 2)
+
+      expect(mockDeleteContractReminder).toHaveBeenCalledWith('event-1')
+      expect(updated.calendarEventId).toBe('event-2')
+    })
+
+    it('clears the stored event id without creating a new one when offsetMonths is 0', async () => {
+      mockCreateContractEndReminder.mockResolvedValue('event-1')
+      const created = await service.createContract(
+        USER_ID,
+        { propertyId, applicantId },
+        VALID_VALUES
+      )
+      await service.setEndDateReminder(created.id, 3)
+
+      const updated = await service.setEndDateReminder(created.id, 0)
+
+      expect(mockDeleteContractReminder).toHaveBeenCalledWith('event-1')
+      expect(mockCreateContractEndReminder).toHaveBeenCalledTimes(1)
+      expect(updated.calendarEventId).toBeNull()
+    })
+
+    it('leaves calendarEventId null when calendar permission is denied', async () => {
+      mockCreateContractEndReminder.mockResolvedValue(null)
+      const created = await service.createContract(
+        USER_ID,
+        { propertyId, applicantId },
+        VALID_VALUES
+      )
+
+      const updated = await service.setEndDateReminder(created.id, 3)
+
+      expect(updated.calendarEventId).toBeNull()
+    })
   })
 })

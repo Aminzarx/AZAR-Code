@@ -17,6 +17,8 @@ export type ContractRecord = {
   endDate: string
   notes: string | null
   trackingCode: string | null
+  /** The id of this contract's end-date reminder in the phone's native calendar, or null if none was created. */
+  calendarEventId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -59,6 +61,7 @@ function toContract(row: Record<string, unknown>): ContractRecord {
     endDate: row.end_date as string,
     notes: row.notes as string | null,
     trackingCode: row.tracking_code as string | null,
+    calendarEventId: row.calendar_event_id as string | null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string
   }
@@ -92,9 +95,18 @@ export class ContractRepository {
     return {
       ...contract,
       status: 'active',
+      calendarEventId: null,
       createdAt: now,
       updatedAt: now
     }
+  }
+
+  /** Records (or clears, with `null`) which native-calendar event id this contract's end-date reminder was saved as. */
+  async setCalendarEventId(id: string, calendarEventId: string | null): Promise<void> {
+    await this.db.execute('UPDATE contracts SET calendar_event_id = ? WHERE id = ?', [
+      calendarEventId,
+      id
+    ])
   }
 
   async getById(id: string): Promise<ContractRecord | null> {

@@ -17,6 +17,8 @@ const DATABASE_NAME = process.env.JEST_WORKER_ID
   : 'azar.db'
 
 let instance: DB | null = null
+let wasFreshlyCreated = false
+let openPromise: Promise<DB> | null = null
 
 /**
  * Opens (or returns the already-open) database connection, encrypted via
@@ -29,19 +31,47 @@ let instance: DB | null = null
  * — this is the one place every caller goes through before touching the
  * database, so it is the only place that can guarantee the schema is
  * up to date before any repository query runs against it.
+ *
+ * Several call sites (app startup housekeeping, auth/session loading)
+ * call this concurrently on launch. Without an in-flight guard, each
+ * would see a null `instance` and independently open + migrate the same
+ * file. Caching the in-progress promise (not just the resolved instance)
+ * makes concurrent callers await the same open.
  */
 export async function getDatabase(): Promise<DB> {
   if (instance) {
     return instance
   }
+  if (openPromise) {
+    return openPromise
+  }
 
-  const encryptionKey = await getOrCreateDatabaseKey(keychainSecureStorage)
-  const db = open({ name: DATABASE_NAME, encryptionKey })
-  db.executeSync('PRAGMA foreign_keys = ON')
-  await runMigrations(db)
-  instance = db
+  openPromise = (async () => {
+    const encryptionKey = await getOrCreateDatabaseKey(keychainSecureStorage)
+    const db = open({ name: DATABASE_NAME, encryptionKey })
+    db.executeSync('PRAGMA foreign_keys = ON')
+    const { from } = await runMigrations(db)
+    wasFreshlyCreated = from === 0
+    instance = db
+    return instance
+  })()
 
-  return instance
+  try {
+    return await openPromise
+  } finally {
+    openPromise = null
+  }
+}
+
+/**
+ * True if the database this session opened had no prior schema (a real
+ * fresh install, not just an app restart) — set once per process, right
+ * after the first `getDatabase()` call runs migrations from version 0.
+ * Callers outside this module (e.g. calendar-reminder cleanup on
+ * reinstall) use this instead of duplicating fresh-install detection.
+ */
+export function wasDatabaseFreshlyCreated(): boolean {
+  return wasFreshlyCreated
 }
 
 /**
