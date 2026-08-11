@@ -41,12 +41,16 @@ jobs:
               'tar xzf - -C ~/azar-server'
 
       - name: Install dependencies and (re)start the service
+        # pm2 is a regular dependency of server/ (not global) — the sandbox
+        # user has no write access to npm's global prefix (confirmed by an
+        # earlier failed run: EACCES on /usr/lib/node_modules), and `npx
+        # pm2` resolves to the local install that `npm ci` just placed in
+        # node_modules/.bin, needing no sudo and no global state at all.
         run: |
           ssh -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" '
             set -e
             cd ~/azar-server
             npm ci --omit=dev
-            command -v pm2 >/dev/null 2>&1 || npm install -g pm2
-            pm2 describe azar-api > /dev/null 2>&1 && pm2 restart azar-api --update-env || pm2 start src/index.js --name azar-api
-            pm2 save
+            npx pm2 describe azar-api > /dev/null 2>&1 && npx pm2 restart azar-api --update-env || npx pm2 start src/index.js --name azar-api
+            npx pm2 save
           '
