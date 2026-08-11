@@ -419,7 +419,7 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     title: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     list: {
       gap: theme.spacing.space3
@@ -441,7 +441,7 @@ function createStyles(theme: Theme) {
     },
     error: {
       color: theme.colors.error,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     }
   })
 }

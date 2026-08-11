@@ -83,12 +83,12 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     context: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
       marginBottom: theme.spacing.space1
     },
     title: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     titleDone: {
       color: theme.colors.onSurfaceVariant,
@@ -97,7 +97,7 @@ function createStyles(theme: Theme) {
     subtitle: {
       color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     checkbox: {
       width: theme.touchTargetMinimum,

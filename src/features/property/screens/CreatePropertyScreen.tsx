@@ -83,7 +83,7 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     submitError: {
       color: theme.colors.error,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     }
   })
 }

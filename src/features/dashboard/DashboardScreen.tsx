@@ -227,12 +227,12 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     greeting: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     headerSubtitle: {
       color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     statsRow: {
       flexDirection: 'row',
@@ -245,7 +245,7 @@ function createStyles(theme: Theme) {
     sectionTitle: {
       color: theme.colors.onSurface,
       flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     // design-system.md §14 point 4 — every Dashboard action besides the two
     // primary ones reads as visually secondary: no Card, no elevation,

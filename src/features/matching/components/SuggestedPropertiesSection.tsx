@@ -88,24 +88,24 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     heading: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     list: {
       gap: theme.spacing.space3
     },
     title: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     reason: {
       color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     centeredSection: {
       alignItems: 'center',

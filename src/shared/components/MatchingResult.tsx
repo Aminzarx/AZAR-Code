@@ -160,16 +160,16 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     title: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     matchCount: {
       color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.space3,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     criteriaRow: {
       flexDirection: 'row',
@@ -189,7 +189,7 @@ function createStyles(theme: Theme) {
       color: theme.colors.outline
     },
     primaryAction: {
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
       marginTop: theme.spacing.space4
     },
     primaryActionLabel: {

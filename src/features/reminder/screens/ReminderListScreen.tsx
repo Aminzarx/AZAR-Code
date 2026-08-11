@@ -112,7 +112,7 @@ function createStyles(theme: Theme) {
     },
     sectionHeader: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
       marginTop: theme.layout.sectionSpacing,
       marginBottom: theme.spacing.space2
     },

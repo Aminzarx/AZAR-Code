@@ -281,7 +281,7 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     heading: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     summaryRow: {
       flexDirection: 'row',
@@ -295,16 +295,16 @@ function createStyles(theme: Theme) {
     },
     summaryTitle: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     summaryDetail: {
       color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     actionError: {
       color: theme.colors.error,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     actions: {
       gap: theme.spacing.space3

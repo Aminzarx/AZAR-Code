@@ -375,27 +375,27 @@ function createStyles(theme: Theme) {
     sectionLabel: {
       color: theme.colors.onSurfaceVariant,
       marginBottom: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     amountValue: {
       color: theme.colors.primary,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     detailRow: {
       marginBottom: theme.spacing.space3
     },
     label: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     value: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     statusFlash: {
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
       gap: theme.spacing.space1,
       marginTop: theme.spacing.space3,
       paddingHorizontal: theme.spacing.space4,
@@ -429,7 +429,7 @@ function createStyles(theme: Theme) {
     submitError: {
       color: theme.colors.error,
       marginTop: theme.spacing.space3,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     }
   })
 }

@@ -97,17 +97,17 @@ function createStyles(theme: Theme) {
     title: {
       color: theme.colors.onSurface,
       flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
       flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     budget: {
       color: theme.colors.primary,
       marginTop: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     metaGrid: {
       flexDirection: 'row',
@@ -122,11 +122,11 @@ function createStyles(theme: Theme) {
     },
     metaLabel: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     metaValue: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     }
   })
 }

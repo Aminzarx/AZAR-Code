@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.8.3)
+# AZAR Design System — "Minimal Luxury" (v2.8.4)
 
 ## 0. Positioning statement
 
@@ -611,6 +611,34 @@ edge — see `QuickActions.tsx`'s `leading` style. **Rule:** a `<Text>`
 that needs to fill available space in a `row` must never carry `flex: 1`
 itself; wrap it (and anything it must stay adjacent to) in a `flexShrink`
 group instead.
+
+**v2.8.4 — the `alignSelf` value itself was backwards, app-wide.** A
+real device screenshot of `PropertyDetailScreen` (a screen untouched
+since v2.3.0) showed every `DetailRow` label/value flush against the
+*left* edge, despite already carrying exactly the
+`alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'` pattern this
+section has documented since v2.3.0. That pattern was written, and
+apparently validated, back when the real native-RTL-activation bug
+(fixed only in v2.8.0 — see §10's `index.js`/`AzarRestart` history) meant
+`I18nManager.isRTL` was *never actually true* on any device that
+"confirmed" it worked: Yoga was laying out every screen in physical/LTR
+mode the whole time, so `alignSelf: 'flex-end'` — a value the whole
+codebase chose specifically *because* it looked like it meant "physical
+right" — worked only by coincidence, because Yoga wasn't RTL-aware yet.
+Once v2.8.0 made native RTL genuinely active, Yoga began resolving
+`alignSelf`'s `flex-start`/`flex-end` as writing-direction-relative
+(`flex-end` = the *logical* end of RTL flow, i.e. physical **left**),
+silently inverting every one of these ternaries at once. v2.8.4 flips
+all ~43 of them to `theme.isRTL ? 'flex-start' : 'flex-end'` (`flex-start`
+now correctly resolves to physical right in RTL). This is the
+mirror-image of the v2.8.0 lesson: fixing one long-standing bug for real
+can retroactively invalidate other code that only ever "worked" because
+the first bug was masking it. **Flag for the next real-device
+screenshot check**: confirm this inversion actually landed right instead
+of just moving the wrong-side problem — this fix could not be verified
+against a live Yoga layout pass (Jest's RN renderer doesn't compute real
+layout), only reasoned through from symptoms and RN's documented RTL
+mirroring behavior.
 
 ## 11. Dark Theme (Deferred)
 

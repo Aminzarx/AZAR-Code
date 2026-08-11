@@ -81,17 +81,17 @@ function createStyles(theme: Theme, isOverdue: boolean) {
     title: {
       color: theme.colors.onSurface,
       flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
       flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     hint: {
       color: isOverdue ? theme.colors.warning : theme.colors.outline,
       marginTop: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     }
   })
 }

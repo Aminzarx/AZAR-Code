@@ -108,17 +108,17 @@ function createStyles(theme: Theme) {
     title: {
       color: theme.colors.onSurface,
       flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     subtitle: {
       color: theme.colors.onSurfaceVariant,
       flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     price: {
       color: theme.colors.primary,
       marginTop: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     // design-system.md §7.3.1's fixed 2-column percentage grid, reused
     // here for secondary meta (area/rooms) — content-driven card height,
@@ -136,11 +136,11 @@ function createStyles(theme: Theme) {
     },
     metaLabel: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     metaValue: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     matchRow: {
       flexDirection: 'row',

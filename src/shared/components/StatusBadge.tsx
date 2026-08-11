@@ -35,7 +35,7 @@ function createStyles(theme: Theme, background: string, foreground: string) {
     badge: {
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start',
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
       gap: theme.component.statusBadge.gap,
       paddingVertical: theme.component.statusBadge.paddingY,
       paddingHorizontal: theme.component.statusBadge.paddingX,

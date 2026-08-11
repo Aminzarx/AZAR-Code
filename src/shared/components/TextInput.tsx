@@ -101,7 +101,7 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     label: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     requiredMark: {
       color: theme.colors.error
@@ -131,11 +131,11 @@ function createStyles(theme: Theme) {
     },
     errorText: {
       color: theme.colors.error,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     helperText: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     }
   })
 }

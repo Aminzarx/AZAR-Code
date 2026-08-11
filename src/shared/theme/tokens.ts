@@ -133,12 +133,14 @@ export const elevation = {
   }
 } as const
 
+// v2.8.4: bumped up one step from 16/18/24/32/48 — icons read a little
+// too small against their surrounding text/touch targets.
 export const iconSize = {
-  xs: 16,
-  sm: 18,
-  md: 24,
-  lg: 32,
-  xl: 48
+  xs: 18,
+  sm: 20,
+  md: 26,
+  lg: 34,
+  xl: 52
 } as const
 
 export const motion = {

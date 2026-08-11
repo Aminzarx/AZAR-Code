@@ -9,20 +9,12 @@ import { ApplicantService } from '@features/applicant/services/ApplicantService'
 import { DealService } from '@features/deal/services/DealService'
 import { generateId } from '@infrastructure/auth/idGenerators'
 import { DEAL_STATUS_LABELS } from '@features/deal/dealStatusLabels'
+import { formatDate, formatDateTime } from '@shared/utils/formatDate'
 import type { DashboardActivity, DashboardData, DashboardNeedsAttentionItem } from '../types'
 
 const RECENT_ACTIVITY_LIMIT = 5
 const RECENT_ITEMS_PER_SOURCE = RECENT_ACTIVITY_LIMIT
 const UPCOMING_REMINDERS_LIMIT = 5
-
-function formatDate(isoTimestamp: string): string {
-  return new Date(isoTimestamp).toLocaleDateString('fa-IR')
-}
-
-function formatDateTime(isoTimestamp: string): string {
-  const date = new Date(isoTimestamp)
-  return `${date.toLocaleDateString('fa-IR')} • ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
-}
 
 /**
  * Every stat and every activity entry is read live from the database —

@@ -128,10 +128,10 @@ function createStyles(theme: Theme) {
     // alignSelf explicitly anchors it to the correct edge.
     dropdownItemText: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     typoHint: {
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     typoHintText: {
       color: theme.colors.primary

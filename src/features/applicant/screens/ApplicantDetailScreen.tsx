@@ -305,7 +305,7 @@ function createStyles(theme: Theme) {
     location: {
       color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     // design-system.md Principle 6 — the one deliberately "loud" block on
     // this screen: budget, promoted above every other field.
@@ -315,19 +315,19 @@ function createStyles(theme: Theme) {
     },
     budgetValue: {
       color: theme.colors.primary,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     detailRow: {
       marginTop: theme.spacing.space3
     },
     label: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     value: {
       color: theme.colors.onSurface,
       marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
@@ -335,7 +335,7 @@ function createStyles(theme: Theme) {
     submitError: {
       color: theme.colors.error,
       marginTop: theme.spacing.space3,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     actions: {
       flexDirection: 'row',

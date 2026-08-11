@@ -1,4 +1,5 @@
 import React from 'react'
+import { NavigationContainer } from '@react-navigation/native'
 import { fireEvent, render } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { DashboardScreen } from '../DashboardScreen'
@@ -21,6 +22,20 @@ const mockedFetchDashboardData = fetchDashboardData as jest.MockedFunction<
 const navigationProp = { navigate: mockNavigate } as never
 const routeProp = { key: 'Home', name: 'Home' as const, params: undefined }
 
+// useDashboardData refetches via useFocusEffect (so the Dashboard's
+// stats/activity refresh on every return to this tab, not just on first
+// mount) — that hook needs a real navigation context to resolve focus,
+// hence the NavigationContainer wrapper every render here goes through.
+function renderDashboard() {
+  return render(
+    withTheme(
+      <NavigationContainer>
+        <DashboardScreen navigation={navigationProp} route={routeProp} />
+      </NavigationContainer>
+    )
+  )
+}
+
 describe('DashboardScreen', () => {
   beforeEach(() => {
     mockedFetchDashboardData.mockReset()
@@ -35,9 +50,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByText } = await renderDashboard()
 
     expect(await findByText('فایل‌های ملکی')).toBeTruthy()
     expect(mockedFetchDashboardData).toHaveBeenCalledWith('u1')
@@ -46,9 +59,7 @@ describe('DashboardScreen', () => {
   it('shows an error state with retry when the fetch fails', async () => {
     mockedFetchDashboardData.mockRejectedValue(new Error('اتصال برقرار نشد'))
 
-    const { findByText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByText } = await renderDashboard()
 
     expect(await findByText('بارگذاری داشبورد با مشکل مواجه شد')).toBeTruthy()
     expect(await findByText('اتصال برقرار نشد')).toBeTruthy()
@@ -62,9 +73,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByText } = await renderDashboard()
 
     expect(await findByText('هنوز فعالیتی ثبت نشده')).toBeTruthy()
   })
@@ -77,9 +86,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByLabelText } = await renderDashboard()
 
     fireEvent.press(await findByLabelText('افزودن فایل ملکی'))
     expect(mockNavigate).toHaveBeenCalledWith('CreateProperty')
@@ -93,9 +100,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByLabelText } = await renderDashboard()
 
     fireEvent.press(await findByLabelText('فایل‌های ملکی: 3'))
     expect(mockNavigate).toHaveBeenCalledWith('PropertyList')
@@ -109,9 +114,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByLabelText } = await renderDashboard()
 
     fireEvent.press(await findByLabelText('افزودن متقاضی'))
     expect(mockNavigate).toHaveBeenCalledWith('CreateApplicant')
@@ -125,9 +128,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByLabelText } = await renderDashboard()
 
     fireEvent.press(await findByLabelText('متقاضیان: 5'))
     expect(mockNavigate).toHaveBeenCalledWith('ApplicantList')
@@ -141,9 +142,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByLabelText } = await renderDashboard()
 
     fireEvent.press(await findByLabelText('مشاهده پیگیری‌ها'))
     expect(mockNavigate).toHaveBeenCalledWith('DealList')
@@ -157,9 +156,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByLabelText } = await renderDashboard()
 
     fireEvent.press(await findByLabelText('پیگیری‌های فعال: 2'))
     expect(mockNavigate).toHaveBeenCalledWith('DealList')
@@ -173,9 +170,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByLabelText } = await renderDashboard()
 
     fireEvent.press(await findByLabelText('قراردادهای فعال: 4'))
     expect(mockNavigate).toHaveBeenCalledWith('ContractList')
@@ -189,9 +184,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByText } = await renderDashboard()
 
     expect(await findByText('یادآوری نزدیکی وجود ندارد')).toBeTruthy()
   })
@@ -204,9 +197,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: [{ id: 'rem-1', title: 'تماس با متقاضی', timestamp: '۱۴۰۴/۰۵/۲۰' }]
     })
 
-    const { findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByLabelText } = await renderDashboard()
 
     fireEvent.press(await findByLabelText('تماس با متقاضی'))
     expect(mockNavigate).toHaveBeenCalledWith('ReminderDetail', { reminderId: 'rem-1' })
@@ -220,9 +211,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { queryByText, findByText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { queryByText, findByText } = await renderDashboard()
 
     // Wait for the loaded screen before asserting an absence.
     expect(await findByText('اقدامات سریع')).toBeTruthy()
@@ -244,9 +233,7 @@ describe('DashboardScreen', () => {
       upcomingReminders: []
     })
 
-    const { findByText, findByLabelText } = await render(
-      withTheme(<DashboardScreen navigation={navigationProp} route={routeProp} />)
-    )
+    const { findByText, findByLabelText } = await renderDashboard()
 
     expect(await findByText('نیازمند توجه')).toBeTruthy()
     fireEvent.press(await findByLabelText('3 متقاضی نیازمند پیگیری'))

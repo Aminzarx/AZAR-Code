@@ -50,17 +50,17 @@ function createStyles(theme: Theme, isOverdue: boolean) {
     // alignSelf explicitly anchors it to the correct edge.
     eyebrow: {
       color: isOverdue ? theme.colors.warning : theme.colors.secondary,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     title: {
       color: theme.colors.onSurface,
       marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     timestamp: {
       color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-end' : 'flex-start'
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     action: {
       marginTop: theme.spacing.space4
