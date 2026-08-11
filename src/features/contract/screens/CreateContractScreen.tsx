@@ -17,7 +17,8 @@ const EMPTY_VALUES: ContractFormValues = {
   amount: '',
   startDate: '',
   endDate: '',
-  notes: ''
+  notes: '',
+  trackingCode: ''
 }
 
 export function CreateContractScreen({ navigation, route }: Props): React.JSX.Element {

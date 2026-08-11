@@ -16,6 +16,7 @@ const CONTRACT: ContractWithDetails = {
   startDate: '2026-09-01',
   endDate: '2027-09-01',
   notes: null,
+  trackingCode: null,
   createdAt: '2026-08-08T00:00:00.000Z',
   updatedAt: '2026-08-08T00:00:00.000Z',
   property: {

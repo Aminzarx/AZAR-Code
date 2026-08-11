@@ -235,7 +235,8 @@ describe('fetchDashboardData', () => {
       amount: null,
       startDate: '2026-09-01',
       endDate: '2027-09-01',
-      notes: null
+      notes: null,
+      trackingCode: null
     })
     await contractRepository.update(contract.id, {
       type: null,
@@ -243,7 +244,8 @@ describe('fetchDashboardData', () => {
       amount: null,
       startDate: contract.startDate,
       endDate: contract.endDate,
-      notes: null
+      notes: null,
+      trackingCode: null
     })
 
     const result = await fetchDashboardData(USER_ID)

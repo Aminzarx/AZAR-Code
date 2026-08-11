@@ -16,6 +16,7 @@ export type ContractRecord = {
   startDate: string
   endDate: string
   notes: string | null
+  trackingCode: string | null
   createdAt: string
   updatedAt: string
 }
@@ -31,6 +32,7 @@ export type CreateContractRecord = {
   startDate: string
   endDate: string
   notes: string | null
+  trackingCode: string | null
 }
 
 export type UpdateContractRecord = {
@@ -40,6 +42,7 @@ export type UpdateContractRecord = {
   startDate: string
   endDate: string
   notes: string | null
+  trackingCode: string | null
 }
 
 function toContract(row: Record<string, unknown>): ContractRecord {
@@ -55,6 +58,7 @@ function toContract(row: Record<string, unknown>): ContractRecord {
     startDate: row.start_date as string,
     endDate: row.end_date as string,
     notes: row.notes as string | null,
+    trackingCode: row.tracking_code as string | null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string
   }
@@ -67,8 +71,8 @@ export class ContractRepository {
     const now = new Date().toISOString()
     await this.db.execute(
       `INSERT INTO contracts
-        (id, user_id, property_id, applicant_id, deal_id, type, status, amount, start_date, end_date, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)`,
+        (id, user_id, property_id, applicant_id, deal_id, type, status, amount, start_date, end_date, notes, tracking_code, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)`,
       [
         contract.id,
         contract.userId,
@@ -80,6 +84,7 @@ export class ContractRepository {
         contract.startDate,
         contract.endDate,
         contract.notes,
+        contract.trackingCode,
         now,
         now
       ]
@@ -126,7 +131,7 @@ export class ContractRepository {
     const now = new Date().toISOString()
     await this.db.execute(
       `UPDATE contracts
-       SET type = ?, status = ?, amount = ?, start_date = ?, end_date = ?, notes = ?, updated_at = ?
+       SET type = ?, status = ?, amount = ?, start_date = ?, end_date = ?, notes = ?, tracking_code = ?, updated_at = ?
        WHERE id = ?`,
       [
         contract.type,
@@ -135,6 +140,7 @@ export class ContractRepository {
         contract.startDate,
         contract.endDate,
         contract.notes,
+        contract.trackingCode,
         now,
         id
       ]

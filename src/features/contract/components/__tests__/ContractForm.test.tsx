@@ -9,7 +9,8 @@ const EMPTY_VALUES: ContractFormValues = {
   amount: '',
   startDate: '',
   endDate: '',
-  notes: ''
+  notes: '',
+  trackingCode: ''
 }
 
 describe('ContractForm', () => {

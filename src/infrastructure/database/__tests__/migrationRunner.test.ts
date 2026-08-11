@@ -25,8 +25,8 @@ describe('migrationRunner', () => {
 
   it('migrates a fresh database to the latest version', async () => {
     const result = await runMigrations(db)
-    expect(result).toEqual({ from: 0, to: 14 })
-    expect(await getSchemaVersion(db)).toBe(14)
+    expect(result).toEqual({ from: 0, to: 15 })
+    expect(await getSchemaVersion(db)).toBe(15)
   })
 
   it('creates every table declared in migration 0001', async () => {
@@ -72,7 +72,7 @@ describe('migrationRunner', () => {
   it('is idempotent — running migrations again against an up-to-date database is a no-op', async () => {
     await runMigrations(db)
     const second = await runMigrations(db)
-    expect(second).toEqual({ from: 14, to: 14 })
+    expect(second).toEqual({ from: 15, to: 15 })
   })
 
   it('enforces foreign key constraints once migrated', async () => {
@@ -114,7 +114,7 @@ describe('migrationRunner', () => {
         await tx.execute('PRAGMA user_version = 99')
       })
     ).rejects.toThrow()
-    expect(await getSchemaVersion(db)).toBe(14)
+    expect(await getSchemaVersion(db)).toBe(15)
   })
 
   it('seeds a bootstrap user so a fresh install has a valid referral code to register with', async () => {

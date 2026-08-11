@@ -8,6 +8,7 @@ export type ValidatedContractInput = {
   startDate: string
   endDate: string
   notes: string | null
+  trackingCode: string | null
 }
 
 export function validateContractForm(
@@ -53,7 +54,8 @@ export function validateContractForm(
       amount,
       startDate,
       endDate,
-      notes: values.notes.trim() || null
+      notes: values.notes.trim() || null,
+      trackingCode: values.trackingCode.trim() || null
     },
     errors: null
   }

@@ -39,7 +39,8 @@ function toFormValues(contract: Contract): ContractFormValues {
     amount: contract.amount === null ? '' : String(contract.amount),
     startDate: toJalaliDisplay(contract.startDate),
     endDate: toJalaliDisplay(contract.endDate),
-    notes: contract.notes ?? ''
+    notes: contract.notes ?? '',
+    trackingCode: contract.trackingCode ?? ''
   }
 }
 
@@ -232,6 +233,14 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
             theme={theme}
             styles={styles}
           />
+          {contract.trackingCode ? (
+            <DetailRow
+              label="کد رهگیری"
+              value={contract.trackingCode}
+              theme={theme}
+              styles={styles}
+            />
+          ) : null}
           {contract.notes ? (
             <DetailRow label="یادداشت" value={contract.notes} theme={theme} styles={styles} />
           ) : null}

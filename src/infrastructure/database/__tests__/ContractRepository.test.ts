@@ -45,6 +45,7 @@ function baseContract(
     startDate: '2026-09-01',
     endDate: '2027-09-01',
     notes: null,
+    trackingCode: null,
     ...overrides
   }
 }
@@ -104,7 +105,8 @@ describe('ContractRepository', () => {
       amount: first.amount,
       startDate: first.startDate,
       endDate: first.endDate,
-      notes: null
+      notes: null,
+      trackingCode: null
     })
 
     const active = await repository.getByStatus(USER_ID, 'active')
@@ -124,7 +126,8 @@ describe('ContractRepository', () => {
       amount: first.amount,
       startDate: first.startDate,
       endDate: first.endDate,
-      notes: null
+      notes: null,
+      trackingCode: null
     })
     expect(await repository.countActive(USER_ID)).toBe(1)
   })
@@ -137,11 +140,13 @@ describe('ContractRepository', () => {
       amount: 700000000,
       startDate: '2026-10-01',
       endDate: '2027-10-01',
-      notes: 'یادداشت'
+      notes: 'یادداشت',
+      trackingCode: '9876543210'
     })
     expect(updated.type).toBe('فروش')
     expect(updated.status).toBe('completed')
     expect(updated.notes).toBe('یادداشت')
+    expect(updated.trackingCode).toBe('9876543210')
   })
 
   it('rejects an invalid status via the CHECK constraint', async () => {

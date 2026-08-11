@@ -16,7 +16,8 @@ const VALID_VALUES: ContractFormValues = {
   amount: '500000000',
   startDate: '2026-09-01',
   endDate: '2027-09-01',
-  notes: ''
+  notes: '',
+  trackingCode: ''
 }
 
 let idCounter = 0

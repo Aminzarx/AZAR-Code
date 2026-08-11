@@ -10,7 +10,8 @@ const VALID_VALUES: ContractFormValues = {
   amount: '500000000',
   startDate: '1405/06/10',
   endDate: '1406/06/10',
-  notes: 'یادداشت'
+  notes: 'یادداشت',
+  trackingCode: '1234567890'
 }
 
 describe('validateContractForm', () => {
@@ -22,7 +23,8 @@ describe('validateContractForm', () => {
       amount: 500000000,
       startDate: START_DATE_ISO,
       endDate: END_DATE_ISO,
-      notes: 'یادداشت'
+      notes: 'یادداشت',
+      trackingCode: '1234567890'
     })
   })
 
@@ -62,12 +64,19 @@ describe('validateContractForm', () => {
     expect(result.errors?.endDate).toBeTruthy()
   })
 
-  it('allows type, amount, and notes to be omitted', () => {
-    const result = validateContractForm({ ...VALID_VALUES, type: '', amount: '', notes: '' })
+  it('allows type, amount, notes, and trackingCode to be omitted', () => {
+    const result = validateContractForm({
+      ...VALID_VALUES,
+      type: '',
+      amount: '',
+      notes: '',
+      trackingCode: ''
+    })
     expect(result.errors).toBeNull()
     expect(result.input?.type).toBeNull()
     expect(result.input?.amount).toBeNull()
     expect(result.input?.notes).toBeNull()
+    expect(result.input?.trackingCode).toBeNull()
   })
 
   it('rejects a non-numeric or non-positive amount', () => {

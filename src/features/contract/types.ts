@@ -18,6 +18,7 @@ export type ContractFormValues = {
   startDate: string
   endDate: string
   notes: string
+  trackingCode: string
 }
 
 export type ContractFormErrors = Partial<Record<keyof ContractFormValues, string>>
