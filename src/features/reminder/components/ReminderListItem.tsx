@@ -2,6 +2,7 @@ import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Card, EntityIconBadge } from '@shared/components'
+import { formatDateTime } from '@shared/utils/formatDate'
 import type { Reminder } from '../types'
 import type { ReminderContext } from '../hooks/useReminderContexts'
 
@@ -11,11 +12,6 @@ type Props = {
   onToggleDone: () => void
   /** Linked property/applicant/deal name, when the reminder is tied to one — omit for a bare reminder. */
   context?: ReminderContext | null
-}
-
-function formatRemindAt(remindAt: string): string {
-  const date = new Date(remindAt)
-  return `${date.toLocaleDateString('fa-IR')} • ${date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`
 }
 
 export function ReminderListItem({
@@ -51,7 +47,7 @@ export function ReminderListItem({
             {reminder.title}
           </Text>
           <Text style={[theme.typography('bodySm'), styles.subtitle]}>
-            {formatRemindAt(reminder.remindAt)}
+            {formatDateTime(reminder.remindAt)}
           </Text>
         </Pressable>
         <Pressable

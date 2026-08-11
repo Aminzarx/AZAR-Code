@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
+import { formatDateTime } from '@shared/utils/formatDate'
 import {
   Button,
   Card,
@@ -171,11 +172,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
             </View>
           ) : null}
           <Text style={[theme.typography('bodyMd'), styles.value]}>
-            {new Date(reminder.remindAt).toLocaleDateString('fa-IR')} •{' '}
-            {new Date(reminder.remindAt).toLocaleTimeString('fa-IR', {
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
+            {formatDateTime(reminder.remindAt)}
           </Text>
           {reminder.description ? (
             <Text style={[theme.typography('bodySm'), styles.description]}>

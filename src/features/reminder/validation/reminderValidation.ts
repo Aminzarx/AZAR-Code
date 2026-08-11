@@ -1,3 +1,9 @@
+import {
+  formatJalaliDate,
+  gregorianIsoToJalali,
+  jalaliToGregorianIso,
+  parseJalaliDate
+} from '@shared/utils/jalaliDate'
 import type { ReminderFormErrors, ReminderFormValues } from '../types'
 
 export type ValidatedReminderInput = {
@@ -6,7 +12,6 @@ export type ValidatedReminderInput = {
   remindAt: string
 }
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
 
 export function validateReminderForm(
@@ -18,9 +23,9 @@ export function validateReminderForm(
     errors.title = 'عنوان الزامی است.'
   }
 
-  const date = values.date.trim()
-  if (!DATE_PATTERN.test(date)) {
-    errors.date = 'تاریخ را به‌صورت ۱۴۰۴-۰۵-۲۰ (سال-ماه-روز) وارد کنید.'
+  const parsedDate = parseJalaliDate(values.date)
+  if (!parsedDate) {
+    errors.date = 'تاریخ را به‌صورت ۱۴۰۵/۰۵/۱۲ (سال/ماه/روز شمسی) وارد کنید.'
   }
 
   const time = values.time.trim()
@@ -29,17 +34,11 @@ export function validateReminderForm(
   }
 
   let remindAt: string | null = null
-  if (!errors.date && !errors.time) {
-    const [year, month, day] = date.split('-').map(Number)
-    const candidate = new Date(`${date}T${time}:00`)
-    const isRealCalendarDate =
-      !Number.isNaN(candidate.getTime()) &&
-      candidate.getFullYear() === year &&
-      candidate.getMonth() + 1 === month &&
-      candidate.getDate() === day
-
-    if (!isRealCalendarDate) {
-      errors.date = 'تاریخ یا زمان معتبر نیست.'
+  if (parsedDate && !errors.time) {
+    const isoDate = jalaliToGregorianIso(parsedDate)
+    const candidate = new Date(`${isoDate}T${time}:00`)
+    if (Number.isNaN(candidate.getTime())) {
+      errors.time = 'تاریخ یا زمان معتبر نیست.'
     } else {
       remindAt = candidate.toISOString()
     }
@@ -59,11 +58,14 @@ export function validateReminderForm(
   }
 }
 
+/** ISO timestamp (as stored) -> the form's Jalali date string + a `HH:mm` time string. */
 export function toFormDateTime(remindAt: string): { date: string; time: string } {
   const parsed = new Date(remindAt)
   const pad = (value: number): string => String(value).padStart(2, '0')
+  const isoDate = `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`
+  const jalali = gregorianIsoToJalali(isoDate)
   return {
-    date: `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`,
+    date: jalali ? formatJalaliDate(jalali) : isoDate,
     time: `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`
   }
 }

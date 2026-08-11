@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { AutocompleteInput, FormRow, MoneyInput, TextInput } from '@shared/components'
+import { AutocompleteInput, DateInput, FormRow, MoneyInput, TextInput } from '@shared/components'
 import { PROPERTY_TRANSACTION_TYPES } from '@shared/data/realEstateOptions'
 import type { ContractFormErrors, ContractFormValues } from '../types'
 
@@ -38,20 +38,18 @@ export function ContractForm({ values, errors, onChange }: Props): React.JSX.Ele
         errorMessage={errors.amount}
       />
       <FormRow>
-        <TextInput
+        <DateInput
           label="تاریخ شروع"
           required
           value={values.startDate}
           onChangeText={(value) => onChange('startDate', value)}
-          placeholder="1404-05-20"
           errorMessage={errors.startDate}
         />
-        <TextInput
+        <DateInput
           label="تاریخ پایان"
           required
           value={values.endDate}
           onChangeText={(value) => onChange('endDate', value)}
-          placeholder="1405-05-20"
           errorMessage={errors.endDate}
         />
       </FormRow>

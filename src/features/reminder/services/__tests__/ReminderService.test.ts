@@ -10,7 +10,7 @@ const USER_ID = 'user-1'
 const VALID_VALUES: ReminderFormValues = {
   title: 'تماس با متقاضی',
   description: '',
-  date: '2026-09-01',
+  date: '1405/06/10',
   time: '14:30'
 }
 
@@ -70,8 +70,8 @@ describe('ReminderService', () => {
   })
 
   it('lists only upcoming, not-done reminders', async () => {
-    await service.createReminder(USER_ID, { ...VALID_VALUES, date: '2020-01-01' })
-    const future = await service.createReminder(USER_ID, { ...VALID_VALUES, date: '2030-01-01' })
+    await service.createReminder(USER_ID, { ...VALID_VALUES, date: '1395/01/01' })
+    const future = await service.createReminder(USER_ID, { ...VALID_VALUES, date: '1410/01/01' })
 
     const upcoming = await service.listUpcoming(USER_ID)
     expect(upcoming.map((r) => r.id)).toEqual([future.id])

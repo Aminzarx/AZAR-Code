@@ -2,8 +2,27 @@ import {
   findClosestMatch,
   levenshteinDistance,
   normalizePersianText,
-  suggestMatches
+  suggestMatches,
+  toEnglishDigits
 } from '../persianText'
+
+describe('toEnglishDigits', () => {
+  it('converts Persian digits to ASCII', () => {
+    expect(toEnglishDigits('۱۴۰۵/۰۵/۱۲')).toBe('1405/05/12')
+  })
+
+  it('converts Arabic-Indic digits to ASCII', () => {
+    expect(toEnglishDigits('١٤٠٥/٠٥/١٢')).toBe('1405/05/12')
+  })
+
+  it('leaves ASCII digits and non-digit characters untouched', () => {
+    expect(toEnglishDigits('1405/05/12')).toBe('1405/05/12')
+  })
+
+  it('handles a mix of Persian and English digits in the same string', () => {
+    expect(toEnglishDigits('14۰5/۰5/12')).toBe('1405/05/12')
+  })
+})
 
 describe('normalizePersianText', () => {
   it('unifies Arabic and Persian Yeh/Kaf', () => {

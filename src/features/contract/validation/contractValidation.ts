@@ -1,24 +1,13 @@
+import { jalaliToGregorianIso, parseJalaliDate } from '@shared/utils/jalaliDate'
 import type { ContractFormErrors, ContractFormValues } from '../types'
 
 export type ValidatedContractInput = {
   type: string | null
   amount: number | null
+  /** Gregorian ISO (`YYYY-MM-DD`) — the form field itself holds Jalali text; this is the converted, storage-ready value. */
   startDate: string
   endDate: string
   notes: string | null
-}
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-
-function isRealCalendarDate(value: string): boolean {
-  const [year, month, day] = value.split('-').map(Number)
-  const parsed = new Date(`${value}T00:00:00`)
-  return (
-    !Number.isNaN(parsed.getTime()) &&
-    parsed.getFullYear() === year &&
-    parsed.getMonth() + 1 === month &&
-    parsed.getDate() === day
-  )
 }
 
 export function validateContractForm(
@@ -26,15 +15,18 @@ export function validateContractForm(
 ): { input: ValidatedContractInput; errors: null } | { input: null; errors: ContractFormErrors } {
   const errors: ContractFormErrors = {}
 
-  const startDate = values.startDate.trim()
-  if (!DATE_PATTERN.test(startDate) || !isRealCalendarDate(startDate)) {
-    errors.startDate = 'تاریخ شروع را به‌صورت ۱۴۰۴-۰۵-۲۰ (سال-ماه-روز) وارد کنید.'
+  const parsedStartDate = parseJalaliDate(values.startDate)
+  if (!parsedStartDate) {
+    errors.startDate = 'تاریخ شروع را به‌صورت ۱۴۰۵/۰۵/۱۲ (سال/ماه/روز شمسی) وارد کنید.'
   }
 
-  const endDate = values.endDate.trim()
-  if (!DATE_PATTERN.test(endDate) || !isRealCalendarDate(endDate)) {
-    errors.endDate = 'تاریخ پایان را به‌صورت ۱۴۰۴-۰۵-۲۰ (سال-ماه-روز) وارد کنید.'
+  const parsedEndDate = parseJalaliDate(values.endDate)
+  if (!parsedEndDate) {
+    errors.endDate = 'تاریخ پایان را به‌صورت ۱۴۰۵/۰۵/۱۲ (سال/ماه/روز شمسی) وارد کنید.'
   }
+
+  const startDate = parsedStartDate ? jalaliToGregorianIso(parsedStartDate) : ''
+  const endDate = parsedEndDate ? jalaliToGregorianIso(parsedEndDate) : ''
 
   if (!errors.startDate && !errors.endDate && endDate < startDate) {
     errors.endDate = 'تاریخ پایان باید بعد از تاریخ شروع باشد.'

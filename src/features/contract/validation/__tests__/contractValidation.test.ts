@@ -1,29 +1,45 @@
+import { jalaliToGregorianIso } from '@shared/utils/jalaliDate'
 import { validateContractForm } from '../contractValidation'
 import type { ContractFormValues } from '../../types'
+
+const START_DATE_ISO = jalaliToGregorianIso({ year: 1405, month: 6, day: 10 })
+const END_DATE_ISO = jalaliToGregorianIso({ year: 1406, month: 6, day: 10 })
 
 const VALID_VALUES: ContractFormValues = {
   type: 'اجاره',
   amount: '500000000',
-  startDate: '2026-09-01',
-  endDate: '2027-09-01',
+  startDate: '1405/06/10',
+  endDate: '1406/06/10',
   notes: 'یادداشت'
 }
 
 describe('validateContractForm', () => {
-  it('accepts a fully valid form', () => {
+  it('accepts a fully valid form and converts Jalali dates to Gregorian ISO for storage', () => {
     const result = validateContractForm(VALID_VALUES)
     expect(result.errors).toBeNull()
     expect(result.input).toEqual({
       type: 'اجاره',
       amount: 500000000,
-      startDate: '2026-09-01',
-      endDate: '2027-09-01',
+      startDate: START_DATE_ISO,
+      endDate: END_DATE_ISO,
       notes: 'یادداشت'
     })
   })
 
+  it('accepts single-digit month/day the same as zero-padded', () => {
+    const result = validateContractForm({ ...VALID_VALUES, startDate: '1405/6/10' })
+    expect(result.errors).toBeNull()
+    expect(result.input?.startDate).toBe(START_DATE_ISO)
+  })
+
+  it('accepts Persian digits identically to English digits', () => {
+    const result = validateContractForm({ ...VALID_VALUES, startDate: '۱۴۰۵/۰۶/۱۰' })
+    expect(result.errors).toBeNull()
+    expect(result.input?.startDate).toBe(START_DATE_ISO)
+  })
+
   it('requires a valid startDate', () => {
-    const result = validateContractForm({ ...VALID_VALUES, startDate: '1404/05/20' })
+    const result = validateContractForm({ ...VALID_VALUES, startDate: 'not-a-date' })
     expect(result.errors?.startDate).toBeTruthy()
   })
 
@@ -32,16 +48,16 @@ describe('validateContractForm', () => {
     expect(result.errors?.endDate).toBeTruthy()
   })
 
-  it('rejects an impossible calendar date', () => {
-    const result = validateContractForm({ ...VALID_VALUES, startDate: '2026-02-30' })
+  it('rejects an impossible calendar date (Esfand 30 in a common year)', () => {
+    const result = validateContractForm({ ...VALID_VALUES, startDate: '1404/12/30' })
     expect(result.errors?.startDate).toBeTruthy()
   })
 
   it('rejects an endDate before the startDate', () => {
     const result = validateContractForm({
       ...VALID_VALUES,
-      startDate: '2027-01-01',
-      endDate: '2026-01-01'
+      startDate: '1406/01/01',
+      endDate: '1405/01/01'
     })
     expect(result.errors?.endDate).toBeTruthy()
   })

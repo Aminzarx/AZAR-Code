@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { ChipGroup, FormRow, TextInput } from '@shared/components'
+import { ChipGroup, DateInput, FormRow, TextInput } from '@shared/components'
 import { toFormDateTime } from '../validation/reminderValidation'
 import type { ReminderFormErrors, ReminderFormValues } from '../types'
 
@@ -12,13 +12,10 @@ type Props = {
 }
 
 /**
- * §17.3/§15 — the date/time fields stay plain `TextInput`s: no Jalali
- * calendar or time-wheel library is a dependency of this app
- * (`package.json` has none), and adding one is out of scope for a UI-only
- * redesign. The quick-date chips below are the scoped-down replacement —
- * built from `ChipGroup`, an existing shared primitive, no new dependency —
- * covering the common case (امروز/فردا/پس‌فردا) while manual entry still
- * covers everything else.
+ * The quick-date chips (امروز/فردا/پس‌فردا) built from `ChipGroup` cover
+ * the common case; `DateInput` (manual Jalali entry + calendar picker)
+ * covers everything else — the time field stays a plain `TextInput`
+ * (`HH:mm`), no time-picker widget was requested.
  */
 function useQuickDateOptions(): { value: string; label: string }[] {
   return useMemo(() => {
@@ -60,13 +57,11 @@ export function ReminderForm({ values, errors, onChange }: Props): React.JSX.Ele
         onChange={(value) => onChange('date', value ?? '')}
       />
       <FormRow>
-        <TextInput
+        <DateInput
           label="تاریخ"
           required
           value={values.date}
           onChangeText={(value) => onChange('date', value)}
-          placeholder="2026-08-20"
-          helperText="سال-ماه-روز میلادی"
           errorMessage={errors.date}
         />
         <TextInput

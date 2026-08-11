@@ -12,6 +12,26 @@ export function toPersianDigits(input: string): string {
   return input.replace(/[0-9]/g, (digit) => PERSIAN_DIGITS[Number(digit)])
 }
 
+// Arabic-Indic digits (١٢٣...) show up from some keyboards/IMEs alongside
+// the Persian ones (۱۲۳...) — both must normalize to ASCII so typed input
+// is never rejected just because of which digit glyphs the keyboard sent.
+const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
+
+/**
+ * Converts Persian or Arabic-Indic digits in a string to ASCII — the
+ * inverse of `toPersianDigits`, used so every numeric/date input in the
+ * app accepts Persian and English digits completely interchangeably.
+ */
+export function toEnglishDigits(input: string): string {
+  return input.replace(/[۰-۹٠-٩]/g, (digit) => {
+    const persianIndex = PERSIAN_DIGITS.indexOf(digit)
+    if (persianIndex !== -1) {
+      return String(persianIndex)
+    }
+    return String(ARABIC_INDIC_DIGITS.indexOf(digit))
+  })
+}
+
 export function normalizePersianText(input: string): string {
   return input
     .replace(/ي/g, 'ی') // Arabic Yeh -> Persian Yeh (ي -> ی)

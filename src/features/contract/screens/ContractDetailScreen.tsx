@@ -13,6 +13,7 @@ import {
   LoadingIndicator,
   StatusBadge
 } from '@shared/components'
+import { formatJalaliDate, gregorianIsoToJalali } from '@shared/utils/jalaliDate'
 import { useContractDetail } from '../hooks/useContractDetail'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
@@ -26,12 +27,18 @@ const STATUS_FLASH_DURATION_MS = 1600
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ContractDetail'>
 
+/** Gregorian ISO (`YYYY-MM-DD`, as stored) -> Jalali display string; falls back to the raw value if it's somehow not a well-formed date. */
+function toJalaliDisplay(isoDate: string): string {
+  const jalali = gregorianIsoToJalali(isoDate)
+  return jalali ? formatJalaliDate(jalali) : isoDate
+}
+
 function toFormValues(contract: Contract): ContractFormValues {
   return {
     type: contract.type ?? '',
     amount: contract.amount === null ? '' : String(contract.amount),
-    startDate: contract.startDate,
-    endDate: contract.endDate,
+    startDate: toJalaliDisplay(contract.startDate),
+    endDate: toJalaliDisplay(contract.endDate),
     notes: contract.notes ?? ''
   }
 }
@@ -221,7 +228,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
           ) : null}
           <DetailRow
             label="بازه قرارداد"
-            value={`${contract.startDate} تا ${contract.endDate}`}
+            value={`${toJalaliDisplay(contract.startDate)} تا ${toJalaliDisplay(contract.endDate)}`}
             theme={theme}
             styles={styles}
           />
