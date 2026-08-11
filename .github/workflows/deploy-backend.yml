@@ -28,12 +28,17 @@ jobs:
           ssh-keyscan -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Sync server source to the VPS
+        # The VPS sandbox container only has git/node/python3/build-essential
+        # (server/README.md), not rsync — tar-over-SSH needs nothing beyond
+        # plain OpenSSH on either end. node_modules/data are excluded the
+        # same way rsync's --exclude did; npm ci below reinstalls
+        # node_modules fresh every deploy anyway.
         run: |
-          rsync -az --delete \
-            --exclude 'node_modules' \
-            --exclude 'data' \
-            -e "ssh -p ${{ secrets.VPS_PORT }}" \
-            server/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/azar-server/"
+          ssh -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            'rm -rf ~/azar-server && mkdir -p ~/azar-server'
+          tar czf - -C server --exclude node_modules --exclude data . \
+            | ssh -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+              'tar xzf - -C ~/azar-server'
 
       - name: Install dependencies and (re)start the service
         run: |
