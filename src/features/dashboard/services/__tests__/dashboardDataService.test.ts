@@ -308,6 +308,12 @@ describe('fetchDashboardData', () => {
     expect(result.recentActivity.find((item) => item.id === 'applicant-app-1')?.title).toBe(
       'متقاضی جدید: علی رضایی'
     )
+    expect(result.recentActivity.find((item) => item.id === 'property-prop-1')).toEqual(
+      expect.objectContaining({ entityType: 'property', entityId: 'prop-1' })
+    )
+    expect(result.recentActivity.find((item) => item.id === 'applicant-app-1')).toEqual(
+      expect.objectContaining({ entityType: 'applicant', entityId: 'app-1' })
+    )
   })
 
   it('includes a needs-attention row for an overdue applicant reminder', async () => {

@@ -9,6 +9,8 @@ export type DashboardActivity = {
   title: string
   description: string
   timestamp: string
+  entityType: 'property' | 'applicant' | 'deal'
+  entityId: string
 }
 
 export type DashboardReminder = {

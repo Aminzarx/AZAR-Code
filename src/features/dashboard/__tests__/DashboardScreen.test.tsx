@@ -203,6 +203,29 @@ describe('DashboardScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('ReminderDetail', { reminderId: 'rem-1' })
   })
 
+  it('navigates to the source record when a recent activity row is pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [],
+      needsAttention: [],
+      recentActivity: [
+        {
+          id: 'property-prop-1',
+          title: 'فایل ملکی جدید: آپارتمان دو خوابه',
+          description: 'تهران • خیابان ولیعصر',
+          timestamp: '۱۴۰۴/۰۵/۲۰',
+          entityType: 'property',
+          entityId: 'prop-1'
+        }
+      ],
+      upcomingReminders: []
+    })
+
+    const { findByLabelText } = await renderDashboard()
+
+    fireEvent.press(await findByLabelText('فایل ملکی جدید: آپارتمان دو خوابه'))
+    expect(mockNavigate).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
+  })
+
   it('does not render a Needs Attention heading when there is nothing to show', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [],

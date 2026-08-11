@@ -102,26 +102,39 @@ export async function fetchDashboardData(ownerId: string): Promise<DashboardData
       title: `فایل ملکی جدید: ${property.title}`,
       description: `${property.city} • ${property.address}`,
       timestamp: formatDate(property.createdAt),
-      createdAt: property.createdAt
+      createdAt: property.createdAt,
+      entityType: 'property' as const,
+      entityId: property.id
     })),
     ...recentApplicants.slice(0, RECENT_ITEMS_PER_SOURCE).map((applicant) => ({
       id: `applicant-${applicant.id}`,
       title: `متقاضی جدید: ${applicant.fullName}`,
       description: applicant.city,
       timestamp: formatDate(applicant.createdAt),
-      createdAt: applicant.createdAt
+      createdAt: applicant.createdAt,
+      entityType: 'applicant' as const,
+      entityId: applicant.id
     })),
     ...recentDeals.slice(0, RECENT_ITEMS_PER_SOURCE).map((deal) => ({
       id: `deal-${deal.id}`,
       title: `پیگیری جدید: ${deal.property?.title ?? 'ملک نامشخص'}`,
       description: `${deal.applicant?.fullName ?? 'متقاضی نامشخص'} • ${DEAL_STATUS_LABELS[deal.status]}`,
       timestamp: formatDate(deal.createdAt),
-      createdAt: deal.createdAt
+      createdAt: deal.createdAt,
+      entityType: 'deal' as const,
+      entityId: deal.id
     }))
   ]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, RECENT_ACTIVITY_LIMIT)
-    .map(({ id, title, description, timestamp }) => ({ id, title, description, timestamp }))
+    .map(({ id, title, description, timestamp, entityType, entityId }) => ({
+      id,
+      title,
+      description,
+      timestamp,
+      entityType,
+      entityId
+    }))
 
   return {
     stats: [

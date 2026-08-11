@@ -14,7 +14,7 @@ import { StatCard } from './components/StatCard'
 import { NeedsAttentionList } from './components/NeedsAttentionList'
 import { QuickActions, type QuickAction } from './components/QuickActions'
 import { UpcomingRemindersList } from './components/UpcomingRemindersList'
-import type { DashboardNeedsAttentionItem } from './types'
+import type { DashboardActivity, DashboardNeedsAttentionItem } from './types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
 
@@ -46,6 +46,20 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
 
   function handleNeedsAttentionSelect(item: DashboardNeedsAttentionItem): void {
     navigateAcrossTabs(navigation, item.target, undefined)
+  }
+
+  function handleActivitySelect(item: DashboardActivity): void {
+    switch (item.entityType) {
+      case 'property':
+        navigateAcrossTabs(navigation, 'PropertyDetail', { propertyId: item.entityId })
+        break
+      case 'applicant':
+        navigateAcrossTabs(navigation, 'ApplicantDetail', { applicantId: item.entityId })
+        break
+      case 'deal':
+        navigateAcrossTabs(navigation, 'DealDetail', { dealId: item.entityId })
+        break
+    }
   }
 
   return (
@@ -161,6 +175,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                 <ActivityTimeline
                   activity={data.recentActivity}
                   emptyDescription="با افزودن فایل‌های ملکی و متقاضیان، آخرین فعالیت‌های شما اینجا نمایش داده می‌شود."
+                  onSelect={handleActivitySelect}
                 />
               </View>
 

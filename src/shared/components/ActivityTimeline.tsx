@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { EmptyState } from './EmptyState'
 
@@ -10,10 +10,12 @@ export type ActivityItem = {
   timestamp: string
 }
 
-type Props = {
-  activity: ActivityItem[]
+type Props<T extends ActivityItem> = {
+  activity: T[]
   emptyTitle?: string
   emptyDescription?: string
+  /** When provided, each row becomes tappable (e.g. to navigate to the record the activity is about). */
+  onSelect?: (item: T) => void
 }
 
 /**
@@ -24,11 +26,12 @@ type Props = {
  * (deals/reminders/notes/...) into this generic shape and renders it here
  * — the timeline itself never knows what kind of record produced a row.
  */
-export function ActivityTimeline({
+export function ActivityTimeline<T extends ActivityItem>({
   activity,
   emptyTitle = 'هنوز فعالیتی ثبت نشده',
-  emptyDescription
-}: Props): React.JSX.Element {
+  emptyDescription,
+  onSelect
+}: Props<T>): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
 
@@ -40,19 +43,31 @@ export function ActivityTimeline({
     <View style={styles.list}>
       {activity.map((item, index) => {
         const isLast = index === activity.length - 1
+        const content = (
+          <View style={[styles.content, isLast && styles.contentLast]}>
+            <Text style={[theme.typography('titleSm'), styles.title]}>{item.title}</Text>
+            <Text style={[theme.typography('bodySm'), styles.description]}>{item.description}</Text>
+            <Text style={[theme.typography('labelSm'), styles.timestamp]}>{item.timestamp}</Text>
+          </View>
+        )
         return (
           <View key={item.id} style={styles.row}>
             <View style={styles.rail}>
               <View style={styles.dot} />
               {!isLast ? <View style={styles.line} /> : null}
             </View>
-            <View style={[styles.content, isLast && styles.contentLast]}>
-              <Text style={[theme.typography('titleSm'), styles.title]}>{item.title}</Text>
-              <Text style={[theme.typography('bodySm'), styles.description]}>
-                {item.description}
-              </Text>
-              <Text style={[theme.typography('labelSm'), styles.timestamp]}>{item.timestamp}</Text>
-            </View>
+            {onSelect ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={item.title}
+                onPress={() => onSelect(item)}
+                style={styles.pressableContent}
+              >
+                {content}
+              </Pressable>
+            ) : (
+              content
+            )}
           </View>
         )
       })}
@@ -85,6 +100,9 @@ function createStyles(theme: Theme) {
       width: 1,
       backgroundColor: theme.colors.outlineVariant,
       marginTop: theme.spacing.space1
+    },
+    pressableContent: {
+      flex: 1
     },
     content: {
       flex: 1,
