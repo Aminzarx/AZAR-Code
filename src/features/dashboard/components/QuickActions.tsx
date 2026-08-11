@@ -29,20 +29,22 @@ export function QuickActions({ actions }: Props): React.JSX.Element {
           onPress={action.onPress}
         >
           <Card style={styles.card}>
-            <View style={styles.iconBadge}>
-              <Icon
-                name={action.icon ?? 'plus'}
-                size="sm"
-                color={theme.colors.onSecondaryContainer}
-              />
+            <View style={styles.leading}>
+              <View style={styles.iconBadge}>
+                <Icon
+                  name={action.icon ?? 'plus'}
+                  size="sm"
+                  color={theme.colors.onSecondaryContainer}
+                />
+              </View>
+              <Text
+                style={[theme.typography('labelMd'), styles.label]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {action.label}
+              </Text>
             </View>
-            <Text
-              style={[theme.typography('labelMd'), styles.label]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {action.label}
-            </Text>
             <Icon name="chevron" size="xs" color={theme.colors.outline} />
           </Card>
         </Pressable>
@@ -59,8 +61,23 @@ function createStyles(theme: Theme) {
     card: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       gap: theme.spacing.space3,
       minHeight: theme.touchTargetMinimum
+    },
+    // `flex: 1` directly on `label` stretched it across the row's entire
+    // remaining width, leaving real empty space between the icon and its
+    // own label once RTL row mirroring positioned the icon at one edge
+    // and the label's (misaligned) content at the other. Grouping icon +
+    // label in their own row with natural (`flexShrink`, not `flex`)
+    // sizing keeps them adjacent regardless of which edge
+    // `justifyContent: 'space-between'` sends this group to.
+    leading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space3,
+      flexShrink: 1,
+      minWidth: 0
     },
     iconBadge: {
       width: theme.iconSize.xl * 0.6,
@@ -71,7 +88,7 @@ function createStyles(theme: Theme) {
       justifyContent: 'center'
     },
     label: {
-      flex: 1,
+      flexShrink: 1,
       color: theme.colors.onSurface
     }
   })

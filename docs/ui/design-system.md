@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.8.2)
+# AZAR Design System — "Minimal Luxury" (v2.8.3)
 
 ## 0. Positioning statement
 
@@ -588,6 +588,29 @@ Dashboard:
   codebase, default to asking "is this a standalone line in a column,
   or is it riding inside a row with something else?" — the former needs
   `alignSelf`, the latter must not have it.
+
+**v2.8.3 — a second, distinct bug class in the same family: `flex: 1`
+directly on a `<Text>` inside a `row`.** A real device screenshot after
+v2.8.1 (icons finally correct, native RTL mirroring finally active per
+v2.8.0) showed several rows — the Dashboard header (avatar + greeting +
+chevron) and its "quick actions"/"needs attention" rows (icon badge +
+label + chevron) — with the label's text hugging the *wrong* edge,
+leaving a large empty gap between it and the icon it's supposed to sit
+next to. Every affected `Text` had `flex: 1` set *directly on the Text
+itself* (not on a wrapping `View`), stretching its box across the row's
+entire remaining width; `theme.typography()` supplies `textAlign` on
+that same `Text`, but a `Text` stretched this way did not reliably
+right-align its content within that stretched box on-device, the same
+class of unreliable-flex-box behavior §10 already documents for
+`alignSelf` in a column. The fix is structural, not another alignment
+property: group the icon and its label together in their own small
+`row` (`flexShrink`, never `flex: 1`, so it sizes to its content and
+stays adjacent to the icon), and let `justifyContent: 'space-between'`
+on the *outer* row push a trailing chevron/indicator to the opposite
+edge — see `QuickActions.tsx`'s `leading` style. **Rule:** a `<Text>`
+that needs to fill available space in a `row` must never carry `flex: 1`
+itself; wrap it (and anything it must stay adjacent to) in a `flexShrink`
+group instead.
 
 ## 11. Dark Theme (Deferred)
 

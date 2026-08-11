@@ -82,7 +82,7 @@ function createStyles(theme: Theme) {
       flexShrink: 0
     },
     label: {
-      flex: 1,
+      flexShrink: 1,
       textAlign: theme.isRTL ? 'right' : 'left'
     }
   })

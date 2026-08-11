@@ -351,7 +351,6 @@ function createStyles(theme: Theme) {
     },
     title: {
       color: theme.colors.onSurface,
-      flex: 1,
       flexShrink: 1
     },
     divider: {

@@ -41,16 +41,18 @@ export function NeedsAttentionList({ items, onSelect }: Props): React.JSX.Elemen
             onPress={() => onSelect(item)}
             style={[styles.row, { backgroundColor: tone.background }]}
           >
-            <View style={[styles.iconBadge, { backgroundColor: tone.foreground }]}>
-              <Icon name={ICON_BY_TARGET[item.target]} size="xs" color={theme.colors.onPrimary} />
+            <View style={styles.leading}>
+              <View style={[styles.iconBadge, { backgroundColor: tone.foreground }]}>
+                <Icon name={ICON_BY_TARGET[item.target]} size="xs" color={theme.colors.onPrimary} />
+              </View>
+              <Text
+                style={[theme.typography('labelMd'), styles.label, { color: tone.foreground }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {item.label}
+              </Text>
             </View>
-            <Text
-              style={[theme.typography('labelMd'), styles.label, { color: tone.foreground }]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {item.label}
-            </Text>
             <Icon name="chevron" size="xs" color={tone.foreground} />
           </Pressable>
         )
@@ -67,11 +69,22 @@ function createStyles(theme: Theme) {
     row: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       gap: theme.spacing.space3,
       minHeight: theme.touchTargetMinimum,
       paddingHorizontal: theme.spacing.space4,
       paddingVertical: theme.spacing.space3,
       borderRadius: theme.radius.large
+    },
+    // See QuickActions.tsx's `leading` for why the icon and label are
+    // grouped in their own row instead of giving `label` `flex: 1`
+    // directly.
+    leading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space3,
+      flexShrink: 1,
+      minWidth: 0
     },
     iconBadge: {
       width: theme.iconSize.lg,
@@ -82,7 +95,7 @@ function createStyles(theme: Theme) {
       flexShrink: 0
     },
     label: {
-      flex: 1
+      flexShrink: 1
     }
   })
 }

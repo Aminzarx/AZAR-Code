@@ -53,24 +53,26 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           accessibilityLabel="مشاهده پروفایل و تنظیمات"
           style={styles.header}
         >
-          <Avatar name="کاربر آزار" size="lg" />
-          <View style={styles.headerText}>
-            <Text
-              style={[theme.typography('headlineLgMobile'), styles.greeting]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              خوش آمدید
-            </Text>
-            {session?.referralCode ? (
+          <View style={styles.headerLeading}>
+            <Avatar name="کاربر آزار" size="lg" />
+            <View style={styles.headerText}>
               <Text
-                style={[theme.typography('bodySm'), styles.headerSubtitle]}
+                style={[theme.typography('headlineLgMobile'), styles.greeting]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                کد معرف: {session.referralCode}
+                خوش آمدید
               </Text>
-            ) : null}
+              {session?.referralCode ? (
+                <Text
+                  style={[theme.typography('bodySm'), styles.headerSubtitle]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  کد معرف: {session.referralCode}
+                </Text>
+              ) : null}
+            </View>
           </View>
           <Icon name="chevron" size="sm" color={theme.colors.outline} />
         </Pressable>
@@ -202,10 +204,22 @@ function createStyles(theme: Theme) {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       gap: theme.spacing.space4
     },
+    // See QuickActions.tsx's `leading` comment — the avatar and greeting
+    // stay grouped in their own row so `justifyContent: 'space-between'`
+    // only pushes the chevron to the opposite edge, not the greeting text
+    // itself away from the avatar it belongs next to.
+    headerLeading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space4,
+      flexShrink: 1,
+      minWidth: 0
+    },
     headerText: {
-      flex: 1,
+      flexShrink: 1,
       minWidth: 0
     },
     // design-system.md §10 — a short Text in a column container doesn't
@@ -244,7 +258,7 @@ function createStyles(theme: Theme) {
       paddingHorizontal: theme.spacing.space2
     },
     secondaryActionLabel: {
-      flex: 1,
+      flexShrink: 1,
       color: theme.colors.onSurfaceVariant
     },
     centeredSection: {
