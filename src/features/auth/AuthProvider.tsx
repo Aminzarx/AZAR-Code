@@ -93,14 +93,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       sendOtp: (phoneNumber) => authApiClient.sendOtp(phoneNumber),
       verifyOtp: (phoneNumber, code) => authApiClient.verifyOtp(phoneNumber, code),
       register: async (phoneNumber, referralCode) => {
-        const result = await sessionManager.register(phoneNumber, referralCode)
-        await cacheUserLocally(phoneNumber, result)
+        const result = await sessionManager.register(phoneNumber, referralCode, (resolved) =>
+          cacheUserLocally(phoneNumber, resolved)
+        )
         setSession(result)
         return result
       },
       login: async (phoneNumber) => {
-        const result = await sessionManager.login(phoneNumber)
-        await cacheUserLocally(phoneNumber, result)
+        const result = await sessionManager.login(phoneNumber, (resolved) =>
+          cacheUserLocally(phoneNumber, resolved)
+        )
         setSession(result)
         return result
       },

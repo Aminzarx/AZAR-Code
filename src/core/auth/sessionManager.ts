@@ -27,13 +27,33 @@ export class SessionManager {
     private readonly generateId: () => string
   ) {}
 
-  async register(phoneNumber: string, referralCode: string): Promise<CurrentSession> {
+  // `onUserResolved` runs after the server confirms the user but before the
+  // session row is written locally — callers (AuthProvider) use it to cache
+  // the user into the local database first, since `sessions.user_id`
+  // references `users(id)` there and foreign keys are enforced. Skipping
+  // this ordering throws a foreign key violation on every real (non-mock)
+  // registration/login, since the local `users` row otherwise wouldn't
+  // exist yet when persistSession's INSERT INTO sessions runs.
+  async register(
+    phoneNumber: string,
+    referralCode: string,
+    onUserResolved?: (result: { userId: string; referralCode: string }) => Promise<void>
+  ): Promise<CurrentSession> {
     const result = await this.authApiClient.register(phoneNumber, referralCode)
+    if (onUserResolved) {
+      await onUserResolved(result)
+    }
     return this.persistSession(result.userId, result.referralCode, result.sessionToken)
   }
 
-  async login(phoneNumber: string): Promise<CurrentSession> {
+  async login(
+    phoneNumber: string,
+    onUserResolved?: (result: { userId: string; referralCode: string }) => Promise<void>
+  ): Promise<CurrentSession> {
     const result = await this.authApiClient.login(phoneNumber)
+    if (onUserResolved) {
+      await onUserResolved(result)
+    }
     return this.persistSession(result.userId, result.referralCode, result.sessionToken)
   }
 

@@ -7,6 +7,7 @@ import { MockAuthApiClient } from '../../../infrastructure/auth/mockAuthApiClien
 import { generateId, generateReferralCode } from '../../../infrastructure/auth/idGenerators'
 import { inMemorySecureStorage } from '../../../infrastructure/security/testHelpers'
 import { SessionManager } from '../sessionManager'
+import type { AuthApiClient } from '../authApiClient'
 
 const DEV_OTP_CODE = '555555'
 
@@ -110,6 +111,85 @@ describe('SessionManager', () => {
     await sessionRepository.revoke(session.sessionId)
 
     expect(await sessionManager.getCurrentSession()).toBeNull()
+    db.close()
+  })
+
+  // Unlike MockAuthApiClient (backed directly by the local repositories,
+  // so the local `users` row already exists by the time register/login
+  // returns), the real HttpAuthApiClient's user only exists on the remote
+  // server — the local `users` row has to be created by the caller. Since
+  // `sessions.user_id` references `users(id)` locally with foreign keys
+  // enforced, persisting the session before that row exists throws.
+  it('creates the local user row via onUserResolved before persisting the session', async () => {
+    const db: DB = open({ name: `test-session-${Math.random()}.db`, location: ':memory:' })
+    db.executeSync('PRAGMA foreign_keys = ON')
+    await runMigrations(db)
+
+    const userRepository = new UserRepository(db)
+    const sessionRepository = new SessionRepository(db)
+    const remoteUserId = generateId()
+    const remoteAuthApiClient: AuthApiClient = {
+      sendOtp: async () => {},
+      verifyOtp: async () => {},
+      register: async () => ({
+        userId: remoteUserId,
+        referralCode: 'REMOTE01',
+        sessionToken: 'remote-session-token'
+      }),
+      login: async () => ({
+        userId: remoteUserId,
+        referralCode: 'REMOTE01',
+        sessionToken: 'remote-session-token'
+      }),
+      deleteAccount: async () => {}
+    }
+    const sessionManager = new SessionManager(
+      remoteAuthApiClient,
+      sessionRepository,
+      inMemorySecureStorage(),
+      generateId
+    )
+
+    const session = await sessionManager.register('+15559999999', 'REMOTE01', async (resolved) => {
+      await userRepository.create({
+        id: resolved.userId,
+        phoneNumber: '+15559999999',
+        referralCode: resolved.referralCode
+      })
+    })
+
+    expect(session.userId).toBe(remoteUserId)
+    expect(await sessionRepository.findById(session.sessionId)).not.toBeNull()
+    db.close()
+  })
+
+  it('throws instead of persisting a session for a user that was never cached locally', async () => {
+    const db: DB = open({ name: `test-session-${Math.random()}.db`, location: ':memory:' })
+    db.executeSync('PRAGMA foreign_keys = ON')
+    await runMigrations(db)
+
+    const sessionRepository = new SessionRepository(db)
+    const remoteAuthApiClient: AuthApiClient = {
+      sendOtp: async () => {},
+      verifyOtp: async () => {},
+      register: async () => ({
+        userId: generateId(),
+        referralCode: 'REMOTE02',
+        sessionToken: 'remote-session-token'
+      }),
+      login: async () => {
+        throw new Error('not used')
+      },
+      deleteAccount: async () => {}
+    }
+    const sessionManager = new SessionManager(
+      remoteAuthApiClient,
+      sessionRepository,
+      inMemorySecureStorage(),
+      generateId
+    )
+
+    await expect(sessionManager.register('+15559999998', 'REMOTE02')).rejects.toThrow()
     db.close()
   })
 })
