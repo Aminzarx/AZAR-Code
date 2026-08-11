@@ -3,6 +3,10 @@ const cors = require('cors')
 const authRoutes = require('./authRoutes')
 
 const PORT = Number(process.env.PORT) || 8787
+// Explicit, not left to Node's default — nginx on the VPS host proxies to
+// this port *inside* the container's own network namespace, which only
+// reaches a process bound to all interfaces, not just loopback.
+const HOST = process.env.HOST || '0.0.0.0'
 
 const app = express()
 app.use(cors())
@@ -24,6 +28,6 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: { code: 'internal_error', message: 'Something went wrong.' } })
 })
 
-app.listen(PORT, () => {
-  console.log(`AZAR auth server listening on port ${PORT}`)
+app.listen(PORT, HOST, () => {
+  console.log(`AZAR auth server listening on ${HOST}:${PORT}`)
 })
