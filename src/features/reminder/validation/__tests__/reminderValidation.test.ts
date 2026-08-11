@@ -6,7 +6,8 @@ const VALID_VALUES: ReminderFormValues = {
   title: 'تماس با متقاضی',
   description: 'یادداشت',
   date: '1405/06/10',
-  time: '14:30'
+  time: '14:30',
+  reminderType: 'visit'
 }
 
 const EXPECTED_ISO_DATE = jalaliToGregorianIso({ year: 1405, month: 6, day: 10 })
@@ -18,6 +19,7 @@ describe('validateReminderForm', () => {
     expect(result.input?.title).toBe('تماس با متقاضی')
     expect(result.input?.description).toBe('یادداشت')
     expect(result.input?.remindAt).toBe(new Date(`${EXPECTED_ISO_DATE}T14:30:00`).toISOString())
+    expect(result.input?.reminderType).toBe('visit')
   })
 
   it('accepts single-digit month/day and Persian digits identically', () => {

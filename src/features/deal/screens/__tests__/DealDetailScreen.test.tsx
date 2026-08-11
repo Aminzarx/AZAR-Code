@@ -85,6 +85,7 @@ const REMINDER: ReminderRecord = {
   title: 'تماس با متقاضی',
   description: null,
   remindAt: '2030-01-01T10:00:00.000Z',
+  reminderType: 'general',
   isDone: false,
   createdAt: '2026-08-08T00:00:00.000Z',
   updatedAt: '2026-08-08T00:00:00.000Z'

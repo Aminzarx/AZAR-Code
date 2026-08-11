@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getDatabase } from '@infrastructure/database/connection'
 import { ReminderRepository } from '@infrastructure/database/repositories/ReminderRepository'
+import { DealRepository } from '@infrastructure/database/repositories/DealRepository'
 import { generateId } from '@infrastructure/auth/idGenerators'
 import { ReminderService } from '../services/ReminderService'
 
@@ -13,7 +14,9 @@ export function useReminderService(): ReminderService | null {
 
     getDatabase().then((db) => {
       if (!cancelled) {
-        setService(new ReminderService(new ReminderRepository(db), generateId))
+        setService(
+          new ReminderService(new ReminderRepository(db), generateId, new DealRepository(db))
+        )
       }
     })
 

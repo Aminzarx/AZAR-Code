@@ -1,5 +1,9 @@
 import type { DB } from '@op-engineering/op-sqlite'
 
+export type ReminderType = 'general' | 'call' | 'visit'
+
+export const REMINDER_TYPES: readonly ReminderType[] = ['general', 'call', 'visit']
+
 export type ReminderRecord = {
   id: string
   userId: string
@@ -9,6 +13,7 @@ export type ReminderRecord = {
   title: string
   description: string | null
   remindAt: string
+  reminderType: ReminderType
   isDone: boolean
   createdAt: string
   updatedAt: string
@@ -23,6 +28,7 @@ export type CreateReminderRecord = {
   title: string
   description: string | null
   remindAt: string
+  reminderType: ReminderType
 }
 
 export type UpdateReminderRecord = {
@@ -32,6 +38,7 @@ export type UpdateReminderRecord = {
   propertyId: string | null
   applicantId: string | null
   dealId: string | null
+  reminderType: ReminderType
 }
 
 function toReminder(row: Record<string, unknown>): ReminderRecord {
@@ -44,6 +51,7 @@ function toReminder(row: Record<string, unknown>): ReminderRecord {
     title: row.title as string,
     description: row.description as string | null,
     remindAt: row.remind_at as string,
+    reminderType: row.reminder_type as ReminderType,
     isDone: Boolean(row.is_done),
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string
@@ -57,8 +65,8 @@ export class ReminderRepository {
     const now = new Date().toISOString()
     await this.db.execute(
       `INSERT INTO reminders
-        (id, user_id, property_id, applicant_id, deal_id, title, description, remind_at, is_done, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+        (id, user_id, property_id, applicant_id, deal_id, title, description, remind_at, reminder_type, is_done, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
       [
         reminder.id,
         reminder.userId,
@@ -68,6 +76,7 @@ export class ReminderRepository {
         reminder.title,
         reminder.description,
         reminder.remindAt,
+        reminder.reminderType,
         now,
         now
       ]
@@ -118,7 +127,7 @@ export class ReminderRepository {
     const now = new Date().toISOString()
     await this.db.execute(
       `UPDATE reminders
-       SET title = ?, description = ?, remind_at = ?, property_id = ?, applicant_id = ?, deal_id = ?, updated_at = ?
+       SET title = ?, description = ?, remind_at = ?, property_id = ?, applicant_id = ?, deal_id = ?, reminder_type = ?, updated_at = ?
        WHERE id = ?`,
       [
         reminder.title,
@@ -127,6 +136,7 @@ export class ReminderRepository {
         reminder.propertyId,
         reminder.applicantId,
         reminder.dealId,
+        reminder.reminderType,
         now,
         id
       ]

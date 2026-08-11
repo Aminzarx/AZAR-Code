@@ -16,7 +16,8 @@ const EMPTY_VALUES: ReminderFormValues = {
   title: '',
   description: '',
   date: '',
-  time: ''
+  time: '',
+  reminderType: 'general'
 }
 
 export function CreateReminderScreen({ navigation, route }: Props): React.JSX.Element {

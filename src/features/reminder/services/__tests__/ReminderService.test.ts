@@ -1,6 +1,7 @@
 import { open, type DB } from '@op-engineering/op-sqlite'
 import { runMigrations } from '@infrastructure/database/migrationRunner'
 import { ReminderRepository } from '@infrastructure/database/repositories/ReminderRepository'
+import { DealRepository } from '@infrastructure/database/repositories/DealRepository'
 import { ReminderService } from '../ReminderService'
 import { ReminderValidationError } from '../../validation/ReminderValidationError'
 import type { ReminderFormValues } from '../../types'
@@ -11,7 +12,8 @@ const VALID_VALUES: ReminderFormValues = {
   title: 'تماس با متقاضی',
   description: '',
   date: '1405/06/10',
-  time: '14:30'
+  time: '14:30',
+  reminderType: 'general'
 }
 
 let idCounter = 0
@@ -97,5 +99,97 @@ describe('ReminderService', () => {
     const created = await service.createReminder(USER_ID, VALID_VALUES)
     await service.deleteReminder(created.id)
     expect(await service.getReminder(created.id)).toBeNull()
+  })
+
+  describe('pipeline auto-advancement on completing a visit reminder', () => {
+    let dealRepository: DealRepository
+    let dealId: string
+
+    beforeEach(async () => {
+      dealRepository = new DealRepository(db)
+      service = new ReminderService(new ReminderRepository(db), generateId, dealRepository)
+
+      await db.execute(
+        `INSERT INTO properties (id, owner_id, title, city, address, status, created_at, updated_at)
+         VALUES ('prop-1', ?, 'آپارتمان', 'تهران', 'آدرس', 'active', '2026-08-08', '2026-08-08')`,
+        [USER_ID]
+      )
+      await db.execute(
+        `INSERT INTO applicants (id, user_id, full_name, phone_number, city, status, created_at, updated_at)
+         VALUES ('app-1', ?, 'علی رضایی', '09121234567', 'تهران', 'active', '2026-08-08', '2026-08-08')`,
+        [USER_ID]
+      )
+      const deal = await dealRepository.create({
+        id: 'deal-1',
+        userId: USER_ID,
+        propertyId: 'prop-1',
+        applicantId: 'app-1'
+      })
+      dealId = deal.id
+    })
+
+    it('advances the deal to "visited" when a linked visit reminder is completed', async () => {
+      await dealRepository.transitionStage(dealId, 'visit_scheduled', USER_ID)
+      const reminder = await service.createReminder(
+        USER_ID,
+        { ...VALID_VALUES, reminderType: 'visit' },
+        { dealId }
+      )
+
+      await service.setDone(reminder.id, true, USER_ID)
+
+      const deal = await dealRepository.getById(dealId)
+      expect(deal?.currentStage).toBe('visited')
+    })
+
+    it('does not advance the deal for a non-visit reminder', async () => {
+      await dealRepository.transitionStage(dealId, 'visit_scheduled', USER_ID)
+      const reminder = await service.createReminder(
+        USER_ID,
+        { ...VALID_VALUES, reminderType: 'call' },
+        { dealId }
+      )
+
+      await service.setDone(reminder.id, true, USER_ID)
+
+      const deal = await dealRepository.getById(dealId)
+      expect(deal?.currentStage).toBe('visit_scheduled')
+    })
+
+    it('does not move a deal backward if it already progressed past "visited"', async () => {
+      await dealRepository.transitionStage(dealId, 'negotiation', USER_ID)
+      const reminder = await service.createReminder(
+        USER_ID,
+        { ...VALID_VALUES, reminderType: 'visit' },
+        { dealId }
+      )
+
+      await service.setDone(reminder.id, true, USER_ID)
+
+      const deal = await dealRepository.getById(dealId)
+      expect(deal?.currentStage).toBe('negotiation')
+    })
+
+    it('does not advance the deal when uncompleting (unchecking) a visit reminder', async () => {
+      await dealRepository.transitionStage(dealId, 'visit_scheduled', USER_ID)
+      const reminder = await service.createReminder(
+        USER_ID,
+        { ...VALID_VALUES, reminderType: 'visit' },
+        { dealId }
+      )
+
+      await service.setDone(reminder.id, false, USER_ID)
+
+      const deal = await dealRepository.getById(dealId)
+      expect(deal?.currentStage).toBe('visit_scheduled')
+    })
+
+    it('does not advance a visit reminder with no deal link', async () => {
+      const reminder = await service.createReminder(USER_ID, {
+        ...VALID_VALUES,
+        reminderType: 'visit'
+      })
+      await expect(service.setDone(reminder.id, true, USER_ID)).resolves.not.toThrow()
+    })
   })
 })

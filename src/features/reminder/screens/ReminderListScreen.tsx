@@ -29,7 +29,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
     if (!service) {
       return
     }
-    await service.setDone(id, !isDone)
+    await service.setDone(id, !isDone, userId)
     refetch()
   }
 

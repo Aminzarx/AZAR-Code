@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
+import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { formatDateTime } from '@shared/utils/formatDate'
 import {
@@ -25,7 +26,13 @@ type Props = NativeStackScreenProps<MainStackParamList, 'ReminderDetail'>
 
 function toFormValues(reminder: Reminder): ReminderFormValues {
   const { date, time } = toFormDateTime(reminder.remindAt)
-  return { title: reminder.title, description: reminder.description ?? '', date, time }
+  return {
+    title: reminder.title,
+    description: reminder.description ?? '',
+    date,
+    time,
+    reminderType: reminder.reminderType
+  }
 }
 
 export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.Element {
@@ -34,6 +41,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
   const { reminderId } = route.params
   const { reminder, isLoading, error, refetch } = useReminderDetail(reminderId)
   const service = useReminderService()
+  const { session } = useAuth()
   const context = useReminderContext(reminder)
   const [isEditing, setIsEditing] = useState(false)
   const [values, setValues] = useState<ReminderFormValues | null>(null)
@@ -112,7 +120,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
     if (!service || !reminder) {
       return
     }
-    await service.setDone(reminder.id, !reminder.isDone)
+    await service.setDone(reminder.id, !reminder.isDone, session?.userId)
     refetch()
   }
 

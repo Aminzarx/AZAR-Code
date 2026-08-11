@@ -13,6 +13,7 @@ const REMINDER: Reminder = {
   title: 'تماس با متقاضی',
   description: null,
   remindAt: '2026-09-01T14:30:00.000Z',
+  reminderType: 'general',
   isDone: false,
   createdAt: '2026-08-08T00:00:00.000Z',
   updatedAt: '2026-08-08T00:00:00.000Z'

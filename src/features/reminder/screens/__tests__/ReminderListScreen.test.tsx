@@ -37,6 +37,7 @@ const REMINDER: Reminder = {
   title: 'تماس با متقاضی',
   description: null,
   remindAt: '2026-09-01T14:30:00.000Z',
+  reminderType: 'general',
   isDone: false,
   createdAt: '2026-08-08T00:00:00.000Z',
   updatedAt: '2026-08-08T00:00:00.000Z'
@@ -119,7 +120,7 @@ describe('ReminderListScreen', () => {
     const checkbox = await findByLabelText('علامت‌گذاری تماس با متقاضی به‌عنوان انجام‌شده')
     await waitFor(() => fireEvent.press(checkbox))
 
-    await waitFor(() => expect(mockSetDone).toHaveBeenCalledWith('rem-1', true))
+    await waitFor(() => expect(mockSetDone).toHaveBeenCalledWith('rem-1', true, 'u1'))
     await waitFor(() => expect(refetch).toHaveBeenCalled())
   })
 

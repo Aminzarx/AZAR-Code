@@ -10,6 +10,7 @@ export type ValidatedReminderInput = {
   title: string
   description: string | null
   remindAt: string
+  reminderType: ReminderFormValues['reminderType']
 }
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
@@ -52,7 +53,8 @@ export function validateReminderForm(
     input: {
       title: values.title.trim(),
       description: values.description.trim() || null,
-      remindAt
+      remindAt,
+      reminderType: values.reminderType
     },
     errors: null
   }

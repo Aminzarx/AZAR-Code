@@ -25,6 +25,7 @@ function baseReminder(
     title: 'تماس با متقاضی',
     description: null,
     remindAt: '2026-09-01T10:00:00.000Z',
+    reminderType: 'general',
     ...overrides
   }
 }
@@ -102,10 +103,12 @@ describe('ReminderRepository', () => {
       remindAt: '2026-10-01T00:00:00.000Z',
       propertyId: null,
       applicantId: null,
-      dealId: null
+      dealId: null,
+      reminderType: 'call'
     })
     expect(updated.title).toBe('عنوان جدید')
     expect(updated.description).toBe('توضیحات')
+    expect(updated.reminderType).toBe('call')
   })
 
   it('marks a reminder done and undone', async () => {

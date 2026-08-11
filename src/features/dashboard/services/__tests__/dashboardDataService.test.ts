@@ -350,7 +350,8 @@ describe('fetchDashboardData', () => {
       dealId: null,
       title: 'تماس با متقاضی',
       description: null,
-      remindAt: '2020-01-01T00:00:00.000Z'
+      remindAt: '2020-01-01T00:00:00.000Z',
+      reminderType: 'general'
     })
 
     const result = await fetchDashboardData(USER_ID)
@@ -397,7 +398,8 @@ describe('fetchDashboardData', () => {
       dealId: null,
       title: 'تماس با متقاضی',
       description: null,
-      remindAt: '2099-01-01T00:00:00.000Z'
+      remindAt: '2099-01-01T00:00:00.000Z',
+      reminderType: 'general'
     })
 
     const result = await fetchDashboardData(USER_ID)

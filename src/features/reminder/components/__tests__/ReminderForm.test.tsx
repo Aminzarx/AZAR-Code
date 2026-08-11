@@ -4,7 +4,13 @@ import { withTheme } from '@shared/components/testHelpers'
 import { ReminderForm } from '../ReminderForm'
 import type { ReminderFormValues } from '../../types'
 
-const EMPTY_VALUES: ReminderFormValues = { title: '', description: '', date: '', time: '' }
+const EMPTY_VALUES: ReminderFormValues = {
+  title: '',
+  description: '',
+  date: '',
+  time: '',
+  reminderType: 'general'
+}
 
 describe('ReminderForm', () => {
   it('calls onChange with the field and new value', async () => {

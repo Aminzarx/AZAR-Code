@@ -10,6 +10,11 @@ import type { Reminder } from '../../types'
 jest.mock('../../hooks/useReminderDetail')
 jest.mock('../../hooks/useReminderService')
 jest.mock('../../hooks/useReminderContext')
+jest.mock('@features/auth/AuthProvider', () => ({
+  useAuth: () => ({
+    session: { sessionId: 's1', userId: 'u1', referralCode: 'ABCD1234', sessionToken: 't1' }
+  })
+}))
 
 const mockedUseReminderDetail = useReminderDetail as jest.MockedFunction<typeof useReminderDetail>
 const mockedUseReminderService = useReminderService as jest.MockedFunction<
@@ -32,6 +37,7 @@ const REMINDER: Reminder = {
   title: 'تماس با متقاضی',
   description: null,
   remindAt: '2026-09-01T14:30:00.000Z',
+  reminderType: 'general',
   isDone: false,
   createdAt: '2026-08-08T00:00:00.000Z',
   updatedAt: '2026-08-08T00:00:00.000Z'
@@ -157,7 +163,7 @@ describe('ReminderDetailScreen', () => {
     const toggleButton = await findByText('علامت‌گذاری به‌عنوان انجام‌شده')
     await waitFor(() => fireEvent.press(toggleButton))
 
-    await waitFor(() => expect(mockSetDone).toHaveBeenCalledWith('rem-1', true))
+    await waitFor(() => expect(mockSetDone).toHaveBeenCalledWith('rem-1', true, 'u1'))
     await waitFor(() => expect(refetch).toHaveBeenCalled())
   })
 

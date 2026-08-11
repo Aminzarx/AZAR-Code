@@ -1,9 +1,22 @@
 import React, { useMemo } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { ChipGroup, DateInput, FormRow, TextInput } from '@shared/components'
+import {
+  ChipGroup,
+  DateInput,
+  FormRow,
+  SegmentedControl,
+  TextInput,
+  type SegmentedControlOption
+} from '@shared/components'
 import { toFormDateTime } from '../validation/reminderValidation'
-import type { ReminderFormErrors, ReminderFormValues } from '../types'
+import type { ReminderFormErrors, ReminderFormValues, ReminderType } from '../types'
+
+const REMINDER_TYPE_OPTIONS: readonly SegmentedControlOption<ReminderType>[] = [
+  { value: 'general', label: 'عمومی' },
+  { value: 'call', label: 'تماس' },
+  { value: 'visit', label: 'بازدید' }
+]
 
 type Props = {
   values: ReminderFormValues
@@ -50,6 +63,14 @@ export function ReminderForm({ values, errors, onChange }: Props): React.JSX.Ele
         placeholder="مثلاً تماس با متقاضی"
         errorMessage={errors.title}
       />
+      <View style={styles.typeGroup}>
+        <Text style={[theme.typography('labelMd'), styles.typeLabel]}>نوع یادآوری</Text>
+        <SegmentedControl
+          options={REMINDER_TYPE_OPTIONS}
+          value={values.reminderType}
+          onChange={(value) => onChange('reminderType', value)}
+        />
+      </View>
       <ChipGroup
         label="انتخاب سریع تاریخ"
         options={quickDateOptions}
@@ -89,6 +110,13 @@ function createStyles(theme: Theme) {
   return StyleSheet.create({
     form: {
       gap: theme.spacing.space5
+    },
+    typeGroup: {
+      gap: theme.spacing.space2
+    },
+    typeLabel: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     }
   })
 }
