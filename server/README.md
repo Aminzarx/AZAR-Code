@@ -5,21 +5,31 @@ state, referral validation/relationships, and sessions. No business data —
 properties/applicants/deals/etc. all stay on-device (ADR-002).
 
 **OTP delivery is disabled by product decision.** No SMS is ever sent;
-`/auth/verify-otp` accepts any non-empty code as long as `/auth/send-otp` was
-called for that number first. The two-step screen flow in the app is
-unchanged — it just never gets an SMS.
+`/auth/verify-otp` requires the fixed code `555555` as long as
+`/auth/send-otp` was called for that number first. The two-step screen flow
+in the app is unchanged — it just never gets an SMS. Remove
+`FIXED_OTP_CODE` in `authRoutes.js` once a real SMS panel exists.
+
+**`AMINZX` is a "mother" referral code**, always valid at `/auth/register`
+regardless of whether any user actually holds it, until told otherwise —
+see `MASTER_REFERRAL_CODE` in `authRoutes.js`. It resolves to the bootstrap
+account as referrer. Every registration also stores the exact code that was
+typed (`users.used_referral_code`) alongside the phone number, separately
+from the new code minted for that account.
 
 ## Endpoints
 
 - `GET /health`
 - `POST /auth/send-otp` `{ phoneNumber }`
-- `POST /auth/verify-otp` `{ phoneNumber, code }` — any non-empty `code` is accepted
+- `POST /auth/verify-otp` `{ phoneNumber, code }` — `code` must be `555555`
 - `POST /auth/register` `{ phoneNumber, referralCode }`
 - `POST /auth/login` `{ phoneNumber }`
+- `POST /auth/delete-account` `{ phoneNumber }` — requires a fresh OTP-verified state
 
 A fresh database is seeded with one bootstrap user (referral code
 `AZARSEED`, mirroring the app's own former local bootstrap migration) so the
-very first real registration has a valid code to use.
+very first real registration has a valid code to use, in addition to the
+`AMINZX` mother code.
 
 ## Running locally
 

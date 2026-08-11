@@ -6,6 +6,18 @@ const { generateId, generateReferralCode, generateSessionToken } = require('./id
 const PHONE_NUMBER_PATTERN = /^\+?[1-9]\d{7,14}$/
 const OTP_REQUEST_EXPIRY_MS = 15 * 60 * 1000
 
+// Fixed by explicit product decision until a real SMS panel exists —
+// remove this constant (and go back to accepting anything) once that
+// panel is wired up and OTP delivery is genuinely enabled.
+const FIXED_OTP_CODE = '555555'
+
+// The "mother" referral code — always valid for registration regardless of
+// whether it's ever actually stored as a real user.referral_code, until
+// explicitly told otherwise (also explicitly product-decided, unlike every
+// other referral code which must resolve to a real user row). Deliberately
+// 7 characters, one shorter than every generated code (8).
+const MASTER_REFERRAL_CODE = 'AMINZX'
+
 const router = express.Router()
 
 // Per-route limits, not global — matches ADR-009's "every one of these five
@@ -50,11 +62,11 @@ function uniqueReferralCode() {
 }
 
 // OTP delivery is disabled by product decision: no SMS is ever sent, and
-// verify-otp accepts any non-empty code. This endpoint only records that a
-// code was "requested" for this phone number, so the existing two-step
-// screen flow (request -> enter code) still has server-side state to check
-// against, exactly like the OTP-enabled flow will once a provider is wired
-// up (ADR-003).
+// verify-otp requires the fixed FIXED_OTP_CODE instead of a real one. This
+// endpoint only records that a code was "requested" for this phone number,
+// so the existing two-step screen flow (request -> enter code) still has
+// server-side state to check against, exactly like the OTP-enabled flow
+// will once a provider is wired up (ADR-003).
 router.post('/send-otp', otpLimiter, (req, res) => {
   const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
   if (!PHONE_NUMBER_PATTERN.test(phoneNumber)) {
@@ -79,7 +91,7 @@ router.post('/verify-otp', otpLimiter, (req, res) => {
   if (Date.now() - new Date(state.requested_at).getTime() > OTP_REQUEST_EXPIRY_MS) {
     return fail(res, 422, 'otp_expired', 'This code has expired. Request a new one.')
   }
-  if (code.length === 0) {
+  if (code !== FIXED_OTP_CODE) {
     return fail(res, 422, 'invalid_otp', 'That code is incorrect.')
   }
 
@@ -92,14 +104,21 @@ router.post('/verify-otp', otpLimiter, (req, res) => {
 
 router.post('/register', registerLimiter, (req, res) => {
   const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
-  const referralCode = typeof req.body?.referralCode === 'string' ? req.body.referralCode : ''
+  const rawReferralCode = typeof req.body?.referralCode === 'string' ? req.body.referralCode : ''
+  const referralCode = rawReferralCode.trim().toUpperCase()
 
   const otpState = db.prepare('SELECT * FROM otp_requests WHERE phone_number = ?').get(phoneNumber)
   if (!otpState?.verified) {
     return fail(res, 401, 'authentication_required', 'Verify your phone number before registering.')
   }
 
-  const referrer = findUserByReferralCode(referralCode)
+  // The mother code always resolves to the bootstrap account as referrer,
+  // regardless of that account's own actual referral_code — see
+  // MASTER_REFERRAL_CODE's own comment.
+  const referrer =
+    referralCode === MASTER_REFERRAL_CODE
+      ? db.prepare('SELECT * FROM users WHERE id = ?').get('bootstrap-seed-user')
+      : findUserByReferralCode(referralCode)
   if (!referrer) {
     return fail(res, 422, 'invalid_referral_code', 'This referral code was not found.')
   }
@@ -122,6 +141,10 @@ router.post('/register', registerLimiter, (req, res) => {
     id: generateId(),
     phone_number: phoneNumber,
     referral_code: uniqueReferralCode(),
+    // Recorded alongside the phone number by explicit product request —
+    // the code actually typed at registration (AMINZX or a real user's own
+    // code), not the new code minted for this account above.
+    used_referral_code: referralCode,
     created_at: new Date().toISOString()
   }
 
@@ -136,8 +159,8 @@ router.post('/register', registerLimiter, (req, res) => {
 
   db.transaction(() => {
     db.prepare(
-      'INSERT INTO users (id, phone_number, referral_code, created_at) VALUES (?, ?, ?, ?)'
-    ).run(user.id, user.phone_number, user.referral_code, user.created_at)
+      'INSERT INTO users (id, phone_number, referral_code, used_referral_code, created_at) VALUES (?, ?, ?, ?, ?)'
+    ).run(user.id, user.phone_number, user.referral_code, user.used_referral_code, user.created_at)
     // Immutable by construction (ADR-009's referral reuse policy): no
     // update/delete statement for this table exists anywhere in this file.
     db.prepare(

@@ -19,6 +19,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     phone_number TEXT NOT NULL UNIQUE,
     referral_code TEXT NOT NULL UNIQUE,
+    used_referral_code TEXT,
     created_at TEXT NOT NULL
   );
 
