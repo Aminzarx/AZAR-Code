@@ -24,6 +24,9 @@ export type IconName =
   | 'filter'
   | 'scan'
   | 'moreVertical'
+  | 'download'
+  | 'share'
+  | 'upload'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -105,5 +108,11 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'scan-outline'
     case 'moreVertical':
       return 'ellipsis-vertical'
+    case 'download':
+      return 'download-outline'
+    case 'share':
+      return 'share-outline'
+    case 'upload':
+      return 'cloud-upload-outline'
   }
 }

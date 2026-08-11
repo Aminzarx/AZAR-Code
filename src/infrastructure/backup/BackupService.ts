@@ -1,8 +1,18 @@
 import RNFS from 'react-native-fs'
 import { Buffer } from 'react-native-quick-crypto'
 import type { DB } from '@op-engineering/op-sqlite'
-import { createBackup } from './backupFile'
-import { createDatabaseSnapshot } from './databaseSnapshot'
+import { getSchemaVersion } from '../database/migrationRunner'
+import { createBackup, restoreBackup } from './backupFile'
+import { createDatabaseSnapshot, restoreDatabaseSnapshot } from './databaseSnapshot'
+
+export class RestoreSchemaTooNewError extends Error {
+  constructor() {
+    super(
+      'This backup was created by a newer app version and uses a database schema this app cannot restore.'
+    )
+    this.name = 'RestoreSchemaTooNewError'
+  }
+}
 
 /**
  * `MM-DD` would collide within a day across multiple backups; a full
@@ -20,9 +30,9 @@ function backupFileName(): string {
  * Builds a password-encrypted backup of the entire local database and
  * writes it to the app's cache directory (no storage permission needed
  * on any Android version — the file only needs to exist long enough for
- * the OS share sheet, opened by the caller, to hand it to wherever the
- * user actually wants it saved). Returns the path so the caller can pass
- * it straight to `Share.share`.
+ * the caller to save it via SAF (`saveDocuments`) or hand it to the
+ * native share sheet (`react-native-share`), both of which read from this
+ * path themselves). Returns the path so the caller can pass it to either.
  */
 export async function createBackupFile(db: DB, password: string): Promise<string> {
   const snapshot = await createDatabaseSnapshot(db)
@@ -33,4 +43,30 @@ export async function createBackupFile(db: DB, password: string): Promise<string
   await RNFS.writeFile(path, Buffer.from(fileBytes).toString('base64'), 'base64')
 
   return path
+}
+
+/**
+ * Decrypts and restores a backup file's contents into the live database,
+ * following migration-strategy.md's checklist: `restoreBackup` itself
+ * enforces the format-version window and authenticates the payload
+ * (steps 1-3) before this function checks the payload's business-data
+ * schema version against what this app currently supports (step 4) and
+ * hands the validated snapshot to `restoreDatabaseSnapshot` (step 5 +
+ * the atomic swap) — a newer, unrestorable schema is rejected here,
+ * before any write to the live database.
+ */
+export async function restoreBackupFile(
+  db: DB,
+  password: string,
+  fileBytes: Uint8Array
+): Promise<void> {
+  const restored = await restoreBackup(password, fileBytes)
+
+  const currentSchemaVersion = await getSchemaVersion(db)
+  if (restored.schemaVersion > currentSchemaVersion) {
+    throw new RestoreSchemaTooNewError()
+  }
+
+  const snapshot: unknown = JSON.parse(new TextDecoder().decode(restored.payload))
+  await restoreDatabaseSnapshot(db, snapshot)
 }

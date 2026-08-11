@@ -19,7 +19,14 @@ const ALL_NAMES: IconName[] = [
   'inbox',
   'person',
   'calendar',
-  'chevronDouble'
+  'chevronDouble',
+  'deal',
+  'filter',
+  'scan',
+  'moreVertical',
+  'download',
+  'share',
+  'upload'
 ]
 
 describe('Icon', () => {

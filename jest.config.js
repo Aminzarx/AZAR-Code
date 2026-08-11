@@ -14,7 +14,9 @@ module.exports = {
     '^react-native-quick-crypto$': '<rootDir>/testutils/reactNativeQuickCryptoNodeShim.js',
     '^react-native-keychain$': '<rootDir>/testutils/reactNativeKeychainNodeShim.js',
     '^react-native-camera-kit$': '<rootDir>/testutils/reactNativeCameraKitShim.js',
-    '^react-native-fs$': '<rootDir>/testutils/reactNativeFsShim.js'
+    '^react-native-fs$': '<rootDir>/testutils/reactNativeFsShim.js',
+    '^react-native-share$': '<rootDir>/testutils/reactNativeShareShim.js',
+    '^@react-native-documents/picker$': '<rootDir>/testutils/reactNativeDocumentsPickerShim.js'
   },
   setupFiles: ['react-native-gesture-handler/jestSetup'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

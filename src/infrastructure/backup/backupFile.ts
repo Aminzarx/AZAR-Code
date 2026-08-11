@@ -41,6 +41,32 @@ export class BackupFormatError extends Error {
   }
 }
 
+/**
+ * migration-strategy.md's "Backup compatibility" table requires a backup
+ * from a newer app version to be rejected with a message distinguishable
+ * from a generic format error — a separate subclass (rather than a shared
+ * error code string) is what lets restoreBackupFile's UI show the right
+ * one without string-matching a message.
+ */
+export class BackupTooNewError extends BackupFormatError {
+  constructor() {
+    super('This backup was created by a newer version of the app.')
+    this.name = 'BackupTooNewError'
+  }
+}
+
+/**
+ * migration-strategy.md's CURRENT + 2 PREVIOUS format-generation support
+ * window — a backup older than that is rejected outright, distinct from
+ * "corrupted" or "wrong password".
+ */
+export class BackupTooOldError extends BackupFormatError {
+  constructor() {
+    super('This backup is from an unsupported, older version of the app and cannot be restored.')
+    this.name = 'BackupTooOldError'
+  }
+}
+
 function headerAad(header: BackupHeader): Uint8Array {
   // Binds the unencrypted header fields to the auth tag (see aead.ts) so
   // tampering with format/schema version or KDF params is also detected,
@@ -123,7 +149,13 @@ export async function restoreBackup(
   }
 
   if (file.formatVersion > CURRENT_BACKUP_FORMAT_VERSION) {
-    throw new BackupFormatError('This backup was created by a newer version of the app.')
+    throw new BackupTooNewError()
+  }
+  // CURRENT + 2 PREVIOUS format generations (migration-strategy.md
+  // "Backup compatibility") — anything older is rejected outright rather
+  // than silently attempted.
+  if (file.formatVersion < CURRENT_BACKUP_FORMAT_VERSION - 2) {
+    throw new BackupTooOldError()
   }
 
   const header: BackupHeader = {
