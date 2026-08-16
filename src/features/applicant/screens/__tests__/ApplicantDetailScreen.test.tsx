@@ -135,6 +135,48 @@ describe('ApplicantDetailScreen', () => {
     )
   })
 
+  it('archives the applicant without opening the edit form', async () => {
+    const refetch = jest.fn()
+    mockUpdateApplicant.mockResolvedValue({ ...APPLICANT, status: 'archived' })
+    mockedUseApplicantDetail.mockReturnValue({
+      applicant: APPLICANT,
+      isLoading: false,
+      error: null,
+      refetch
+    })
+
+    const { findByText } = await render(
+      withTheme(<ApplicantDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('بایگانی'))
+
+    await waitFor(() =>
+      expect(mockUpdateApplicant).toHaveBeenCalledWith(
+        'app-1',
+        expect.objectContaining({ fullName: APPLICANT.fullName }),
+        'archived'
+      )
+    )
+    await waitFor(() => expect(refetch).toHaveBeenCalled())
+  })
+
+  it('shows "خروج از بایگانی" for an already-archived applicant', async () => {
+    mockedUseApplicantDetail.mockReturnValue({
+      applicant: { ...APPLICANT, status: 'archived' },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText, queryByText } = await render(
+      withTheme(<ApplicantDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('خروج از بایگانی')).toBeTruthy()
+    expect(queryByText('بایگانی')).toBeNull()
+  })
+
   it('deletes the applicant after confirmation and navigates back', async () => {
     mockDeleteApplicant.mockResolvedValue(undefined)
     mockedUseApplicantDetail.mockReturnValue({

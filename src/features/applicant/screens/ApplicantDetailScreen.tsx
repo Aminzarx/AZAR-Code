@@ -60,6 +60,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
+  const [isTogglingArchive, setIsTogglingArchive] = useState(false)
 
   useUnsavedChangesGuard(navigation, isEditing)
 
@@ -99,6 +100,26 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
       }
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleToggleArchive(): Promise<void> {
+    if (!service || !applicant) {
+      return
+    }
+    setSubmitError(null)
+    setIsTogglingArchive(true)
+    try {
+      await service.updateApplicant(
+        applicant.id,
+        toFormValues(applicant),
+        applicant.status === 'archived' ? 'active' : 'archived'
+      )
+      refetch()
+    } catch {
+      setSubmitError('تغییر وضعیت بایگانی با مشکل مواجه شد. دوباره تلاش کنید.')
+    } finally {
+      setIsTogglingArchive(false)
     }
   }
 
@@ -258,6 +279,13 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
                 label="ویرایش"
                 onPress={startEditing}
                 variant="secondary"
+                style={styles.actionButton}
+              />
+              <Button
+                label={applicant.status === 'archived' ? 'خروج از بایگانی' : 'بایگانی'}
+                onPress={handleToggleArchive}
+                variant="secondary"
+                loading={isTogglingArchive}
                 style={styles.actionButton}
               />
               <Button

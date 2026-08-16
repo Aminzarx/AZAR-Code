@@ -58,6 +58,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
+  const [isTogglingArchive, setIsTogglingArchive] = useState(false)
 
   useUnsavedChangesGuard(navigation, isEditing)
 
@@ -97,6 +98,26 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
       }
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleToggleArchive(): Promise<void> {
+    if (!service || !property) {
+      return
+    }
+    setSubmitError(null)
+    setIsTogglingArchive(true)
+    try {
+      await service.updateProperty(
+        property.id,
+        toFormValues(property),
+        property.status === 'archived' ? 'active' : 'archived'
+      )
+      refetch()
+    } catch {
+      setSubmitError('تغییر وضعیت بایگانی با مشکل مواجه شد. دوباره تلاش کنید.')
+    } finally {
+      setIsTogglingArchive(false)
     }
   }
 
@@ -251,6 +272,13 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
                 label="ویرایش"
                 onPress={startEditing}
                 variant="secondary"
+                style={styles.actionButton}
+              />
+              <Button
+                label={property.status === 'archived' ? 'خروج از بایگانی' : 'بایگانی'}
+                onPress={handleToggleArchive}
+                variant="secondary"
+                loading={isTogglingArchive}
                 style={styles.actionButton}
               />
               <Button

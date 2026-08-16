@@ -129,6 +129,51 @@ describe('PropertyDetailScreen', () => {
     )
   })
 
+  it('archives the property without opening the edit form', async () => {
+    const refetch = jest.fn()
+    mockUpdateProperty.mockResolvedValue({ ...PROPERTY, status: 'archived' })
+    mockedUsePropertyDetail.mockReturnValue({
+      property: PROPERTY,
+      isLoading: false,
+      error: null,
+      refetch
+    })
+
+    const { findByText } = await render(
+      withTheme(<PropertyDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('بایگانی'))
+
+    await waitFor(() =>
+      expect(mockUpdateProperty).toHaveBeenCalledWith(
+        'prop-1',
+        expect.objectContaining({ title: PROPERTY.title }),
+        'archived'
+      )
+    )
+    await waitFor(() => expect(refetch).toHaveBeenCalled())
+  })
+
+  it('shows "خروج از بایگانی" for an already-archived property', async () => {
+    mockedUsePropertyDetail.mockReturnValue({
+      property: { ...PROPERTY, status: 'archived' },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText, queryAllByText } = await render(
+      withTheme(<PropertyDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('خروج از بایگانی')).toBeTruthy()
+    // 'بایگانی' still legitimately appears once, in the archived-status
+    // StatusBadge next to the title — this only checks the archive
+    // *button* itself reads 'خروج از بایگانی', not 'بایگانی'.
+    expect(queryAllByText('بایگانی')).toHaveLength(1)
+  })
+
   it('deletes the property after confirmation and navigates back', async () => {
     mockDeleteProperty.mockResolvedValue(undefined)
     mockedUsePropertyDetail.mockReturnValue({
