@@ -6,7 +6,14 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { ActivityTimeline, Avatar, ErrorState, Icon, LoadingIndicator } from '@shared/components'
+import {
+  ActivityTimeline,
+  Avatar,
+  Button,
+  ErrorState,
+  Icon,
+  LoadingIndicator
+} from '@shared/components'
 import { useDisplayName } from '@shared/hooks/useDisplayName'
 import { getTimeBasedGreeting } from '@shared/utils/greeting'
 import { useDashboardData } from './hooks/useDashboardData'
@@ -180,13 +187,21 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
               </View>
 
               <View style={styles.section}>
-                <Text
-                  style={[theme.typography('titleMd'), styles.sectionTitle]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  یادآوری‌های نزدیک
-                </Text>
+                <View style={styles.sectionHeaderRow}>
+                  <Text
+                    style={[theme.typography('titleMd'), styles.sectionTitle]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    یادآوری‌های نزدیک
+                  </Text>
+                  <Button
+                    label="مشاهده همه"
+                    variant="text"
+                    fullWidth={false}
+                    onPress={() => navigation.navigate('ReminderList', undefined)}
+                  />
+                </View>
                 <UpcomingRemindersList
                   reminders={data.upcomingReminders}
                   onSelect={(reminderId) => navigation.navigate('ReminderDetail', { reminderId })}
@@ -247,6 +262,12 @@ function createStyles(theme: Theme) {
     },
     section: {
       gap: theme.layout.componentSpacing
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space2
     },
     sectionTitle: {
       color: theme.colors.onSurface,

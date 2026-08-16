@@ -27,6 +27,7 @@ const mockUpdateReminder = jest.fn()
 const mockSetDone = jest.fn()
 const mockDeleteReminder = jest.fn()
 const mockGoBack = jest.fn()
+const mockNavigate = jest.fn()
 
 const REMINDER: Reminder = {
   id: 'rem-1',
@@ -43,7 +44,7 @@ const REMINDER: Reminder = {
   updatedAt: '2026-08-08T00:00:00.000Z'
 }
 
-const navigationProp = { goBack: mockGoBack } as never
+const navigationProp = { goBack: mockGoBack, navigate: mockNavigate } as never
 const routeProp = {
   key: 'ReminderDetail',
   name: 'ReminderDetail' as const,
@@ -56,6 +57,7 @@ describe('ReminderDetailScreen', () => {
     mockSetDone.mockReset()
     mockDeleteReminder.mockReset()
     mockGoBack.mockReset()
+    mockNavigate.mockReset()
     mockedUseReminderService.mockReturnValue({
       updateReminder: mockUpdateReminder,
       setDone: mockSetDone,
@@ -98,6 +100,60 @@ describe('ReminderDetailScreen', () => {
 
     expect(await findByText('آپارتمان ولیعصر')).toBeTruthy()
     expect(await findByText('محمد رضایی')).toBeTruthy()
+  })
+
+  it("navigates to the linked deal when a deal-linked reminder's context is pressed", async () => {
+    mockedUseReminderDetail.mockReturnValue({
+      reminder: { ...REMINDER, dealId: 'deal-1' },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+    mockedUseReminderContext.mockReturnValue({
+      primary: 'آپارتمان ولیعصر',
+      secondary: 'محمد رضایی'
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<ReminderDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('آپارتمان ولیعصر'))
+    expect(mockNavigate).toHaveBeenCalledWith('DealDetail', { dealId: 'deal-1' })
+  })
+
+  it("navigates to the linked property when a property-only reminder's context is pressed", async () => {
+    mockedUseReminderDetail.mockReturnValue({
+      reminder: { ...REMINDER, propertyId: 'prop-1' },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+    mockedUseReminderContext.mockReturnValue({ primary: 'آپارتمان ولیعصر' })
+
+    const { findByLabelText } = await render(
+      withTheme(<ReminderDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('آپارتمان ولیعصر'))
+    expect(mockNavigate).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
+  })
+
+  it("navigates to the linked applicant when an applicant-only reminder's context is pressed", async () => {
+    mockedUseReminderDetail.mockReturnValue({
+      reminder: { ...REMINDER, applicantId: 'app-1' },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+    mockedUseReminderContext.mockReturnValue({ primary: 'محمد رضایی' })
+
+    const { findByLabelText } = await render(
+      withTheme(<ReminderDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('محمد رضایی'))
+    expect(mockNavigate).toHaveBeenCalledWith('ApplicantDetail', { applicantId: 'app-1' })
   })
 
   it('shows an error state with retry when loading fails', async () => {

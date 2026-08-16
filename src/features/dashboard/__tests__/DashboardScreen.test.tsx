@@ -189,6 +189,20 @@ describe('DashboardScreen', () => {
     expect(await findByText('یادآوری نزدیکی وجود ندارد')).toBeTruthy()
   })
 
+  it('navigates to ReminderList when "مشاهده همه" is pressed', async () => {
+    mockedFetchDashboardData.mockResolvedValue({
+      stats: [],
+      needsAttention: [],
+      recentActivity: [],
+      upcomingReminders: []
+    })
+
+    const { findByText } = await renderDashboard()
+
+    fireEvent.press(await findByText('مشاهده همه'))
+    expect(mockNavigate).toHaveBeenCalledWith('ReminderList', undefined)
+  })
+
   it('navigates to ReminderDetail when an upcoming reminder is pressed', async () => {
     mockedFetchDashboardData.mockResolvedValue({
       stats: [],

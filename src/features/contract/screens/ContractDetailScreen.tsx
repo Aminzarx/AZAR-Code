@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
+import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useTheme, type Theme } from '@shared/theme'
 import {
   Button,
@@ -191,7 +192,10 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
             value={contract.property?.title ?? 'ملک پیدا نشد'}
             onPress={
               contract.property
-                ? () => navigation.navigate('PropertyDetail', { propertyId: contract.propertyId })
+                ? () =>
+                    navigateAcrossTabs(navigation, 'PropertyDetail', {
+                      propertyId: contract.propertyId
+                    })
                 : undefined
             }
             theme={theme}
@@ -203,7 +207,9 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
             onPress={
               contract.applicant
                 ? () =>
-                    navigation.navigate('ApplicantDetail', { applicantId: contract.applicantId })
+                    navigateAcrossTabs(navigation, 'ApplicantDetail', {
+                      applicantId: contract.applicantId
+                    })
                 : undefined
             }
             theme={theme}

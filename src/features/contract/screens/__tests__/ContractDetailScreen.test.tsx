@@ -16,6 +16,7 @@ const mockedUseContractService = useContractService as jest.MockedFunction<
 const mockUpdateContract = jest.fn()
 const mockDeleteContract = jest.fn()
 const mockGoBack = jest.fn()
+const mockNavigate = jest.fn()
 
 const CONTRACT: ContractWithDetails = {
   id: 'con-1',
@@ -77,7 +78,7 @@ const CONTRACT: ContractWithDetails = {
   }
 }
 
-const navigationProp = { goBack: mockGoBack } as never
+const navigationProp = { goBack: mockGoBack, navigate: mockNavigate } as never
 const routeProp = {
   key: 'ContractDetail',
   name: 'ContractDetail' as const,
@@ -89,6 +90,7 @@ describe('ContractDetailScreen', () => {
     mockUpdateContract.mockReset()
     mockDeleteContract.mockReset()
     mockGoBack.mockReset()
+    mockNavigate.mockReset()
     mockedUseContractService.mockReturnValue({
       updateContract: mockUpdateContract,
       deleteContract: mockDeleteContract
@@ -109,6 +111,25 @@ describe('ContractDetailScreen', () => {
 
     expect(await findByText('آپارتمان دو خوابه')).toBeTruthy()
     expect(await findByText('علی رضایی')).toBeTruthy()
+  })
+
+  it('navigates across tabs to PropertyDetail and ApplicantDetail when the link rows are pressed', async () => {
+    mockedUseContractDetail.mockReturnValue({
+      contract: CONTRACT,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(<ContractDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('آپارتمان دو خوابه'))
+    expect(mockNavigate).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
+
+    fireEvent.press(await findByText('علی رضایی'))
+    expect(mockNavigate).toHaveBeenCalledWith('ApplicantDetail', { applicantId: 'app-1' })
   })
 
   it('shows an error state with retry when loading fails', async () => {

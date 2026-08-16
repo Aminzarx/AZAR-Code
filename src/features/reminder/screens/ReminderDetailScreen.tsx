@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
+import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { formatDateTime } from '@shared/utils/formatDate'
@@ -124,6 +125,22 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
     refetch()
   }
 
+  // Same resolution priority as useReminderContext: a deal-linked reminder
+  // leads to the deal (the richer destination — it carries both the
+  // property and applicant), otherwise whichever single record it's tied to.
+  function handleContextPress(): void {
+    if (!reminder) {
+      return
+    }
+    if (reminder.dealId) {
+      navigateAcrossTabs(navigation, 'DealDetail', { dealId: reminder.dealId })
+    } else if (reminder.propertyId) {
+      navigateAcrossTabs(navigation, 'PropertyDetail', { propertyId: reminder.propertyId })
+    } else if (reminder.applicantId) {
+      navigateAcrossTabs(navigation, 'ApplicantDetail', { applicantId: reminder.applicantId })
+    }
+  }
+
   async function handleDelete(): Promise<void> {
     if (!service || !reminder) {
       return
@@ -175,9 +192,14 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
         <Card variant="detail">
           <Text style={[theme.typography('headlineMd'), styles.title]}>{reminder.title}</Text>
           {context ? (
-            <View style={styles.context}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={context.primary}
+              onPress={handleContextPress}
+              style={styles.context}
+            >
               <ContextHeader primary={context.primary} secondary={context.secondary} />
-            </View>
+            </Pressable>
           ) : null}
           <Text style={[theme.typography('bodyMd'), styles.value]}>
             {formatDateTime(reminder.remindAt)}
