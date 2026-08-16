@@ -7,6 +7,7 @@ import { useApplicants } from '@features/applicant/hooks/useApplicants'
 import type { Property } from '../../types'
 
 const mockNavigate = jest.fn()
+const mockGoBack = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -40,12 +41,13 @@ const PROPERTY: Property = {
   updatedAt: '2026-08-08T00:00:00.000Z'
 }
 
-const navigationProp = { navigate: mockNavigate } as never
+const navigationProp = { navigate: mockNavigate, goBack: mockGoBack } as never
 const routeProp = { key: 'PropertyList', name: 'PropertyList' as const, params: undefined }
 
 describe('PropertyListScreen', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
+    mockGoBack.mockReset()
     mockedUseProperties.mockReset()
     mockedUseApplicants.mockReturnValue({
       applicants: [],
@@ -67,6 +69,22 @@ describe('PropertyListScreen', () => {
       withTheme(<PropertyListScreen navigation={navigationProp} route={routeProp} />)
     )
     expect(queryByText('هنوز فایلی ثبت نشده')).toBeNull()
+  })
+
+  it('navigates back when the header back button is pressed', async () => {
+    mockedUseProperties.mockReturnValue({
+      properties: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<PropertyListScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('بازگشت'))
+    expect(mockGoBack).toHaveBeenCalledTimes(1)
   })
 
   it('shows the empty state when there are no properties', async () => {

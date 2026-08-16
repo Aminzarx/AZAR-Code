@@ -6,6 +6,7 @@ import { useApplicants } from '../../hooks/useApplicants'
 import type { Applicant } from '../../types'
 
 const mockNavigate = jest.fn()
+const mockGoBack = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -41,13 +42,30 @@ const APPLICANT: Applicant = {
   updatedAt: '2026-08-08T00:00:00.000Z'
 }
 
-const navigationProp = { navigate: mockNavigate } as never
+const navigationProp = { navigate: mockNavigate, goBack: mockGoBack } as never
 const routeProp = { key: 'ApplicantList', name: 'ApplicantList' as const, params: undefined }
 
 describe('ApplicantListScreen', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
+    mockGoBack.mockReset()
     mockedUseApplicants.mockReset()
+  })
+
+  it('navigates back when the header back button is pressed', async () => {
+    mockedUseApplicants.mockReturnValue({
+      applicants: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<ApplicantListScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('بازگشت'))
+    expect(mockGoBack).toHaveBeenCalledTimes(1)
   })
 
   it('shows the empty state when there are no applicants', async () => {
