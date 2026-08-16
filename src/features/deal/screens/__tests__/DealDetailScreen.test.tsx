@@ -5,17 +5,24 @@ import { DealDetailScreen } from '../DealDetailScreen'
 import { useDealDetail } from '../../hooks/useDealDetail'
 import { useDealService } from '../../hooks/useDealService'
 import { useDealActivity } from '../../hooks/useDealActivity'
+import { useLostReasons } from '../../hooks/useLostReasons'
 import type { DealWithDetails } from '../../types'
 import type { ReminderRecord } from '@infrastructure/database/repositories/ReminderRepository'
 
 jest.mock('../../hooks/useDealDetail')
 jest.mock('../../hooks/useDealService')
 jest.mock('../../hooks/useDealActivity')
+jest.mock('../../hooks/useLostReasons')
+jest.mock('@features/auth/AuthProvider', () => ({
+  useAuth: () => ({ session: { userId: 'u1' } })
+}))
 
 const mockedUseDealDetail = useDealDetail as jest.MockedFunction<typeof useDealDetail>
 const mockedUseDealService = useDealService as jest.MockedFunction<typeof useDealService>
 const mockedUseDealActivity = useDealActivity as jest.MockedFunction<typeof useDealActivity>
+const mockedUseLostReasons = useLostReasons as jest.MockedFunction<typeof useLostReasons>
 const mockUpdateNotes = jest.fn()
+const mockTransitionStage = jest.fn()
 const mockNavigate = jest.fn()
 
 const DEAL: DealWithDetails = {
@@ -108,10 +115,15 @@ function mockActivity(overrides: Partial<ReturnType<typeof useDealActivity>> = {
 describe('DealDetailScreen', () => {
   beforeEach(() => {
     mockUpdateNotes.mockReset()
+    mockTransitionStage.mockReset()
     mockNavigate.mockReset()
     mockedUseDealService.mockReturnValue({
-      updateNotes: mockUpdateNotes
+      updateNotes: mockUpdateNotes,
+      transitionStage: mockTransitionStage
     } as never)
+    mockedUseLostReasons.mockReturnValue([
+      { id: 'r1', label: 'قیمت بالا', isSystemDefault: true, createdAt: '2026-08-08T00:00:00.000Z' }
+    ])
     mockActivity()
   })
 
@@ -205,12 +217,13 @@ describe('DealDetailScreen', () => {
   })
 
   it('saves notes through the notes dialog', async () => {
+    const refetch = jest.fn()
     mockUpdateNotes.mockResolvedValue({ ...DEAL, notes: 'یادداشت جدید' })
     mockedUseDealDetail.mockReturnValue({
       deal: DEAL,
       isLoading: false,
       error: null,
-      refetch: jest.fn()
+      refetch
     })
 
     const { findByText, getByLabelText, getByText } = await render(
@@ -222,6 +235,12 @@ describe('DealDetailScreen', () => {
     await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() => expect(mockUpdateNotes).toHaveBeenCalledWith('deal-1', 'یادداشت جدید'))
+    // Waits out the rest of handleSaveNotes's async chain (refetch, then
+    // setIsSavingNotes(false) in `finally`) so no state update from this
+    // test's render lands after RTL's automatic afterEach unmount —
+    // an unflushed update there corrupts react-test-renderer's act()
+    // nesting for whichever test runs next in this file.
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1))
   })
 
   it('navigates to CreateReminder with the deal, property, and applicant prefilled', async () => {
@@ -278,9 +297,98 @@ describe('DealDetailScreen', () => {
 
     await findAllByText('آپارتمان دو خوابه')
     fireEvent.press(getByLabelText('آپارتمان دو خوابه'))
-    expect(mockNavigate).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
+    )
 
     fireEvent.press(getByLabelText('علی رضایی'))
-    expect(mockNavigate).toHaveBeenCalledWith('ApplicantDetail', { applicantId: 'app-1' })
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith('ApplicantDetail', { applicantId: 'app-1' })
+    )
+  })
+
+  it('advances the deal to the next stage', async () => {
+    const refetch = jest.fn()
+    mockTransitionStage.mockResolvedValue({ ...DEAL, currentStage: 'offer' })
+    mockedUseDealDetail.mockReturnValue({ deal: DEAL, isLoading: false, error: null, refetch })
+
+    const { findByText } = await render(
+      withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('پیشرفت به «پیشنهاد قیمت»'))
+
+    await waitFor(() =>
+      expect(mockTransitionStage).toHaveBeenCalledWith('deal-1', 'offer', 'u1', {
+        lostReasonId: undefined
+      })
+    )
+    await waitFor(() => expect(refetch).toHaveBeenCalled())
+  })
+
+  it('marks the deal as won', async () => {
+    mockTransitionStage.mockResolvedValue({ ...DEAL, currentStage: 'won' })
+    mockedUseDealDetail.mockReturnValue({
+      deal: DEAL,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('موفق'))
+
+    await waitFor(() =>
+      expect(mockTransitionStage).toHaveBeenCalledWith('deal-1', 'won', 'u1', {
+        lostReasonId: undefined
+      })
+    )
+  })
+
+  it('marks the deal as lost with the selected reason via the lost-reason dialog', async () => {
+    mockTransitionStage.mockResolvedValue({ ...DEAL, currentStage: 'lost' })
+    mockedUseDealDetail.mockReturnValue({
+      deal: DEAL,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByText('ناموفق'))
+    fireEvent.press(await findByText('قیمت بالا'))
+    fireEvent.press(await findByText('ثبت به‌عنوان ناموفق'))
+
+    await waitFor(() =>
+      expect(mockTransitionStage).toHaveBeenCalledWith('deal-1', 'lost', 'u1', {
+        lostReasonId: 'r1'
+      })
+    )
+  })
+
+  it('does not show stage-transition actions for a terminal deal', async () => {
+    mockedUseDealDetail.mockReturnValue({
+      deal: { ...DEAL, currentStage: 'won' },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { queryByText, queryAllByText } = await render(
+      withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    // 'موفق' still legitimately appears twice for a won deal — the header
+    // StatusBadge and PipelineIndicator's own terminal badge (see 'shows a
+    // terminal StatusBadge for a won deal' above) — so this only checks no
+    // *third* occurrence (a stray stage-action button) was added.
+    expect(queryAllByText('موفق')).toHaveLength(2)
+    expect(queryByText('ناموفق')).toBeNull()
   })
 })

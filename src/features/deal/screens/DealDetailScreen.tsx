@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
+import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import {
   Button,
@@ -16,12 +17,16 @@ import {
   StatusBadge
 } from '@shared/components'
 import { formatDateTime } from '@shared/utils/formatDate'
+import type { DealStage } from '@infrastructure/database/repositories/DealRepository'
 import { useDealDetail } from '../hooks/useDealDetail'
 import { useDealService } from '../hooks/useDealService'
 import { useDealActivity } from '../hooks/useDealActivity'
+import { useLostReasons } from '../hooks/useLostReasons'
 import { DealActivitySection } from '../components/DealActivitySection'
 import { DealNotesSection } from '../components/DealNotesSection'
+import { LostReasonDialog } from '../components/LostReasonDialog'
 import { dealStageTone } from '../dealPipeline'
+import { DEAL_STAGE_LABELS, getNextStage } from '../dealStageLabels'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'DealDetail'>
 
@@ -29,11 +34,15 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
   const theme = useTheme()
   const styles = createStyles(theme)
   const { dealId } = route.params
+  const { session } = useAuth()
   const { deal, isLoading, error, refetch } = useDealDetail(dealId)
   const activity = useDealActivity(dealId)
   const service = useDealService()
+  const lostReasons = useLostReasons()
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [isLostDialogVisible, setIsLostDialogVisible] = useState(false)
 
   async function handleSaveNotes(notes: string): Promise<void> {
     if (!service || !deal) {
@@ -51,7 +60,26 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
     }
   }
 
+  async function handleTransition(toStage: DealStage | null, lostReasonId?: string): Promise<void> {
+    if (!service || !deal || !session || !toStage) {
+      return
+    }
+    setActionError(null)
+    setIsTransitioning(true)
+    try {
+      await service.transitionStage(deal.id, toStage, session.userId, { lostReasonId })
+      setIsLostDialogVisible(false)
+      refetch()
+      activity.refetch()
+    } catch {
+      setActionError('بروزرسانی مرحله معامله با مشکل مواجه شد. دوباره تلاش کنید.')
+    } finally {
+      setIsTransitioning(false)
+    }
+  }
+
   const isTerminal = deal ? deal.currentStage === 'won' || deal.currentStage === 'lost' : false
+  const nextStage = deal ? getNextStage(deal.currentStage) : null
 
   // design-system.md §17.2 — only the soonest not-done reminder actually
   // linked to this deal (via `dealId`), never a fabricated one.
@@ -110,6 +138,34 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
               <Text style={[theme.typography('titleMd'), styles.heading]}>مسیر معامله</Text>
               <PipelineIndicator stage={deal.currentStage} />
             </View>
+
+            {!isTerminal ? (
+              <View style={styles.stageActions}>
+                {nextStage ? (
+                  <Button
+                    label={`پیشرفت به «${DEAL_STAGE_LABELS[nextStage]}»`}
+                    variant="secondary"
+                    loading={isTransitioning}
+                    onPress={() => handleTransition(nextStage)}
+                  />
+                ) : null}
+                <View style={styles.outcomeRow}>
+                  <Button
+                    label="موفق"
+                    variant="secondary"
+                    loading={isTransitioning}
+                    onPress={() => handleTransition('won')}
+                    style={styles.outcomeAction}
+                  />
+                  <Button
+                    label="ناموفق"
+                    variant="destructive"
+                    onPress={() => setIsLostDialogVisible(true)}
+                    style={styles.outcomeAction}
+                  />
+                </View>
+              </View>
+            ) : null}
 
             <View style={styles.summaryRow}>
               <SummaryBlock
@@ -191,6 +247,14 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
                 }
               />
             </View>
+
+            <LostReasonDialog
+              visible={isLostDialogVisible}
+              reasons={lostReasons}
+              isConfirming={isTransitioning}
+              onConfirm={(reasonId) => handleTransition('lost', reasonId)}
+              onCancel={() => setIsLostDialogVisible(false)}
+            />
           </>
         )}
       </ScrollView>
@@ -275,6 +339,16 @@ function createStyles(theme: Theme) {
     },
     section: {
       gap: theme.spacing.space3
+    },
+    stageActions: {
+      gap: theme.spacing.space2
+    },
+    outcomeRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.space2
+    },
+    outcomeAction: {
+      flex: 1
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
