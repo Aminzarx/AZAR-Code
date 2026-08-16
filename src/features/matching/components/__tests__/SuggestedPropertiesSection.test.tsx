@@ -81,6 +81,7 @@ describe('SuggestedPropertiesSection', () => {
           applicant={APPLICANT}
           onSelectProperty={jest.fn()}
           onDealCreated={jest.fn()}
+          onViewAll={jest.fn()}
         />
       )
     )
@@ -103,6 +104,7 @@ describe('SuggestedPropertiesSection', () => {
           applicant={APPLICANT}
           onSelectProperty={jest.fn()}
           onDealCreated={jest.fn()}
+          onViewAll={jest.fn()}
         />
       )
     )
@@ -127,6 +129,7 @@ describe('SuggestedPropertiesSection', () => {
           applicant={APPLICANT}
           onSelectProperty={onSelectProperty}
           onDealCreated={jest.fn()}
+          onViewAll={jest.fn()}
         />
       )
     )
@@ -155,6 +158,7 @@ describe('SuggestedPropertiesSection', () => {
           applicant={APPLICANT}
           onSelectProperty={jest.fn()}
           onDealCreated={onDealCreated}
+          onViewAll={jest.fn()}
         />
       )
     )
@@ -164,5 +168,29 @@ describe('SuggestedPropertiesSection', () => {
 
     await waitFor(() => expect(mockCreateDeal).toHaveBeenCalledWith('user-1', 'prop-1', 'app-1'))
     await waitFor(() => expect(onDealCreated).toHaveBeenCalledWith('deal-1'))
+  })
+
+  it('calls onViewAll when "مشاهده همه" is pressed', async () => {
+    const onViewAll = jest.fn()
+    mockedUsePropertyMatches.mockReturnValue({
+      matches: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByText } = await render(
+      withTheme(
+        <SuggestedPropertiesSection
+          applicant={APPLICANT}
+          onSelectProperty={jest.fn()}
+          onDealCreated={jest.fn()}
+          onViewAll={onViewAll}
+        />
+      )
+    )
+
+    fireEvent.press(await findByText('مشاهده همه'))
+    expect(onViewAll).toHaveBeenCalledTimes(1)
   })
 })

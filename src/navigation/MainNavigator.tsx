@@ -37,7 +37,7 @@ export type MainStackParamList = {
   ApplicantList: undefined
   CreateApplicant: undefined
   ApplicantDetail: { applicantId: string }
-  Matching: undefined
+  Matching: { propertyId?: string; applicantId?: string } | undefined
   DealList: undefined
   DealDetail: { dealId: string }
   ReminderList: undefined

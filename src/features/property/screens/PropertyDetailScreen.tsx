@@ -301,6 +301,9 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
               navigation.navigate('ApplicantDetail', { applicantId })
             }
             onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
+            onViewAll={() =>
+              navigateAcrossTabs(navigation, 'Matching', { propertyId: property.id })
+            }
           />
 
           <PropertyActivitySection

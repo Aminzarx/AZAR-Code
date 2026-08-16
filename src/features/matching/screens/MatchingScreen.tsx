@@ -78,15 +78,26 @@ function applicantPickerSubtitle(applicant: Applicant): string {
  * SuggestedApplicantsSection); this screen is the full workspace those
  * sections' "مشاهده همه" would lead to.
  */
-export function MatchingScreen({ navigation }: Props): React.JSX.Element {
+export function MatchingScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
   const userId = session?.userId ?? ''
-  const [target, setTarget] = useState<MatchingTarget>('properties')
+  const { propertyId: preselectedPropertyId, applicantId: preselectedApplicantId } =
+    route.params ?? {}
+  // A "مشاهده همه" link from Property/Applicant Detail arrives here with
+  // one of these params — preselect the matching target/record instead of
+  // dropping the user at the bare picker they'd otherwise have to redo.
+  const [target, setTarget] = useState<MatchingTarget>(
+    preselectedApplicantId ? 'applicants' : 'properties'
+  )
   const [search, setSearch] = useState('')
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
-  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null)
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
+    preselectedPropertyId ?? null
+  )
+  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(
+    preselectedApplicantId ?? null
+  )
   const [creatingKey, setCreatingKey] = useState<string | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
   const dealService = useDealService()

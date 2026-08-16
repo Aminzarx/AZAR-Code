@@ -211,4 +211,34 @@ describe('MatchingScreen', () => {
 
     expect(await findByText('هنوز فایلی ثبت نشده')).toBeTruthy()
   })
+
+  it('preselects the property and shows its matches when opened with a propertyId param', async () => {
+    const preselectedRoute = {
+      key: 'Matching',
+      name: 'Matching' as const,
+      params: { propertyId: 'prop-1' }
+    }
+
+    const { findByText, queryByText } = await render(
+      withTheme(<MatchingScreen navigation={navigationProp} route={preselectedRoute} />)
+    )
+
+    expect(await findByText('علی رضایی')).toBeTruthy()
+    expect(queryByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeNull()
+  })
+
+  it('preselects the applicant on the "applicants" target when opened with an applicantId param', async () => {
+    const preselectedRoute = {
+      key: 'Matching',
+      name: 'Matching' as const,
+      params: { applicantId: 'app-1' }
+    }
+
+    const { findByText, queryByText } = await render(
+      withTheme(<MatchingScreen navigation={navigationProp} route={preselectedRoute} />)
+    )
+
+    expect(await findByText('آپارتمان دو خوابه')).toBeTruthy()
+    expect(queryByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeNull()
+  })
 })

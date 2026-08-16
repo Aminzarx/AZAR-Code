@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, EmptyState, ErrorState, LoadingIndicator } from '@shared/components'
+import { Button, Card, EmptyState, ErrorState, LoadingIndicator } from '@shared/components'
 import type { Property } from '@features/property/types'
 import { useApplicantMatchesForProperty } from '../hooks/useApplicantMatchesForProperty'
 import { MatchScoreBadge } from './MatchScoreBadge'
@@ -12,13 +12,16 @@ type Props = {
   property: Property
   onSelectApplicant: (applicantId: string) => void
   onDealCreated: (dealId: string) => void
+  /** Opens the full Matching Workspace preselected to this property, instead of this compact top-N preview. */
+  onViewAll: () => void
 }
 
 /** Rendered inside PropertyDetailScreen — this property owner's applicants, ranked by match score. */
 export function SuggestedApplicantsSection({
   property,
   onSelectApplicant,
-  onDealCreated
+  onDealCreated,
+  onViewAll
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -26,7 +29,10 @@ export function SuggestedApplicantsSection({
 
   return (
     <View style={styles.section}>
-      <Text style={[theme.typography('titleMd'), styles.heading]}>متقاضیان مناسب</Text>
+      <View style={styles.headerRow}>
+        <Text style={[theme.typography('titleMd'), styles.heading]}>متقاضیان مناسب</Text>
+        <Button label="مشاهده همه" variant="text" fullWidth={false} onPress={onViewAll} />
+      </View>
 
       {isLoading ? (
         <View style={styles.centeredSection}>
@@ -82,6 +88,12 @@ function createStyles(theme: Theme) {
   return StyleSheet.create({
     section: {
       gap: theme.spacing.space3
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space2
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;

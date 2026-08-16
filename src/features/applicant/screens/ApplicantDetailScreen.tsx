@@ -306,6 +306,9 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
             applicant={applicant}
             onSelectProperty={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
             onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
+            onViewAll={() =>
+              navigateAcrossTabs(navigation, 'Matching', { applicantId: applicant.id })
+            }
           />
 
           <ApplicantActivitySection
