@@ -126,6 +126,27 @@ describe('MatchingScreen', () => {
     expect(queryByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeNull()
   })
 
+  it('passes the typed search query through to useProperties', async () => {
+    const { findByLabelText } = await render(
+      withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.changeText(await findByLabelText('جستجو'), 'ولیعصر')
+
+    await waitFor(() => expect(mockedUseProperties).toHaveBeenCalledWith('u1', 'ولیعصر'))
+  })
+
+  it('clears the search query when switching between properties and applicants', async () => {
+    const { findByLabelText, findByText } = await render(
+      withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.changeText(await findByLabelText('جستجو'), 'ولیعصر')
+    fireEvent.press(await findByText('متقاضیان'))
+
+    await waitFor(() => expect(mockedUseApplicants).toHaveBeenCalledWith('u1', ''))
+  })
+
   it('navigates to ApplicantDetail when a match result is pressed', async () => {
     const { findByText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)

@@ -15,6 +15,7 @@ import {
   MatchingResult,
   SegmentedControl,
   SelectionListItem,
+  TextInput,
   type MatchingCriterionState
 } from '@shared/components'
 import { useProperties } from '@features/property/hooks/useProperties'
@@ -83,14 +84,15 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
   const { session } = useAuth()
   const userId = session?.userId ?? ''
   const [target, setTarget] = useState<MatchingTarget>('properties')
+  const [search, setSearch] = useState('')
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null)
   const [creatingKey, setCreatingKey] = useState<string | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
   const dealService = useDealService()
 
-  const propertiesResult = useProperties(userId, '')
-  const applicantsResult = useApplicants(userId, '')
+  const propertiesResult = useProperties(userId, search)
+  const applicantsResult = useApplicants(userId, search)
 
   const selectedProperty: Property | null =
     propertiesResult.properties?.find((property) => property.id === selectedPropertyId) ?? null
@@ -106,6 +108,7 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
 
   function handleTargetChange(nextTarget: MatchingTarget): void {
     setTarget(nextTarget)
+    setSearch('')
     setSelectedPropertyId(null)
     setSelectedApplicantId(null)
     setCreateError(null)
@@ -150,6 +153,15 @@ export function MatchingScreen({ navigation }: Props): React.JSX.Element {
           </Text>
         ) : null}
         <SegmentedControl options={OPTIONS} value={target} onChange={handleTargetChange} />
+
+        {!hasSelection ? (
+          <TextInput
+            label="جستجو"
+            value={search}
+            onChangeText={setSearch}
+            placeholder={target === 'properties' ? 'عنوان، شهر یا آدرس' : 'نام یا شهر'}
+          />
+        ) : null}
 
         {isLoading ? (
           <View style={styles.centeredSection}>

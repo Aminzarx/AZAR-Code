@@ -159,6 +159,22 @@ describe('ReminderListScreen', () => {
     expect(await findByText('۱ پیگیری عقب‌افتاده')).toBeTruthy()
   })
 
+  it('shows a floating action button to add a reminder once the list is non-empty', async () => {
+    mockedUseReminders.mockReturnValue({
+      reminders: [REMINDER],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<ReminderListScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('افزودن یادآوری'))
+    expect(mockNavigate).toHaveBeenCalledWith('CreateReminder', undefined)
+  })
+
   it('shows a linked reminder’s context inline', async () => {
     mockedUseReminders.mockReturnValue({
       reminders: [REMINDER],

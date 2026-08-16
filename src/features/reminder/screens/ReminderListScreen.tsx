@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { EmptyState, ErrorState, LoadingIndicator } from '@shared/components'
+import { EmptyState, ErrorState, FloatingActionButton, LoadingIndicator } from '@shared/components'
 import { useReminders } from '../hooks/useReminders'
 import { useReminderService } from '../hooks/useReminderService'
 import { useReminderContexts } from '../hooks/useReminderContexts'
@@ -91,6 +91,13 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
             )}
           />
         )}
+
+        {reminders && reminders.length > 0 ? (
+          <FloatingActionButton
+            accessibilityLabel="افزودن یادآوری"
+            onPress={() => navigation.navigate('CreateReminder', undefined)}
+          />
+        ) : null}
       </View>
     </SafeAreaView>
   )
