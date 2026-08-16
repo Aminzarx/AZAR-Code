@@ -113,6 +113,22 @@ describe('ContractDetailScreen', () => {
     expect(await findByText('علی رضایی')).toBeTruthy()
   })
 
+  it('navigates back when the header back button is pressed', async () => {
+    mockedUseContractDetail.mockReturnValue({
+      contract: CONTRACT,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<ContractDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('بازگشت'))
+    expect(mockGoBack).toHaveBeenCalledTimes(1)
+  })
+
   it('navigates across tabs to PropertyDetail and ApplicantDetail when the link rows are pressed', async () => {
     mockedUseContractDetail.mockReturnValue({
       contract: CONTRACT,

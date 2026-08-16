@@ -7,6 +7,7 @@ import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import {
+  BackButton,
   Button,
   Card,
   ContextHeader,
@@ -89,6 +90,9 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.topBar}>
+        <BackButton onPress={() => navigation.goBack()} />
+      </View>
       <ScrollView contentContainerStyle={styles.content}>
         {isLoading ? (
           <View style={styles.centeredSection}>
@@ -320,6 +324,11 @@ function createStyles(theme: Theme) {
     safeArea: {
       flex: 1,
       backgroundColor: theme.colors.background
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.layout.screenPaddingX
     },
     content: {
       padding: theme.layout.screenPaddingX,

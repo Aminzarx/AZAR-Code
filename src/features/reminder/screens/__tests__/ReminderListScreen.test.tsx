@@ -8,6 +8,7 @@ import { useReminderContexts } from '../../hooks/useReminderContexts'
 import type { Reminder } from '../../types'
 
 const mockNavigate = jest.fn()
+const mockGoBack = jest.fn()
 const mockSetDone = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
@@ -43,12 +44,13 @@ const REMINDER: Reminder = {
   updatedAt: '2026-08-08T00:00:00.000Z'
 }
 
-const navigationProp = { navigate: mockNavigate } as never
+const navigationProp = { navigate: mockNavigate, goBack: mockGoBack } as never
 const routeProp = { key: 'ReminderList', name: 'ReminderList' as const, params: undefined }
 
 describe('ReminderListScreen', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
+    mockGoBack.mockReset()
     mockSetDone.mockReset()
     mockedUseReminders.mockReset()
     mockedUseReminderService.mockReturnValue({ setDone: mockSetDone } as never)
@@ -85,6 +87,22 @@ describe('ReminderListScreen', () => {
 
     fireEvent.press(await findByText('تلاش مجدد'))
     expect(refetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('navigates back when the header back button is pressed', async () => {
+    mockedUseReminders.mockReturnValue({
+      reminders: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<ReminderListScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('بازگشت'))
+    expect(mockGoBack).toHaveBeenCalledTimes(1)
   })
 
   it('navigates to ReminderDetail when a reminder is pressed', async () => {

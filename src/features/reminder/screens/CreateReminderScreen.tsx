@@ -64,7 +64,12 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
   }
 
   return (
-    <FormScreenContainer headerTitle="افزودن یادآوری" onSave={handleSubmit} isSaving={isSubmitting}>
+    <FormScreenContainer
+      onBack={() => navigation.goBack()}
+      headerTitle="افزودن یادآوری"
+      onSave={handleSubmit}
+      isSaving={isSubmitting}
+    >
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}

@@ -5,7 +5,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { EmptyState, ErrorState, FloatingActionButton, LoadingIndicator } from '@shared/components'
+import {
+  BackButton,
+  EmptyState,
+  ErrorState,
+  FloatingActionButton,
+  LoadingIndicator
+} from '@shared/components'
 import { useReminders } from '../hooks/useReminders'
 import { useReminderService } from '../hooks/useReminderService'
 import { useReminderContexts } from '../hooks/useReminderContexts'
@@ -42,6 +48,9 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.content}>
+        <View style={styles.header}>
+          <BackButton onPress={() => navigation.goBack()} />
+        </View>
         {isLoading ? (
           <View style={styles.centeredSection}>
             <LoadingIndicator size="large" />
@@ -113,6 +122,10 @@ function createStyles(theme: Theme) {
       flex: 1,
       padding: theme.spacing.space6,
       gap: theme.spacing.space4
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center'
     },
     list: {
       gap: theme.spacing.space3

@@ -82,7 +82,12 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   }
 
   return (
-    <FormScreenContainer headerTitle="افزودن قرارداد" onSave={handleSubmit} isSaving={isSubmitting}>
+    <FormScreenContainer
+      onBack={() => navigation.goBack()}
+      headerTitle="افزودن قرارداد"
+      onSave={handleSubmit}
+      isSaving={isSubmitting}
+    >
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}

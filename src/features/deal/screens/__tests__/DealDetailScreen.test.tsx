@@ -24,6 +24,7 @@ const mockedUseLostReasons = useLostReasons as jest.MockedFunction<typeof useLos
 const mockUpdateNotes = jest.fn()
 const mockTransitionStage = jest.fn()
 const mockNavigate = jest.fn()
+const mockGoBack = jest.fn()
 
 const DEAL: DealWithDetails = {
   id: 'deal-1',
@@ -98,7 +99,7 @@ const REMINDER: ReminderRecord = {
   updatedAt: '2026-08-08T00:00:00.000Z'
 }
 
-const navigationProp = { navigate: mockNavigate } as never
+const navigationProp = { navigate: mockNavigate, goBack: mockGoBack } as never
 const routeProp = { key: 'DealDetail', name: 'DealDetail' as const, params: { dealId: 'deal-1' } }
 
 function mockActivity(overrides: Partial<ReturnType<typeof useDealActivity>> = {}): void {
@@ -117,6 +118,7 @@ describe('DealDetailScreen', () => {
     mockUpdateNotes.mockReset()
     mockTransitionStage.mockReset()
     mockNavigate.mockReset()
+    mockGoBack.mockReset()
     mockedUseDealService.mockReturnValue({
       updateNotes: mockUpdateNotes,
       transitionStage: mockTransitionStage
@@ -144,6 +146,22 @@ describe('DealDetailScreen', () => {
     expect(await findAllByText('آپارتمان دو خوابه')).toHaveLength(2)
     expect(await findAllByText('علی رضایی')).toHaveLength(2)
     expect(await findByText('مذاکره')).toBeTruthy()
+  })
+
+  it('navigates back when the header back button is pressed', async () => {
+    mockedUseDealDetail.mockReturnValue({
+      deal: DEAL,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('بازگشت'))
+    expect(mockGoBack).toHaveBeenCalledTimes(1)
   })
 
   it('shows an error state with retry when loading fails', async () => {

@@ -82,6 +82,22 @@ describe('ReminderDetailScreen', () => {
     expect(await findByText('توضیحات')).toBeTruthy()
   })
 
+  it('navigates back when the header back button is pressed', async () => {
+    mockedUseReminderDetail.mockReturnValue({
+      reminder: REMINDER,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<ReminderDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('بازگشت'))
+    expect(mockGoBack).toHaveBeenCalledTimes(1)
+  })
+
   it('shows the linked property/applicant context when the reminder is tied to a deal', async () => {
     mockedUseReminderDetail.mockReturnValue({
       reminder: { ...REMINDER, dealId: 'deal-1' },

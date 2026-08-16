@@ -5,6 +5,7 @@ import { useTheme } from '../theme'
 
 export type IconName =
   | 'chevron'
+  | 'back'
   | 'plus'
   | 'check'
   | 'close'
@@ -35,7 +36,7 @@ type Props = {
   /** design-tokens.json icon-size scale (16/18/24/32/48). Defaults to icon-md, the documented default. */
   size?: IconSize
   color?: string
-  /** Directional glyphs (chevron, chevronDouble) flip in RTL; everything else is direction-agnostic. */
+  /** Directional glyphs (chevron, back, chevronDouble) flip in RTL; everything else is direction-agnostic. */
   accessibilityLabel?: string
 }
 
@@ -70,6 +71,12 @@ function glyphFor(name: IconName, isRTL: boolean): string {
   switch (name) {
     case 'chevron':
       return isRTL ? 'chevron-back-outline' : 'chevron-forward-outline'
+    // The mirror of 'chevron' — that one is a disclosure/forward
+    // indicator (points toward the reading-end, i.e. left in RTL); a
+    // back-navigation control points the opposite way, toward where the
+    // user came from (right in RTL).
+    case 'back':
+      return isRTL ? 'chevron-forward-outline' : 'chevron-back-outline'
     case 'chevronDouble':
       return isRTL ? 'play-skip-back-outline' : 'play-skip-forward-outline'
     case 'plus':

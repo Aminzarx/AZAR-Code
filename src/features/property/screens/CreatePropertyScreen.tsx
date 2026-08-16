@@ -73,6 +73,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <FormScreenContainer
+      onBack={() => navigation.goBack()}
       headerTitle="افزودن فایل ملکی"
       onSave={handleSubmit}
       isSaving={isSubmitting}

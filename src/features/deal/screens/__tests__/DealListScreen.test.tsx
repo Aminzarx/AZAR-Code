@@ -7,6 +7,7 @@ import { useIncompleteReminders } from '../../hooks/useIncompleteReminders'
 import type { DealWithDetails } from '../../types'
 
 const mockNavigate = jest.fn()
+const mockGoBack = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -83,12 +84,13 @@ function makeDeal(overrides: Partial<DealWithDetails>): DealWithDetails {
   }
 }
 
-const navigationProp = { navigate: mockNavigate } as never
+const navigationProp = { navigate: mockNavigate, goBack: mockGoBack } as never
 const routeProp = { key: 'DealList', name: 'DealList' as const, params: undefined }
 
 describe('DealListScreen', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
+    mockGoBack.mockReset()
     mockedUseDeals.mockReset()
     mockedUseIncompleteReminders.mockReturnValue({ reminders: [], refetch: jest.fn() })
   })
@@ -123,6 +125,22 @@ describe('DealListScreen', () => {
 
     fireEvent.press(await findByText('تلاش مجدد'))
     expect(refetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('navigates back when the header back button is pressed', async () => {
+    mockedUseDeals.mockReturnValue({
+      deals: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    })
+
+    const { findByLabelText } = await render(
+      withTheme(<DealListScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('بازگشت'))
+    expect(mockGoBack).toHaveBeenCalledTimes(1)
   })
 
   it('navigates to DealDetail when a deal is pressed', async () => {

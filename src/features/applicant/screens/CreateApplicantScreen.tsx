@@ -74,7 +74,12 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   }
 
   return (
-    <FormScreenContainer headerTitle="افزودن متقاضی" onSave={handleSubmit} isSaving={isSubmitting}>
+    <FormScreenContainer
+      onBack={() => navigation.goBack()}
+      headerTitle="افزودن متقاضی"
+      onSave={handleSubmit}
+      isSaving={isSubmitting}
+    >
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}

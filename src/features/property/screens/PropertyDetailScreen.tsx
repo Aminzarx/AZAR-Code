@@ -144,6 +144,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
 
   return (
     <FormScreenContainer
+      onBack={() => navigation.goBack()}
       headerTitle={isEditing ? 'ویرایش فایل ملکی' : undefined}
       onSave={isEditing ? handleSubmit : undefined}
       isSaving={isSubmitting}
