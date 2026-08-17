@@ -125,14 +125,17 @@ export function PropertyForm({ values, errors, onChange }: Props): React.JSX.Ele
           "سایر" fallback, per explicit direction. */}
       {showBarterFields ? (
         <View style={styles.barterSection}>
-          {BARTER_ITEM_OPTIONS.map((item) => (
-            <Checkbox
-              key={item}
-              label={item}
-              value={values.barterItems.includes(item)}
-              onChange={(checked) => toggleBarterItem(item, checked)}
-            />
-          ))}
+          <View style={styles.barterGrid}>
+            {BARTER_ITEM_OPTIONS.map((item) => (
+              <View key={item} style={styles.barterGridItem}>
+                <Checkbox
+                  label={item}
+                  value={values.barterItems.includes(item)}
+                  onChange={(checked) => toggleBarterItem(item, checked)}
+                />
+              </View>
+            ))}
+          </View>
           {values.barterItems.includes('سایر') ? (
             <TextInput
               label="مورد تهاتر"
@@ -178,7 +181,17 @@ function createStyles(theme: Theme) {
       gap: theme.spacing.space5
     },
     barterSection: {
-      gap: theme.spacing.space2
+      gap: theme.spacing.space3
+    },
+    barterGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      rowGap: theme.spacing.space1,
+      columnGap: theme.spacing.space2
+    },
+    barterGridItem: {
+      flexBasis: '30%',
+      flexGrow: 1
     }
   })
 }

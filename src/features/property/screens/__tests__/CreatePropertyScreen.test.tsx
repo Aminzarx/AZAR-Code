@@ -24,7 +24,6 @@ const EMPTY_VALUES: PropertyFormValues = {
   description: ''
 }
 
-const mockReplace = jest.fn()
 const mockCreateProperty = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
@@ -39,12 +38,37 @@ const mockedUsePropertyService = usePropertyService as jest.MockedFunction<
   typeof usePropertyService
 >
 
-const navigationProp = { replace: mockReplace, addListener: jest.fn(() => jest.fn()) } as never
+type BeforeRemoveListener = (event: {
+  preventDefault: () => void
+  data: { action: object }
+}) => void
+let beforeRemoveListener: BeforeRemoveListener | null = null
+const mockAddListener = jest.fn((event: string, listener: BeforeRemoveListener) => {
+  if (event === 'beforeRemove') {
+    beforeRemoveListener = listener
+  }
+  return jest.fn()
+})
+const preventDefault = jest.fn()
+// A real `navigation.replace()` call fires `beforeRemove` synchronously,
+// within the same call — before React has re-rendered with whatever
+// state update (e.g. setIsDirty(false)) preceded it. This mock replays
+// that exact timing, which a plain `jest.fn()` replace() cannot.
+const mockReplace = jest.fn(() => {
+  beforeRemoveListener?.({ preventDefault, data: { action: {} } })
+})
+const navigationProp = {
+  replace: mockReplace,
+  addListener: mockAddListener,
+  dispatch: jest.fn()
+} as never
 const routeProp = { key: 'CreateProperty', name: 'CreateProperty' as const, params: undefined }
 
 describe('CreatePropertyScreen', () => {
   beforeEach(() => {
-    mockReplace.mockReset()
+    mockReplace.mockClear()
+    preventDefault.mockClear()
+    beforeRemoveListener = null
     mockCreateProperty.mockReset()
     mockedUsePropertyService.mockReturnValue({ createProperty: mockCreateProperty } as never)
   })
@@ -66,7 +90,7 @@ describe('CreatePropertyScreen', () => {
   it('creates the property and navigates to its detail screen on success', async () => {
     mockCreateProperty.mockResolvedValue({ id: 'prop-1' })
 
-    const { getByLabelText, getByText } = await render(
+    const { getByLabelText, getByText, queryByText } = await render(
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
 
@@ -84,6 +108,14 @@ describe('CreatePropertyScreen', () => {
     await waitFor(() =>
       expect(mockReplace).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
     )
+
+    // Regression: navigation.replace() fires `beforeRemove` synchronously,
+    // within the same call, before setIsDirty(false) has re-rendered —
+    // without markSaved()'s synchronous ref write, the guard treated its
+    // own successful-save navigation as an unconfirmed exit and popped
+    // the "unsaved changes" dialog right after a successful save.
+    expect(preventDefault).not.toHaveBeenCalled()
+    expect(queryByText('تغییرات ذخیره نشده')).toBeNull()
   })
 
   it('shows field errors returned by PropertyValidationError from the service', async () => {

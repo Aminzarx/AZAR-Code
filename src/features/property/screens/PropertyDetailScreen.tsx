@@ -62,7 +62,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
   const [isTogglingArchive, setIsTogglingArchive] = useState(false)
 
-  useUnsavedChangesGuard(navigation, isEditing)
+  const { unsavedChangesDialogProps } = useUnsavedChangesGuard(navigation, isEditing)
 
   function startEditing(): void {
     if (!property) {
@@ -146,7 +146,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
 
   return (
     <FormScreenContainer
-      onBack={() => navigation.goBack()}
+      onBack={isEditing ? () => navigation.goBack() : undefined}
       headerTitle={isEditing ? 'ویرایش فایل ملکی' : undefined}
       onSave={isEditing ? handleSubmit : undefined}
       isSaving={isSubmitting}
@@ -347,6 +347,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
         onConfirm={handleDelete}
         onCancel={() => setIsDeleteConfirmVisible(false)}
       />
+      <ConfirmDialog {...unsavedChangesDialogProps} />
     </FormScreenContainer>
   )
 }

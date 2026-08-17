@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { FormScreenContainer } from '@shared/components'
+import { ConfirmDialog, FormScreenContainer } from '@shared/components'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { useApplicantService } from '../hooks/useApplicantService'
 import { ApplicantForm } from '../components/ApplicantForm'
@@ -41,7 +41,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
 
-  useUnsavedChangesGuard(navigation, isDirty)
+  const { markSaved, unsavedChangesDialogProps } = useUnsavedChangesGuard(navigation, isDirty)
 
   function handleChange<K extends keyof ApplicantFormValues>(
     field: K,
@@ -61,6 +61,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
     try {
       const applicant = await service.createApplicant(session.userId, values)
       setIsDirty(false)
+      markSaved()
       navigation.replace('ApplicantDetail', { applicantId: applicant.id })
     } catch (caughtError) {
       if (caughtError instanceof ApplicantValidationError) {
@@ -84,6 +85,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
       <ApplicantForm values={values} errors={errors} onChange={handleChange} />
+      <ConfirmDialog {...unsavedChangesDialogProps} />
     </FormScreenContainer>
   )
 }

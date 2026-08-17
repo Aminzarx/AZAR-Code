@@ -102,7 +102,7 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.content}>
         <View style={styles.searchRow}>
           <View style={styles.searchField}>

@@ -489,6 +489,18 @@ variant — treat it as a bug, not a design option. The tab bar surface is
 reads as a natural continuation of the page rather than a competing
 block.
 
+**No double bottom inset (v2.9.4):** because the tab bar above already
+reserves — and safe-area-pads — its own height on every screen it
+covers (every screen in `MainNavigator`, since no screen ever hides
+it), a screen's own top-level `SafeAreaView` must exclude the bottom
+edge: `edges={['top', 'left', 'right']}`. Including the default bottom
+edge stacks a second, redundant safe-area padding on top of the tab
+bar's, which showed up as a visible gap between a screen's content
+(and any `FloatingActionButton`) and the tab bar sitting above it.
+This applies to every screen rendered under the tab bar — list, detail,
+and create/edit screens alike (the latter via `FormScreenContainer`'s
+own `SafeAreaView`) — not just tab-root screens.
+
 ### 7.6 Loading / Progress
 `LoadingIndicator` is indeterminate-only (no percentage data exists
 anywhere in this app) — `size="large"` for full-screen loads,
@@ -532,6 +544,12 @@ achievable "glass" read without one. Always paired buttons: `cancel`
 (secondary) + `confirm` (`primary` or `destructive` per the action).
 Reserved for confirmation/destructive-action prompts; not a general
 modal/sheet component.
+
+This applies without exception — `useUnsavedChangesGuard` (v2.9.4) used
+to call `Alert.alert` directly for its "discard unsaved changes?"
+prompt, the one remaining OS-native dialog in the app. It now returns
+`unsavedChangesDialogProps` for the caller to spread onto its own
+`<ConfirmDialog />` instead.
 
 ## 8. Touch Targets & Accessibility
 
@@ -932,7 +950,7 @@ table or manual tab-switch call to get this behavior — it is what
 nested tab+stack navigators already do by default once each screen is
 registered exactly once.
 
-### 16.1 In-UI back control (v2.9.0-v2.9.2)
+### 16.1 In-UI back control (v2.9.0-v2.9.4)
 
 `MainNavigator` sets `headerShown: false` on every stack, so a pushed
 (non-tab-root) screen has no native header and needs its own back
@@ -962,6 +980,15 @@ get a back control, per direct user instruction that it wasn't
 important on these two screens specifically — don't re-add it there
 without a new explicit request, even though the general rule above
 would otherwise call for one (they're pushed screens, not tab roots).
+
+**Explicit exception (v2.9.4):** `PropertyDetailScreen`/
+`ApplicantDetailScreen` only pass `onBack` while `isEditing` is true —
+in read-only view mode, `FormScreenContainer` gets neither `onBack`
+nor `onSave`, so it renders no header at all. Same "not important
+here" reasoning as the v2.9.2 exception above, scoped to these two
+screens' view mode specifically; the back control still shows once
+editing starts, alongside the save action, since that flow needs an
+explicit way to cancel out.
 
 Tab-root screens (Dashboard, Files, Matching, Contract list, Settings)
 never get a back control — there's nothing to go back to within their
@@ -1110,7 +1137,7 @@ property/applicant field on a form that opens a picker instead of
 free text), reuse this component rather than building another bespoke
 row.
 
-### 17.9 Conditional barter fields (v2.9.3, property only)
+### 17.9 Conditional barter fields (v2.9.3-v2.9.4, property only)
 
 When `PropertyForm`'s transaction type is exactly `'تهاتر'`, a
 `Checkbox` group (طلا/خودرو/زمین/ملک/سایر, `BARTER_ITEM_OPTIONS`)
@@ -1123,3 +1150,9 @@ whenever "سایر" is selected. `PropertyDetailScreen` renders the
 selection as a single joined value row, "سایر" sorted last with its
 description appended. This is property-only — the applicant side was
 not part of the original request and stays unchanged.
+
+**v2.9.4:** the 5 checkboxes now lay out as a 3-column wrap grid
+(`flexBasis: '30%'` per item, tight `rowGap`/`columnGap`) instead of a
+single full-width column — 2 short rows instead of 5, per explicit
+feedback that the original stacked layout had too much vertical air
+between items.

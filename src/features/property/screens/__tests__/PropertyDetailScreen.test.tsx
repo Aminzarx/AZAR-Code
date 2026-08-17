@@ -85,22 +85,6 @@ describe('PropertyDetailScreen', () => {
     expect(await findByText('تهران • خیابان ولیعصر')).toBeTruthy()
   })
 
-  it('navigates back when the header back button is pressed', async () => {
-    mockedUsePropertyDetail.mockReturnValue({
-      property: PROPERTY,
-      isLoading: false,
-      error: null,
-      refetch: jest.fn()
-    })
-
-    const { findByLabelText } = await render(
-      withTheme(<PropertyDetailScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('بازگشت'))
-    expect(mockGoBack).toHaveBeenCalledTimes(1)
-  })
-
   it('shows an error state with retry when loading fails', async () => {
     const refetch = jest.fn()
     mockedUsePropertyDetail.mockReturnValue({

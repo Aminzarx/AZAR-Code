@@ -70,7 +70,7 @@ export function DealListScreen({ navigation }: Props): React.JSX.Element {
   }, [deals, filter])
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScreenHeaderBar onBack={() => navigation.goBack()} />
       <View style={styles.content}>
         <SegmentedControl options={FILTER_OPTIONS} value={filter} onChange={setFilter} />

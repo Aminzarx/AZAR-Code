@@ -156,7 +156,7 @@ export function MatchingScreen({ navigation, route }: Props): React.JSX.Element 
     target === 'properties' ? selectedProperty !== null : selectedApplicant !== null
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.content}>
         {!hasSelection ? (
           <Text style={[theme.typography('titleMd'), styles.title]}>

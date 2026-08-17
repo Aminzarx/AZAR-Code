@@ -89,7 +89,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
     .sort((a, b) => new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime())[0]
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScreenHeaderBar onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         {isLoading ? (

@@ -117,7 +117,7 @@ export function FormScreenContainer({
   const showHeader = Boolean(onBack) || Boolean(onSave)
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {showHeader ? (
         <View style={styles.header}>
           {onBack ? <BackButton onPress={onBack} /> : null}

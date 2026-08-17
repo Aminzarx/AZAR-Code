@@ -89,22 +89,6 @@ describe('ApplicantDetailScreen', () => {
     expect(await findByText('تهران • 09121234567')).toBeTruthy()
   })
 
-  it('navigates back when the header back button is pressed', async () => {
-    mockedUseApplicantDetail.mockReturnValue({
-      applicant: APPLICANT,
-      isLoading: false,
-      error: null,
-      refetch: jest.fn()
-    })
-
-    const { findByLabelText } = await render(
-      withTheme(<ApplicantDetailScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('بازگشت'))
-    expect(mockGoBack).toHaveBeenCalledTimes(1)
-  })
-
   it('shows an error state with retry when loading fails', async () => {
     const refetch = jest.fn()
     mockedUseApplicantDetail.mockReturnValue({

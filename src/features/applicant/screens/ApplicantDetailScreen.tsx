@@ -62,7 +62,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
   const [isTogglingArchive, setIsTogglingArchive] = useState(false)
 
-  useUnsavedChangesGuard(navigation, isEditing)
+  const { unsavedChangesDialogProps } = useUnsavedChangesGuard(navigation, isEditing)
 
   function startEditing(): void {
     if (!applicant) {
@@ -148,7 +148,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
 
   return (
     <FormScreenContainer
-      onBack={() => navigation.goBack()}
+      onBack={isEditing ? () => navigation.goBack() : undefined}
       headerTitle={isEditing ? 'ویرایش متقاضی' : undefined}
       onSave={isEditing ? handleSubmit : undefined}
       isSaving={isSubmitting}
@@ -335,6 +335,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
         onConfirm={handleDelete}
         onCancel={() => setIsDeleteConfirmVisible(false)}
       />
+      <ConfirmDialog {...unsavedChangesDialogProps} />
     </FormScreenContainer>
   )
 }

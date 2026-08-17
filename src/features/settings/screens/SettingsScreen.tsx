@@ -310,7 +310,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="تنظیمات">
         <View style={styles.header}>
           <Text style={[theme.typography('headlineLgMobile'), styles.title]}>تنظیمات</Text>
@@ -678,7 +678,12 @@ function createStyles(theme: Theme) {
     menu: {
       position: 'absolute',
       top: theme.touchTargetMinimum,
-      start: 0,
+      // The menu button sits at the screen's outer edge (end of the
+      // header row, RTL-mirrored) — anchoring the flyout by `start`
+      // let it grow further past that edge, off-screen (reported: menu
+      // clipped/unreadable). Anchoring by `end` instead pins it to the
+      // button and grows the menu back toward the screen's visible area.
+      end: 0,
       minWidth: 160,
       borderRadius: theme.radius.large,
       backgroundColor: theme.colors.surfaceContainerLowest,

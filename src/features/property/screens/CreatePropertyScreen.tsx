@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { FormScreenContainer } from '@shared/components'
+import { ConfirmDialog, FormScreenContainer } from '@shared/components'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { usePropertyService } from '../hooks/usePropertyService'
 import { PropertyForm } from '../components/PropertyForm'
@@ -41,7 +41,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
 
-  useUnsavedChangesGuard(navigation, isDirty)
+  const { markSaved, unsavedChangesDialogProps } = useUnsavedChangesGuard(navigation, isDirty)
 
   function handleChange<K extends keyof PropertyFormValues>(
     field: K,
@@ -61,6 +61,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
     try {
       const property = await service.createProperty(session.userId, values)
       setIsDirty(false)
+      markSaved()
       navigation.replace('PropertyDetail', { propertyId: property.id })
     } catch (caughtError) {
       if (caughtError instanceof PropertyValidationError) {
@@ -84,6 +85,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
       <PropertyForm values={values} errors={errors} onChange={handleChange} />
+      <ConfirmDialog {...unsavedChangesDialogProps} />
     </FormScreenContainer>
   )
 }

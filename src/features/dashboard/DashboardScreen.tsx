@@ -70,7 +70,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="داشبورد">
         <Pressable
           onPress={() => navigateAcrossTabs(navigation, 'Settings', undefined)}
