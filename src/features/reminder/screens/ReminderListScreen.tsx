@@ -47,7 +47,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScreenHeaderBar onBack={() => navigation.goBack()} />
+      <ScreenHeaderBar onBack={() => navigation.goBack()} title="یادآوری‌ها" />
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.centeredSection}>

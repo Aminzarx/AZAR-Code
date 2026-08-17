@@ -13,6 +13,7 @@ import {
   FloatingActionButton,
   Icon,
   LoadingIndicator,
+  ScreenHeaderBar,
   TextInput
 } from '@shared/components'
 import { APPLICANT_TRANSACTION_TYPES } from '@shared/data/realEstateOptions'
@@ -88,6 +89,7 @@ export function ApplicantListScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <ScreenHeaderBar onBack={() => navigation.goBack()} title="متقاضیان" />
       <View style={styles.content}>
         <View style={styles.searchRow}>
           <View style={styles.searchField}>

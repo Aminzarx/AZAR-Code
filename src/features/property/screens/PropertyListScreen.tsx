@@ -13,6 +13,7 @@ import {
   FloatingActionButton,
   Icon,
   LoadingIndicator,
+  ScreenHeaderBar,
   TextInput
 } from '@shared/components'
 import { PROPERTY_TRANSACTION_TYPES } from '@shared/data/realEstateOptions'
@@ -103,6 +104,7 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <ScreenHeaderBar onBack={() => navigation.goBack()} title="فایل‌های ملکی" />
       <View style={styles.content}>
         <View style={styles.searchRow}>
           <View style={styles.searchField}>

@@ -544,7 +544,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
       <PasswordPromptDialog
         visible={isBackupDialogVisible}
         title="تهیه نسخه پشتیبان"
-        description="یک رمز عبور برای این نسخه پشتیبان انتخاب کنید (حداقل ۸ نویسه). این رمز برای بازیابی اطلاعات لازم است — آن را جایی امن یادداشت کنید."
+        description="یک رمز عبور برای این نسخه پشتیبان انتخاب کنید (حداقل ۸ نویسه). این رمز برای بازیابی اطلاعات لازم است، پس آن را جایی امن یادداشت کنید."
         confirmLabel="ایجاد نسخه پشتیبان"
         isSubmitting={isCreatingBackup}
         errorMessage={backupError ?? undefined}

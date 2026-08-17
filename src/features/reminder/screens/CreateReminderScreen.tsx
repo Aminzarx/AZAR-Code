@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -30,6 +30,11 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
   const [errors, setErrors] = useState<ReminderFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // A guard beyond `isSubmitting`/the Save button's own disabled state —
+  // both are React state, so two presses landing in the same tick (a
+  // fast double-tap) can both read `isSubmitting === false` before either
+  // commits. A ref is checked and set synchronously instead.
+  const isSubmittingRef = useRef(false)
 
   function handleChange<K extends keyof ReminderFormValues>(
     field: K,
@@ -39,9 +44,10 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
   }
 
   async function handleSubmit(): Promise<void> {
-    if (!service || !session) {
+    if (!service || !session || isSubmittingRef.current) {
       return
     }
+    isSubmittingRef.current = true
     setErrors({})
     setSubmitError(null)
     setIsSubmitting(true)
@@ -59,6 +65,7 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
         setSubmitError('ثبت یادآوری با مشکل مواجه شد. دوباره تلاش کنید.')
       }
     } finally {
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }

@@ -383,6 +383,20 @@ Minimum 48dp touch target regardless of visual size (§8). Radius:
 where a two-word label previously could wrap to two lines; the label
 itself is now capped at `numberOfLines={1}` as a hard guarantee.
 
+**A form's Save action must reject a same-tick double-press (v2.9.5).**
+`isSubmitting` disabling the Save button is necessary but not
+sufficient — it's React state, so two presses landing in the same
+event-loop tick can both read it as `false` before either commits,
+double-firing `handleSubmit` and (for a create screen) inserting two
+records for one user action. Every create/edit `handleSubmit` also
+checks-and-sets a plain `isSubmittingRef` ref as its very first
+statement, before any `await` — a ref write is synchronous, so the
+second call in the same tick sees it already flipped by the first,
+regardless of React's render timing. Reuse this pattern (see
+`CreatePropertyScreen.tsx`) for any new create/edit screen — it is not
+optional decoration, it is what actually prevents the duplicate-insert
+class of bug.
+
 ### 7.2 Text Fields
 Label above field. States: default (1px `outlineVariant`), focused (1px
 `primary`), error (2px `error`), disabled (`surfaceContainerLow` fill,
@@ -950,7 +964,7 @@ table or manual tab-switch call to get this behavior — it is what
 nested tab+stack navigators already do by default once each screen is
 registered exactly once.
 
-### 16.1 In-UI back control (v2.9.0-v2.9.4)
+### 16.1 In-UI back control (v2.9.0-v2.9.5)
 
 `MainNavigator` sets `headerShown: false` on every stack, so a pushed
 (non-tab-root) screen has no native header and needs its own back
@@ -958,37 +972,41 @@ control — the OS swipe/hardware-back gesture alone isn't a discoverable
 affordance. Two patterns, depending on the screen:
 
 - **Screens using `FormScreenContainer`** (every create/edit-capable
-  Detail/Create screen): pass `onBack={() => navigation.goBack()}` —
-  the container renders a `BackButton` inside its own header row
-  (background, bottom hairline, padding), alongside the save action
-  when one exists.
+  Detail/Create screen): pass `onBack={() => navigation.goBack()}`
+  unconditionally (not just while editing — see the v2.9.4 exception
+  below, reverted in v2.9.5) and always pass a `headerTitle` — the
+  container renders a `BackButton` beside that title inside its own
+  header row (background, bottom hairline, padding), alongside the
+  save action when one exists.
 - **Other pushed screens that don't use `FormScreenContainer`**
-  (`DealList`, `DealDetail`, `ReminderList`): render
-  `<ScreenHeaderBar onBack={() => navigation.goBack()} />` as the
-  **first child of `SafeAreaView`, outside any padded content
-  wrapper**. `ScreenHeaderBar` wraps the shared `BackButton` in the
-  same visual container `FormScreenContainer`'s header uses. v2.9.1
-  fixed a real regression here: the first pass rendered a bare
-  `BackButton` directly inside the screen's own padded content View
-  with no background/border, which read as a stray floating icon with
-  no clear placement — never do that; always go through
-  `ScreenHeaderBar` (or `FormScreenContainer`'s built-in header) so
-  every back control looks and behaves the same way.
+  (`PropertyList`, `ApplicantList`, `DealList`, `DealDetail`,
+  `ReminderList`): render `<ScreenHeaderBar onBack={() =>
+  navigation.goBack()} title="..." />` as the **first child of
+  `SafeAreaView`, outside any padded content wrapper**.
+  `ScreenHeaderBar` wraps the shared `BackButton` in the same visual
+  container `FormScreenContainer`'s header uses, beside its `title`
+  prop (v2.9.5). v2.9.1 fixed a real regression here: the first pass
+  rendered a bare `BackButton` directly inside the screen's own padded
+  content View with no background/border, which read as a stray
+  floating icon with no clear placement — never do that; always go
+  through `ScreenHeaderBar` (or `FormScreenContainer`'s built-in
+  header) so every back control looks and behaves the same way.
 
-**Explicit exception (v2.9.2):** `PropertyList`/`ApplicantList` do NOT
-get a back control, per direct user instruction that it wasn't
-important on these two screens specifically — don't re-add it there
-without a new explicit request, even though the general rule above
-would otherwise call for one (they're pushed screens, not tab roots).
-
-**Explicit exception (v2.9.4):** `PropertyDetailScreen`/
-`ApplicantDetailScreen` only pass `onBack` while `isEditing` is true —
-in read-only view mode, `FormScreenContainer` gets neither `onBack`
-nor `onSave`, so it renders no header at all. Same "not important
-here" reasoning as the v2.9.2 exception above, scoped to these two
-screens' view mode specifically; the back control still shows once
-editing starts, alongside the save action, since that flow needs an
-explicit way to cancel out.
+**A back control must never render alone in its row (v2.9.5).** Two
+earlier passes (v2.9.2, v2.9.4) each stripped the back control from a
+different set of screens ("not important here"), and both were
+reverted after user testing found the opposite — the control's actual
+problem was never that it existed, it was that on a screen with no
+title text, `ScreenHeaderBar`/`FormScreenContainer` rendered `[
+BackButton ][ empty flex spacer ]`, a lone icon with nothing beside it
+to anchor it. The fix is structural, not situational: every screen
+that shows a back control also passes a `title` (`ScreenHeaderBar`)
+or `headerTitle` (`FormScreenContainer`) alongside it — `جزئیات ...`
+in a Detail screen's read-only view mode, `ویرایش ...` while editing,
+a plain screen name (`فایل‌های ملکی`, `متقاضیان`, `یادآوری‌ها`, ...) on
+list screens. Do not reintroduce a bare, title-less back control
+anywhere; do not remove a screen's back control as a "declutter" fix
+without addressing the actual placement complaint first.
 
 Tab-root screens (Dashboard, Files, Matching, Contract list, Settings)
 never get a back control — there's nothing to go back to within their

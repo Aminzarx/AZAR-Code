@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -40,6 +40,11 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
+  // See CreatePropertyScreen's identical guard — `isSubmitting` is React
+  // state, so two presses in the same tick (a fast double-tap) can both
+  // read it as `false` before either commits. This ref is checked and
+  // set synchronously instead.
+  const isSubmittingRef = useRef(false)
 
   const { markSaved, unsavedChangesDialogProps } = useUnsavedChangesGuard(navigation, isDirty)
 
@@ -52,9 +57,10 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   }
 
   async function handleSubmit(): Promise<void> {
-    if (!service || !session) {
+    if (!service || !session || isSubmittingRef.current) {
       return
     }
+    isSubmittingRef.current = true
     setErrors({})
     setSubmitError(null)
     setIsSubmitting(true)
@@ -70,6 +76,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
         setSubmitError('ثبت متقاضی با مشکل مواجه شد. دوباره تلاش کنید.')
       }
     } finally {
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }

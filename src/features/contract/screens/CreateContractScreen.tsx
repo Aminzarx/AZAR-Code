@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -41,6 +41,11 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   const [reminderOffset, setReminderOffset] = useState<ReminderOffset>('0')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // A guard beyond `isSubmitting`/the Save button's own disabled state —
+  // both are React state, so two presses landing in the same tick (a
+  // fast double-tap) can both read `isSubmitting === false` before either
+  // commits. A ref is checked and set synchronously instead.
+  const isSubmittingRef = useRef(false)
 
   function handleChange<K extends keyof ContractFormValues>(
     field: K,
@@ -50,9 +55,10 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   }
 
   async function handleSubmit(): Promise<void> {
-    if (!service || !session) {
+    if (!service || !session || isSubmittingRef.current) {
       return
     }
+    isSubmittingRef.current = true
     setErrors({})
     setSubmitError(null)
     setIsSubmitting(true)
@@ -77,6 +83,7 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
         setSubmitError('ثبت قرارداد با مشکل مواجه شد. دوباره تلاش کنید.')
       }
     } finally {
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }

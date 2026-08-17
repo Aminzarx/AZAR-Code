@@ -90,7 +90,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScreenHeaderBar onBack={() => navigation.goBack()} />
+      <ScreenHeaderBar onBack={() => navigation.goBack()} title="جزئیات معامله" />
       <ScrollView contentContainerStyle={styles.content}>
         {isLoading ? (
           <View style={styles.centeredSection}>

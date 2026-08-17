@@ -1,10 +1,17 @@
 import React from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { BackButton } from './BackButton'
 
 type Props = {
   onBack: () => void
+  /**
+   * v2.9.5 — per explicit feedback, a `BackButton` should never sit
+   * alone in its own row with nothing beside it; pairing it with the
+   * screen's title (same [back][title] layout `FormScreenContainer`'s
+   * own header already uses) gives it a clear anchor.
+   */
+  title?: string
 }
 
 /**
@@ -18,12 +25,21 @@ type Props = {
  * real header, not a stray icon. Render this as the first child of
  * `SafeAreaView`, OUTSIDE any padded content wrapper.
  */
-export function ScreenHeaderBar({ onBack }: Props): React.JSX.Element {
+export function ScreenHeaderBar({ onBack, title }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   return (
     <View style={styles.header}>
       <BackButton onPress={onBack} />
+      {title ? (
+        <Text
+          style={[theme.typography('titleSm'), styles.title]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {title}
+        </Text>
+      ) : null}
     </View>
   )
 }
@@ -33,11 +49,16 @@ function createStyles(theme: Theme) {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
+      gap: theme.spacing.space2,
       paddingHorizontal: theme.layout.screenPaddingX,
       paddingVertical: theme.spacing.space3,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.outlineVariant,
       backgroundColor: theme.colors.surfaceContainerLowest
+    },
+    title: {
+      color: theme.colors.onSurface,
+      flexShrink: 1
     }
   })
 }

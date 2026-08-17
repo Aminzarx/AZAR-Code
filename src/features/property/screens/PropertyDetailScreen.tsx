@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -61,6 +61,10 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false)
   const [isTogglingArchive, setIsTogglingArchive] = useState(false)
+  // See CreatePropertyScreen's identical guard — `isSubmitting` is React
+  // state, so two presses in the same tick can both read it as `false`
+  // before either commits. This ref is checked and set synchronously.
+  const isSubmittingRef = useRef(false)
 
   const { unsavedChangesDialogProps } = useUnsavedChangesGuard(navigation, isEditing)
 
@@ -82,9 +86,10 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   }
 
   async function handleSubmit(): Promise<void> {
-    if (!service || !property || !values) {
+    if (!service || !property || !values || isSubmittingRef.current) {
       return
     }
+    isSubmittingRef.current = true
     setErrors({})
     setSubmitError(null)
     setIsSubmitting(true)
@@ -99,6 +104,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
         setSubmitError('ذخیره تغییرات با مشکل مواجه شد. دوباره تلاش کنید.')
       }
     } finally {
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }
@@ -146,8 +152,8 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
 
   return (
     <FormScreenContainer
-      onBack={isEditing ? () => navigation.goBack() : undefined}
-      headerTitle={isEditing ? 'ویرایش فایل ملکی' : undefined}
+      onBack={() => navigation.goBack()}
+      headerTitle={isEditing ? 'ویرایش فایل ملکی' : 'جزئیات فایل ملکی'}
       onSave={isEditing ? handleSubmit : undefined}
       isSaving={isSubmitting}
     >

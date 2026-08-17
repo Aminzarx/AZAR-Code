@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -40,6 +40,12 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
+  // A guard beyond `isSubmitting`/the Save button's own disabled state —
+  // both are React state, so two presses landing in the same tick (a fast
+  // double-tap) can both read `isSubmitting === false` before either
+  // commits. A ref is checked and set synchronously, so the second call
+  // in the same tick still sees it flipped by the first.
+  const isSubmittingRef = useRef(false)
 
   const { markSaved, unsavedChangesDialogProps } = useUnsavedChangesGuard(navigation, isDirty)
 
@@ -52,9 +58,10 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   }
 
   async function handleSubmit(): Promise<void> {
-    if (!service || !session) {
+    if (!service || !session || isSubmittingRef.current) {
       return
     }
+    isSubmittingRef.current = true
     setErrors({})
     setSubmitError(null)
     setIsSubmitting(true)
@@ -70,6 +77,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
         setSubmitError('ثبت فایل با مشکل مواجه شد. دوباره تلاش کنید.')
       }
     } finally {
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }
