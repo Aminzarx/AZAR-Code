@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html class="h-full" dir="rtl" lang="fa"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>تنظیمات یادآور - EstatePro CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "inverse-primary": "#c6c6c9",
+                            "on-secondary": "#ffffff",
+                            "primary-fixed": "#e2e2e5",
+                            "surface-container": "#edeeef",
+                            "primary": "#000101",
+                            "surface-bright": "#f8f9fa",
+                            "primary-fixed-dim": "#c6c6c9",
+                            "on-secondary-container": "#3f6d38",
+                            "background": "#f8f9fa",
+                            "on-primary": "#ffffff",
+                            "error-container": "#ffdad6",
+                            "on-primary-container": "#838486",
+                            "on-secondary-fixed": "#002201",
+                            "surface-tint": "#5d5e61",
+                            "error": "#ba1a1a",
+                            "secondary-fixed": "#bcf0ae",
+                            "on-error-container": "#93000a",
+                            "surface-container-highest": "#e1e3e4",
+                            "secondary": "#3b6934",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary-fixed-variant": "#224c57",
+                            "surface-dim": "#d9dadb",
+                            "on-error": "#ffffff",
+                            "tertiary-fixed": "#bfe9f7",
+                            "surface-variant": "#e1e3e4",
+                            "on-primary-fixed": "#1a1c1e",
+                            "outline-variant": "#c5c6ca",
+                            "on-primary-fixed-variant": "#454749",
+                            "surface-container-high": "#e7e8e9",
+                            "secondary-container": "#b9eeab",
+                            "surface": "#f8f9fa",
+                            "primary-container": "#1a1c1e",
+                            "surface-container-low": "#f3f4f5",
+                            "inverse-on-surface": "#f0f1f2",
+                            "outline": "#75777a",
+                            "on-surface": "#191c1d",
+                            "on-tertiary": "#ffffff",
+                            "on-tertiary-container": "#618a96",
+                            "inverse-surface": "#2e3132",
+                            "tertiary": "#000000",
+                            "secondary-fixed-dim": "#a1d494",
+                            "tertiary-container": "#001f26",
+                            "on-surface-variant": "#44474a",
+                            "tertiary-fixed-dim": "#a3cdda",
+                            "on-secondary-fixed-variant": "#23501e",
+                            "on-background": "#191c1d",
+                            "on-tertiary-fixed": "#001f26"
+                    },
+                    "borderRadius": {
+                        "sm": "0.125rem",
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                            "base": "8px",
+                            "margin-desktop": "32px",
+                            "container-max-width": "1200px",
+                            "margin-mobile": "16px",
+                            "gutter": "16px",
+                            "compact-gutter": "12px",
+                            "relaxed-gutter": "24px"
+                    },
+                    "fontFamily": {
+                            "headline-lg-mobile": ["Vazirmatn"],
+                            "headline-md": ["Vazirmatn"],
+                            "display": ["Vazirmatn"],
+                            "headline-lg": ["Vazirmatn"],
+                            "body-lg": ["Vazirmatn"],
+                            "label-sm": ["Vazirmatn"],
+                            "label-md": ["Vazirmatn"],
+                            "body-md": ["Vazirmatn"]
+                    },
+                    "fontSize": {
+                            "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                            "display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                            "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                            "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+            },
+                },
+        }
+    </script>
+<style>
+        body { font-family: 'Vazirmatn', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col md:flex-row">
+<aside class="hidden md:flex flex-col p-4 space-y-2 h-full bg-surface-bright text-primary font-label-md text-label-md fixed right-0 top-0 h-full w-80 z-[60] shadow-lg">
+<div class="mb-8 flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">account_circle</span>
+</div>
+<div>
+<div class="font-headline-md text-headline-md text-primary font-semibold">نماینده حرفه‌ای</div>
+<div class="text-on-surface-variant text-label-sm">نمونه محلی &bull; نسخه ۱.۰.۴</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-lowest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+                خانه
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-lowest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open">folder_open</span>
+                فایل‌ها
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-lowest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="share_reviews">share_reviews</span>
+                تطابق
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-lowest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+                قراردادها
+            </a>
+</nav>
+<div class="mt-auto border-t border-outline-variant pt-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-lowest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                تنظیمات
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-lowest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+                گزارش فعالیت
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-lowest transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+                راهنما و پشتیبانی
+            </a>
+</div>
+</aside>
+<main class="flex-1 md:mr-80 flex flex-col min-h-screen pb-24 md:pb-0">
+<header class="fixed top-0 w-full z-40 bg-surface text-primary border-b border-outline-variant flat no shadows h-16 md:hidden">
+<div class="flex items-center justify-between px-margin-mobile h-full w-full">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined -scale-x-100 cursor-pointer active:opacity-80 hover:bg-surface-container-low transition-colors p-3 rounded-full min-w-[48px] min-h-[48px] flex items-center justify-center" data-icon="arrow_back">arrow_back</button>
+<span class="font-headline-md text-headline-md font-semibold text-primary">تنظیمات یادآور</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+</div>
+</div>
+</header>
+<div class="flex-1 mt-16 md:mt-0 p-margin-mobile md:p-margin-desktop max-w-container-max-width mx-auto w-full">
+<div class="mb-8">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">پیکربندی یادآورها</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">هشدارهای خودکار برای نقاط مهم انقضای قرارداد را تنظیم کنید.</p>
+<div class="mt-4 flex items-start gap-3 p-4 rounded-lg bg-surface-container-low border border-outline-variant">
+<span class="material-symbols-outlined text-secondary">notifications_active</span>
+<p class="font-label-md text-label-md text-on-surface-variant">یادآورها به‌صورت <span class="text-on-surface font-semibold">اعلان محلی روی همین دستگاه</span> ارسال می‌شوند. نیازی به اتصال اینترنت نیست.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<div class="md:col-span-4 flex flex-col gap-gutter">
+<div class="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant">
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-4">قرارداد جاری</h3>
+<div class="flex items-start gap-4 mb-4">
+<div class="w-12 h-12 rounded bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md text-primary">قرارداد چارچوب - تک‌کورپ</p>
+<p class="font-body-md text-body-md text-on-surface-variant" dir="ltr">Ref: #TC-2023-089</p>
+</div>
+</div>
+<div class="pt-4 border-t border-outline-variant">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">تاریخ انقضا</span>
+<span class="font-label-md text-label-md text-primary">۱۰ دی ۱۴۰۳</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant">وضعیت</span>
+<span class="inline-flex items-center px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">فعال</span>
+</div>
+</div>
+</div>
+</div>
+<div class="md:col-span-8 flex flex-col gap-4">
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-2 h-12 rounded-full bg-tertiary-fixed"></div>
+<div>
+<h4 class="font-label-md text-label-md text-primary">۹۰ روز مانده</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">دوره بازبینی اولیه</p>
+</div>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-2 h-12 rounded-full bg-secondary-fixed"></div>
+<div>
+<h4 class="font-label-md text-label-md text-primary">۶۰ روز مانده</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">پنجره مذاکره مجدد</p>
+</div>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-2 h-12 rounded-full bg-warning-container"></div>
+<div>
+<h4 class="font-label-md text-label-md text-primary">۳۰ روز مانده</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">نیازمند اقدام فوری</p>
+</div>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-2 h-12 rounded-full bg-warning-container"></div>
+<div>
+<h4 class="font-label-md text-label-md text-primary">۱۴ روز مانده</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">دوره اعلام نهایی</p>
+</div>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-2 h-12 rounded-full bg-warning-container"></div>
+<div>
+<h4 class="font-label-md text-label-md text-primary">۷ روز مانده</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">تایید آمادگی تحویل</p>
+</div>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-2 h-12 rounded-full bg-warning"></div>
+<div>
+<h4 class="font-label-md text-label-md text-primary">۳ روز مانده</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">نیازمند توجه فوری</p>
+</div>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-2 h-12 rounded-full bg-warning"></div>
+<div>
+<h4 class="font-label-md text-label-md text-primary">در روز انقضا</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">هشدار پایان قرارداد</p>
+</div>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+</div>
+</div>
+</div>
+<div class="mt-6 flex justify-end gap-4">
+<button class="px-6 py-2 rounded font-label-md text-label-md text-primary border border-outline-variant hover:bg-surface-container-low transition-colors">انصراف</button>
+<button class="px-6 py-2 rounded bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-colors">ذخیره تنظیمات</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<nav class="fixed bottom-0 w-full z-50 bg-surface border-t border-outline-variant flat no shadows h-20 pb-safe w-full flex justify-around items-center md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">خانه</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open">folder_open</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">فایل‌ها</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="share_reviews">share_reviews</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">تطابق</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">قراردادها</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">پروفایل</span>
+</a>
+</nav>
+</body></html>

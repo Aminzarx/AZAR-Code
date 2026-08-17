@@ -1,0 +1,13 @@
+diff --git a/node_modules/@op-engineering/op-sqlite/node/dist/index.js b/node_modules/@op-engineering/op-sqlite/node/dist/index.js
+index 2ede5b4..c6249ed 100644
+--- a/node_modules/@op-engineering/op-sqlite/node/dist/index.js
++++ b/node_modules/@op-engineering/op-sqlite/node/dist/index.js
+@@ -1,6 +1,6 @@
+ import * as path from "node:path";
+-import { NodeDatabase } from "./database";
+-export { NodeDatabase as Database } from "./database";
++import { NodeDatabase } from "./database.js";
++export { NodeDatabase as Database } from "./database.js";
+ class OPSQLiteProxyImpl {
+     open(options) {
+         if (options.encryptionKey) {

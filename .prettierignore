@@ -1,6 +1,16 @@
+node_modules
+android
+ios
 out
 dist
-pnpm-lock.yaml
+coverage
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+package-lock.json
+
+# Authoritative documentation and design assets — never reformatted by
+# tooling. See docs/implementation/00-session-handoff.md §1: implement
+# what these specify, do not modify them outside a documented defect.
+docs
+design

@@ -1,0 +1,321 @@
+/**
+ * Direct port of docs/ui/design-tokens.json — the authoritative,
+ * machine-readable numeric source (docs/ui/design-system.md has the
+ * rationale). Values are copied, not reinterpreted; do not add a value
+ * here that isn't already in that file. `color.dark` stays unpopulated —
+ * the source document explicitly defers it (design-system.md §12,
+ * tokens.json `color.dark.$status`), not this file's decision to make.
+ *
+ * v2.0.0 ("Minimal Luxury" reset, superseding the v1.1.0 Material-3-drab
+ * palette) — see design-system.md §0 for the full rationale. Same token
+ * *shape* as v1.1.0 (every key name below is unchanged, so every
+ * component consuming `theme.colors.x` / `theme.radius.x` etc. picks up
+ * the new look automatically); only the values changed.
+ *
+ * Font families: Vazirmatn (Regular/Medium/SemiBold — the three weights
+ * design-tokens.json's RTL typography scale actually uses) ships as a
+ * bundled asset (assets/fonts/, linked via react-native.config.js) and is
+ * wired up below. Geist/Inter (the LTR faces) are still not bundled —
+ * AZAR is RTL-first by default (ThemeProvider's `isRTL` defaults to
+ * true), so LTR falls back to the system font until those are needed.
+ */
+
+/**
+ * "Professional Navy" (v2.9.0) — a muted, low-formality navy primary
+ * (#2E3B52) over a cool, low-contrast light-gray neutral family
+ * (#F4F5F7), replacing v2.0.0-v2.8.6's charcoal-black + off-white-gray
+ * "Minimal Luxury" palette per explicit user direction that the old
+ * neutrals read as too plain/generic for a professional CRM. The two
+ * brand accents (muted bronze secondary, deep emerald tertiary) and
+ * every semantic color are unchanged — this is a primary/neutral swap,
+ * not another full reset.
+ */
+export const lightColors = {
+  primary: '#2E3B52',
+  onPrimary: '#FFFFFF',
+  primaryContainer: '#DCE3EC',
+  onPrimaryContainer: '#1F2A3D',
+  inversePrimary: '#AEBED4',
+  // v2.9.1: retargeted from the old bronze/gold accent to a lighter navy
+  // (same family as `primary`, not a separate warm hue) per explicit user
+  // direction that no "brick"/warm accent should remain anywhere in the
+  // app — only navy or light gray.
+  secondary: '#47597A',
+  onSecondary: '#FFFFFF',
+  secondaryContainer: '#E3E8EF',
+  onSecondaryContainer: '#26344A',
+  // v2.9.1: retargeted from the old deep emerald accent to a muted gray —
+  // same reasoning as `secondary` above; this is now the app's "second,
+  // distinguishable-from-navy" tone, not a second brand color.
+  tertiary: '#6B7280',
+  onTertiary: '#FFFFFF',
+  tertiaryContainer: '#E7E8EA',
+  onTertiaryContainer: '#33363B',
+  error: '#B3261E',
+  onError: '#FFFFFF',
+  errorContainer: '#F9DEDC',
+  onErrorContainer: '#410E0B',
+  success: '#2F6B4F',
+  onSuccess: '#FFFFFF',
+  successContainer: '#DCEFE3',
+  onSuccessContainer: '#1B4632',
+  warning: '#8A5A00',
+  onWarning: '#FFFFFF',
+  warningContainer: '#F6E3C2',
+  onWarningContainer: '#4A3200',
+  info: '#3D5A73',
+  onInfo: '#FFFFFF',
+  infoContainer: '#E1E9EF',
+  onInfoContainer: '#263B4C',
+  background: '#F4F5F7',
+  onBackground: '#2A3242',
+  surface: '#F4F5F7',
+  surfaceDim: '#E2E4E8',
+  surfaceBright: '#F4F5F7',
+  surfaceContainerLowest: '#FFFFFF',
+  surfaceContainerLow: '#EEF0F2',
+  surfaceContainer: '#E8EAED',
+  surfaceContainerHigh: '#E1E3E7',
+  surfaceContainerHighest: '#D6D9DE',
+  surfaceVariant: '#D6D9DE',
+  onSurface: '#2A3242',
+  onSurfaceVariant: '#5B6472',
+  inverseSurface: '#2E3B52',
+  inverseOnSurface: '#F0F1F3',
+  outline: '#8790A0',
+  outlineVariant: '#D2D6DC'
+} as const
+
+export const spacing = {
+  space0: 0,
+  space1: 4,
+  space2: 8,
+  space3: 12,
+  space4: 16,
+  space5: 20,
+  space6: 24,
+  space8: 32,
+  space10: 40,
+  space12: 48,
+  space16: 64
+} as const
+
+/** Softer, larger corners than v1.1.0 — rounder reads calmer/more premium than the old sharp-ish Material corners. */
+export const radius = {
+  none: 0,
+  small: 4,
+  medium: 8,
+  large: 12,
+  extraLarge: 20,
+  full: 9999,
+  containerLg: 24
+} as const
+
+/**
+ * design-tokens.json's `elevation` is CSS box-shadow — translated to
+ * RN's shadow* + elevation props. Luxury-minimal cards float on a very
+ * soft, low-opacity, large-blur shadow rather than the old harder/darker
+ * ones — barely visible in isolation, but reads as "lifted" in context.
+ */
+export const elevation = {
+  level0: { shadowOpacity: 0, elevation: 0 },
+  level1: {
+    shadowColor: '#2E3B52',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 1
+  },
+  level2: {
+    shadowColor: '#2E3B52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2
+  },
+  level4: {
+    shadowColor: '#2E3B52',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.18,
+    shadowRadius: 40,
+    elevation: 4
+  }
+} as const
+
+// v2.8.4: bumped up one step from 16/18/24/32/48 — icons read a little
+// too small against their surrounding text/touch targets.
+export const iconSize = {
+  xs: 18,
+  sm: 20,
+  md: 26,
+  lg: 34,
+  xl: 52
+} as const
+
+export const motion = {
+  durationFast: 150,
+  durationStandard: 200,
+  durationModerate: 300,
+  pressScale: 0.98
+} as const
+
+export const touchTargetMinimum = 48
+
+type TypographyToken = {
+  fontSize: number
+  fontWeight: '400' | '500' | '600' | '700'
+  lineHeight: number
+}
+
+export const typographyLtr = {
+  headlineLgMobile: { fontSize: 24, fontWeight: '600', lineHeight: 32 },
+  headlineMd: { fontSize: 24, fontWeight: '500', lineHeight: 32 },
+  titleMd: { fontSize: 18, fontWeight: '600', lineHeight: 26 },
+  titleSm: { fontSize: 16, fontWeight: '600', lineHeight: 22 },
+  bodyLg: { fontSize: 18, fontWeight: '400', lineHeight: 28 },
+  bodyMd: { fontSize: 16, fontWeight: '400', lineHeight: 24 },
+  bodySm: { fontSize: 14, fontWeight: '400', lineHeight: 20 },
+  labelMd: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
+  labelSm: { fontSize: 12, fontWeight: '600', lineHeight: 16 }
+} satisfies Record<string, TypographyToken>
+
+/**
+ * Line-heights genuinely differ from LTR — Vazirmatn needs more vertical
+ * room than the Geist/Inter LTR scale — but v2.9.0 trims the excess back
+ * down from v2.0.0's flat +20-34% "airy luxury" widening (which read as
+ * too much dead space for a professional CRM used all day) to a tighter
+ * +8-15% over the LTR scale, still comfortably above what Vazirmatn's
+ * diacritics/vertical metrics actually need.
+ */
+export const typographyRtl = {
+  headlineLgMobile: { fontSize: 24, fontWeight: '600', lineHeight: 34 },
+  headlineMd: { fontSize: 24, fontWeight: '500', lineHeight: 34 },
+  titleMd: { fontSize: 18, fontWeight: '600', lineHeight: 27 },
+  titleSm: { fontSize: 16, fontWeight: '600', lineHeight: 24 },
+  bodyLg: { fontSize: 18, fontWeight: '400', lineHeight: 29 },
+  bodyMd: { fontSize: 16, fontWeight: '400', lineHeight: 26 },
+  bodySm: { fontSize: 14, fontWeight: '400', lineHeight: 22 },
+  labelMd: { fontSize: 14, fontWeight: '500', lineHeight: 22 },
+  labelSm: { fontSize: 12, fontWeight: '600', lineHeight: 18 }
+} satisfies Record<keyof typeof typographyLtr, TypographyToken>
+
+export type TypographyVariant = keyof typeof typographyLtr
+
+/** Filenames match the bundled assets/fonts/Vazirmatn-*.ttf exactly (Android resolves font family by filename). */
+export const vazirmatnFontFamilyByWeight: Record<TypographyToken['fontWeight'], string> = {
+  '400': 'Vazirmatn-Regular',
+  '500': 'Vazirmatn-Medium',
+  '600': 'Vazirmatn-SemiBold',
+  '700': 'Vazirmatn-SemiBold' // no Bold weight is bundled — SemiBold is the closest available
+}
+
+/**
+ * design-tokens.json's `component` block — per-component size/spacing/
+ * radius contracts. Card padding is more generous than v1.1.0 (space4/
+ * space6 → space5/space8) — breathing room around content is a core part
+ * of the "luxury minimal" read, not just a color swap.
+ */
+export const componentTokens = {
+  // v2.9.1: paddingX tightened from space6(24) — gave button labels more
+  // usable width in tight multi-button rows (e.g. three side-by-side
+  // action buttons), which previously wrapped a two-word label onto two
+  // lines.
+  button: { paddingY: spacing.space4, paddingX: spacing.space4, radius: radius.large },
+  textField: { paddingY: spacing.space3, paddingX: spacing.space4, radius: radius.large },
+  card: {
+    radiusListItem: radius.large,
+    radiusDetail: radius.extraLarge,
+    // v2.9.0: tightened from space8/space5 — the prior "minimal luxury"
+    // padding was tuned for an airy boutique feel; a professional CRM
+    // used all day benefits from a denser business-tool rhythm instead.
+    paddingDetail: spacing.space6,
+    paddingListItem: spacing.space4
+  },
+  /**
+   * design-system.md §13 — KPI/stat rows are a fixed 2-column percentage
+   * grid, never a minWidth-threshold flex-wrap (that collapses to 1 column
+   * below ~390px content width and produces oversized near-empty cards).
+   */
+  statCardGrid: {
+    columns: 2,
+    // v2.8.5: explicit literal 10px per direct user request, not a value
+    // from the space* scale — space1(4) (the v2.8.1 value) actually read
+    // as too tight once the cards themselves grew a bit (see StatCard's
+    // padding bump in the same pass), the opposite complaint from
+    // v2.7.2/v2.8.1.
+    gap: 10,
+    // 47%, not 50% — leaves headroom for `gap` (RN adds gap on top of
+    // percentage widths) so two columns never overflow at the narrowest
+    // supported phone width (320px); nudged back down from 48% now that
+    // `gap` grew to 10px, so the pair still fills the row tightly instead
+    // of overflowing. See design-tokens.json for the math.
+    columnBasisPercent: '47%'
+  },
+  /** Nested-in-a-section empty state (e.g. dashboard sub-section) — see design-system.md §7.7/§15. */
+  emptyStateCompact: {
+    padding: spacing.space5,
+    iconSize: iconSize.md
+  },
+  /** design-system.md §7 (v2.4.0 redesign) — small tonal pill, never a saturated solid fill. */
+  statusBadge: {
+    paddingY: spacing.space1,
+    paddingX: spacing.space3,
+    radius: radius.full,
+    gap: spacing.space1
+  },
+  /** design-tokens.json's `component.bottomSheet` — used by the list-screen filter sheet (§7.9-style modal presentation, bottom-anchored). */
+  bottomSheet: {
+    radiusCompact: radius.containerLg,
+    maxWidthDesktop: 480,
+    handleWidth: 40,
+    handleHeight: 4
+  }
+} as const
+
+/**
+ * design-system.md §7 (v2.4.0) — the Status system's five tones. Every
+ * status badge in the app (property, applicant, deal, contract, reminder)
+ * maps its underlying state into exactly one of these five tones instead
+ * of picking a color per screen — this is what keeps "color has meaning"
+ * true instead of becoming decoration. Reuses the existing Material
+ * container/on-container role pairs (no new hex values), so this table
+ * is theme-swap-safe: a future `color.dark` palette only needs to repoint
+ * these five role names, every status badge in the app updates for free.
+ */
+export const statusTones = {
+  /** Healthy/default active state — nothing needs attention. */
+  positive: { background: 'successContainer', foreground: 'onSuccessContainer' },
+  /** Needs the broker's attention soon, but isn't urgent/broken. */
+  attention: { background: 'warningContainer', foreground: 'onWarningContainer' },
+  /** Something is actively in motion (a deal in progress, a match found). */
+  inProgress: { background: 'infoContainer', foreground: 'onInfoContainer' },
+  /** A brand-relevant highlight — reserved for the rare "this is the one" moment (won deal, best match). */
+  highlight: { background: 'secondaryContainer', foreground: 'onSecondaryContainer' },
+  /** Inactive/archived/closed — deliberately the lowest-emphasis tone, never red. */
+  neutral: { background: 'surfaceContainerHigh', foreground: 'onSurfaceVariant' }
+} as const satisfies Record<
+  string,
+  { background: keyof typeof lightColors; foreground: keyof typeof lightColors }
+>
+
+export type StatusTone = keyof typeof statusTones
+
+/**
+ * design-system.md §13 — named layout tokens so every screen shares one
+ * page-composition contract instead of each screen picking a spacing
+ * value from the raw scale by convention/memory.
+ */
+export const layoutTokens = {
+  screenPaddingX: spacing.space6,
+  // v2.9.0: tightened from space8 (32) — denser professional-CRM rhythm,
+  // see componentTokens.card's paddingDetail/paddingListItem note above.
+  screenPaddingBottom: spacing.space6,
+  sectionSpacing: spacing.space6,
+  componentSpacing: spacing.space3,
+  textToElementSpacing: spacing.space1,
+  topAppBarHeight: 64,
+  bottomNavHeight: 80
+} as const
+
+/** design-system.md §13 — required phone-width regression set; every screen must render with zero horizontal overflow at all six. */
+export const phoneBreakpoints = [320, 360, 375, 390, 412, 430] as const
