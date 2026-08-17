@@ -48,6 +48,8 @@ describe('DealService', () => {
       depositAmount: '',
       rentAmount: '',
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: '',
       description: ''
     })
     propertyId = property.id

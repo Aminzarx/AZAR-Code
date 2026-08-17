@@ -17,7 +17,9 @@ module.exports = {
     '^react-native-fs$': '<rootDir>/testutils/reactNativeFsShim.js',
     '^react-native-share$': '<rootDir>/testutils/reactNativeShareShim.js',
     '^@react-native-documents/picker$': '<rootDir>/testutils/reactNativeDocumentsPickerShim.js',
-    '^react-native-calendar-events$': '<rootDir>/testutils/reactNativeCalendarEventsShim.js'
+    '^react-native-calendar-events$': '<rootDir>/testutils/reactNativeCalendarEventsShim.js',
+    '^@react-native-community/netinfo$':
+      '<rootDir>/node_modules/@react-native-community/netinfo/jest/netinfo-mock.js'
   },
   setupFiles: ['react-native-gesture-handler/jestSetup'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

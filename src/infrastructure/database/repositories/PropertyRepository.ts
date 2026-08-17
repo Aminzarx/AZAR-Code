@@ -16,6 +16,10 @@ export type PropertyRecord = {
   depositAmount: number | null
   rentAmount: number | null
   isConvertible: boolean
+  /** Only meaningful when transactionType is تهاتر — the selected barter categories (طلا/خودرو/زمین/ملک/سایر). */
+  barterItems: string[]
+  /** Only meaningful when barterItems includes "سایر" — free-text description of that custom item. */
+  barterOtherDescription: string | null
   description: string | null
   status: PropertyStatus
   createdAt: string
@@ -36,6 +40,8 @@ export type CreatePropertyRecord = {
   depositAmount: number | null
   rentAmount: number | null
   isConvertible: boolean
+  barterItems: string[]
+  barterOtherDescription: string | null
   description: string | null
 }
 
@@ -51,8 +57,24 @@ export type UpdatePropertyRecord = {
   depositAmount: number | null
   rentAmount: number | null
   isConvertible: boolean
+  barterItems: string[]
+  barterOtherDescription: string | null
   description: string | null
   status: PropertyStatus
+}
+
+function parseBarterItems(raw: unknown): string[] {
+  if (typeof raw !== 'string' || raw.length === 0) {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : []
+  } catch {
+    return []
+  }
 }
 
 function toProperty(row: Record<string, unknown>): PropertyRecord {
@@ -70,6 +92,8 @@ function toProperty(row: Record<string, unknown>): PropertyRecord {
     depositAmount: row.deposit_amount as number | null,
     rentAmount: row.rent_amount as number | null,
     isConvertible: Boolean(row.is_convertible),
+    barterItems: parseBarterItems(row.barter_items),
+    barterOtherDescription: row.barter_other_description as string | null,
     description: row.description as string | null,
     status: row.status as PropertyStatus,
     createdAt: row.created_at as string,
@@ -85,8 +109,9 @@ export class PropertyRepository {
     await this.db.execute(
       `INSERT INTO properties
         (id, owner_id, title, property_type, transaction_type, city, address, price, area, rooms,
-         deposit_amount, rent_amount, is_convertible, description, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+         deposit_amount, rent_amount, is_convertible, barter_items, barter_other_description,
+         description, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
       [
         property.id,
         property.ownerId,
@@ -101,6 +126,8 @@ export class PropertyRepository {
         property.depositAmount,
         property.rentAmount,
         property.isConvertible ? 1 : 0,
+        property.barterItems.length > 0 ? JSON.stringify(property.barterItems) : null,
+        property.barterOtherDescription,
         property.description,
         now,
         now
@@ -162,6 +189,7 @@ export class PropertyRepository {
       `UPDATE properties
        SET title = ?, property_type = ?, transaction_type = ?, city = ?, address = ?,
            price = ?, area = ?, rooms = ?, deposit_amount = ?, rent_amount = ?, is_convertible = ?,
+           barter_items = ?, barter_other_description = ?,
            description = ?, status = ?, updated_at = ?
        WHERE id = ?`,
       [
@@ -176,6 +204,8 @@ export class PropertyRepository {
         property.depositAmount,
         property.rentAmount,
         property.isConvertible ? 1 : 0,
+        property.barterItems.length > 0 ? JSON.stringify(property.barterItems) : null,
+        property.barterOtherDescription,
         property.description,
         property.status,
         now,

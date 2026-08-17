@@ -19,6 +19,8 @@ const VALID_VALUES: PropertyFormValues = {
   depositAmount: '',
   rentAmount: '',
   isConvertible: false,
+  barterItems: [],
+  barterOtherDescription: '',
   description: ''
 }
 

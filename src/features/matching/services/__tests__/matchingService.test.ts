@@ -23,6 +23,8 @@ function makeProperty(overrides: Partial<Property> = {}): Property {
     depositAmount: null,
     rentAmount: null,
     isConvertible: false,
+    barterItems: [],
+    barterOtherDescription: null,
     description: null,
     status: 'active',
     createdAt: '2026-08-08T00:00:00.000Z',

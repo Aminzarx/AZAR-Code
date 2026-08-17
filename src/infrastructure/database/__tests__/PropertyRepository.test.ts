@@ -43,6 +43,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
 
@@ -67,6 +69,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
 
@@ -93,6 +97,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     await repository.create({
@@ -109,6 +115,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
 
@@ -132,6 +140,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     await repository.create({
@@ -148,6 +158,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
 
@@ -171,6 +183,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     await repository.create({
@@ -187,6 +201,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
 
@@ -211,6 +227,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     expect(await repository.countByOwner(OWNER_ID)).toBe(1)
@@ -231,6 +249,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
 
@@ -246,6 +266,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: 'توضیحات',
       status: 'archived'
     })
@@ -270,6 +292,8 @@ describe('PropertyRepository', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
 
@@ -293,6 +317,8 @@ describe('PropertyRepository', () => {
         depositAmount: null,
         rentAmount: null,
         isConvertible: false,
+        barterItems: [],
+        barterOtherDescription: null,
         description: null
       })
     ).rejects.toThrow()

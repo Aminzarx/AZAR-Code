@@ -40,6 +40,8 @@ function toFormValues(property: Property): PropertyFormValues {
     depositAmount: property.depositAmount === null ? '' : String(property.depositAmount),
     rentAmount: property.rentAmount === null ? '' : String(property.rentAmount),
     isConvertible: property.isConvertible,
+    barterItems: property.barterItems,
+    barterOtherDescription: property.barterOtherDescription ?? '',
     description: property.description ?? ''
   }
 }
@@ -263,6 +265,20 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
             ) : null}
             {property.isConvertible ? (
               <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} />
+            ) : null}
+            {property.barterItems.length > 0 ? (
+              <DetailRow
+                label="مورد تهاتر"
+                value={
+                  property.barterItems.includes('سایر') && property.barterOtherDescription
+                    ? [...property.barterItems.filter((item) => item !== 'سایر'), 'سایر'].join(
+                        '، '
+                      ) + `: ${property.barterOtherDescription}`
+                    : property.barterItems.join('، ')
+                }
+                theme={theme}
+                styles={styles}
+              />
             ) : null}
             {property.description ? (
               <DetailRow

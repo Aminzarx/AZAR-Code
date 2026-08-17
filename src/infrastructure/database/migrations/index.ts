@@ -16,6 +16,7 @@ import { migration0014RentMortgageFields } from './0014_rent_mortgage_fields'
 import { migration0015ContractTrackingCode } from './0015_contract_tracking_code'
 import { migration0016ReminderType } from './0016_reminder_type'
 import { migration0017ContractCalendarEvent } from './0017_contract_calendar_event'
+import { migration0018PropertyBarterItems } from './0018_property_barter_items'
 
 /**
  * Ordered by version, ascending — docs/architecture/migration-strategy.md
@@ -38,5 +39,6 @@ export const migrations: readonly Migration[] = [
   migration0014RentMortgageFields,
   migration0015ContractTrackingCode,
   migration0016ReminderType,
-  migration0017ContractCalendarEvent
+  migration0017ContractCalendarEvent,
+  migration0018PropertyBarterItems
 ]

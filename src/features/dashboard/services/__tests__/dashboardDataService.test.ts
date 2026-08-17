@@ -70,6 +70,8 @@ describe('fetchDashboardData', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     const applicant = await applicantRepository.create({
@@ -114,6 +116,8 @@ describe('fetchDashboardData', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
 
@@ -148,6 +152,8 @@ describe('fetchDashboardData', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     const applicant = await applicantRepository.create({
@@ -203,6 +209,8 @@ describe('fetchDashboardData', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     const applicant = await applicantRepository.create({
@@ -272,6 +280,8 @@ describe('fetchDashboardData', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     await applicantRepository.create({
@@ -428,6 +438,8 @@ describe('fetchDashboardData', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     const applicant = await applicantRepository.create({

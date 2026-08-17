@@ -16,6 +16,8 @@ const EMPTY_VALUES: PropertyFormValues = {
   depositAmount: '',
   rentAmount: '',
   isConvertible: false,
+  barterItems: [],
+  barterOtherDescription: '',
   description: ''
 }
 

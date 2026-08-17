@@ -12,6 +12,8 @@ export type ValidatedPropertyInput = {
   depositAmount: number | null
   rentAmount: number | null
   isConvertible: boolean
+  barterItems: string[]
+  barterOtherDescription: string | null
   description: string | null
 }
 
@@ -80,6 +82,13 @@ export function validatePropertyForm(
   const depositAmount = parseNonNegativeNumber(values.depositAmount, 'depositAmount', errors)
   const rentAmount = parseNonNegativeNumber(values.rentAmount, 'rentAmount', errors)
 
+  // "سایر" without a description is a barter item with no actual
+  // content — same "required when selected" shape as isConvertible's
+  // conditional fields above, just for a checkbox-driven choice instead.
+  if (values.barterItems.includes('سایر') && values.barterOtherDescription.trim().length === 0) {
+    errors.barterOtherDescription = 'برای گزینه «سایر» توضیح مورد تهاتر را وارد کنید.'
+  }
+
   if (Object.keys(errors).length > 0) {
     return { input: null, errors }
   }
@@ -97,6 +106,10 @@ export function validatePropertyForm(
       depositAmount,
       rentAmount,
       isConvertible: values.isConvertible,
+      barterItems: values.barterItems,
+      barterOtherDescription: values.barterItems.includes('سایر')
+        ? values.barterOtherDescription.trim() || null
+        : null,
       description: values.description.trim() || null
     },
     errors: null

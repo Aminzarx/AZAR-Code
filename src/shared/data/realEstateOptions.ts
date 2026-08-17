@@ -13,3 +13,11 @@ export const PROPERTY_TRANSACTION_TYPES = ['فروش', 'اجاره', 'رهن و 
 
 /** What an applicant is looking to do — the buyer/tenant side of the same transaction. */
 export const APPLICANT_TRANSACTION_TYPES = ['خرید', 'اجاره', 'رهن و اجاره', 'تهاتر'] as const
+
+/**
+ * A فروش/اجاره property offered in تهاتر (barter) needs to say what's
+ * being offered in exchange — a small fixed set of common categories,
+ * plus "سایر" (other) as a free-text fallback rather than trying to
+ * enumerate every possible barter item.
+ */
+export const BARTER_ITEM_OPTIONS = ['طلا', 'خودرو', 'زمین', 'ملک', 'سایر'] as const

@@ -58,6 +58,8 @@ describe('ListingService', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
     idCounter = 0
@@ -120,6 +122,8 @@ describe('ListingService', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: '',
       description: null,
       status: 'archived'
     })

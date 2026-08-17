@@ -3,7 +3,11 @@ import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { AutocompleteInput, Checkbox, FormRow, MoneyInput, TextInput } from '@shared/components'
 import { IRANIAN_CITIES } from '@shared/data/iranianCities'
-import { PROPERTY_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
+import {
+  BARTER_ITEM_OPTIONS,
+  PROPERTY_TRANSACTION_TYPES,
+  PROPERTY_TYPES
+} from '@shared/data/realEstateOptions'
 import { isRentOrMortgageTransaction } from '@shared/utils/rentStatus'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
 
@@ -23,6 +27,17 @@ export function PropertyForm({ values, errors, onChange }: Props): React.JSX.Ele
   const theme = useTheme()
   const styles = createStyles(theme)
   const showRentFields = isRentOrMortgageTransaction(values.transactionType)
+  const showBarterFields = values.transactionType.trim() === 'تهاتر'
+
+  function toggleBarterItem(item: string, checked: boolean): void {
+    const next = checked
+      ? [...values.barterItems, item]
+      : values.barterItems.filter((existing) => existing !== item)
+    onChange('barterItems', next)
+    if (item === 'سایر' && !checked) {
+      onChange('barterOtherDescription', '')
+    }
+  }
 
   return (
     <View style={styles.form}>
@@ -105,6 +120,31 @@ export function PropertyForm({ values, errors, onChange }: Props): React.JSX.Ele
           />
         </>
       ) : null}
+      {/* v2.9.3 — تهاتر (barter) needs to say what's being offered in
+          exchange: a fixed set of common categories plus a free-text
+          "سایر" fallback, per explicit direction. */}
+      {showBarterFields ? (
+        <View style={styles.barterSection}>
+          {BARTER_ITEM_OPTIONS.map((item) => (
+            <Checkbox
+              key={item}
+              label={item}
+              value={values.barterItems.includes(item)}
+              onChange={(checked) => toggleBarterItem(item, checked)}
+            />
+          ))}
+          {values.barterItems.includes('سایر') ? (
+            <TextInput
+              label="مورد تهاتر"
+              required
+              value={values.barterOtherDescription}
+              onChangeText={(value) => onChange('barterOtherDescription', value)}
+              placeholder="مثلاً لوازم منزل، طرح تجاری..."
+              errorMessage={errors.barterOtherDescription}
+            />
+          ) : null}
+        </View>
+      ) : null}
       <FormRow>
         <TextInput
           label="متراژ (متر مربع)"
@@ -136,6 +176,9 @@ function createStyles(theme: Theme) {
   return StyleSheet.create({
     form: {
       gap: theme.spacing.space5
+    },
+    barterSection: {
+      gap: theme.spacing.space2
     }
   })
 }

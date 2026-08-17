@@ -1076,6 +1076,12 @@ real records or the section renders its `EmptyState`/is omitted
 entirely (§14's "Needs Attention" precedent) — never a placeholder
 number or synthetic history row invented to make a screen look fuller.
 
+This is also why the Settings screen's connectivity indicator
+(v2.9.3) reads real `NetInfo` state via `useNetworkStatus()` rather
+than a hardcoded "آنلاین" string — the hook returns `null` until the
+first real reading resolves, and the row shows "در حال بررسی..." for
+that state instead of guessing.
+
 ### 17.8 Selection List Row (v2.7.0)
 
 A dedicated, lighter row for "pick one record to act on next" contexts
@@ -1103,3 +1109,17 @@ future screen needs the same "which one do I want" pattern (e.g. a
 property/applicant field on a form that opens a picker instead of
 free text), reuse this component rather than building another bespoke
 row.
+
+### 17.9 Conditional barter fields (v2.9.3, property only)
+
+When `PropertyForm`'s transaction type is exactly `'تهاتر'`, a
+`Checkbox` group (طلا/خودرو/زمین/ملک/سایر, `BARTER_ITEM_OPTIONS`)
+appears in place of the sale-price/rent fields, following the same
+"fields match the selected transaction type" principle already
+established for رهن/اجاره (§ conditional deposit/rent fields,
+v2.8.6). Selecting "سایر" reveals a required free-text field ("مورد
+تهاتر") — `propertyValidation.ts` rejects an empty description
+whenever "سایر" is selected. `PropertyDetailScreen` renders the
+selection as a single joined value row, "سایر" sorted last with its
+description appended. This is property-only — the applicant side was
+not part of the original request and stays unchanged.

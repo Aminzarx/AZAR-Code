@@ -40,6 +40,7 @@ import {
   shareBackupFile
 } from '@infrastructure/backup/backupFileTransfer'
 import { useDisplayName } from '@shared/hooks/useDisplayName'
+import { useNetworkStatus } from '@shared/hooks/useNetworkStatus'
 import { formatDateTime } from '@shared/utils/formatDate'
 import { ValidationFailureError } from '@core/auth/errors'
 
@@ -81,6 +82,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   const styles = createStyles(theme)
   const { session, logout, sendOtp, verifyOtp, deleteAccount } = useAuth()
   const { displayName, setDisplayName } = useDisplayName()
+  const isOnline = useNetworkStatus()
   const [nameInput, setNameInput] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
@@ -462,6 +464,16 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
             </View>
           </View>
 
+          <View style={[styles.statusRow, styles.statusRowSecondary]}>
+            <Text style={[theme.typography('bodySm'), styles.cardLabel]}>اتصال اینترنت</Text>
+            <View style={styles.statusValue}>
+              <View style={[styles.statusDot, isOnline ? null : styles.statusDotInactive]} />
+              <Text style={[theme.typography('bodySm'), styles.statusText]}>
+                {isOnline === null ? 'در حال بررسی...' : isOnline ? 'آنلاین' : 'آفلاین'}
+              </Text>
+            </View>
+          </View>
+
           <View style={styles.divider} />
 
           <Text style={[theme.typography('bodySm'), styles.cardLabel]}>پشتیبان‌گیری</Text>
@@ -757,6 +769,9 @@ function createStyles(theme: Theme) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between'
+    },
+    statusRowSecondary: {
+      marginTop: theme.spacing.space2
     },
     statusValue: {
       flexDirection: 'row',

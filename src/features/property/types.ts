@@ -15,6 +15,8 @@ export type PropertyFormValues = {
   depositAmount: string
   rentAmount: string
   isConvertible: boolean
+  barterItems: string[]
+  barterOtherDescription: string
   description: string
 }
 

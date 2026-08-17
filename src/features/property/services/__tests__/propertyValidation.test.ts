@@ -13,6 +13,8 @@ const VALID_VALUES: PropertyFormValues = {
   depositAmount: '',
   rentAmount: '',
   isConvertible: false,
+  barterItems: [],
+  barterOtherDescription: '',
   description: ''
 }
 
@@ -32,6 +34,8 @@ describe('validatePropertyForm', () => {
       depositAmount: null,
       rentAmount: null,
       isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
       description: null
     })
   })
