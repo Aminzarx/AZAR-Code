@@ -36,9 +36,9 @@ export function FilesScreen({ navigation, route }: Props): React.JSX.Element {
       </View>
       <View style={styles.body}>
         {kind === 'properties' ? (
-          <PropertyListScreen navigation={navigation as never} route={route as never} />
+          <PropertyListScreen navigation={navigation as never} route={route as never} embedded />
         ) : (
-          <ApplicantListScreen navigation={navigation as never} route={route as never} />
+          <ApplicantListScreen navigation={navigation as never} route={route as never} embedded />
         )}
       </View>
     </SafeAreaView>

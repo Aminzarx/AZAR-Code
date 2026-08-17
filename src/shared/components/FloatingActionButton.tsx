@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { Pressable, StyleSheet } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from './Icon'
@@ -24,12 +24,26 @@ export function FloatingActionButton({
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
+  // A fast double-tap can otherwise push the destination create screen
+  // twice onto the stack before the first navigation finishes — this
+  // ref-based cooldown (a plain, synchronous write, unlike React state)
+  // drops any second tap that lands within the window.
+  const lastPressAt = useRef(0)
+
+  function handlePress(): void {
+    const now = Date.now()
+    if (now - lastPressAt.current < 800) {
+      return
+    }
+    lastPressAt.current = now
+    onPress()
+  }
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
+      onPress={handlePress}
       style={styles.button}
     >
       <Icon name={icon} size="md" color={theme.colors.onPrimary} />

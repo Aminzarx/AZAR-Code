@@ -161,9 +161,10 @@ export class PropertyRepository {
         `SELECT * FROM properties
          WHERE owner_id = ? AND (
            title LIKE ? OR city LIKE ? OR address LIKE ? OR CAST(price AS TEXT) LIKE ?
+           OR barter_items LIKE ? OR barter_other_description LIKE ?
          )
          ORDER BY created_at DESC, rowid DESC`,
-        [ownerId, pattern, pattern, pattern, pattern]
+        [ownerId, pattern, pattern, pattern, pattern, pattern, pattern]
       )
       return result.rows.map(toProperty)
     }

@@ -21,7 +21,10 @@ import { useApplicants } from '../hooks/useApplicants'
 import { ApplicantListItem } from '../components/ApplicantListItem'
 import type { Applicant, ApplicantStatus } from '../types'
 
-type Props = NativeStackScreenProps<MainStackParamList, 'ApplicantList'>
+type Props = NativeStackScreenProps<MainStackParamList, 'ApplicantList'> & {
+  /** See PropertyListScreen's identical `embedded` prop for why. */
+  embedded?: boolean
+}
 
 const STATUS_OPTIONS: readonly { value: ApplicantStatus; label: string }[] = [
   { value: 'active', label: 'فعال' },
@@ -33,7 +36,7 @@ const TRANSACTION_OPTIONS = APPLICANT_TRANSACTION_TYPES.map((type) => ({
   label: type
 }))
 
-export function ApplicantListScreen({ navigation }: Props): React.JSX.Element {
+export function ApplicantListScreen({ navigation, embedded }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
@@ -89,7 +92,7 @@ export function ApplicantListScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScreenHeaderBar onBack={() => navigation.goBack()} title="متقاضیان" />
+      {!embedded ? <ScreenHeaderBar onBack={() => navigation.goBack()} title="متقاضیان" /> : null}
       <View style={styles.content}>
         <View style={styles.searchRow}>
           <View style={styles.searchField}>

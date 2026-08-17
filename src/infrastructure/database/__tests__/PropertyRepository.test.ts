@@ -211,6 +211,53 @@ describe('PropertyRepository', () => {
     expect(results[0]?.id).toBe('prop-1')
   })
 
+  it('filters by search text against barter items and their free-text description', async () => {
+    await repository.create({
+      id: 'prop-1',
+      ownerId: OWNER_ID,
+      title: 'آپارتمان تهاتری',
+      propertyType: null,
+      transactionType: 'تهاتر',
+      city: 'تهران',
+      address: 'آدرس ۱',
+      price: null,
+      area: null,
+      rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
+      barterItems: ['طلا', 'سایر'],
+      barterOtherDescription: 'لوازم منزل',
+      description: null
+    })
+    await repository.create({
+      id: 'prop-2',
+      ownerId: OWNER_ID,
+      title: 'ویلای شمال',
+      propertyType: null,
+      transactionType: null,
+      city: 'شیراز',
+      address: 'آدرس ۲',
+      price: null,
+      area: null,
+      rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
+      description: null
+    })
+
+    const byItem = await repository.findAllByOwner(OWNER_ID, 'طلا')
+    expect(byItem).toHaveLength(1)
+    expect(byItem[0]?.id).toBe('prop-1')
+
+    const byDescription = await repository.findAllByOwner(OWNER_ID, 'لوازم منزل')
+    expect(byDescription).toHaveLength(1)
+    expect(byDescription[0]?.id).toBe('prop-1')
+  })
+
   it('counts properties for an owner', async () => {
     expect(await repository.countByOwner(OWNER_ID)).toBe(0)
     await repository.create({

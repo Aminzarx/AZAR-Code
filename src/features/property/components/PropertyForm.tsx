@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { AutocompleteInput, Checkbox, FormRow, MoneyInput, TextInput } from '@shared/components'
 import { IRANIAN_CITIES } from '@shared/data/iranianCities'
@@ -125,17 +125,20 @@ export function PropertyForm({ values, errors, onChange }: Props): React.JSX.Ele
           "سایر" fallback, per explicit direction. */}
       {showBarterFields ? (
         <View style={styles.barterSection}>
-          <View style={styles.barterGrid}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.barterRow}
+          >
             {BARTER_ITEM_OPTIONS.map((item) => (
-              <View key={item} style={styles.barterGridItem}>
-                <Checkbox
-                  label={item}
-                  value={values.barterItems.includes(item)}
-                  onChange={(checked) => toggleBarterItem(item, checked)}
-                />
-              </View>
+              <Checkbox
+                key={item}
+                label={item}
+                value={values.barterItems.includes(item)}
+                onChange={(checked) => toggleBarterItem(item, checked)}
+              />
             ))}
-          </View>
+          </ScrollView>
           {values.barterItems.includes('سایر') ? (
             <TextInput
               label="مورد تهاتر"
@@ -183,15 +186,14 @@ function createStyles(theme: Theme) {
     barterSection: {
       gap: theme.spacing.space3
     },
-    barterGrid: {
+    // v2.9.6 — a 3-column wrap grid still split 5 items across 2 rows;
+    // per explicit direction they should all sit in a single row. A
+    // horizontal ScrollView keeps every item full-size (no shrinking
+    // labels/touch targets) and scrolls on narrower phones instead of
+    // wrapping.
+    barterRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      rowGap: theme.spacing.space1,
-      columnGap: theme.spacing.space2
-    },
-    barterGridItem: {
-      flexBasis: '30%',
-      flexGrow: 1
+      gap: theme.spacing.space4
     }
   })
 }

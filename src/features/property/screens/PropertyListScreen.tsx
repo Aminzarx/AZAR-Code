@@ -23,7 +23,18 @@ import { useProperties } from '../hooks/useProperties'
 import { PropertyListItem } from '../components/PropertyListItem'
 import type { Property, PropertyStatus } from '../types'
 
-type Props = NativeStackScreenProps<MainStackParamList, 'PropertyList'>
+type Props = NativeStackScreenProps<MainStackParamList, 'PropertyList'> & {
+  /**
+   * v2.9.6 — this screen is also embedded directly inside `FilesScreen`
+   * (the Files tab's root, below its own املاک/متقاضیان segmented
+   * control), not just reached by pushing the `PropertyList` route from
+   * Dashboard. A back control makes sense in the latter case (goes back
+   * to Dashboard) but not the former — `FilesScreen`'s own `navigation`
+   * is the Files tab's stack root, so `goBack()` there is a dead no-op.
+   * `FilesScreen` passes `embedded` to suppress the header in that case.
+   */
+  embedded?: boolean
+}
 
 const STATUS_OPTIONS: readonly { value: PropertyStatus; label: string }[] = [
   { value: 'active', label: 'فعال' },
@@ -35,7 +46,7 @@ const TRANSACTION_OPTIONS = PROPERTY_TRANSACTION_TYPES.map((type) => ({
   label: type
 }))
 
-export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
+export function PropertyListScreen({ navigation, embedded }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
@@ -104,7 +115,9 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScreenHeaderBar onBack={() => navigation.goBack()} title="فایل‌های ملکی" />
+      {!embedded ? (
+        <ScreenHeaderBar onBack={() => navigation.goBack()} title="فایل‌های ملکی" />
+      ) : null}
       <View style={styles.content}>
         <View style={styles.searchRow}>
           <View style={styles.searchField}>
@@ -112,7 +125,7 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
               label="جستجو"
               value={search}
               onChangeText={setSearch}
-              placeholder="عنوان، شهر، آدرس یا قیمت"
+              placeholder="عنوان، شهر، آدرس، قیمت یا مورد تهاتر"
             />
           </View>
           <Pressable

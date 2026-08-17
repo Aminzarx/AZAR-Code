@@ -397,6 +397,15 @@ regardless of React's render timing. Reuse this pattern (see
 optional decoration, it is what actually prevents the duplicate-insert
 class of bug.
 
+**`FloatingActionButton` gained the same class of guard (v2.9.6)** for
+a related vector: a fast double-tap on a list screen's '+' action
+could push its destination create screen twice onto the navigation
+stack before the first push resolves. It uses an 800ms ref-based press
+cooldown (`Date.now()` compared against a `useRef`, same synchronous-
+write reasoning as `isSubmittingRef` above) rather than disabling the
+Pressable, since a `Pressable`'s own `disabled` prop only takes effect
+after a re-render — too late to catch the second tap of a fast pair.
+
 ### 7.2 Text Fields
 Label above field. States: default (1px `outlineVariant`), focused (1px
 `primary`), error (2px `error`), disabled (`surfaceContainerLow` fill,
@@ -964,7 +973,7 @@ table or manual tab-switch call to get this behavior — it is what
 nested tab+stack navigators already do by default once each screen is
 registered exactly once.
 
-### 16.1 In-UI back control (v2.9.0-v2.9.5)
+### 16.1 In-UI back control (v2.9.0-v2.9.6)
 
 `MainNavigator` sets `headerShown: false` on every stack, so a pushed
 (non-tab-root) screen has no native header and needs its own back
@@ -1011,6 +1020,22 @@ without addressing the actual placement complaint first.
 Tab-root screens (Dashboard, Files, Matching, Contract list, Settings)
 never get a back control — there's nothing to go back to within their
 own tab.
+
+**The same screen can be both a pushed route and an embedded child
+(v2.9.6).** `PropertyListScreen`/`ApplicantListScreen` are ordinary
+pushed routes (`navigation.navigate('PropertyList')`, e.g. from a
+Dashboard stat card — a real back target, so the header belongs there)
+**and** are rendered directly inside `FilesScreen` (the Files tab
+root, below its own املاک/متقاضیان `SegmentedControl`) — in that
+embedded case, `FilesScreen`'s own `navigation` is the Files stack's
+root, so a back control would be a dead no-op, not just a placement
+problem. Both screens accept an `embedded?: boolean` prop that
+suppresses their internal `ScreenHeaderBar` only when true; `FilesScreen`
+passes it, direct route pushes don't. If a future screen is reused
+this way — rendered as a plain child component by one caller and
+pushed as its own route by another — give it the same prop rather
+than assuming `onBack`/`navigation.goBack()` is always meaningful just
+because the screen has a `navigation` object in scope.
 
 ## 17. Phase 2 — CRM Workflow (v2.6.0)
 
@@ -1155,7 +1180,7 @@ property/applicant field on a form that opens a picker instead of
 free text), reuse this component rather than building another bespoke
 row.
 
-### 17.9 Conditional barter fields (v2.9.3-v2.9.4, property only)
+### 17.9 Conditional barter fields (v2.9.3-v2.9.6, property only)
 
 When `PropertyForm`'s transaction type is exactly `'تهاتر'`, a
 `Checkbox` group (طلا/خودرو/زمین/ملک/سایر, `BARTER_ITEM_OPTIONS`)
@@ -1169,8 +1194,16 @@ selection as a single joined value row, "سایر" sorted last with its
 description appended. This is property-only — the applicant side was
 not part of the original request and stays unchanged.
 
-**v2.9.4:** the 5 checkboxes now lay out as a 3-column wrap grid
-(`flexBasis: '30%'` per item, tight `rowGap`/`columnGap`) instead of a
-single full-width column — 2 short rows instead of 5, per explicit
-feedback that the original stacked layout had too much vertical air
-between items.
+**v2.9.4:** the 5 checkboxes laid out as a 3-column wrap grid
+(`flexBasis: '30%'` per item) instead of a single full-width column —
+2 short rows instead of 5, per explicit feedback that the original
+stacked layout had too much vertical air between items.
+
+**v2.9.6:** per further explicit direction, the 3-column grid still
+split the 5 items across 2 rows — they now render in a single
+horizontally-scrolling row (`ScrollView horizontal`) instead, full
+touch-target size, scrolling on narrower phones rather than wrapping
+or shrinking. Barter data is also searchable now: `PropertyListScreen`'s
+search field and `PropertyRepository.findAllByOwner`'s `LIKE` clause
+both cover `barter_items`/`barter_other_description`, not just
+title/city/address/price.
