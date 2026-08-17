@@ -1,4 +1,4 @@
-# AZAR Design System — "Professional Navy" (v2.9.0)
+# AZAR Design System — "Professional Navy" (v2.9.1)
 
 ## 0. Positioning statement
 
@@ -122,7 +122,7 @@ a container just because every other block has one.
 
 ## 1. Color System
 
-**v2.9.0 swaps `primary` + the neutral family**, per explicit user
+**v2.9.0 swapped `primary` + the neutral family**, per explicit user
 direction: the near-black `primary` (`#1E1E20`) → a muted, low-formality
 **navy** (`#2E3B52`, one of three candidate navy swatches, chosen by the
 user), and the off-white-gray neutral scale → a cooler, **lower-contrast
@@ -132,33 +132,48 @@ also recomputed as a genuinely lighter, barely-tinted navy (`#DCE3EC`)
 rather than the old pattern of `primaryContainer` being just a darker
 shade of `primary` — it now behaves like every other `*Container` role
 in this palette (a distinct light tonal surface, not another near-black
-tone). The two brand accents (bronze `secondary`, emerald `tertiary`)
-and every semantic color are unchanged — this is a primary/neutral
-correction, not another full reset. All pairings below were verified
+tone).
+
+**v2.9.1 retargeted `secondary`/`tertiary` too** — a real-device
+screenshot review of v2.9.0 showed the old bronze `secondary` and
+emerald `tertiary` were still visible everywhere (StatCard badges,
+Avatar's gradient, QuickActions circles, the active tab pill, …), which
+contradicted the explicit direction that **no warm/"brick" accent should
+remain anywhere — only navy or light gray**. `secondary` is now a
+lighter navy in the same family as `primary` (not a separate hue);
+`tertiary` is now a muted gray, the app's "second, distinguishable"
+tone. **Gradients are also gone** — Avatar's initials fallback and
+StatCard's icon badges were both a two-color gradient; both are now flat
+single-color fills, per explicit direction that gradients read as
+decorative. `error`/`success`/`warning`/`info` are still untouched —
+functional signals, not brand accents. All pairings below were verified
 against WCAG contrast minimums (body text ≥ 4.5:1, large text/UI ≥ 3:1);
 "low contrast" describes the relationship *between adjacent neutral
 surface tiers*, never text-on-background legibility.
 
 | Role | Light value | Usage |
 |---|---|---|
-| `primary` | `#2E3B52` (muted navy) | Primary buttons, high-emphasis text, active nav state |
+| `primary` | `#2E3B52` (muted navy) | Primary buttons, high-emphasis text, active nav state, flat Avatar fill |
 | `onPrimary` | `#FFFFFF` | Text/icons on `primary` (contrast ≈ 11.3:1) |
 | `primaryContainer` / `onPrimaryContainer` | `#DCE3EC` / `#1F2A3D` | A distinct, lightly-tinted navy tonal surface (contrast ≈ 11.2:1) |
-| `secondary` | `#8A6D3B` (muted bronze/gold) | The one deliberate accent — brand marks, selected states, referral code, quick-action badges |
-| `onSecondary` | `#FFFFFF` | Text/icons on `secondary` |
-| `tertiary` | `#2F4F3E` (deep emerald) | A second, sparingly-used accent — kept visually distinct from `secondary` so two accents never compete on one screen |
+| `secondary` | `#47597A` (lighter navy — same family as `primary`, not a second hue) | The one deliberate accent — selected states, active tab pill, quick-action badges |
+| `onSecondary` / `secondaryContainer` / `onSecondaryContainer` | `#FFFFFF` / `#E3E8EF` / `#26344A` | Text on `secondary`; a light navy-tinted container (contrast ≈ 10.2:1) |
+| `tertiary` | `#6B7280` (muted gray) | A second, sparingly-used tone — kept visually distinct from `secondary`'s navy so two accents never compete on one screen |
+| `onTertiary` / `tertiaryContainer` / `onTertiaryContainer` | `#FFFFFF` / `#E7E8EA` / `#33363B` | Text on `tertiary`; a light gray container (contrast ≈ 9.9:1) |
 | `error` / `success` / `warning` / `info` | `#B3261E` / `#2F6B4F` / `#8A5A00` / `#3D5A73` | Conventional semantic hues — never repurposed as decoration |
 | `background` / `surface` | `#F4F5F7` (cool, low-contrast light gray) | Screen background |
 | `surfaceContainerLowest` → `surfaceContainerHighest` | `#FFFFFF` → `#D6D9DE` | Card/sheet/input backgrounds, ascending "how raised" — tiers sit closer together in value than v2.8.6's scale |
-| `onSurface` / `onSurfaceVariant` | `#2A3242` / `#5B6472` | Primary / secondary text on surfaces (contrast ≈ 11.8:1 / 5.5:1) — `onSurface` reads as part of the navy family instead of a separate pure-neutral ink |
+| `onSurface` / `onSurfaceVariant` | `#2A3242` / `#5B6472` | Primary / secondary text on surfaces (contrast ≈ 11.8:1 / 5.5:1) — `onSurface` reads as part of the navy family instead of a separate pure-neutral ink; `onSurfaceVariant` also doubles as the "gray" alternative fill for icon badges (StatCard) |
 | `outline` / `outlineVariant` | `#8790A0` / `#D2D6DC` | Hairline borders, disabled/placeholder text |
 
-**Rule**: `secondary` (the bronze accent) is used *deliberately and
+**Rule**: `secondary` (the navy accent) is used *deliberately and
 sparingly* — one accent moment per screen region, not on every icon. A
-screen with six bronze badges reads as noisy, not luxurious. `tertiary`
-(emerald) exists specifically so a second, distinct accent is available
-without reaching for the bronze twice in one view (see
-`StatCard`'s per-stat accent map for the reference usage).
+screen with six accent badges reads as noisy, not calm. `tertiary`
+(gray) exists specifically so a second, distinct tone is available
+without reaching for `secondary`'s navy twice in one view (see
+`StatCard`'s flat `primary`/`onSurfaceVariant`-alternating badges for
+the reference usage — v2.9.1 dropped the per-stat gradient in favor of
+this flat alternation).
 
 `color.dark` remains explicitly unpopulated — no dark-mode palette has
 been designed yet (see §11).
@@ -355,8 +370,15 @@ where a single entity's related records are one cheap query away.
 One primary action per screen/sheet footer maximum. Variants: `primary`
 (filled, `primary`/`onPrimary`), `secondary` (outlined, 1px
 `outline`), `destructive` (filled, `error`/`onError`), `text` (no
-container, underlined label). Minimum 48dp touch target regardless of
-visual size (§8). Radius: `radius.large`.
+container, underlined label), `destructiveText` (v2.9.1 — no container,
+plain `error`-colored label, no underline; for a real destructive action
+that shouldn't compete visually with a nearby filled primary CTA, e.g.
+"مارک به‌عنوان ناموفق" beside a deal's "پیشرفت به مرحله بعد" button).
+Minimum 48dp touch target regardless of visual size (§8). Radius:
+`radius.large`. `paddingX` tightened in v2.9.1 from `space6`(24) to
+`space4`(16) — gives labels more usable width in multi-button rows,
+where a two-word label previously could wrap to two lines; the label
+itself is now capped at `numberOfLines={1}` as a hard guarantee.
 
 ### 7.2 Text Fields
 Label above field. States: default (1px `outlineVariant`), focused (1px
@@ -396,6 +418,15 @@ still more generous than v1.1.0's original values. Background:
 when it genuinely groups related information — not as a default wrapper
 for every block of text (see §7.7 for how `EmptyState`/`ErrorState`
 avoid this trap with an icon badge instead of a bare card).
+
+**Detail-field grid (v2.9.1):** Property/Applicant/Contract Detail's
+short label/value fields (type, transaction type, deposit/rent amounts,
+tracking code, …) lay out as a 2-column wrap grid — same percentage-grid
+contract as §7.3.1's KPI cards (`flexBasis: '47%'`, never a
+minWidth/flex threshold), per explicit direction that this content could
+be denser. Free-text fields (description, notes, a date range string)
+stay full-width below the grid — long copy doesn't pair well into a
+narrow column.
 
 Card **height is always content-driven** — never set a fixed or
 `minHeight` on a Card to force visual uniformity; if cards in a row
@@ -892,6 +923,36 @@ a path through a different tab. Do not reach for a screen-name lookup
 table or manual tab-switch call to get this behavior — it is what
 nested tab+stack navigators already do by default once each screen is
 registered exactly once.
+
+### 16.1 In-UI back control (v2.9.0/v2.9.1)
+
+`MainNavigator` sets `headerShown: false` on every stack, so a pushed
+(non-tab-root) screen has no native header and needs its own back
+control — the OS swipe/hardware-back gesture alone isn't a discoverable
+affordance. Two patterns, depending on the screen:
+
+- **Screens using `FormScreenContainer`** (every create/edit-capable
+  Detail/Create screen): pass `onBack={() => navigation.goBack()}` —
+  the container renders a `BackButton` inside its own header row
+  (background, bottom hairline, padding), alongside the save action
+  when one exists.
+- **Screens that don't use `FormScreenContainer`** (plain list/detail
+  screens with no save action — `DealList`, `DealDetail`,
+  `ReminderList`, `PropertyList`, `ApplicantList`): render
+  `<ScreenHeaderBar onBack={() => navigation.goBack()} />` as the
+  **first child of `SafeAreaView`, outside any padded content
+  wrapper**. `ScreenHeaderBar` wraps the shared `BackButton` in the
+  same visual container `FormScreenContainer`'s header uses. v2.9.1
+  fixed a real regression here: the first pass rendered a bare
+  `BackButton` directly inside the screen's own padded content View
+  with no background/border, which read as a stray floating icon with
+  no clear placement — never do that; always go through
+  `ScreenHeaderBar` (or `FormScreenContainer`'s built-in header) so
+  every back control looks and behaves the same way.
+
+Tab-root screens (Dashboard, Files, Matching, Contract list, Settings)
+never get a back control — there's nothing to go back to within their
+own tab.
 
 ## 17. Phase 2 — CRM Workflow (v2.6.0)
 

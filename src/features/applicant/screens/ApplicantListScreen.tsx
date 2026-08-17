@@ -6,7 +6,6 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import {
-  BackButton,
   ChipGroup,
   EmptyState,
   ErrorState,
@@ -14,6 +13,7 @@ import {
   FloatingActionButton,
   Icon,
   LoadingIndicator,
+  ScreenHeaderBar,
   TextInput
 } from '@shared/components'
 import { APPLICANT_TRANSACTION_TYPES } from '@shared/data/realEstateOptions'
@@ -89,10 +89,8 @@ export function ApplicantListScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <ScreenHeaderBar onBack={() => navigation.goBack()} />
       <View style={styles.content}>
-        <View style={styles.header}>
-          <BackButton onPress={() => navigation.goBack()} />
-        </View>
         <View style={styles.searchRow}>
           <View style={styles.searchField}>
             <TextInput
@@ -212,10 +210,6 @@ function createStyles(theme: Theme) {
       flex: 1,
       padding: theme.spacing.space6,
       gap: theme.spacing.space4
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center'
     },
     searchRow: {
       flexDirection: 'row',

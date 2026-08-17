@@ -1,6 +1,5 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { useTheme, type Theme } from '@shared/theme'
 import { Card, Icon, type IconName } from '@shared/components'
 import type { DashboardStat } from '../types'
@@ -12,88 +11,58 @@ type Props = {
 
 type StatVisual = {
   icon: IconName
-  from: keyof Theme['colors']
-  to: keyof Theme['colors']
-  onContainer: keyof Theme['colors']
+  bg: keyof Theme['colors']
+  onBg: keyof Theme['colors']
 }
 
 /**
- * Visual accent per stat id — icon + a two-color gradient (both stops
- * already in the design system, design-tokens.json — no new colors), the
- * same "designed, not flat" treatment Avatar.tsx uses for its own badge.
- * Falls back to the secondary pair for any stat id this map doesn't know
- * about yet, so a future stat never renders without an accent.
+ * v2.9.1: flat, single-color icon badges (was a per-stat two-color
+ * gradient) per explicit user direction that gradients read as
+ * decorative and should become single-color, and that the app should
+ * only ever show navy or gray, never the old bronze/amber/emerald
+ * accent colors. Alternates `primary` (navy) and `onSurfaceVariant`
+ * (gray) across the four stats so the row keeps some visual rhythm
+ * without introducing a third hue.
  */
 const STAT_VISUALS: Record<string, StatVisual> = {
-  properties: {
-    icon: 'files',
-    from: 'primary',
-    to: 'primaryContainer',
-    onContainer: 'onPrimaryContainer'
-  },
-  applicants: {
-    icon: 'person',
-    from: 'secondary',
-    to: 'secondaryContainer',
-    onContainer: 'onSecondaryContainer'
-  },
-  deals: {
-    icon: 'deal',
-    from: 'warning',
-    to: 'warningContainer',
-    onContainer: 'onWarningContainer'
-  },
-  contracts: {
-    icon: 'contract',
-    from: 'tertiary',
-    to: 'tertiaryContainer',
-    onContainer: 'onTertiaryContainer'
-  }
+  properties: { icon: 'files', bg: 'primary', onBg: 'onPrimary' },
+  applicants: { icon: 'person', bg: 'onSurfaceVariant', onBg: 'onPrimary' },
+  deals: { icon: 'deal', bg: 'primary', onBg: 'onPrimary' },
+  contracts: { icon: 'contract', bg: 'onSurfaceVariant', onBg: 'onPrimary' }
 }
-const DEFAULT_VISUAL: StatVisual = {
-  icon: 'inbox',
-  from: 'secondary',
-  to: 'secondaryContainer',
-  onContainer: 'onSecondaryContainer'
-}
+const DEFAULT_VISUAL: StatVisual = { icon: 'inbox', bg: 'onSurfaceVariant', onBg: 'onPrimary' }
 
 export function StatCard({ stat, onPress }: Props): React.JSX.Element {
   const theme = useTheme()
   const visual = STAT_VISUALS[stat.id] ?? DEFAULT_VISUAL
-  const styles = createStyles(theme)
+  const styles = createStyles(theme, visual)
   const label = `${stat.label}: ${stat.value}`
-  const gradientId = `statCardGradient-${stat.id}`
-  const badgeSize = theme.iconSize.lg
 
+  // design-system.md §14 point 2 — the KPI row is context, not the point
+  // of the screen, so this stays visually quieter than the Needs
+  // Attention section below it; a soft level1 shadow (the same "barely
+  // visible in isolation, reads as lifted in context" treatment every
+  // other card in the app uses) reads as more considered than a bare
+  // hairline border without competing for attention.
+  //
+  // The flexBasis/gap grid contract (§7.3.1) lives on the OUTER wrapper
+  // only (Pressable when interactive, this bare View otherwise) — Card
+  // itself carries just its own padding and stretches to fill that
+  // wrapper via RN's default `alignItems: stretch`. Previously the same
+  // style (flexBasis + padding) was applied to BOTH the wrapper and the
+  // inner Card, nesting a 47%-wide flexBasis inside an already-47%-wide
+  // parent and shrinking the visible card to a fraction of its intended
+  // size — which read as "too much empty gap" between cards even though
+  // `statCardGrid.gap` itself was already correct.
   const content = (
-    // design-system.md §14 point 2 — the KPI row is context, not the point
-    // of the screen, so this stays visually quieter than the Needs
-    // Attention section below it; a soft level1 shadow (the same "barely
-    // visible in isolation, reads as lifted in context" treatment every
-    // other card in the app uses) reads as more considered than a bare
-    // hairline border without competing for attention.
-    <Card style={styles.card}>
+    <Card style={styles.cardBody}>
       <View
         style={styles.row}
         accessible={!onPress}
         accessibilityLabel={onPress ? undefined : label}
       >
         <View style={styles.iconBadge}>
-          <Svg width={badgeSize} height={badgeSize} style={StyleSheet.absoluteFill}>
-            <Defs>
-              <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor={theme.colors[visual.from]} />
-                <Stop offset="1" stopColor={theme.colors[visual.to]} />
-              </LinearGradient>
-            </Defs>
-            <Circle
-              cx={badgeSize / 2}
-              cy={badgeSize / 2}
-              r={badgeSize / 2}
-              fill={`url(#${gradientId})`}
-            />
-          </Svg>
-          <Icon name={visual.icon} size="xs" color={theme.colors[visual.onContainer]} />
+          <Icon name={visual.icon} size="xs" color={theme.colors[visual.onBg]} />
         </View>
         <View style={styles.textColumn}>
           <Text style={[theme.typography('titleMd'), styles.value]}>{stat.value}</Text>
@@ -110,7 +79,7 @@ export function StatCard({ stat, onPress }: Props): React.JSX.Element {
   )
 
   if (!onPress) {
-    return content
+    return <View style={styles.cardWrapper}>{content}</View>
   }
 
   return (
@@ -118,21 +87,24 @@ export function StatCard({ stat, onPress }: Props): React.JSX.Element {
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={styles.card}
+      style={styles.cardWrapper}
     >
       {content}
     </Pressable>
   )
 }
 
-function createStyles(theme: Theme) {
+function createStyles(theme: Theme, visual: StatVisual) {
   return StyleSheet.create({
     // design-system.md §7.3.1 — fixed 2-column percentage grid, not a
     // minWidth/flex threshold (that collapses to 1 column on phones
-    // <=390px wide and produces an oversized, near-empty card).
-    card: {
+    // <=390px wide and produces an oversized, near-empty card). Only the
+    // grid-positioning contract lives here — no padding, see cardBody.
+    cardWrapper: {
       flexBasis: theme.component.statCardGrid.columnBasisPercent,
-      flexGrow: 0,
+      flexGrow: 0
+    },
+    cardBody: {
       // v2.8.5: bumped back up from space2(8) — the cards read as too
       // small/cramped at that padding, especially after the icon scale
       // grew a step. Still denser than the default listItem padding (a
@@ -154,7 +126,8 @@ function createStyles(theme: Theme) {
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      backgroundColor: theme.colors[visual.bg]
     },
     textColumn: {
       flexShrink: 1,

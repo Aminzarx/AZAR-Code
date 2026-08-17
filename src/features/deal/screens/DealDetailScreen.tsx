@@ -7,7 +7,6 @@ import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import {
-  BackButton,
   Button,
   Card,
   ContextHeader,
@@ -15,6 +14,7 @@ import {
   LoadingIndicator,
   NextAction,
   PipelineIndicator,
+  ScreenHeaderBar,
   StatusBadge
 } from '@shared/components'
 import { formatDateTime } from '@shared/utils/formatDate'
@@ -90,9 +90,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topBar}>
-        <BackButton onPress={() => navigation.goBack()} />
-      </View>
+      <ScreenHeaderBar onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         {isLoading ? (
           <View style={styles.centeredSection}>
@@ -144,30 +142,36 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
             </View>
 
             {!isTerminal ? (
+              // v2.9.1: reordered/re-styled for clearer visual hierarchy
+              // per explicit feedback that the three actions competed for
+              // attention. "پیشرفت" (advance to the next real pipeline
+              // stage) is now the sole filled `primary` CTA; "موفق" is a
+              // tonal secondary (still a real, common action); "ناموفق"
+              // is a muted text action, not a solid-red button sitting
+              // next to a primary CTA — the outcome is still clearly
+              // destructive by its red label color, just not shouting.
               <View style={styles.stageActions}>
                 {nextStage ? (
                   <Button
                     label={`پیشرفت به «${DEAL_STAGE_LABELS[nextStage]}»`}
-                    variant="secondary"
+                    variant="primary"
                     loading={isTransitioning}
                     onPress={() => handleTransition(nextStage)}
                   />
                 ) : null}
-                <View style={styles.outcomeRow}>
-                  <Button
-                    label="موفق"
-                    variant="secondary"
-                    loading={isTransitioning}
-                    onPress={() => handleTransition('won')}
-                    style={styles.outcomeAction}
-                  />
-                  <Button
-                    label="ناموفق"
-                    variant="destructive"
-                    onPress={() => setIsLostDialogVisible(true)}
-                    style={styles.outcomeAction}
-                  />
-                </View>
+                <Button
+                  label="موفق"
+                  variant="secondary"
+                  loading={isTransitioning}
+                  onPress={() => handleTransition('won')}
+                />
+                <Button
+                  label="ناموفق"
+                  variant="destructiveText"
+                  fullWidth={false}
+                  onPress={() => setIsLostDialogVisible(true)}
+                  style={styles.lostAction}
+                />
               </View>
             ) : null}
 
@@ -325,11 +329,6 @@ function createStyles(theme: Theme) {
       flex: 1,
       backgroundColor: theme.colors.background
     },
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: theme.layout.screenPaddingX
-    },
     content: {
       padding: theme.layout.screenPaddingX,
       paddingBottom: theme.layout.screenPaddingBottom,
@@ -352,12 +351,8 @@ function createStyles(theme: Theme) {
     stageActions: {
       gap: theme.spacing.space2
     },
-    outcomeRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.space2
-    },
-    outcomeAction: {
-      flex: 1
+    lostAction: {
+      alignSelf: 'center'
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;

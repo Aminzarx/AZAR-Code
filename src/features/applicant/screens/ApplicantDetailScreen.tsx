@@ -207,65 +207,77 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
               </View>
             ) : null}
 
-            {applicant.preferredTransactionType ? (
-              <DetailRow
-                label="نوع معامله مدنظر"
-                value={applicant.preferredTransactionType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.preferredPropertyType ? (
-              <DetailRow
-                label="نوع ملک مدنظر"
-                value={applicant.preferredPropertyType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.minArea !== null || applicant.maxArea !== null ? (
-              <DetailRow
-                label="متراژ مدنظر"
-                value={`${applicant.minArea ?? '-'} تا ${applicant.maxArea ?? '-'} متر`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.rooms !== null ? (
-              <DetailRow
-                label="تعداد اتاق"
-                value={String(applicant.rooms)}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {rentStatusLabel ? (
-              <DetailRow
-                label="وضعیت رهن/اجاره"
-                value={rentStatusLabel}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.depositAmount !== null ? (
-              <DetailRow
-                label="میزان رهن موردنظر"
-                value={`${applicant.depositAmount.toLocaleString('fa-IR')} تومان`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.rentAmount !== null ? (
-              <DetailRow
-                label="میزان اجاره موردنظر"
-                value={`${applicant.rentAmount.toLocaleString('fa-IR')} تومان`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.isConvertible ? (
-              <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} />
-            ) : null}
+            {/* v2.9.1 — short fields lay out as a 2-column wrap grid,
+                same pattern as PropertyDetailScreen; description stays
+                full-width below since long copy doesn't pair well. */}
+            <View style={styles.detailGrid}>
+              {applicant.preferredTransactionType ? (
+                <DetailRow
+                  label="نوع معامله مدنظر"
+                  value={applicant.preferredTransactionType}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {applicant.preferredPropertyType ? (
+                <DetailRow
+                  label="نوع ملک مدنظر"
+                  value={applicant.preferredPropertyType}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {applicant.minArea !== null || applicant.maxArea !== null ? (
+                <DetailRow
+                  label="متراژ مدنظر"
+                  value={`${applicant.minArea ?? '-'} تا ${applicant.maxArea ?? '-'} متر`}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {applicant.rooms !== null ? (
+                <DetailRow
+                  label="تعداد اتاق"
+                  value={String(applicant.rooms)}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {rentStatusLabel ? (
+                <DetailRow
+                  label="وضعیت رهن/اجاره"
+                  value={rentStatusLabel}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {applicant.depositAmount !== null ? (
+                <DetailRow
+                  label="میزان رهن موردنظر"
+                  value={`${applicant.depositAmount.toLocaleString('fa-IR')} تومان`}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {applicant.rentAmount !== null ? (
+                <DetailRow
+                  label="میزان اجاره موردنظر"
+                  value={`${applicant.rentAmount.toLocaleString('fa-IR')} تومان`}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {applicant.isConvertible ? (
+                <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} gridItem />
+              ) : null}
+            </View>
             {applicant.description ? (
               <DetailRow
                 label="توضیحات"
@@ -340,11 +352,13 @@ type DetailRowProps = {
   value: string
   theme: Theme
   styles: ReturnType<typeof createStyles>
+  /** Renders as one cell of the 2-column detail grid instead of a full-width row. */
+  gridItem?: boolean
 }
 
-function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.Element {
+function DetailRow({ label, value, theme, styles, gridItem }: DetailRowProps): React.JSX.Element {
   return (
-    <View style={styles.detailRow}>
+    <View style={[styles.detailRow, gridItem && styles.detailGridItem]}>
       <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
       <Text style={[theme.typography('bodyMd'), styles.value]}>{value}</Text>
     </View>
@@ -387,6 +401,18 @@ function createStyles(theme: Theme) {
     },
     detailRow: {
       marginTop: theme.spacing.space3
+    },
+    detailGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: theme.spacing.space3,
+      columnGap: theme.spacing.space4,
+      rowGap: theme.spacing.space3
+    },
+    detailGridItem: {
+      flexBasis: '47%',
+      flexGrow: 0,
+      marginTop: 0
     },
     label: {
       color: theme.colors.onSurfaceVariant,

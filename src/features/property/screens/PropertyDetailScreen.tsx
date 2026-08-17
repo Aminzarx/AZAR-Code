@@ -216,49 +216,60 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
               ) : null}
             </View>
 
-            {property.propertyType ? (
-              <DetailRow
-                label="نوع ملک"
-                value={property.propertyType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.transactionType ? (
-              <DetailRow
-                label="نوع معامله"
-                value={property.transactionType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {rentStatusLabel ? (
-              <DetailRow
-                label="وضعیت رهن/اجاره"
-                value={rentStatusLabel}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.depositAmount !== null ? (
-              <DetailRow
-                label="میزان رهن"
-                value={`${property.depositAmount.toLocaleString('fa-IR')} تومان`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.rentAmount !== null ? (
-              <DetailRow
-                label="میزان اجاره"
-                value={`${property.rentAmount.toLocaleString('fa-IR')} تومان`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.isConvertible ? (
-              <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} />
-            ) : null}
+            {/* v2.9.1 — short fields lay out as a 2-column wrap grid per
+                explicit direction that this content could be denser; free
+                text (description) stays full-width below, since long
+                copy doesn't pair well into a narrow column. */}
+            <View style={styles.detailGrid}>
+              {property.propertyType ? (
+                <DetailRow
+                  label="نوع ملک"
+                  value={property.propertyType}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {property.transactionType ? (
+                <DetailRow
+                  label="نوع معامله"
+                  value={property.transactionType}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {rentStatusLabel ? (
+                <DetailRow
+                  label="وضعیت رهن/اجاره"
+                  value={rentStatusLabel}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {property.depositAmount !== null ? (
+                <DetailRow
+                  label="میزان رهن"
+                  value={`${property.depositAmount.toLocaleString('fa-IR')} تومان`}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {property.rentAmount !== null ? (
+                <DetailRow
+                  label="میزان اجاره"
+                  value={`${property.rentAmount.toLocaleString('fa-IR')} تومان`}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {property.isConvertible ? (
+                <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} gridItem />
+              ) : null}
+            </View>
             {property.description ? (
               <DetailRow
                 label="توضیحات"
@@ -335,11 +346,13 @@ type DetailRowProps = {
   value: string
   theme: Theme
   styles: ReturnType<typeof createStyles>
+  /** Renders as one cell of the 2-column detail grid instead of a full-width row. */
+  gridItem?: boolean
 }
 
-function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.Element {
+function DetailRow({ label, value, theme, styles, gridItem }: DetailRowProps): React.JSX.Element {
   return (
-    <View style={styles.detailRow}>
+    <View style={[styles.detailRow, gridItem && styles.detailGridItem]}>
       <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
       <Text style={[theme.typography('bodyMd'), styles.value]}>{value}</Text>
     </View>
@@ -390,6 +403,23 @@ function createStyles(theme: Theme) {
     },
     detailRow: {
       marginTop: theme.spacing.space3
+    },
+    // v2.9.1 — 2-column wrap grid for short detail fields (§7.3.1-style
+    // percentage grid, same reasoning as the KPI cards: a fixed
+    // percentage basis, never a minWidth/flex threshold).
+    detailGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: theme.spacing.space3,
+      columnGap: theme.spacing.space4,
+      rowGap: theme.spacing.space3
+    },
+    detailGridItem: {
+      flexBasis: '47%',
+      flexGrow: 0,
+      // Spacing between grid cells comes from detailGrid's rowGap, not
+      // this base marginTop (which would otherwise double up).
+      marginTop: 0
     },
     label: {
       color: theme.colors.onSurfaceVariant,

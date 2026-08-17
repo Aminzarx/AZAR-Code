@@ -231,8 +231,30 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
           <View style={styles.divider} />
 
           <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>اطلاعات قرارداد</Text>
-          {contract.type ? (
-            <DetailRow label="نوع قرارداد" value={contract.type} theme={theme} styles={styles} />
+          {/* v2.9.1 — short fields lay out as a 2-column wrap grid, same
+              pattern as Property/Applicant Detail; date range and free
+              text (notes) stay full-width below. */}
+          {contract.type || contract.trackingCode ? (
+            <View style={styles.detailGrid}>
+              {contract.type ? (
+                <DetailRow
+                  label="نوع قرارداد"
+                  value={contract.type}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+              {contract.trackingCode ? (
+                <DetailRow
+                  label="کد رهگیری"
+                  value={contract.trackingCode}
+                  theme={theme}
+                  styles={styles}
+                  gridItem
+                />
+              ) : null}
+            </View>
           ) : null}
           <DetailRow
             label="بازه قرارداد"
@@ -240,14 +262,6 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
             theme={theme}
             styles={styles}
           />
-          {contract.trackingCode ? (
-            <DetailRow
-              label="کد رهگیری"
-              value={contract.trackingCode}
-              theme={theme}
-              styles={styles}
-            />
-          ) : null}
           {contract.notes ? (
             <DetailRow label="یادداشت" value={contract.notes} theme={theme} styles={styles} />
           ) : null}
@@ -347,11 +361,13 @@ type DetailRowProps = {
   value: string
   theme: Theme
   styles: ReturnType<typeof createStyles>
+  /** Renders as one cell of the 2-column detail grid instead of a full-width row. */
+  gridItem?: boolean
 }
 
-function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.Element {
+function DetailRow({ label, value, theme, styles, gridItem }: DetailRowProps): React.JSX.Element {
   return (
-    <View style={styles.detailRow}>
+    <View style={[styles.detailRow, gridItem && styles.detailGridItem]}>
       <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
       <Text style={[theme.typography('bodyMd'), styles.value]}>{value}</Text>
     </View>
@@ -406,6 +422,18 @@ function createStyles(theme: Theme) {
     },
     detailRow: {
       marginBottom: theme.spacing.space3
+    },
+    detailGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      columnGap: theme.spacing.space4,
+      rowGap: theme.spacing.space3,
+      marginBottom: theme.spacing.space3
+    },
+    detailGridItem: {
+      flexBasis: '47%',
+      flexGrow: 0,
+      marginBottom: 0
     },
     label: {
       color: theme.colors.onSurfaceVariant,

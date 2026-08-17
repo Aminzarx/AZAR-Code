@@ -9,7 +9,7 @@ import {
 } from 'react-native'
 import { useTheme } from '@shared/theme'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'text'
+export type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'text' | 'destructiveText'
 
 type Props = {
   label: string
@@ -69,6 +69,7 @@ export function Button({
         <ActivityIndicator color={variantStyle.text.color} />
       ) : (
         <Text
+          numberOfLines={1}
           style={[
             theme.typography('labelMd'),
             variantStyle.text,
@@ -103,6 +104,14 @@ function variantStyles(theme: ReturnType<typeof useTheme>) {
     text: {
       container: { backgroundColor: 'transparent' },
       text: { color: theme.colors.primary }
+    },
+    // v2.9.1 — a muted destructive action (e.g. "mark as lost" sitting
+    // next to a real primary CTA) that still reads as negative via its
+    // red text, without competing visually the way a solid-red filled
+    // button would.
+    destructiveText: {
+      container: { backgroundColor: 'transparent' },
+      text: { color: theme.colors.error }
     }
   } as const
 }

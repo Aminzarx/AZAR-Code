@@ -36,14 +36,21 @@ export const lightColors = {
   primaryContainer: '#DCE3EC',
   onPrimaryContainer: '#1F2A3D',
   inversePrimary: '#AEBED4',
-  secondary: '#8A6D3B',
+  // v2.9.1: retargeted from the old bronze/gold accent to a lighter navy
+  // (same family as `primary`, not a separate warm hue) per explicit user
+  // direction that no "brick"/warm accent should remain anywhere in the
+  // app — only navy or light gray.
+  secondary: '#47597A',
   onSecondary: '#FFFFFF',
-  secondaryContainer: '#F1E6D2',
-  onSecondaryContainer: '#5C4720',
-  tertiary: '#2F4F3E',
+  secondaryContainer: '#E3E8EF',
+  onSecondaryContainer: '#26344A',
+  // v2.9.1: retargeted from the old deep emerald accent to a muted gray —
+  // same reasoning as `secondary` above; this is now the app's "second,
+  // distinguishable-from-navy" tone, not a second brand color.
+  tertiary: '#6B7280',
   onTertiary: '#FFFFFF',
-  tertiaryContainer: '#DCEAE1',
-  onTertiaryContainer: '#1F3D2E',
+  tertiaryContainer: '#E7E8EA',
+  onTertiaryContainer: '#33363B',
   error: '#B3261E',
   onError: '#FFFFFF',
   errorContainer: '#F9DEDC',
@@ -209,7 +216,11 @@ export const vazirmatnFontFamilyByWeight: Record<TypographyToken['fontWeight'], 
  * of the "luxury minimal" read, not just a color swap.
  */
 export const componentTokens = {
-  button: { paddingY: spacing.space4, paddingX: spacing.space6, radius: radius.large },
+  // v2.9.1: paddingX tightened from space6(24) — gave button labels more
+  // usable width in tight multi-button rows (e.g. three side-by-side
+  // action buttons), which previously wrapped a two-word label onto two
+  // lines.
+  button: { paddingY: spacing.space4, paddingX: spacing.space4, radius: radius.large },
   textField: { paddingY: spacing.space3, paddingX: spacing.space4, radius: radius.large },
   card: {
     radiusListItem: radius.large,
