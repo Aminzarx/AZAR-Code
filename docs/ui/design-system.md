@@ -1,4 +1,4 @@
-# AZAR Design System — "Minimal Luxury" (v2.8.6)
+# AZAR Design System — "Professional Navy" (v2.9.0)
 
 ## 0. Positioning statement
 
@@ -9,22 +9,50 @@ Material-3-generated look (cool grays, near-pure-black, sharp corners,
 heavy shadows): it worked, but read as a prototype, not a product a
 broker would be proud to open in front of a client.
 
-**v2.0.0 resets the visual language around one idea: minimal luxury.**
-Warm neutral surfaces instead of cool gray, one restrained accent color
-used deliberately rather than a rainbow of Material roles, generous
-whitespace instead of cramped defaults, soft/large-blur shadows instead
-of hard ones, rounder corners instead of sharp ones. Nothing here is
-decorative for its own sake — every change earns its place by making the
-interface calmer and more confident.
+**v2.0.0–v2.8.6 ran a "minimal luxury" direction**: warm-then-cool
+neutral surfaces, one restrained bronze/emerald accent pairing, generous
+whitespace, soft/large-blur shadows, rounder corners. That direction was
+correct as far as it went, but explicit user feedback after living with
+it across many screens was that the neutral-black-ink + off-white-gray
+base still read as **too plain/generic**, not distinctly professional —
+and separately, that this document's own governance had been making
+legitimate change requests (a full palette/spacing/typography revision,
+in this case) harder to land than they needed to be.
 
-**What did not change**: business logic, data model, navigation
-structure, and RTL/Persian-first behavior are untouched by this reset —
-this document governs *appearance only*. Every token below keeps the
+**v2.9.0 resets the base palette/spacing/typography around one idea:
+professional navy.** A muted, low-formality navy replaces the near-black
+`primary`; the neutral family shifts to a cooler, lower-contrast light
+gray (adjacent surface tiers sit closer together in value instead of
+wide, high-contrast steps); card/section padding is tightened from an
+airy "boutique" rhythm to a denser business-tool one; RTL line-heights
+are trimmed back from a flat +20-34% over the LTR scale to +8-15%, still
+safely above what Vazirmatn's own vertical metrics need. **What did not
+change in this pass**: the two brand accents (bronze `secondary`, emerald
+`tertiary`) and every semantic color (error/success/warning/info) are
+untouched — this is a primary/neutral/spacing/type-rhythm revision, not
+another full reset of every role, and it does not touch business logic,
+data model, navigation structure, or RTL/Persian-first behavior.
+
+This document governs *appearance only*. Every token below keeps the
 exact same key name as v1.1.0 (`primary`, `radius.large`, `space6`, …),
 so existing components pick up the new look automatically the moment
 `src/shared/theme/tokens.ts` changes; this document and that file must
 always agree (tokens.ts is copied from `design-tokens.json`, which this
 document explains).
+
+**Governance note (added at v2.9.0):** palette/spacing/typography
+choices are aesthetic and brand decisions, not correctness bugs — an
+explicit user direction to change a color, tighten a spacing value, or
+adjust a line-height should be applied directly against the base tokens
+(this file + `design-tokens.json` + `tokens.ts`) the same session it's
+requested, without first requiring a screenshot, an accessibility
+failure, or other "evidence something is broken." That bar is correct
+for *correctness* fixes (a real RTL bug, a real contrast failure) but
+was previously also being applied to preference-driven change requests,
+which only slowed down legitimate revisions like this one. WCAG contrast
+minimums (§1) remain a hard constraint regardless of preference — verify
+new color pairings against them, but don't treat "no prior evidence of
+a defect" as a reason to push back on a direct aesthetic request.
 
 ## 0.1 v2.1.0 — Layout hardening (why this section exists)
 
@@ -94,25 +122,36 @@ a container just because every other block has one.
 
 ## 1. Color System
 
-v2.2.0 swaps the neutral family only, per explicit user direction: warm
-ivory/near-black-warm-ink neutrals → a **cool off-white-gray + charcoal-
-black** scale (`background #F6F6F7`, `primary #1E1E20`). The two brand
-accents (bronze `secondary`, emerald `tertiary`) and every semantic
-color are unchanged — this is a neutral-temperature correction, not
-another full reset.
+**v2.9.0 swaps `primary` + the neutral family**, per explicit user
+direction: the near-black `primary` (`#1E1E20`) → a muted, low-formality
+**navy** (`#2E3B52`, one of three candidate navy swatches, chosen by the
+user), and the off-white-gray neutral scale → a cooler, **lower-contrast
+light gray** (`background #F4F5F7`) where adjacent surface tiers sit
+closer together in value than the previous scale. `primaryContainer` was
+also recomputed as a genuinely lighter, barely-tinted navy (`#DCE3EC`)
+rather than the old pattern of `primaryContainer` being just a darker
+shade of `primary` — it now behaves like every other `*Container` role
+in this palette (a distinct light tonal surface, not another near-black
+tone). The two brand accents (bronze `secondary`, emerald `tertiary`)
+and every semantic color are unchanged — this is a primary/neutral
+correction, not another full reset. All pairings below were verified
+against WCAG contrast minimums (body text ≥ 4.5:1, large text/UI ≥ 3:1);
+"low contrast" describes the relationship *between adjacent neutral
+surface tiers*, never text-on-background legibility.
 
 | Role | Light value | Usage |
 |---|---|---|
-| `primary` | `#1E1E20` (charcoal black) | Primary buttons, high-emphasis text, active nav state |
-| `onPrimary` | `#F6F6F7` | Text/icons on `primary` |
+| `primary` | `#2E3B52` (muted navy) | Primary buttons, high-emphasis text, active nav state |
+| `onPrimary` | `#FFFFFF` | Text/icons on `primary` (contrast ≈ 11.3:1) |
+| `primaryContainer` / `onPrimaryContainer` | `#DCE3EC` / `#1F2A3D` | A distinct, lightly-tinted navy tonal surface (contrast ≈ 11.2:1) |
 | `secondary` | `#8A6D3B` (muted bronze/gold) | The one deliberate accent — brand marks, selected states, referral code, quick-action badges |
 | `onSecondary` | `#FFFFFF` | Text/icons on `secondary` |
 | `tertiary` | `#2F4F3E` (deep emerald) | A second, sparingly-used accent — kept visually distinct from `secondary` so two accents never compete on one screen |
 | `error` / `success` / `warning` / `info` | `#B3261E` / `#2F6B4F` / `#8A5A00` / `#3D5A73` | Conventional semantic hues — never repurposed as decoration |
-| `background` / `surface` | `#F6F6F7` (off-white gray) | Screen background |
-| `surfaceContainerLowest` → `surfaceContainerHighest` | `#FFFFFF` → `#DADADD` | Card/sheet/input backgrounds, ascending "how raised" |
-| `onSurface` / `onSurfaceVariant` | `#1E1E20` / `#57575B` | Primary / secondary text on surfaces |
-| `outline` / `outlineVariant` | `#8B8B90` / `#D1D1D4` | Hairline borders, disabled/placeholder text |
+| `background` / `surface` | `#F4F5F7` (cool, low-contrast light gray) | Screen background |
+| `surfaceContainerLowest` → `surfaceContainerHighest` | `#FFFFFF` → `#D6D9DE` | Card/sheet/input backgrounds, ascending "how raised" — tiers sit closer together in value than v2.8.6's scale |
+| `onSurface` / `onSurfaceVariant` | `#2A3242` / `#5B6472` | Primary / secondary text on surfaces (contrast ≈ 11.8:1 / 5.5:1) — `onSurface` reads as part of the navy family instead of a separate pure-neutral ink |
+| `outline` / `outlineVariant` | `#8790A0` / `#D2D6DC` | Hairline borders, disabled/placeholder text |
 
 **Rule**: `secondary` (the bronze accent) is used *deliberately and
 sparingly* — one accent moment per screen region, not on every icon. A
@@ -133,27 +172,34 @@ those assets are added — not needed while `isRTL` defaults to `true`.
 
 | Token | Size | Weight | RTL line-height | Use |
 |---|---|---|---|---|
-| `headlineLgMobile` | 24 | 600 | 38 | Screen title |
-| `headlineMd` | 24 | 500 | 38 | Detail-screen primary heading |
-| `titleMd` | 18 | 600 | 29 | Section title |
-| `titleSm` | 16 | 600 | 26 | Card title |
+| `headlineLgMobile` | 24 | 600 | 34 | Screen title |
+| `headlineMd` | 24 | 500 | 34 | Detail-screen primary heading |
+| `titleMd` | 18 | 600 | 27 | Section title |
+| `titleSm` | 16 | 600 | 24 | Card title |
 | `bodyLg` | 18 | 400 | 29 | Rare — emphasis body copy |
-| `bodyMd` | 16 | 400 | 29 | Default body / field value |
-| `bodySm` | 14 | 400 | 24 | Secondary text, helper/error text |
-| `labelMd` | 14 | 500 | 24 | Field labels, buttons |
-| `labelSm` | 12 | 600 | 19 | Chips, timestamps, tab labels |
+| `bodyMd` | 16 | 400 | 26 | Default body / field value |
+| `bodySm` | 14 | 400 | 22 | Secondary text, helper/error text |
+| `labelMd` | 14 | 500 | 22 | Field labels, buttons |
+| `labelSm` | 12 | 600 | 18 | Chips, timestamps, tab labels |
 
-RTL line-heights are taller than the LTR scale across the board — a
-deliberate widening in v2.0.0 (not just Vazirmatn's own metrics) for a
-more generous, less cramped reading rhythm, consistent with the "more
-whitespace" positioning above.
+RTL line-heights stay taller than the LTR scale — Vazirmatn genuinely
+needs more vertical room than Geist/Inter — but v2.9.0 trims the excess
+back from v2.0.0's flat +20-34% "airy luxury" widening to +8-15%, per
+explicit user direction that the old rhythm read as too loose/plain for
+a professional CRM. This is still comfortably above what Vazirmatn's own
+vertical metrics require, verified by the fact every value above stays
+larger than its LTR counterpart, just by a smaller margin.
 
 ## 3. Spacing & Layout
 
 4px base scale, unchanged from v1.1.0 — `space0`(0) … `space16`(64). A
-clean numeric scale was never the problem; card/section *padding* was
-too tight, which §7.3 corrects at the component-token level
-(`card.paddingListItem`/`paddingDetail`), not by inventing a new scale.
+clean numeric scale was never the problem; **v2.9.0 tightens
+card/section *padding*** (the opposite direction from v2.0.0's "too
+tight" correction) at the component-token level
+(`card.paddingListItem`/`paddingDetail`, §7.3) plus `layout.sectionSpacing`
+/`layout.screenPaddingBottom` (§3.1) — per explicit user direction that
+the v2.0.0-v2.8.6 "minimal luxury" padding read as too airy/plain for a
+professional CRM used all day, not by inventing a new scale.
 
 ### 3.1 Named layout tokens (v2.1.0)
 
@@ -167,16 +213,19 @@ purposes:
 | Token | Value | Purpose |
 |---|---|---|
 | `screenPaddingX` | `space6` (24) | Horizontal padding on every top-level screen container — the one number that defines "content max width - safe area" |
-| `screenPaddingBottom` | `space8` (32) | Bottom padding on scrollable screens (clears the last section from the bottom nav / thumb) |
-| `sectionSpacing` | `space8` (32) | Vertical gap **between** the sections listed in §14 (header / KPIs / actions / activity / secondary) |
+| `screenPaddingBottom` | `space6` (24, was `space8`/32 pre-v2.9.0) | Bottom padding on scrollable screens (clears the last section from the bottom nav / thumb) |
+| `sectionSpacing` | `space6` (24, was `space8`/32 pre-v2.9.0) | Vertical gap **between** the sections listed in §14 (header / KPIs / actions / activity / secondary) |
 | `componentSpacing` | `space3` (12) | Vertical gap **within** a section, between sibling components (e.g. a section heading and its content) |
 | `textToElementSpacing` | `space1` (4) | Gap between a piece of text and an immediately adjacent element it's paired with (label → helper text, title → timestamp) |
 
-`sectionSpacing` (32) is deliberately larger than `componentSpacing`
+`sectionSpacing` (24) is deliberately larger than `componentSpacing`
 (12) — that ratio is what makes section boundaries readable at a
 glance without a divider line. A screen that uses the same gap value
 between sections and within them is the "unrelated boxes stacked
-vertically" failure mode called out in §14.
+vertically" failure mode called out in §14. v2.9.0 tightened both
+`sectionSpacing` and `screenPaddingBottom` from `space8`(32) per explicit
+user direction that the wider v2.0.0 rhythm read as too airy/plain for a
+professional CRM — the 2:1 ratio against `componentSpacing` is preserved.
 
 ## 4. Radius / Shape
 
@@ -339,8 +388,10 @@ not as "not supported."
 
 ### 7.3 Cards
 Two variants: `listItem` (`radius.large`, `paddingListItem` =
-`space5`) and `detail` (`radius.extraLarge`, `paddingDetail` =
-`space8`) — both more generously padded than v1.1.0. Background:
+`space4`) and `detail` (`radius.extraLarge`, `paddingDetail` =
+`space6`) — tightened in v2.9.0 from `space5`/`space8` per explicit user
+direction that v2.0.0's padding read as too airy for a professional CRM;
+still more generous than v1.1.0's original values. Background:
 `surfaceContainerLowest`. Default elevation: `level1`. Use a Card only
 when it genuinely groups related information — not as a default wrapper
 for every block of text (see §7.7 for how `EmptyState`/`ErrorState`

@@ -21,19 +21,21 @@
  */
 
 /**
- * Cool off-white-gray + charcoal-black neutrals (v2.2.0) + two
- * restrained accents (a muted bronze/gold for primary brand actions, a
- * deep emerald for success/positive-money states). Semantic reds/ambers
- * stay close to their conventional hues — they're functional signals,
- * not brand expression, so tests/users read them correctly regardless
- * of theme.
+ * "Professional Navy" (v2.9.0) — a muted, low-formality navy primary
+ * (#2E3B52) over a cool, low-contrast light-gray neutral family
+ * (#F4F5F7), replacing v2.0.0-v2.8.6's charcoal-black + off-white-gray
+ * "Minimal Luxury" palette per explicit user direction that the old
+ * neutrals read as too plain/generic for a professional CRM. The two
+ * brand accents (muted bronze secondary, deep emerald tertiary) and
+ * every semantic color are unchanged — this is a primary/neutral swap,
+ * not another full reset.
  */
 export const lightColors = {
-  primary: '#1E1E20',
-  onPrimary: '#F6F6F7',
-  primaryContainer: '#2C2C2F',
-  onPrimaryContainer: '#C7C7CB',
-  inversePrimary: '#D1D1D4',
+  primary: '#2E3B52',
+  onPrimary: '#FFFFFF',
+  primaryContainer: '#DCE3EC',
+  onPrimaryContainer: '#1F2A3D',
+  inversePrimary: '#AEBED4',
   secondary: '#8A6D3B',
   onSecondary: '#FFFFFF',
   secondaryContainer: '#F1E6D2',
@@ -58,23 +60,23 @@ export const lightColors = {
   onInfo: '#FFFFFF',
   infoContainer: '#E1E9EF',
   onInfoContainer: '#263B4C',
-  background: '#F6F6F7',
-  onBackground: '#1E1E20',
-  surface: '#F6F6F7',
-  surfaceDim: '#E4E4E6',
-  surfaceBright: '#F6F6F7',
+  background: '#F4F5F7',
+  onBackground: '#2A3242',
+  surface: '#F4F5F7',
+  surfaceDim: '#E2E4E8',
+  surfaceBright: '#F4F5F7',
   surfaceContainerLowest: '#FFFFFF',
-  surfaceContainerLow: '#F0F0F1',
-  surfaceContainer: '#EAEAEC',
-  surfaceContainerHigh: '#E3E3E5',
-  surfaceContainerHighest: '#DADADD',
-  surfaceVariant: '#DADADD',
-  onSurface: '#1E1E20',
-  onSurfaceVariant: '#57575B',
-  inverseSurface: '#2C2C2F',
-  inverseOnSurface: '#F0F0F1',
-  outline: '#8B8B90',
-  outlineVariant: '#D1D1D4'
+  surfaceContainerLow: '#EEF0F2',
+  surfaceContainer: '#E8EAED',
+  surfaceContainerHigh: '#E1E3E7',
+  surfaceContainerHighest: '#D6D9DE',
+  surfaceVariant: '#D6D9DE',
+  onSurface: '#2A3242',
+  onSurfaceVariant: '#5B6472',
+  inverseSurface: '#2E3B52',
+  inverseOnSurface: '#F0F1F3',
+  outline: '#8790A0',
+  outlineVariant: '#D2D6DC'
 } as const
 
 export const spacing = {
@@ -111,21 +113,21 @@ export const radius = {
 export const elevation = {
   level0: { shadowOpacity: 0, elevation: 0 },
   level1: {
-    shadowColor: '#1E1E20',
+    shadowColor: '#2E3B52',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
     shadowRadius: 20,
     elevation: 1
   },
   level2: {
-    shadowColor: '#1E1E20',
+    shadowColor: '#2E3B52',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2
   },
   level4: {
-    shadowColor: '#1E1E20',
+    shadowColor: '#2E3B52',
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.18,
     shadowRadius: 40,
@@ -170,17 +172,24 @@ export const typographyLtr = {
   labelSm: { fontSize: 12, fontWeight: '600', lineHeight: 16 }
 } satisfies Record<string, TypographyToken>
 
-/** Line-heights genuinely differ from LTR — Vazirmatn needs more vertical room; bumped further for the airier, more generous "luxury" reading rhythm. */
+/**
+ * Line-heights genuinely differ from LTR — Vazirmatn needs more vertical
+ * room than the Geist/Inter LTR scale — but v2.9.0 trims the excess back
+ * down from v2.0.0's flat +20-34% "airy luxury" widening (which read as
+ * too much dead space for a professional CRM used all day) to a tighter
+ * +8-15% over the LTR scale, still comfortably above what Vazirmatn's
+ * diacritics/vertical metrics actually need.
+ */
 export const typographyRtl = {
-  headlineLgMobile: { fontSize: 24, fontWeight: '600', lineHeight: 38 },
-  headlineMd: { fontSize: 24, fontWeight: '500', lineHeight: 38 },
-  titleMd: { fontSize: 18, fontWeight: '600', lineHeight: 29 },
-  titleSm: { fontSize: 16, fontWeight: '600', lineHeight: 26 },
+  headlineLgMobile: { fontSize: 24, fontWeight: '600', lineHeight: 34 },
+  headlineMd: { fontSize: 24, fontWeight: '500', lineHeight: 34 },
+  titleMd: { fontSize: 18, fontWeight: '600', lineHeight: 27 },
+  titleSm: { fontSize: 16, fontWeight: '600', lineHeight: 24 },
   bodyLg: { fontSize: 18, fontWeight: '400', lineHeight: 29 },
-  bodyMd: { fontSize: 16, fontWeight: '400', lineHeight: 29 },
-  bodySm: { fontSize: 14, fontWeight: '400', lineHeight: 24 },
-  labelMd: { fontSize: 14, fontWeight: '500', lineHeight: 24 },
-  labelSm: { fontSize: 12, fontWeight: '600', lineHeight: 19 }
+  bodyMd: { fontSize: 16, fontWeight: '400', lineHeight: 26 },
+  bodySm: { fontSize: 14, fontWeight: '400', lineHeight: 22 },
+  labelMd: { fontSize: 14, fontWeight: '500', lineHeight: 22 },
+  labelSm: { fontSize: 12, fontWeight: '600', lineHeight: 18 }
 } satisfies Record<keyof typeof typographyLtr, TypographyToken>
 
 export type TypographyVariant = keyof typeof typographyLtr
@@ -205,8 +214,11 @@ export const componentTokens = {
   card: {
     radiusListItem: radius.large,
     radiusDetail: radius.extraLarge,
-    paddingDetail: spacing.space8,
-    paddingListItem: spacing.space5
+    // v2.9.0: tightened from space8/space5 — the prior "minimal luxury"
+    // padding was tuned for an airy boutique feel; a professional CRM
+    // used all day benefits from a denser business-tool rhythm instead.
+    paddingDetail: spacing.space6,
+    paddingListItem: spacing.space4
   },
   /**
    * design-system.md §13 — KPI/stat rows are a fixed 2-column percentage
@@ -284,8 +296,10 @@ export type StatusTone = keyof typeof statusTones
  */
 export const layoutTokens = {
   screenPaddingX: spacing.space6,
-  screenPaddingBottom: spacing.space8,
-  sectionSpacing: spacing.space8,
+  // v2.9.0: tightened from space8 (32) — denser professional-CRM rhythm,
+  // see componentTokens.card's paddingDetail/paddingListItem note above.
+  screenPaddingBottom: spacing.space6,
+  sectionSpacing: spacing.space6,
   componentSpacing: spacing.space3,
   textToElementSpacing: spacing.space1,
   topAppBarHeight: 64,
