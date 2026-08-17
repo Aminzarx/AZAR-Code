@@ -71,12 +71,17 @@ export function PropertyForm({ values, errors, onChange }: Props): React.JSX.Ele
         placeholder="خیابان، کوچه، پلاک"
         errorMessage={errors.address}
       />
-      <MoneyInput
-        label="قیمت (تومان)"
-        value={values.price}
-        onChangeValue={(value) => onChange('price', value)}
-        errorMessage={errors.price}
-      />
+      {/* v2.9.2 — hidden for رهن/اجاره transactions per explicit direction:
+          showing a sale "قیمت" field while the broker is entering
+          deposit/rent amounts instead is meaningless. */}
+      {!showRentFields ? (
+        <MoneyInput
+          label="قیمت (تومان)"
+          value={values.price}
+          onChangeValue={(value) => onChange('price', value)}
+          errorMessage={errors.price}
+        />
+      ) : null}
       {showRentFields ? (
         <>
           <FormRow>

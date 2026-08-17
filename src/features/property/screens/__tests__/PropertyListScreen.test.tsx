@@ -71,22 +71,6 @@ describe('PropertyListScreen', () => {
     expect(queryByText('هنوز فایلی ثبت نشده')).toBeNull()
   })
 
-  it('navigates back when the header back button is pressed', async () => {
-    mockedUseProperties.mockReturnValue({
-      properties: [],
-      isLoading: false,
-      error: null,
-      refetch: jest.fn()
-    })
-
-    const { findByLabelText } = await render(
-      withTheme(<PropertyListScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('بازگشت'))
-    expect(mockGoBack).toHaveBeenCalledTimes(1)
-  })
-
   it('shows the empty state when there are no properties', async () => {
     mockedUseProperties.mockReturnValue({
       properties: [],

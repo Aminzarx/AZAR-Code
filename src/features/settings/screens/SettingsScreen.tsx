@@ -371,7 +371,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
         <Card variant="detail">
           <View style={styles.nameRow}>
             <View style={styles.nameLabelGroup}>
-              <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>نام</Text>
+              <Text style={[theme.typography('bodySm'), styles.cardLabel]}>نام</Text>
               {isEditingName ? (
                 <TextInput
                   label="نام"
@@ -382,7 +382,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
                   autoFocus
                 />
               ) : (
-                <Text style={[theme.typography('titleMd'), styles.value]}>
+                <Text style={[theme.typography('bodyLg'), styles.value]}>
                   {displayName || 'ثبت نشده'}
                 </Text>
               )}
@@ -401,12 +401,12 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
 
           <View style={styles.divider} />
 
-          <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>شماره موبایل</Text>
-          <Text style={[theme.typography('titleMd'), styles.value]}>{phoneNumber ?? '-'}</Text>
+          <Text style={[theme.typography('bodySm'), styles.cardLabel]}>شماره موبایل</Text>
+          <Text style={[theme.typography('bodyLg'), styles.value]}>{phoneNumber ?? '-'}</Text>
 
           <View style={styles.divider} />
 
-          <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>کد معرف شما</Text>
+          <Text style={[theme.typography('bodySm'), styles.cardLabel]}>کد معرف شما</Text>
           <Text style={[theme.typography('bodySm'), styles.hint]}>
             {copied
               ? 'کد معرف کپی شد.'
@@ -426,7 +426,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
               <View style={styles.codeRow}>
                 <Text
                   accessibilityLabel="کد معرف شما"
-                  style={[theme.typography('titleMd'), styles.qrCode]}
+                  style={[theme.typography('bodyLg'), styles.qrCode]}
                 >
                   {session.referralCode}
                 </Text>
@@ -446,7 +446,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
           <View style={styles.divider} />
 
           <View style={styles.statusRow}>
-            <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>وضعیت نشست</Text>
+            <Text style={[theme.typography('bodySm'), styles.cardLabel]}>وضعیت نشست</Text>
             <View style={styles.statusValue}>
               <View
                 style={[
@@ -454,7 +454,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
                   !sessionRecord || sessionRecord.revokedAt ? styles.statusDotInactive : null
                 ]}
               />
-              <Text style={[theme.typography('titleMd'), styles.statusText]}>
+              <Text style={[theme.typography('bodySm'), styles.statusText]}>
                 {sessionRecord && !sessionRecord.revokedAt
                   ? `فعال از ${formatDateTime(sessionRecord.createdAt)}`
                   : 'نامشخص'}
@@ -464,7 +464,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
 
           <View style={styles.divider} />
 
-          <Text style={[theme.typography('bodyMd'), styles.cardLabel]}>پشتیبان‌گیری</Text>
+          <Text style={[theme.typography('bodySm'), styles.cardLabel]}>پشتیبان‌گیری</Text>
           <Text style={[theme.typography('bodySm'), styles.hint]}>
             یک نسخه پشتیبان رمزگذاری‌شده از اطلاعات این دستگاه تهیه کنید تا در جای امنی نگه‌داری یا
             به دستگاه دیگری منتقل کنید.
@@ -639,7 +639,13 @@ function createStyles(theme: Theme) {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      // v2.9.2 — RN paints later siblings on top of earlier ones by
+      // source order alone (position:absolute doesn't change that
+      // without an explicit zIndex), so the menu below (rendered here,
+      // before the Card) was painting BEHIND the Card that follows it
+      // in the tree. zIndex fixes the stacking order directly.
+      zIndex: 10
     },
     title: {
       color: theme.colors.primary
@@ -703,6 +709,8 @@ function createStyles(theme: Theme) {
       color: theme.colors.onSurfaceVariant,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
+    // v2.9.2 — tightened from titleMd(18/600), which read as an oversized
+    // heading for what's just a field value, throughout this screen.
     value: {
       color: theme.colors.onSurface,
       marginTop: theme.spacing.space1,

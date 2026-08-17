@@ -231,30 +231,18 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
           <View style={styles.divider} />
 
           <Text style={[theme.typography('titleSm'), styles.sectionLabel]}>اطلاعات قرارداد</Text>
-          {/* v2.9.1 — short fields lay out as a 2-column wrap grid, same
-              pattern as Property/Applicant Detail; date range and free
-              text (notes) stay full-width below. */}
-          {contract.type || contract.trackingCode ? (
-            <View style={styles.detailGrid}>
-              {contract.type ? (
-                <DetailRow
-                  label="نوع قرارداد"
-                  value={contract.type}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {contract.trackingCode ? (
-                <DetailRow
-                  label="کد رهگیری"
-                  value={contract.trackingCode}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-            </View>
+          {/* v2.9.2 — reverted the v2.9.1 2-column grid back to a
+              single-column table (label right / value left). */}
+          {contract.type ? (
+            <DetailRow label="نوع قرارداد" value={contract.type} theme={theme} styles={styles} />
+          ) : null}
+          {contract.trackingCode ? (
+            <DetailRow
+              label="کد رهگیری"
+              value={contract.trackingCode}
+              theme={theme}
+              styles={styles}
+            />
           ) : null}
           <DetailRow
             label="بازه قرارداد"
@@ -361,13 +349,15 @@ type DetailRowProps = {
   value: string
   theme: Theme
   styles: ReturnType<typeof createStyles>
-  /** Renders as one cell of the 2-column detail grid instead of a full-width row. */
-  gridItem?: boolean
 }
 
-function DetailRow({ label, value, theme, styles, gridItem }: DetailRowProps): React.JSX.Element {
+/**
+ * v2.9.2 — a real table row (label right / value left, per explicit
+ * direction), replacing the earlier stacked label-above-value block.
+ */
+function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.Element {
   return (
-    <View style={[styles.detailRow, gridItem && styles.detailGridItem]}>
+    <View style={styles.detailRow}>
       <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
       <Text style={[theme.typography('bodyMd'), styles.value]}>{value}</Text>
     </View>
@@ -421,27 +411,23 @@ function createStyles(theme: Theme) {
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     detailRow: {
-      marginBottom: theme.spacing.space3
-    },
-    detailGrid: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      columnGap: theme.spacing.space4,
-      rowGap: theme.spacing.space3,
-      marginBottom: theme.spacing.space3
-    },
-    detailGridItem: {
-      flexBasis: '47%',
-      flexGrow: 0,
-      marginBottom: 0
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space4,
+      paddingBottom: theme.spacing.space2,
+      marginBottom: theme.spacing.space2,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.outlineVariant
     },
     label: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      flexShrink: 0
     },
     value: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      flexShrink: 1,
+      textAlign: theme.isRTL ? 'left' : 'right'
     },
     statusFlash: {
       flexDirection: 'row',

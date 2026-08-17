@@ -1,4 +1,4 @@
-# AZAR Design System — "Professional Navy" (v2.9.1)
+# AZAR Design System — "Professional Navy" (v2.9.2)
 
 ## 0. Positioning statement
 
@@ -368,8 +368,11 @@ where a single entity's related records are one cheap query away.
 
 ### 7.1 Buttons
 One primary action per screen/sheet footer maximum. Variants: `primary`
-(filled, `primary`/`onPrimary`), `secondary` (outlined, 1px
-`outline`), `destructive` (filled, `error`/`onError`), `text` (no
+(filled, `primary`/`onPrimary`), `secondary` (tonal fill —
+`surfaceContainerLow` — plus a 1px `outlineVariant` hairline; v2.9.2
+replaced the earlier transparent-fill + `outline`-colored border, which
+read as too thin/disconnected from the rest of the app's flatter
+surfaces), `destructive` (filled, `error`/`onError`), `text` (no
 container, underlined label), `destructiveText` (v2.9.1 — no container,
 plain `error`-colored label, no underline; for a real destructive action
 that shouldn't compete visually with a nearby filled primary CTA, e.g.
@@ -419,14 +422,19 @@ when it genuinely groups related information — not as a default wrapper
 for every block of text (see §7.7 for how `EmptyState`/`ErrorState`
 avoid this trap with an icon badge instead of a bare card).
 
-**Detail-field grid (v2.9.1):** Property/Applicant/Contract Detail's
-short label/value fields (type, transaction type, deposit/rent amounts,
-tracking code, …) lay out as a 2-column wrap grid — same percentage-grid
-contract as §7.3.1's KPI cards (`flexBasis: '47%'`, never a
-minWidth/flex threshold), per explicit direction that this content could
-be denser. Free-text fields (description, notes, a date range string)
-stay full-width below the grid — long copy doesn't pair well into a
-narrow column.
+**Detail-field table (v2.9.2, superseding v2.9.1's 2-column grid):**
+Property/Applicant/Contract Detail's short label/value fields (type,
+transaction type, deposit/rent amounts, tracking code, …) render as a
+single-column **table**: each `DetailRow` is one horizontal row with the
+label on the reading-start side and the value on the reading-end side
+(RN mirrors `flexDirection: 'row'` under RTL automatically — the label
+is simply the first JSX child), separated by an `outlineVariant`
+hairline. v2.9.1 briefly tried a 2-column `flexBasis: '47%'` wrap grid
+(matching §7.3.1's KPI-card contract) for the same "denser" goal, but
+real values like deposit/rent amounts didn't fit well in a 47%-wide
+cell next to their own label — reverted per explicit direction to a
+real table layout instead. Free-text fields (description, notes) still
+render as their own full-width `DetailRow`.
 
 Card **height is always content-driven** — never set a fixed or
 `minHeight` on a Card to force visual uniformity; if cards in a row
@@ -924,7 +932,7 @@ table or manual tab-switch call to get this behavior — it is what
 nested tab+stack navigators already do by default once each screen is
 registered exactly once.
 
-### 16.1 In-UI back control (v2.9.0/v2.9.1)
+### 16.1 In-UI back control (v2.9.0-v2.9.2)
 
 `MainNavigator` sets `headerShown: false` on every stack, so a pushed
 (non-tab-root) screen has no native header and needs its own back
@@ -936,9 +944,8 @@ affordance. Two patterns, depending on the screen:
   the container renders a `BackButton` inside its own header row
   (background, bottom hairline, padding), alongside the save action
   when one exists.
-- **Screens that don't use `FormScreenContainer`** (plain list/detail
-  screens with no save action — `DealList`, `DealDetail`,
-  `ReminderList`, `PropertyList`, `ApplicantList`): render
+- **Other pushed screens that don't use `FormScreenContainer`**
+  (`DealList`, `DealDetail`, `ReminderList`): render
   `<ScreenHeaderBar onBack={() => navigation.goBack()} />` as the
   **first child of `SafeAreaView`, outside any padded content
   wrapper**. `ScreenHeaderBar` wraps the shared `BackButton` in the
@@ -949,6 +956,12 @@ affordance. Two patterns, depending on the screen:
   no clear placement — never do that; always go through
   `ScreenHeaderBar` (or `FormScreenContainer`'s built-in header) so
   every back control looks and behaves the same way.
+
+**Explicit exception (v2.9.2):** `PropertyList`/`ApplicantList` do NOT
+get a back control, per direct user instruction that it wasn't
+important on these two screens specifically — don't re-add it there
+without a new explicit request, even though the general rule above
+would otherwise call for one (they're pushed screens, not tab roots).
 
 Tab-root screens (Dashboard, Files, Matching, Contract list, Settings)
 never get a back control — there's nothing to go back to within their

@@ -13,7 +13,6 @@ import {
   FloatingActionButton,
   Icon,
   LoadingIndicator,
-  ScreenHeaderBar,
   TextInput
 } from '@shared/components'
 import { PROPERTY_TRANSACTION_TYPES } from '@shared/data/realEstateOptions'
@@ -104,7 +103,6 @@ export function PropertyListScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScreenHeaderBar onBack={() => navigation.goBack()} />
       <View style={styles.content}>
         <View style={styles.searchRow}>
           <View style={styles.searchField}>

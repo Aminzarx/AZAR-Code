@@ -52,22 +52,6 @@ describe('ApplicantListScreen', () => {
     mockedUseApplicants.mockReset()
   })
 
-  it('navigates back when the header back button is pressed', async () => {
-    mockedUseApplicants.mockReturnValue({
-      applicants: [],
-      isLoading: false,
-      error: null,
-      refetch: jest.fn()
-    })
-
-    const { findByLabelText } = await render(
-      withTheme(<ApplicantListScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('بازگشت'))
-    expect(mockGoBack).toHaveBeenCalledTimes(1)
-  })
-
   it('shows the empty state when there are no applicants', async () => {
     mockedUseApplicants.mockReturnValue({
       applicants: [],

@@ -89,11 +89,19 @@ function variantStyles(theme: ReturnType<typeof useTheme>) {
       container: { backgroundColor: theme.colors.primary },
       text: { color: theme.colors.onPrimary }
     },
+    // v2.9.2 — a bare 1px `outline`-colored border on a transparent fill
+    // read as too thin/disconnected against the rest of the app's flatter
+    // surfaces, per explicit feedback that it wasn't "weighted" the same
+    // as everything else. A subtle tonal fill (`surfaceContainerLow`)
+    // plus a lighter `outlineVariant` hairline (matching every other
+    // border in the app — cards, dividers) reads as a deliberate,
+    // professional secondary button instead of a thin outline floating
+    // on its own.
     secondary: {
       container: {
-        backgroundColor: 'transparent',
+        backgroundColor: theme.colors.surfaceContainerLow,
         borderWidth: 1,
-        borderColor: theme.colors.outline
+        borderColor: theme.colors.outlineVariant
       },
       text: { color: theme.colors.primary }
     },

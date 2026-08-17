@@ -207,77 +207,69 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
               </View>
             ) : null}
 
-            {/* v2.9.1 — short fields lay out as a 2-column wrap grid,
-                same pattern as PropertyDetailScreen; description stays
-                full-width below since long copy doesn't pair well. */}
-            <View style={styles.detailGrid}>
-              {applicant.preferredTransactionType ? (
-                <DetailRow
-                  label="نوع معامله مدنظر"
-                  value={applicant.preferredTransactionType}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {applicant.preferredPropertyType ? (
-                <DetailRow
-                  label="نوع ملک مدنظر"
-                  value={applicant.preferredPropertyType}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {applicant.minArea !== null || applicant.maxArea !== null ? (
-                <DetailRow
-                  label="متراژ مدنظر"
-                  value={`${applicant.minArea ?? '-'} تا ${applicant.maxArea ?? '-'} متر`}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {applicant.rooms !== null ? (
-                <DetailRow
-                  label="تعداد اتاق"
-                  value={String(applicant.rooms)}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {rentStatusLabel ? (
-                <DetailRow
-                  label="وضعیت رهن/اجاره"
-                  value={rentStatusLabel}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {applicant.depositAmount !== null ? (
-                <DetailRow
-                  label="میزان رهن موردنظر"
-                  value={`${applicant.depositAmount.toLocaleString('fa-IR')} تومان`}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {applicant.rentAmount !== null ? (
-                <DetailRow
-                  label="میزان اجاره موردنظر"
-                  value={`${applicant.rentAmount.toLocaleString('fa-IR')} تومان`}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {applicant.isConvertible ? (
-                <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} gridItem />
-              ) : null}
-            </View>
+            {/* v2.9.2 — reverted the v2.9.1 2-column grid back to a
+                single-column table (label right / value left), same as
+                PropertyDetailScreen — long values didn't fit a 47%-wide
+                cell well. */}
+            {applicant.preferredTransactionType ? (
+              <DetailRow
+                label="نوع معامله مدنظر"
+                value={applicant.preferredTransactionType}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.preferredPropertyType ? (
+              <DetailRow
+                label="نوع ملک مدنظر"
+                value={applicant.preferredPropertyType}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.minArea !== null || applicant.maxArea !== null ? (
+              <DetailRow
+                label="متراژ مدنظر"
+                value={`${applicant.minArea ?? '-'} تا ${applicant.maxArea ?? '-'} متر`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.rooms !== null ? (
+              <DetailRow
+                label="تعداد اتاق"
+                value={String(applicant.rooms)}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {rentStatusLabel ? (
+              <DetailRow
+                label="وضعیت رهن/اجاره"
+                value={rentStatusLabel}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.depositAmount !== null ? (
+              <DetailRow
+                label="میزان رهن موردنظر"
+                value={`${applicant.depositAmount.toLocaleString('fa-IR')} تومان`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.rentAmount !== null ? (
+              <DetailRow
+                label="میزان اجاره موردنظر"
+                value={`${applicant.rentAmount.toLocaleString('fa-IR')} تومان`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {applicant.isConvertible ? (
+              <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} />
+            ) : null}
             {applicant.description ? (
               <DetailRow
                 label="توضیحات"
@@ -352,13 +344,16 @@ type DetailRowProps = {
   value: string
   theme: Theme
   styles: ReturnType<typeof createStyles>
-  /** Renders as one cell of the 2-column detail grid instead of a full-width row. */
-  gridItem?: boolean
 }
 
-function DetailRow({ label, value, theme, styles, gridItem }: DetailRowProps): React.JSX.Element {
+/**
+ * v2.9.2 — a real table row (label right / value left, per explicit
+ * direction), replacing the earlier stacked label-above-value block.
+ * RN mirrors `flexDirection: 'row'` under RTL automatically.
+ */
+function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.Element {
   return (
-    <View style={[styles.detailRow, gridItem && styles.detailGridItem]}>
+    <View style={styles.detailRow}>
       <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
       <Text style={[theme.typography('bodyMd'), styles.value]}>{value}</Text>
     </View>
@@ -400,28 +395,23 @@ function createStyles(theme: Theme) {
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     detailRow: {
-      marginTop: theme.spacing.space3
-    },
-    detailGrid: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: theme.spacing.space3,
-      columnGap: theme.spacing.space4,
-      rowGap: theme.spacing.space3
-    },
-    detailGridItem: {
-      flexBasis: '47%',
-      flexGrow: 0,
-      marginTop: 0
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space4,
+      marginTop: theme.spacing.space2,
+      paddingBottom: theme.spacing.space2,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.outlineVariant
     },
     label: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      flexShrink: 0
     },
     value: {
       color: theme.colors.onSurface,
-      marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      flexShrink: 1,
+      textAlign: theme.isRTL ? 'left' : 'right'
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;

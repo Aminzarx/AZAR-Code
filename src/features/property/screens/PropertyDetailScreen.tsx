@@ -216,60 +216,54 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
               ) : null}
             </View>
 
-            {/* v2.9.1 — short fields lay out as a 2-column wrap grid per
-                explicit direction that this content could be denser; free
-                text (description) stays full-width below, since long
-                copy doesn't pair well into a narrow column. */}
-            <View style={styles.detailGrid}>
-              {property.propertyType ? (
-                <DetailRow
-                  label="نوع ملک"
-                  value={property.propertyType}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {property.transactionType ? (
-                <DetailRow
-                  label="نوع معامله"
-                  value={property.transactionType}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {rentStatusLabel ? (
-                <DetailRow
-                  label="وضعیت رهن/اجاره"
-                  value={rentStatusLabel}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {property.depositAmount !== null ? (
-                <DetailRow
-                  label="میزان رهن"
-                  value={`${property.depositAmount.toLocaleString('fa-IR')} تومان`}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {property.rentAmount !== null ? (
-                <DetailRow
-                  label="میزان اجاره"
-                  value={`${property.rentAmount.toLocaleString('fa-IR')} تومان`}
-                  theme={theme}
-                  styles={styles}
-                  gridItem
-                />
-              ) : null}
-              {property.isConvertible ? (
-                <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} gridItem />
-              ) : null}
-            </View>
+            {/* v2.9.2 — reverted the v2.9.1 2-column grid back to a
+                single-column table (label on the right, value on the
+                left, per explicit direction) — long values like deposit
+                amounts didn't fit well in a 47%-wide cell next to their
+                label. */}
+            {property.propertyType ? (
+              <DetailRow
+                label="نوع ملک"
+                value={property.propertyType}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.transactionType ? (
+              <DetailRow
+                label="نوع معامله"
+                value={property.transactionType}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {rentStatusLabel ? (
+              <DetailRow
+                label="وضعیت رهن/اجاره"
+                value={rentStatusLabel}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.depositAmount !== null ? (
+              <DetailRow
+                label="میزان رهن"
+                value={`${property.depositAmount.toLocaleString('fa-IR')} تومان`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.rentAmount !== null ? (
+              <DetailRow
+                label="میزان اجاره"
+                value={`${property.rentAmount.toLocaleString('fa-IR')} تومان`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.isConvertible ? (
+              <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} />
+            ) : null}
             {property.description ? (
               <DetailRow
                 label="توضیحات"
@@ -346,13 +340,19 @@ type DetailRowProps = {
   value: string
   theme: Theme
   styles: ReturnType<typeof createStyles>
-  /** Renders as one cell of the 2-column detail grid instead of a full-width row. */
-  gridItem?: boolean
 }
 
-function DetailRow({ label, value, theme, styles, gridItem }: DetailRowProps): React.JSX.Element {
+/**
+ * v2.9.2 — a real table row (label on the reading-start side, value on
+ * the reading-end side, in one row) per explicit direction, replacing
+ * the earlier stacked label-above-value block. RN mirrors `flexDirection:
+ * 'row'` under RTL automatically, so the label (first JSX child) lands on
+ * the right and the value (second child) on the left with no isRTL
+ * conditional needed here.
+ */
+function DetailRow({ label, value, theme, styles }: DetailRowProps): React.JSX.Element {
   return (
-    <View style={[styles.detailRow, gridItem && styles.detailGridItem]}>
+    <View style={styles.detailRow}>
       <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
       <Text style={[theme.typography('bodyMd'), styles.value]}>{value}</Text>
     </View>
@@ -401,34 +401,27 @@ function createStyles(theme: Theme) {
     headlineMetaValue: {
       color: theme.colors.onSurfaceVariant
     },
+    // v2.9.2 — a real table row: label (right) / value (left) in one
+    // row, per explicit direction — a hairline divider between rows
+    // reinforces the "table" read.
     detailRow: {
-      marginTop: theme.spacing.space3
-    },
-    // v2.9.1 — 2-column wrap grid for short detail fields (§7.3.1-style
-    // percentage grid, same reasoning as the KPI cards: a fixed
-    // percentage basis, never a minWidth/flex threshold).
-    detailGrid: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: theme.spacing.space3,
-      columnGap: theme.spacing.space4,
-      rowGap: theme.spacing.space3
-    },
-    detailGridItem: {
-      flexBasis: '47%',
-      flexGrow: 0,
-      // Spacing between grid cells comes from detailGrid's rowGap, not
-      // this base marginTop (which would otherwise double up).
-      marginTop: 0
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space4,
+      marginTop: theme.spacing.space2,
+      paddingBottom: theme.spacing.space2,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.outlineVariant
     },
     label: {
       color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      flexShrink: 0
     },
     value: {
       color: theme.colors.onSurface,
-      marginTop: theme.spacing.space1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      flexShrink: 1,
+      textAlign: theme.isRTL ? 'left' : 'right'
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
