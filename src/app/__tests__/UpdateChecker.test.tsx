@@ -21,7 +21,7 @@ describe('UpdateChecker', () => {
     const { queryByText } = await render(withTheme(<UpdateChecker />))
 
     await waitFor(() => expect(mockCheckForUpdate).toHaveBeenCalled())
-    expect(queryByText('بروزرسانی جدید موجود است')).toBeNull()
+    expect(queryByText('نسخهٔ تازه آماده است')).toBeNull()
   })
 
   it('shows the update dialog when a newer release is found', async () => {
@@ -32,7 +32,7 @@ describe('UpdateChecker', () => {
     })
     const { findByText } = await render(withTheme(<UpdateChecker />))
 
-    expect(await findByText('بروزرسانی جدید موجود است')).toBeTruthy()
+    expect(await findByText('نسخهٔ تازه آماده است')).toBeTruthy()
   })
 
   it('opens the download URL and dismisses the dialog on confirm', async () => {
@@ -44,10 +44,10 @@ describe('UpdateChecker', () => {
     })
     const { findByText, queryByText } = await render(withTheme(<UpdateChecker />))
 
-    fireEvent.press(await findByText('دانلود بروزرسانی'))
+    fireEvent.press(await findByText('دریافت و نصب'))
 
     expect(openURLSpy).toHaveBeenCalledWith('https://example.test/azar.apk')
-    await waitFor(() => expect(queryByText('بروزرسانی جدید موجود است')).toBeNull())
+    await waitFor(() => expect(queryByText('نسخهٔ تازه آماده است')).toBeNull())
   })
 
   it('dismisses the dialog without opening a URL on cancel', async () => {
@@ -59,9 +59,21 @@ describe('UpdateChecker', () => {
     })
     const { findByText, queryByText } = await render(withTheme(<UpdateChecker />))
 
-    fireEvent.press(await findByText('بعدا'))
+    fireEvent.press(await findByText('بعداً'))
 
     expect(openURLSpy).not.toHaveBeenCalled()
-    await waitFor(() => expect(queryByText('بروزرسانی جدید موجود است')).toBeNull())
+    await waitFor(() => expect(queryByText('نسخهٔ تازه آماده است')).toBeNull())
+  })
+
+  it('shows the release notes and that data stays on the phone (v1.1.0, Amin #4216)', async () => {
+    mockCheckForUpdate.mockResolvedValue({
+      version: '1.1.0',
+      downloadUrl: 'https://example.test/azar.apk',
+      releaseNotes: 'رنگ و فونت تازه'
+    })
+    const { findByText } = await render(withTheme(<UpdateChecker />))
+
+    expect(await findByText(/رنگ و فونت تازه/)).toBeTruthy()
+    expect(await findByText(/اطلاعات شما روی گوشی دست نمی‌خورد/)).toBeTruthy()
   })
 })

@@ -1362,3 +1362,26 @@ explicit approval to begin Phase 5 in the next session.
 **Tests**: new PhoneEntryScreen, CreatePropertyScreen (steps), amountInWords, MoneyInput words;
 full suite under Node 22: 621/622 pass; the one failure (ReminderListScreen «بعداً» section)
 fails the same way on the code before this change.
+
+---
+
+## 2026-10-22 — v1.1.0: update notice from the KSS server
+
+**Change**: The installed app announces a new version itself (Amin #4216). `checkForUpdate` reads
+`https://api.zarandix.ir/app/update.json` (`{version, url, notes}`, served by the KSS host next to
+the install file) and falls back to the GitHub latest release only when that file can't be read.
+`UpdateChecker` checks at launch and again whenever the app returns to the foreground (at most
+once an hour); the notice shows the release notes, says the data on the phone is kept, and
+«بعداً» hides that version until the next launch. Version 1.1.0 (versionCode 2) carries the
+batch-1 design.
+
+**Reason**: Amin #4216 — updates should reach the app already installed, with a notice.
+
+**Affected modules**: `src/infrastructure/updates`, `src/app/UpdateChecker.tsx`, version files.
+
+**Migration requirements**: Each release: raise APP_VERSION / package.json / versionName and
+versionCode, put the APK and `update.json` on the KSS host, and publish a GitHub release
+(`v<version>` with the .apk) so 1.0.0 installs, which only know GitHub, see it too.
+
+**Tests**: updateService (KSS first, GitHub fallback, https only), UpdateChecker notes; full suite
+626/627 (ReminderListScreen «بعداً» fails on older code too).

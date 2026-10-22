@@ -76,4 +76,47 @@ describe('checkForUpdate', () => {
     } as unknown as Response)
     expect(await checkForUpdate()).toBeNull()
   })
+
+  describe('KSS server first (v1.1.0, Amin #4216)', () => {
+    const [major, minor, patch] = APP_VERSION.split('.').map(Number)
+    const newer = `${major}.${minor}.${patch + 1}`
+
+    it('uses the KSS update file when it is readable', async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(200, { version: newer, url: 'https://api.zarandix.ir/app/a.apk', notes: 'n' })
+      )
+      expect(await checkForUpdate()).toEqual({
+        version: newer,
+        downloadUrl: 'https://api.zarandix.ir/app/a.apk',
+        releaseNotes: 'n'
+      })
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock.mock.calls[0][0]).toBe('https://api.zarandix.ir/app/update.json')
+    })
+
+    it('does not ask GitHub when the KSS file says nothing is newer', async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(200, { version: APP_VERSION, url: 'https://api.zarandix.ir/app/a.apk' })
+      )
+      expect(await checkForUpdate()).toBeNull()
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to GitHub when the KSS file cannot be read', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(502, {})).mockResolvedValueOnce(
+        jsonResponse(200, {
+          tag_name: `v${newer}`,
+          assets: [{ name: 'azar.apk', browser_download_url: 'https://example.test/azar.apk' }]
+        })
+      )
+      expect((await checkForUpdate())?.downloadUrl).toBe('https://example.test/azar.apk')
+    })
+
+    it('ignores a KSS file whose link is not https', async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(200, { version: newer, url: 'http://x/a.apk' }))
+        .mockResolvedValueOnce(jsonResponse(404, {}))
+      expect(await checkForUpdate()).toBeNull()
+    })
+  })
 })
