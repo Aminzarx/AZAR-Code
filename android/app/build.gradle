@@ -115,6 +115,9 @@ android {
     packagingOptions {
         jniLibs {
             pickFirsts += ['lib/*/libcrypto.so', 'lib/*/libssl.so']
+            // KSS (Amin #4121): the native libraries are compressed inside the install file (about half of its size was
+            // these, stored as-is), so the download is smaller; Android unpacks them once at install
+            useLegacyPackaging = true
         }
     }
 
