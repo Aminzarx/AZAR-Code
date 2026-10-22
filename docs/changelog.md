@@ -1435,3 +1435,9 @@ backup first) before installing 1.2.0; later updates install over it. `AzarSmsCo
 runs the SMS Retriever: an SMS ending with AZAR's app tag `9kE13uqFQoX` (from the package name
 and the new key) fills the code with no question; other SMS still get the one-tap consent
 question, which is dropped when the tagged copy arrives.
+
+**Also in v1.2.0 — solid dialog cards**: dialogs and sheets used an 86–92% white "glass" card;
+Android does not blur behind it, so the screen underneath showed through the text (seen on the
+update dialog). They now use the solid `surfaceContainerLowest` with an `outlineVariant` border
+(ConfirmDialog, InfoDialog, OtpPromptDialog, PasswordPromptDialog, DateInput, FilterSheet,
+LostReasonDialog, DealNotesSection, SettingsScreen).

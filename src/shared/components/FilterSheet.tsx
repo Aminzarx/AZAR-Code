@@ -107,9 +107,9 @@ function createStyles(theme: Theme, bottomInset: number) {
       paddingHorizontal: theme.spacing.space6,
       paddingTop: theme.spacing.space5,
       paddingBottom: theme.spacing.space4 + bottomInset,
-      backgroundColor: 'rgba(255, 255, 255, 0.92)',
+      backgroundColor: theme.colors.surfaceContainerLowest,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.5)',
+      borderColor: theme.colors.outlineVariant,
       ...theme.elevation.level4
     },
     header: {

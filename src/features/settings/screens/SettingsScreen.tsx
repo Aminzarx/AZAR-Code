@@ -828,9 +828,9 @@ function createStyles(theme: Theme) {
       borderRadius: theme.radius.extraLarge,
       padding: theme.spacing.space6,
       gap: theme.spacing.space3,
-      backgroundColor: 'rgba(255, 255, 255, 0.86)',
+      backgroundColor: theme.colors.surfaceContainerLowest,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.5)',
+      borderColor: theme.colors.outlineVariant,
       ...theme.elevation.level4
     },
     dialogTitle: {
