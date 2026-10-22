@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.facebook.react.bridge.BaseActivityEventListener
 import com.facebook.react.bridge.Promise
@@ -17,18 +19,25 @@ import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
 
 /**
- * v1.2.0 (Amin #4229): fills the sign-in code from the SMS. The code SMS
- * comes from a fixed Kavenegar template, so the hash-based SMS Retriever
- * can't be used; Google's SMS User Consent API needs no change to the
- * text: when the next SMS with a code arrives (within 5 minutes), Android
- * asks once «allow AZAR to read this message?» and, on allow, the message
- * text is sent to JS as the "AzarSmsCode" event, where the code is taken
- * out. Nothing is read without that tap; no SMS permission is declared.
+ * v1.2.0 (Amin #4229/#4232): fills the sign-in code from the SMS, two ways
+ * at once, both from Google Play services and neither needing an SMS
+ * permission:
+ *  - SMS Retriever: an SMS that ends with AZAR's 11-character app tag
+ *    (computed from the package name + release signing key; for the
+ *    2026-10-23 key it is 9kE13uqFQoX) is handed over directly, with no
+ *    question, like Telegram.
+ *  - SMS User Consent: any other SMS with a code makes Android ask once
+ *    «allow AZAR to read this message?».
+ * When the tagged SMS arrives both fire; the consent question waits a
+ * moment and is dropped once the direct copy came. The message text goes
+ * to JS as the "AzarSmsCode" event, where the code is taken out.
  */
 class AzarSmsCodeModule(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
 
   private var receiver: BroadcastReceiver? = null
+  private var deliveredDirectly = false
+  private val main = Handler(Looper.getMainLooper())
 
   private val activityListener =
     object : BaseActivityEventListener() {
@@ -40,9 +49,7 @@ class AzarSmsCodeModule(reactContext: ReactApplicationContext) :
       ) {
         if (requestCode != CONSENT_REQUEST || resultCode != Activity.RESULT_OK) return
         val message = data?.getStringExtra(SmsRetriever.EXTRA_SMS_MESSAGE) ?: return
-        reactApplicationContext
-          .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-          .emit(EVENT, message)
+        emit(message)
       }
     }
 
@@ -56,8 +63,11 @@ class AzarSmsCodeModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun start(promise: Promise) {
     stopReceiver()
+    deliveredDirectly = false
     try {
-      SmsRetriever.getClient(reactApplicationContext)
+      val client = SmsRetriever.getClient(reactApplicationContext)
+      client.startSmsRetriever()
+      client
         .startSmsUserConsent(null)
         .addOnSuccessListener {
           registerReceiver()
@@ -92,19 +102,20 @@ class AzarSmsCodeModule(reactContext: ReactApplicationContext) :
           if (intent.action != SmsRetriever.SMS_RETRIEVED_ACTION) return
           val extras = intent.extras ?: return
           @Suppress("DEPRECATION") val status = extras.get(SmsRetriever.EXTRA_STATUS) as? Status
-          if (status?.statusCode == CommonStatusCodes.SUCCESS) {
-            @Suppress("DEPRECATION")
-            val consent = extras.getParcelable<Intent>(SmsRetriever.EXTRA_CONSENT_INTENT)
-            val activity = reactApplicationContext.currentActivity
-            if (consent != null && activity != null) {
-              try {
-                activity.startActivityForResult(consent, CONSENT_REQUEST)
-              } catch (e: Exception) {
-                // the code can still be typed by hand
-              }
-            }
+          if (status?.statusCode != CommonStatusCodes.SUCCESS) {
+            stopReceiver()
+            return
           }
-          stopReceiver()
+          val direct = extras.getString(SmsRetriever.EXTRA_SMS_MESSAGE)
+          if (direct != null) {
+            deliveredDirectly = true
+            emit(direct)
+            stopReceiver()
+            return
+          }
+          @Suppress("DEPRECATION")
+          val consent = extras.getParcelable<Intent>(SmsRetriever.EXTRA_CONSENT_INTENT) ?: return
+          main.postDelayed({ askConsent(consent) }, CONSENT_DELAY_MS)
         }
       }
     ContextCompat.registerReceiver(
@@ -116,6 +127,23 @@ class AzarSmsCodeModule(reactContext: ReactApplicationContext) :
       ContextCompat.RECEIVER_EXPORTED
     )
     receiver = r
+  }
+
+  private fun askConsent(consent: Intent) {
+    if (deliveredDirectly) return
+    stopReceiver()
+    val activity = reactApplicationContext.currentActivity ?: return
+    try {
+      activity.startActivityForResult(consent, CONSENT_REQUEST)
+    } catch (e: Exception) {
+      // the code can still be typed by hand
+    }
+  }
+
+  private fun emit(message: String) {
+    reactApplicationContext
+      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit(EVENT, message)
   }
 
   private fun stopReceiver() {
@@ -130,6 +158,7 @@ class AzarSmsCodeModule(reactContext: ReactApplicationContext) :
 
   companion object {
     private const val CONSENT_REQUEST = 4229
+    private const val CONSENT_DELAY_MS = 1500L
     const val EVENT = "AzarSmsCode"
   }
 }

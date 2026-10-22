@@ -1425,3 +1425,13 @@ Latin) and `OtpCodePanel` fills and checks them. «ارسال مجدد کد» st
 permission is declared. The first code box also carries `autoComplete="sms-otp"` /
 `textContentType="oneTimeCode"` so keyboards can offer the code. Tests: extractCode,
 OtpCodePanel fill from SMS.
+
+**Also in v1.2.0 — own signing key and code with no question (Amin #4232/#4235)**: until 1.1.0
+the app was signed with React Native's public `debug.keystore`, so anyone could sign a fake
+`com.azarapp` that installs over AZAR. From 1.2.0 release APKs are re-signed after the CI build
+with KSS's private key (PKCS12, alias `azar`; kept off the repo on the KSS laptop and server,
+never in CI) using `apksigner`. Installs signed with the old key must be removed once (take a
+backup first) before installing 1.2.0; later updates install over it. `AzarSmsCode` now also
+runs the SMS Retriever: an SMS ending with AZAR's app tag `9kE13uqFQoX` (from the package name
+and the new key) fills the code with no question; other SMS still get the one-tap consent
+question, which is dropped when the tagged copy arrives.
