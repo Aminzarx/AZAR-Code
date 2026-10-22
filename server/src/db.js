@@ -44,6 +44,19 @@ db.exec(`
   );
 `)
 
+// KSS (Amin #4117): the real one-time code's state on otp_requests (added to an existing database in place)
+const otpColumns = db.prepare('PRAGMA table_info(otp_requests)').all().map((c) => c.name)
+for (const [name, type] of [
+  ['code_hash', 'TEXT'],
+  ['expires_at', 'TEXT'],
+  ['attempts', 'INTEGER NOT NULL DEFAULT 0'],
+  ['sent_at', 'TEXT'],
+  ['sent_count', 'INTEGER NOT NULL DEFAULT 0'],
+  ['window_start', 'TEXT']
+]) {
+  if (!otpColumns.includes(name)) db.exec(`ALTER TABLE otp_requests ADD COLUMN ${name} ${type}`)
+}
+
 // Registration requires a valid referral code with no bypass (ADR-009), so a
 // brand-new server has no user to be a referrer for the very first real
 // registration. Mirrors the client's own former bootstrap-seed migration

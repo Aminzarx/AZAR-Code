@@ -5,10 +5,13 @@ const { generateId, generateReferralCode, generateSessionToken } = require('./id
 
 const PHONE_NUMBER_PATTERN = /^\+?[1-9]\d{7,14}$/
 
-// Fixed by explicit product decision until a real SMS panel exists —
-// remove this constant (and go back to accepting anything) once that
-// panel is wired up and OTP delivery is genuinely enabled.
-const FIXED_OTP_CODE = '555555'
+// KSS (Amin #4117): the sign-in code is a real one-time code sent by SMS through KSS's Kavenegar account (the
+// verify/lookup API with the «otp» template, as kssx.ir), replacing the fixed code. The code is kept only as a hash.
+const sms = require('./sms')
+const OTP_TTL_MS = 3 * 60 * 1000 // a code is good for 3 minutes
+const OTP_RESEND_MS = 60 * 1000 // a new code at most once a minute per number (sooner = the last code still stands)
+const OTP_MAX_PER_HOUR = 5 // codes sent to one number per hour
+const OTP_MAX_ATTEMPTS = 5 // wrong tries before the code is void
 
 // The "mother" referral code — always valid for registration regardless of
 // whether it's ever actually stored as a real user.referral_code, until
@@ -60,49 +63,62 @@ function uniqueReferralCode() {
   throw new Error('Could not mint a unique referral code after 5 attempts.')
 }
 
-// OTP delivery is disabled by product decision: no SMS is ever sent, and
-// verify-otp requires the fixed FIXED_OTP_CODE instead of a real one. This
-// endpoint just upserts an unverified "requested" row so the existing
-// two-step screen flow (request -> enter code) still has server-side state
-// afterward, exactly like the OTP-enabled flow will once a provider is
-// wired up (ADR-003) — but verify-otp itself no longer depends on this
-// having run first (see its own comment).
-router.post('/send-otp', otpLimiter, (req, res) => {
-  const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
-  if (!PHONE_NUMBER_PATTERN.test(phoneNumber)) {
-    return fail(res, 422, 'invalid_phone_number', 'Enter a valid phone number.')
+router.post('/send-otp', otpLimiter, async (req, res) => {
+  try {
+    const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
+    const mobile = PHONE_NUMBER_PATTERN.test(phoneNumber) ? sms.iranMobile(phoneNumber) : null
+    if (!mobile) {
+      return fail(res, 422, 'invalid_phone_number', 'Enter a valid phone number.')
+    }
+    const now = Date.now()
+    const row = db.prepare('SELECT * FROM otp_requests WHERE phone_number = ?').get(phoneNumber)
+    if (row?.code_hash && row.sent_at && now - Date.parse(row.sent_at) < OTP_RESEND_MS && Date.parse(row.expires_at) > now) {
+      return res.status(204).end() // the code sent a moment ago still stands
+    }
+    const sameWindow = !!row?.window_start && now - Date.parse(row.window_start) < 60 * 60 * 1000
+    const windowStart = sameWindow ? row.window_start : new Date(now).toISOString()
+    const sentInWindow = sameWindow ? row.sent_count || 0 : 0
+    if (sentInWindow >= OTP_MAX_PER_HOUR) {
+      return fail(res, 429, 'too_many_codes', 'Too many codes for this number; try again later.')
+    }
+    if (!sms.ready()) {
+      return fail(res, 503, 'sms_unavailable', 'Codes cannot be sent right now.')
+    }
+    const code = sms.newCode()
+    await sms.sendCode(mobile, code) // throws when Kavenegar refuses: nothing is stored then
+    const at = new Date(now).toISOString()
+    db.prepare(
+      `INSERT INTO otp_requests (phone_number, verified, requested_at, verified_at, code_hash, expires_at, attempts, sent_at, sent_count, window_start)
+       VALUES (?, 0, ?, NULL, ?, ?, 0, ?, ?, ?)
+       ON CONFLICT(phone_number) DO UPDATE SET verified = 0, requested_at = excluded.requested_at, verified_at = NULL,
+         code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = 0, sent_at = excluded.sent_at,
+         sent_count = excluded.sent_count, window_start = excluded.window_start`
+    ).run(phoneNumber, at, sms.hashCode(phoneNumber, code), new Date(now + OTP_TTL_MS).toISOString(), at, sentInWindow + 1, windowStart)
+    res.status(204).end()
+  } catch (err) {
+    console.error('[send-otp]', err.message)
+    fail(res, 503, 'sms_unavailable', 'Codes cannot be sent right now.')
   }
-  db.prepare(
-    `INSERT INTO otp_requests (phone_number, verified, requested_at, verified_at)
-     VALUES (?, 0, ?, NULL)
-     ON CONFLICT(phone_number) DO UPDATE SET verified = 0, requested_at = excluded.requested_at, verified_at = NULL`
-  ).run(phoneNumber, new Date().toISOString())
-  res.status(204).end()
 })
 
-// OTP verification is fully disabled by explicit product decision (not just
-// the code — the whole send-otp-first / expiry gate too): any phone number
-// on any device is accepted with the fixed FIXED_OTP_CODE, whether or not
-// send-otp was ever called for it first. This upserts a verified
-// otp_requests row unconditionally so register/login's `otpState?.verified`
-// check downstream still finds one, without depending on prior state.
 router.post('/verify-otp', otpLimiter, (req, res) => {
   const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
-  const code = typeof req.body?.code === 'string' ? req.body.code : ''
+  const code = typeof req.body?.code === 'string' ? req.body.code.trim() : ''
 
   if (!PHONE_NUMBER_PATTERN.test(phoneNumber)) {
     return fail(res, 422, 'invalid_phone_number', 'Enter a valid phone number.')
   }
-  if (code !== FIXED_OTP_CODE) {
+  const row = db.prepare('SELECT * FROM otp_requests WHERE phone_number = ?').get(phoneNumber)
+  if (!row?.code_hash || (row.attempts || 0) >= OTP_MAX_ATTEMPTS || !(Date.parse(row.expires_at) > Date.now())) {
+    return fail(res, 422, 'otp_expired', 'This code has expired. Request a new one.')
+  }
+  if (!sms.sameCode(row.code_hash, sms.hashCode(phoneNumber, code))) {
+    db.prepare('UPDATE otp_requests SET attempts = attempts + 1 WHERE phone_number = ?').run(phoneNumber)
     return fail(res, 422, 'invalid_otp', 'That code is incorrect.')
   }
-
-  const now = new Date().toISOString()
   db.prepare(
-    `INSERT INTO otp_requests (phone_number, verified, requested_at, verified_at)
-     VALUES (?, 1, ?, ?)
-     ON CONFLICT(phone_number) DO UPDATE SET verified = 1, verified_at = excluded.verified_at`
-  ).run(phoneNumber, now, now)
+    'UPDATE otp_requests SET verified = 1, verified_at = ?, code_hash = NULL, expires_at = NULL WHERE phone_number = ?'
+  ).run(new Date().toISOString(), phoneNumber)
   res.status(204).end()
 })
 
