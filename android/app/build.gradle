@@ -117,6 +117,18 @@ android {
             pickFirsts += ['lib/*/libcrypto.so', 'lib/*/libssl.so']
         }
     }
+
+    // KSS (Amin #4121/#4129): one install file per phone processor type, each holding only its own native libraries,
+    // so a download is far smaller than the one file for every phone. Nearly all phones in use are arm64-v8a; older
+    // ones armeabi-v7a; x86/x86_64 are emulators. The all-in-one file is still made (universalApk) for anyone unsure.
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            universalApk true
+        }
+    }
 }
 
 dependencies {
