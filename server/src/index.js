@@ -9,6 +9,9 @@ const PORT = Number(process.env.PORT) || 8787
 const HOST = process.env.HOST || '0.0.0.0'
 
 const app = express()
+// KSS (Amin #4113): served by the VPS host's nginx on 127.0.0.1, so the client address comes from X-Forwarded-For
+// and each phone gets its own rate limit (otherwise every request shares nginx's address).
+app.set('trust proxy', 'loopback')
 app.use(cors())
 app.use(express.json({ limit: '16kb' }))
 
