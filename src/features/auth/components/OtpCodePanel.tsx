@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { OtpInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
 import { toPersianDigits } from '@shared/utils/persianText'
+import { listenForSmsCode } from '@infrastructure/sms/smsCodeReader'
 
 type Props = {
   phoneNumber: string
@@ -42,6 +43,12 @@ export function OtpCodePanel({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(RESEND_COOLDOWN_SECONDS)
   const [isResending, setIsResending] = useState(false)
+  // Bumped on «ارسال مجدد کد» so the SMS reader waits for the new message.
+  const [smsRound, setSmsRound] = useState(0)
+  const onSmsCode = useRef<(code: string) => void>(() => undefined)
+
+  // v1.2.0 (Amin #4229): the code fills in from the SMS after one «allow» tap.
+  useEffect(() => listenForSmsCode(CODE_LENGTH, (smsCode) => onSmsCode.current(smsCode)), [smsRound])
 
   // Prevents requesting a fresh code back-to-back (rate-limit-friendly on
   // the server side too, but this is the user-facing reason for it).
@@ -60,6 +67,7 @@ export function OtpCodePanel({
     try {
       await sendOtp(phoneNumber)
       setCooldownSeconds(RESEND_COOLDOWN_SECONDS)
+      setSmsRound((round) => round + 1)
       setCode('')
       setStatus('default')
       setError(null)
@@ -119,6 +127,11 @@ export function OtpCodePanel({
     setError(null)
     if (next.length === CODE_LENGTH && !isSubmitting) {
       submit(next)
+    }
+  }
+  onSmsCode.current = (smsCode) => {
+    if (status !== 'success' && !isSubmitting) {
+      handleChangeValue(smsCode)
     }
   }
 

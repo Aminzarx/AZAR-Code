@@ -183,6 +183,9 @@ export function OtpInput({
           onFocus={() => handleFocus(index)}
           keyboardType="number-pad"
           maxLength={index === 0 ? LENGTH : 1}
+          // v1.2.0 (Amin #4229): lets the keyboard offer the code from the SMS; the first box takes all six.
+          autoComplete={index === 0 ? 'sms-otp' : 'off'}
+          textContentType={index === 0 ? 'oneTimeCode' : 'none'}
           editable={!disabled}
           textAlign="center"
           selectionColor={theme.colors.primary}

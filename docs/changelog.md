@@ -1415,3 +1415,13 @@ cannot install in-app; they move to 1.2.0 once by the install file.
 **Tests**: updateService (KSS only, folder and checksum rules), updateDownloader (checksum,
 reuse, wrong file, server error, cleanup), UpdateChecker (quiet download, install, one-time
 permission then install on return, «بعداً»).
+
+**Also in v1.2.0 — sign-in code from the SMS (Amin #4229)**: the code SMS comes from a fixed
+Kavenegar template, so the hash-based SMS Retriever can't be used. The native `AzarSmsCode`
+module uses Google's SMS User Consent API (`play-services-auth-api-phone` 18.1.0): while the
+code boxes are on screen, the next SMS with a code (within 5 minutes) makes Android ask once
+whether AZAR may read it; on allow, `smsCodeReader.extractCode` takes the 6 digits (Persian or
+Latin) and `OtpCodePanel` fills and checks them. «ارسال مجدد کد» starts a new wait. No SMS
+permission is declared. The first code box also carries `autoComplete="sms-otp"` /
+`textContentType="oneTimeCode"` so keyboards can offer the code. Tests: extractCode,
+OtpCodePanel fill from SMS.
