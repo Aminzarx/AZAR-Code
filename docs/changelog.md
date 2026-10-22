@@ -1385,3 +1385,33 @@ versionCode, put the APK and `update.json` on the KSS host, and publish a GitHub
 
 **Tests**: updateService (KSS first, GitHub fallback, https only), UpdateChecker notes; full suite
 626/627 (ReminderListScreen «بعداً» fails on older code too).
+
+---
+
+## 2026-10-23 — v1.2.0: update downloaded and installed inside the app
+
+**Change**: The update no longer leaves the app or uses GitHub (Amin #4223). `checkForUpdate`
+reads only `https://api.zarandix.ir/app/update.json`, now `{version, url, sha256, notes}`; the
+link must be in that same KSS folder and the checksum must be 64 hex characters, otherwise
+nothing is offered. `updateDownloader` fetches the APK quietly in the background into the app's
+private `files/updates` folder (`.part` first, sha256 checked, older files removed, cleared when
+nothing is newer). Only then does `UpdateChecker` offer «نصب»; the native `AzarInstaller` module
+hands the checked file to Android's installer through `AzarUpdateFileProvider`, shown over the
+app. Android's one-time "install from this source" permission is explained first in Persian
+(«یک اجازهٔ یک‌باره» → «باز کردن تنظیمات»); when the user comes back with it on, the install
+continues by itself. New permission: `REQUEST_INSTALL_PACKAGES`. Version 1.2.0 (versionCode 3).
+
+**Reason**: Amin #4223 — no GitHub, no leaving the app, update in the background.
+
+**Affected modules**: `src/infrastructure/updates` (updateService, updateDownloader,
+appInstaller), `src/app/UpdateChecker.tsx`, Android `AzarInstallerModule`,
+`AzarUpdateFileProvider`, `res/xml/azar_update_paths.xml`, manifest, version files.
+
+**Migration requirements**: Each release: raise APP_VERSION / package.json / versionName and
+versionCode; upload the APK to `/var/www/azar-app/azar-<version>.apk` on the KSS host and write
+`update.json` with its sha256. GitHub releases are no longer needed. Installs older than 1.2.0
+cannot install in-app; they move to 1.2.0 once by the install file.
+
+**Tests**: updateService (KSS only, folder and checksum rules), updateDownloader (checksum,
+reuse, wrong file, server error, cleanup), UpdateChecker (quiet download, install, one-time
+permission then install on return, «بعداً»).

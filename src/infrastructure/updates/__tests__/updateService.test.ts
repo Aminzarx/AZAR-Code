@@ -1,11 +1,16 @@
 import { APP_VERSION } from '@shared/appVersion'
-import { checkForUpdate } from '../updateService'
+import { checkForUpdate, KSS_MANIFEST_URL } from '../updateService'
 
 function jsonResponse(status: number, body: unknown): Response {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as Response
 }
 
-describe('checkForUpdate', () => {
+const [major, minor, patch] = APP_VERSION.split('.').map(Number)
+const newer = `${major}.${minor}.${patch + 1}`
+const SHA = 'AB'.repeat(32)
+const URL_OK = `https://api.zarandix.ir/app/azar-${newer}.apk`
+
+describe('checkForUpdate (KSS server only — v1.2.0, Amin #4223)', () => {
   let fetchMock: jest.Mock
 
   beforeEach(() => {
@@ -13,61 +18,53 @@ describe('checkForUpdate', () => {
     global.fetch = fetchMock as unknown as typeof fetch
   })
 
-  it('returns update info when the latest release is newer and has an APK asset', async () => {
-    const [major, minor, patch] = APP_VERSION.split('.').map(Number)
-    const newerVersion = `${major}.${minor}.${patch + 1}`
+  it('returns the update from the KSS file when it is newer', async () => {
     fetchMock.mockResolvedValue(
-      jsonResponse(200, {
-        tag_name: `v${newerVersion}`,
-        body: 'یادداشت انتشار',
-        assets: [{ name: 'azar.apk', browser_download_url: 'https://example.test/azar.apk' }]
-      })
+      jsonResponse(200, { version: `v${newer}`, url: URL_OK, sha256: SHA, notes: 'n' })
     )
-
-    const update = await checkForUpdate()
-
-    expect(update).toEqual({
-      version: newerVersion,
-      downloadUrl: 'https://example.test/azar.apk',
-      releaseNotes: 'یادداشت انتشار'
+    expect(await checkForUpdate()).toEqual({
+      version: newer,
+      downloadUrl: URL_OK,
+      sha256: SHA.toLowerCase(),
+      releaseNotes: 'n'
     })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe(KSS_MANIFEST_URL)
   })
 
-  it('returns null when the latest release is not newer than the running version', async () => {
+  it('returns null when the KSS file is not newer', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { version: APP_VERSION, url: URL_OK, sha256: SHA })
+    )
+    expect(await checkForUpdate()).toBeNull()
+  })
+
+  it('never asks GitHub, even when the KSS file cannot be read', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(502, {}))
+    expect(await checkForUpdate()).toBeNull()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects an install link outside the KSS folder', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, {
-        tag_name: `v${APP_VERSION}`,
-        assets: [{ name: 'azar.apk', browser_download_url: 'https://example.test/azar.apk' }]
+        version: newer,
+        url: 'https://github.com/x/releases/download/v9/azar.apk',
+        sha256: SHA
       })
     )
-
     expect(await checkForUpdate()).toBeNull()
   })
 
-  it('returns null when the release has no APK asset', async () => {
-    const [major, minor, patch] = APP_VERSION.split('.').map(Number)
-    fetchMock.mockResolvedValue(
-      jsonResponse(200, {
-        tag_name: `v${major}.${minor}.${patch + 1}`,
-        assets: [{ name: 'source.zip', browser_download_url: 'https://example.test/source.zip' }]
-      })
-    )
-
+  it('rejects a file without a valid checksum', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { version: newer, url: URL_OK, sha256: 'abc' }))
     expect(await checkForUpdate()).toBeNull()
   })
 
-  it('returns null on a network failure', async () => {
-    fetchMock.mockRejectedValue(new Error('offline'))
+  it('returns null on a network failure or malformed JSON', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('offline'))
     expect(await checkForUpdate()).toBeNull()
-  })
-
-  it('returns null on a non-ok response', async () => {
-    fetchMock.mockResolvedValue(jsonResponse(404, {}))
-    expect(await checkForUpdate()).toBeNull()
-  })
-
-  it('returns null on a malformed JSON response', async () => {
-    fetchMock.mockResolvedValue({
+    fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => {
@@ -75,48 +72,5 @@ describe('checkForUpdate', () => {
       }
     } as unknown as Response)
     expect(await checkForUpdate()).toBeNull()
-  })
-
-  describe('KSS server first (v1.1.0, Amin #4216)', () => {
-    const [major, minor, patch] = APP_VERSION.split('.').map(Number)
-    const newer = `${major}.${minor}.${patch + 1}`
-
-    it('uses the KSS update file when it is readable', async () => {
-      fetchMock.mockResolvedValueOnce(
-        jsonResponse(200, { version: newer, url: 'https://api.zarandix.ir/app/a.apk', notes: 'n' })
-      )
-      expect(await checkForUpdate()).toEqual({
-        version: newer,
-        downloadUrl: 'https://api.zarandix.ir/app/a.apk',
-        releaseNotes: 'n'
-      })
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(fetchMock.mock.calls[0][0]).toBe('https://api.zarandix.ir/app/update.json')
-    })
-
-    it('does not ask GitHub when the KSS file says nothing is newer', async () => {
-      fetchMock.mockResolvedValueOnce(
-        jsonResponse(200, { version: APP_VERSION, url: 'https://api.zarandix.ir/app/a.apk' })
-      )
-      expect(await checkForUpdate()).toBeNull()
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-    })
-
-    it('falls back to GitHub when the KSS file cannot be read', async () => {
-      fetchMock.mockResolvedValueOnce(jsonResponse(502, {})).mockResolvedValueOnce(
-        jsonResponse(200, {
-          tag_name: `v${newer}`,
-          assets: [{ name: 'azar.apk', browser_download_url: 'https://example.test/azar.apk' }]
-        })
-      )
-      expect((await checkForUpdate())?.downloadUrl).toBe('https://example.test/azar.apk')
-    })
-
-    it('ignores a KSS file whose link is not https', async () => {
-      fetchMock
-        .mockResolvedValueOnce(jsonResponse(200, { version: newer, url: 'http://x/a.apk' }))
-        .mockResolvedValueOnce(jsonResponse(404, {}))
-      expect(await checkForUpdate()).toBeNull()
-    })
   })
 })
