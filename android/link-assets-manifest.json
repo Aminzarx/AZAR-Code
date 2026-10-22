@@ -2,16 +2,16 @@
   "migIndex": 1,
   "data": [
     {
-      "path": "assets/fonts/Vazirmatn-Medium.ttf",
-      "sha1": "5c21c7fe0ae95852891f0d527fbcbee5b51e637e"
+      "path": "assets/fonts/IRANYekan-Bold.ttf",
+      "sha1": "25c3c1a5a163a1a9f95244c6fd4ee5c204bf3eca"
     },
     {
-      "path": "assets/fonts/Vazirmatn-Regular.ttf",
-      "sha1": "253d2f6e4121d70ee0928568470b032d5eec773a"
+      "path": "assets/fonts/IRANYekan-Medium.ttf",
+      "sha1": "1be26798403e8a9d8cf695fa28f35107e4614158"
     },
     {
-      "path": "assets/fonts/Vazirmatn-SemiBold.ttf",
-      "sha1": "b9a3fb213731d5b1707b8515df34740b7c836553"
+      "path": "assets/fonts/IRANYekan-Regular.ttf",
+      "sha1": "981b1e6cc4803654f024ab26d7d3261b6307100e"
     }
   ]
 }

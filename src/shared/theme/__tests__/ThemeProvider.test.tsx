@@ -47,11 +47,11 @@ describe('ThemeProvider / useTheme', () => {
     expect(bodyMd.lineHeight).toBe(typographyLtr.bodyMd.lineHeight)
   })
 
-  it('uses the bundled Vazirmatn font (by weight) in RTL, and the system font in LTR', async () => {
+  it('uses the bundled IRANYekan font (by weight) in RTL, and the system font in LTR', async () => {
     const rtl = await renderHook(() => useTheme(), { wrapper: wrapper(true) })
-    expect(rtl.result.current.typography('bodyMd').fontFamily).toBe('Vazirmatn-Regular')
-    expect(rtl.result.current.typography('titleMd').fontFamily).toBe('Vazirmatn-SemiBold')
-    expect(rtl.result.current.typography('headlineMd').fontFamily).toBe('Vazirmatn-Medium')
+    expect(rtl.result.current.typography('bodyMd').fontFamily).toBe('IRANYekan-Regular')
+    expect(rtl.result.current.typography('titleMd').fontFamily).toBe('IRANYekan-Bold')
+    expect(rtl.result.current.typography('headlineMd').fontFamily).toBe('IRANYekan-Medium')
 
     const ltr = await renderHook(() => useTheme(), { wrapper: wrapper(false) })
     expect(ltr.result.current.typography('bodyMd').fontFamily).toBeUndefined()

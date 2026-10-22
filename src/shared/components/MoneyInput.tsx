@@ -2,6 +2,7 @@ import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { TextInput } from './TextInput'
+import { amountInWords } from '@shared/utils/amountInWords'
 
 type Props = {
   label: string
@@ -76,7 +77,8 @@ export function MoneyInput({
         value={formatWithSeparators(value)}
         onChangeText={handleChangeText}
         placeholder={placeholder}
-        helperText={helperText}
+        // v3.0.0 (Amin #4180): the amount in words under the field
+        helperText={helperText ?? (amountInWords(value) || undefined)}
         errorMessage={errorMessage}
         keyboardType="number-pad"
         disabled={disabled}
@@ -105,7 +107,10 @@ export function MoneyInput({
                   disabled={!value}
                   style={[styles.chip, !value && styles.chipDisabled]}
                 >
-                  <Text style={[theme.typography('labelSm'), styles.chipLabel]}>{chipText}</Text>
+                  {/* v3.0.0: the chip says «× میلیون» rather than «000,000» */}
+                  <Text style={[theme.typography('labelSm'), styles.chipLabel]}>
+                    {unitName ? `× ${unitName}` : chipText}
+                  </Text>
                 </Pressable>
               )
             })}

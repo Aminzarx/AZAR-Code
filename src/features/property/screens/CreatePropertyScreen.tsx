@@ -1,13 +1,18 @@
-import React, { useRef, useState } from 'react'
-import { StyleSheet, Text } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { ConfirmDialog, FormScreenContainer } from '@shared/components'
+import { Button, ConfirmDialog, FormScreenContainer } from '@shared/components'
+import { toPersianDigits } from '@shared/utils/persianText'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { usePropertyService } from '../hooks/usePropertyService'
-import { PropertyForm } from '../components/PropertyForm'
+import {
+  PROPERTY_FIELD_STEP,
+  PropertyForm,
+  type PropertyFormStep
+} from '../components/PropertyForm'
 import { PropertyValidationError } from '../services/PropertyValidationError'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
 
@@ -30,6 +35,28 @@ const EMPTY_VALUES: PropertyFormValues = {
   description: ''
 }
 
+const STEP_NAMES: Record<PropertyFormStep, string> = {
+  1: 'نوع و مکان',
+  2: 'مشخصات و قیمت',
+  3: 'عنوان و توضیحات'
+}
+const REQUIRED = 'این مورد لازم است.'
+
+/** v3.0.0: a starting title from what the broker already chose («آپارتمان ۲ خوابه ۹۵ متری، تهران»). */
+function suggestTitle(v: PropertyFormValues): string {
+  const parts = [v.propertyType.trim() || 'ملک']
+  if (v.rooms) parts.push(`${toPersianDigits(v.rooms)} خوابه`)
+  if (v.area) parts.push(`${toPersianDigits(v.area)} متری`)
+  const city = v.city.trim()
+  return city ? `${parts.join(' ')}، ${city}` : parts.join(' ')
+}
+
+/**
+ * v3.0.0 (Amin #4180/#4211): a new file in three short steps with one big
+ * button at the bottom, instead of one long two-column form with a small
+ * save link in the header. The city starts as the city of the broker's
+ * last file. Saving and validation are unchanged (PropertyService).
+ */
 export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -40,6 +67,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
+  const [step, setStep] = useState<PropertyFormStep>(1)
   // A guard beyond `isSubmitting`/the Save button's own disabled state —
   // both are React state, so two presses landing in the same tick (a fast
   // double-tap) can both read `isSubmitting === false` before either
@@ -48,6 +76,53 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const isSubmittingRef = useRef(false)
 
   const { markSaved, unsavedChangesDialogProps } = useUnsavedChangesGuard(navigation, isDirty)
+
+  useEffect(() => {
+    if (!service || !session) {
+      return
+    }
+    let cancelled = false
+    Promise.resolve()
+      .then(() => service.listProperties(session.userId))
+      .then((list) => {
+        const lastCity = list[0]?.city
+        if (!cancelled && lastCity) {
+          setValues((current) => (current.city ? current : { ...current, city: lastCity }))
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [service, session])
+
+  function handleNext(): void {
+    if (step === 1) {
+      const stepErrors: PropertyFormErrors = {}
+      if (!values.city.trim()) stepErrors.city = REQUIRED
+      if (!values.address.trim()) stepErrors.address = REQUIRED
+      setErrors(stepErrors)
+      if (Object.keys(stepErrors).length > 0) {
+        return
+      }
+      setStep(2)
+      return
+    }
+    setErrors({})
+    if (!values.title.trim()) {
+      setValues((current) => ({ ...current, title: suggestTitle(current) }))
+    }
+    setStep(3)
+  }
+
+  function handleBack(): void {
+    if (step > 1) {
+      setErrors({})
+      setStep((step - 1) as PropertyFormStep)
+      return
+    }
+    navigation.goBack()
+  }
 
   function handleChange<K extends keyof PropertyFormValues>(
     field: K,
@@ -73,6 +148,9 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
     } catch (caughtError) {
       if (caughtError instanceof PropertyValidationError) {
         setErrors(caughtError.fieldErrors)
+        const fields = Object.keys(caughtError.fieldErrors) as Array<keyof PropertyFormValues>
+        const first = Math.min(3, ...fields.map((f) => PROPERTY_FIELD_STEP[f]))
+        setStep(first as PropertyFormStep)
       } else {
         setSubmitError('ثبت فایل با مشکل مواجه شد. دوباره تلاش کنید.')
       }
@@ -84,15 +162,36 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <FormScreenContainer
-      onBack={() => navigation.goBack()}
-      headerTitle="افزودن فایل ملکی"
-      onSave={handleSubmit}
-      isSaving={isSubmitting}
+      onBack={handleBack}
+      headerTitle="فایل ملکی تازه"
+      subheader={
+        <View style={styles.progress}>
+          <View style={styles.bars}>
+            {([1, 2, 3] as const).map((n) => (
+              <View key={n} style={[styles.bar, n <= step && styles.barOn]} />
+            ))}
+          </View>
+          <Text style={[theme.typography('bodySm'), styles.stepText]}>
+            {`مرحلهٔ ${toPersianDigits(String(step))} از ۳ · `}
+            <Text style={[theme.typography('labelMd'), styles.stepName]}>{STEP_NAMES[step]}</Text>
+          </Text>
+        </View>
+      }
+      footer={
+        step < 3 ? (
+          <Button
+            label={`ادامه: ${STEP_NAMES[(step + 1) as PropertyFormStep]}`}
+            onPress={handleNext}
+          />
+        ) : (
+          <Button label="ذخیرهٔ فایل" onPress={handleSubmit} loading={isSubmitting} />
+        )
+      }
     >
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
-      <PropertyForm values={values} errors={errors} onChange={handleChange} />
+      <PropertyForm values={values} errors={errors} onChange={handleChange} step={step} />
       <ConfirmDialog {...unsavedChangesDialogProps} />
     </FormScreenContainer>
   )
@@ -103,6 +202,32 @@ function createStyles(theme: Theme) {
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
     // alignSelf explicitly anchors it to the correct edge.
+    progress: {
+      paddingHorizontal: theme.layout.screenPaddingX,
+      paddingTop: theme.spacing.space4,
+      gap: theme.spacing.space2,
+      backgroundColor: theme.colors.background
+    },
+    bars: {
+      flexDirection: 'row',
+      gap: theme.spacing.space2
+    },
+    bar: {
+      flex: 1,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: theme.colors.outlineVariant
+    },
+    barOn: {
+      backgroundColor: theme.colors.primary
+    },
+    stepText: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+    },
+    stepName: {
+      color: theme.colors.onSurface
+    },
     submitError: {
       color: theme.colors.error,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'

@@ -12,7 +12,7 @@ import {
   touchTargetMinimum,
   typographyLtr,
   typographyRtl,
-  vazirmatnFontFamilyByWeight,
+  rtlFontFamilyByWeight,
   type StatusTone,
   type TypographyVariant
 } from './tokens'
@@ -57,7 +57,7 @@ function buildTheme(isRTL: boolean): Theme {
       ...table[variant],
       // Only Vazirmatn (RTL) is bundled as a real asset — LTR falls back
       // to the system font until Geist/Inter are added.
-      fontFamily: isRTL ? vazirmatnFontFamilyByWeight[table[variant].fontWeight] : undefined,
+      fontFamily: isRTL ? rtlFontFamilyByWeight[table[variant].fontWeight] : undefined,
       textAlign: isRTL ? 'right' : 'left',
       writingDirection: isRTL ? 'rtl' : 'ltr'
     }),

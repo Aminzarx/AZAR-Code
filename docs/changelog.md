@@ -1327,3 +1327,38 @@ remains in place; Phase 5 has not begun.
 
 **Status**: Handoff complete. Implementation remains paused pending
 explicit approval to begin Phase 5 in the next session.
+
+---
+
+## 2026-10-22 — v3.0.0 design, batch 1: KSS colours and font, one-page sign-in, three-step new file
+
+**Change**: The app now uses the kssx.ir look (Amin approved the 16-screen design, #4205/#4211):
+- Colours: the KSS UI palette (brand navy `#21364F`, ink `#0F172A`, slate neutrals, the site's
+  green/amber/red/blue status families) in `src/shared/theme/tokens.ts` and
+  `docs/ui/design-tokens.json`; new role `placeholder` (`#94A3B8`). Field borders use `outline`
+  (`#CBD5E1`), dividers `outlineVariant` (`#E2E8F0`).
+- Font: IRANYekan (Regular/Medium/Bold), the kssx.ir font, replaces Vazirmatn
+  (`assets/fonts`, `android/app/src/main/assets/fonts`, `rtlFontFamilyByWeight`).
+- Sign-in on one page (`PhoneEntryScreen` + new `OtpCodePanel`): after «دریافت کد تأیید» the
+  number is locked and only «ویرایش شماره» is active; it drops the sent code and unlocks the
+  number. No «read automatically» note (#4205). The OtpVerification route stays for old links.
+- Code boxes: focus always goes to the next box to fill (a tap on a right-hand box used to put
+  the cursor there while digits filled from the left); Persian keyboard digits are accepted.
+- Welcome: navy header with the mark and three plain benefits.
+- New property file in three steps (type and place → details and price → title and notes) with
+  one bottom button; deal and property type are one-tap chips (`ChoiceChips`, «سایر» for other
+  text); rooms use `NumberStepper`; the city starts as the city of the last file; a title is
+  suggested from type, rooms, area and city; a server-side field error jumps back to its step.
+  Edit mode keeps every field on one page. `FormScreenContainer` gains `subheader` and `footer`.
+- Price fields show the amount in Persian words (`amountInWords`); the quick chips read
+  «× میلیون» / «× میلیارد».
+
+**Reason**: Amin #4180 (professional look, ease of use, colours of the site), #4205, #4211.
+
+**Affected modules**: shared theme and components, auth screens, property create screen/form.
+
+**Migration requirements**: None (no data change; stored values are the same free text).
+
+**Tests**: new PhoneEntryScreen, CreatePropertyScreen (steps), amountInWords, MoneyInput words;
+full suite under Node 22: 621/622 pass; the one failure (ReminderListScreen «بعداً» section)
+fails the same way on the code before this change.

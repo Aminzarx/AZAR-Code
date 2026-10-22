@@ -4,25 +4,6 @@ import { withTheme } from '@shared/components/testHelpers'
 import { CreatePropertyScreen } from '../CreatePropertyScreen'
 import { usePropertyService } from '../../hooks/usePropertyService'
 import { PropertyValidationError } from '../../services/PropertyValidationError'
-import { validatePropertyForm } from '../../services/propertyValidation'
-import type { PropertyFormValues } from '../../types'
-
-const EMPTY_VALUES: PropertyFormValues = {
-  title: '',
-  propertyType: '',
-  transactionType: '',
-  city: '',
-  address: '',
-  price: '',
-  area: '',
-  rooms: '',
-  depositAmount: '',
-  rentAmount: '',
-  isConvertible: false,
-  barterItems: [],
-  barterOtherDescription: '',
-  description: ''
-}
 
 const mockCreateProperty = jest.fn()
 
@@ -64,71 +45,104 @@ const navigationProp = {
 } as never
 const routeProp = { key: 'CreateProperty', name: 'CreateProperty' as const, params: undefined }
 
-describe('CreatePropertyScreen', () => {
+const NEXT_1 = 'ادامه: مشخصات و قیمت'
+const NEXT_2 = 'ادامه: عنوان و توضیحات'
+const SAVE = 'ذخیرهٔ فایل'
+
+describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
+  const mockListProperties = jest.fn()
+
   beforeEach(() => {
     mockReplace.mockClear()
     preventDefault.mockClear()
     beforeRemoveListener = null
     mockCreateProperty.mockReset()
-    mockedUsePropertyService.mockReturnValue({ createProperty: mockCreateProperty } as never)
+    mockListProperties.mockReset()
+    mockListProperties.mockResolvedValue([])
+    mockedUsePropertyService.mockReturnValue({
+      createProperty: mockCreateProperty,
+      listProperties: mockListProperties
+    } as never)
   })
 
-  it('shows the field errors the service reports when required fields are empty', async () => {
-    const { errors } = validatePropertyForm(EMPTY_VALUES)
-    mockCreateProperty.mockRejectedValue(new PropertyValidationError(errors ?? {}))
-
-    const { getByText, findByText } = await render(
+  it('does not leave step 1 until city and address are filled', async () => {
+    const { getByText, findAllByText, queryByLabelText } = await render(
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.press(getByText('ذخیره')))
+    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
 
-    expect(await findByText('عنوان الزامی است.')).toBeTruthy()
-    expect(mockReplace).not.toHaveBeenCalled()
+    expect(await findAllByText('این مورد لازم است.')).toHaveLength(2)
+    expect(queryByLabelText('عنوان فایل')).toBeNull()
+    expect(mockCreateProperty).not.toHaveBeenCalled()
   })
 
-  it('creates the property and navigates to its detail screen on success', async () => {
+  it('walks the three steps, suggests a title, saves and opens the new file', async () => {
     mockCreateProperty.mockResolvedValue({ id: 'prop-1' })
 
     const { getByLabelText, getByText, queryByText } = await render(
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('عنوان فایل'), 'آپارتمان جدید'))
+    await waitFor(() => fireEvent.press(getByLabelText('آپارتمان')))
     await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
     await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
-    await waitFor(() => fireEvent.press(getByText('ذخیره')))
+    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
+    await waitFor(() => fireEvent.press(getByLabelText('یکی بیشتر تعداد اتاق')))
+    await waitFor(() => fireEvent.press(getByLabelText('یکی بیشتر تعداد اتاق')))
+    await waitFor(() => fireEvent.press(getByText(NEXT_2)))
+
+    await waitFor(() =>
+      expect(getByLabelText('عنوان فایل').props.value).toBe('آپارتمان ۲ خوابه، تهران')
+    )
+    await waitFor(() => fireEvent.press(getByText(SAVE)))
 
     await waitFor(() =>
       expect(mockCreateProperty).toHaveBeenCalledWith(
         'u1',
-        expect.objectContaining({ title: 'آپارتمان جدید', city: 'تهران', address: 'خیابان ولیعصر' })
+        expect.objectContaining({
+          title: 'آپارتمان ۲ خوابه، تهران',
+          propertyType: 'آپارتمان',
+          city: 'تهران',
+          address: 'خیابان ولیعصر',
+          rooms: '2'
+        })
       )
     )
     await waitFor(() =>
       expect(mockReplace).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
     )
-
     // Regression: navigation.replace() fires `beforeRemove` synchronously,
-    // within the same call, before setIsDirty(false) has re-rendered —
-    // without markSaved()'s synchronous ref write, the guard treated its
-    // own successful-save navigation as an unconfirmed exit and popped
-    // the "unsaved changes" dialog right after a successful save.
+    // before setIsDirty(false) has re-rendered — markSaved()'s synchronous
+    // ref write keeps the guard from treating its own save as an exit.
     expect(preventDefault).not.toHaveBeenCalled()
     expect(queryByText('تغییرات ذخیره نشده')).toBeNull()
   })
 
-  it('shows field errors returned by PropertyValidationError from the service', async () => {
+  it('goes back to the step that holds a field the service rejected', async () => {
     mockCreateProperty.mockRejectedValue(new PropertyValidationError({ city: 'شهر الزامی است.' }))
 
     const { getByLabelText, getByText, findByText } = await render(
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('عنوان فایل'), 'آپارتمان جدید'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
     await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
-    await waitFor(() => fireEvent.press(getByText('ذخیره')))
+    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
+    await waitFor(() => fireEvent.press(getByText(NEXT_2)))
+    await waitFor(() => fireEvent.press(getByText(SAVE)))
 
     expect(await findByText('شهر الزامی است.')).toBeTruthy()
+    expect(getByText(NEXT_1)).toBeTruthy()
+  })
+
+  it('starts the city as the city of the last file', async () => {
+    mockListProperties.mockResolvedValue([{ city: 'شیراز' }])
+
+    const { getByLabelText } = await render(
+      withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    await waitFor(() => expect(getByLabelText('شهر').props.value).toBe('شیراز'))
   })
 })

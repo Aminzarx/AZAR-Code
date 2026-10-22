@@ -57,6 +57,10 @@ type Props = {
    * timing is what actually controls visibility).
    */
   saveSucceeded?: boolean
+  /** v3.0.0 (Amin #4211): content under the header and above the form (e.g. step progress). */
+  subheader?: React.ReactNode
+  /** v3.0.0 (Amin #4211): a fixed bottom action bar (the step's main button), outside the scroll. */
+  footer?: React.ReactNode
 }
 
 /**
@@ -98,7 +102,9 @@ export function FormScreenContainer({
   saveLabel = 'ذخیره',
   isSaving,
   isDirty = true,
-  saveSucceeded = false
+  saveSucceeded = false,
+  subheader,
+  footer
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const isDisabled = Boolean(isSaving) || !isDirty
@@ -175,6 +181,7 @@ export function FormScreenContainer({
           )}
         </View>
       ) : null}
+      {subheader}
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -186,6 +193,7 @@ export function FormScreenContainer({
         >
           {children}
         </ScrollView>
+        {footer ? <View style={styles.footer}>{footer}</View> : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
@@ -199,6 +207,14 @@ function createStyles(theme: Theme, isDisabled: boolean) {
     },
     flex: {
       flex: 1
+    },
+    footer: {
+      paddingHorizontal: theme.layout.screenPaddingX,
+      paddingTop: theme.spacing.space3,
+      paddingBottom: theme.spacing.space5,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.outlineVariant,
+      backgroundColor: theme.colors.surfaceContainerLowest
     },
     header: {
       flexDirection: 'row',

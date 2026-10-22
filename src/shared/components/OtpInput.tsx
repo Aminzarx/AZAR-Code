@@ -20,6 +20,15 @@ type Props = {
   disabled?: boolean
   /** Fires once the left-to-right success sweep (see design-system.md) finishes. */
   onSuccessAnimationComplete?: () => void
+  /** v3.0.0: focus the first box as soon as the boxes appear. */
+  autoFocus?: boolean
+}
+
+/** v3.0.0: Persian/Arabic-Indic digits from a Persian keyboard count as digits too. */
+function toLatinDigits(text: string): string {
+  return text
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
 }
 
 /**
@@ -36,7 +45,8 @@ export function OtpInput({
   onChangeValue,
   status = 'default',
   disabled,
-  onSuccessAnimationComplete
+  onSuccessAnimationComplete,
+  autoFocus
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -44,6 +54,25 @@ export function OtpInput({
   const successAnim = useMemo(() => Array.from({ length: LENGTH }, () => new Animated.Value(0)), [])
 
   const digits = Array.from({ length: LENGTH }, (_, i) => value[i] ?? '')
+  const firstEmpty = digits.findIndex((d) => !d)
+  const nextIndex = firstEmpty === -1 ? LENGTH - 1 : firstEmpty
+
+  useEffect(() => {
+    if (autoFocus && !disabled) {
+      inputRefs.current[nextIndex]?.focus()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocus])
+
+  // v3.0.0 (emulator review 2026-10-22): a tap on any later box (in RTL the
+  // right-hand ones, where a Persian reader taps first) used to put the cursor
+  // there while digits filled from the left. Focus always goes to the next
+  // box to fill, so typing and the cursor stay in one place.
+  function handleFocus(index: number): void {
+    if (index > nextIndex) {
+      inputRefs.current[nextIndex]?.focus()
+    }
+  }
 
   useEffect(() => {
     if (status !== 'success') {
@@ -74,7 +103,9 @@ export function OtpInput({
   function handleChangeText(index: number, text: string): void {
     if (text.length > 1) {
       // Pasted content — distribute from this box onward.
-      const pasted = text.replace(/\D/g, '').slice(0, LENGTH - index)
+      const pasted = toLatinDigits(text)
+        .replace(/\D/g, '')
+        .slice(0, LENGTH - index)
       const next = digits.slice()
       for (let i = 0; i < pasted.length; i++) {
         next[index + i] = pasted[i] ?? ''
@@ -85,7 +116,7 @@ export function OtpInput({
       return
     }
 
-    const digit = text.replace(/\D/g, '')
+    const digit = toLatinDigits(text).replace(/\D/g, '')
     setDigitAt(index, digit)
     if (digit && index < LENGTH - 1) {
       inputRefs.current[index + 1]?.focus()
@@ -127,7 +158,7 @@ export function OtpInput({
           ? theme.colors.error
           : digit
             ? theme.colors.primary
-            : theme.colors.outlineVariant
+            : theme.colors.outline
 
     return (
       <Animated.View
@@ -149,6 +180,7 @@ export function OtpInput({
           value={digit}
           onChangeText={(text) => handleChangeText(index, text)}
           onKeyPress={(event) => handleKeyPress(index, event)}
+          onFocus={() => handleFocus(index)}
           keyboardType="number-pad"
           maxLength={index === 0 ? LENGTH : 1}
           editable={!disabled}

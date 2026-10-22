@@ -74,7 +74,7 @@ export function TextInput({
           onBlur?.()
         }}
         placeholder={placeholder}
-        placeholderTextColor={theme.colors.outline}
+        placeholderTextColor={theme.colors.placeholder}
         keyboardType={keyboardType}
         maxLength={maxLength}
         autoFocus={autoFocus}
@@ -99,8 +99,9 @@ function createStyles(theme: Theme) {
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
     // alignSelf explicitly anchors it to the correct edge.
+    // v3.0.0: labels in ink, as on kssx.ir forms
     label: {
-      color: theme.colors.onSurfaceVariant,
+      color: theme.colors.onSurface,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     requiredMark: {
@@ -111,11 +112,12 @@ function createStyles(theme: Theme) {
       borderRadius: theme.component.textField.radius,
       paddingVertical: theme.component.textField.paddingY,
       paddingHorizontal: theme.component.textField.paddingX,
-      color: theme.colors.primary
+      color: theme.colors.onSurface,
+      backgroundColor: theme.colors.surfaceContainerLowest
     },
     inputDefault: {
       borderWidth: 1,
-      borderColor: theme.colors.outlineVariant
+      borderColor: theme.colors.outline
     },
     inputFocused: {
       borderWidth: 1,
@@ -126,7 +128,7 @@ function createStyles(theme: Theme) {
       borderColor: theme.colors.error
     },
     inputDisabled: {
-      color: theme.colors.outline,
+      color: theme.colors.onSurfaceVariant,
       backgroundColor: theme.colors.surfaceContainerLow
     },
     errorText: {

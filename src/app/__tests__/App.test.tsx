@@ -23,7 +23,7 @@ describe('App', () => {
 
   it('renders the Welcome screen once initialized, for a user with no existing session', async () => {
     const { findByText } = await render(<App />)
-    expect(await findByText('به آزار خوش آمدید')).toBeTruthy()
-    expect(await findByText('شروع کنید')).toBeTruthy()
+    expect(await findByText('همهٔ فایل‌ها و مشتری‌هایتان در یک جا')).toBeTruthy()
+    expect(await findByText('شروع')).toBeTruthy()
   })
 })

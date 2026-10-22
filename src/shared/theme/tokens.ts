@@ -21,69 +21,60 @@
  */
 
 /**
- * "Professional Navy" (v2.9.0) — a muted, low-formality navy primary
- * (#2E3B52) over a cool, low-contrast light-gray neutral family
- * (#F4F5F7), replacing v2.0.0-v2.8.6's charcoal-black + off-white-gray
- * "Minimal Luxury" palette per explicit user direction that the old
- * neutrals read as too plain/generic for a professional CRM. The two
- * brand accents (muted bronze secondary, deep emerald tertiary) and
- * every semantic color are unchanged — this is a primary/neutral swap,
- * not another full reset.
+ * v3.0.0 "KSS" (Amin #4180/#4205/#4211): the colours of kssx.ir (KSS UI
+ * tokens) so the app and the site read as one product. Brand navy
+ * #21364F is the site's accent; ink #0F172A, the slate neutrals, and the
+ * green/amber/red/blue status families are the site's own values. Same
+ * token shape as v2.x, plus `placeholder` (the site's field hint colour).
  */
 export const lightColors = {
-  primary: '#2E3B52',
+  primary: '#21364F',
   onPrimary: '#FFFFFF',
-  primaryContainer: '#DCE3EC',
-  onPrimaryContainer: '#1F2A3D',
+  primaryContainer: '#EDF1F6',
+  onPrimaryContainer: '#21364F',
   inversePrimary: '#AEBED4',
-  // v2.9.1: retargeted from the old bronze/gold accent to a lighter navy
-  // (same family as `primary`, not a separate warm hue) per explicit user
-  // direction that no "brick"/warm accent should remain anywhere in the
-  // app — only navy or light gray.
-  secondary: '#47597A',
+  secondary: '#4A6383',
   onSecondary: '#FFFFFF',
-  secondaryContainer: '#E3E8EF',
-  onSecondaryContainer: '#26344A',
-  // v2.9.1: retargeted from the old deep emerald accent to a muted gray —
-  // same reasoning as `secondary` above; this is now the app's "second,
-  // distinguishable-from-navy" tone, not a second brand color.
-  tertiary: '#6B7280',
+  secondaryContainer: '#EDF1F6',
+  onSecondaryContainer: '#21364F',
+  tertiary: '#64748B',
   onTertiary: '#FFFFFF',
-  tertiaryContainer: '#E7E8EA',
-  onTertiaryContainer: '#33363B',
-  error: '#B3261E',
+  tertiaryContainer: '#F1F5F9',
+  onTertiaryContainer: '#334155',
+  error: '#DC2626',
   onError: '#FFFFFF',
-  errorContainer: '#F9DEDC',
-  onErrorContainer: '#410E0B',
-  success: '#2F6B4F',
+  errorContainer: '#FDECEC',
+  onErrorContainer: '#991B1B',
+  success: '#16A34A',
   onSuccess: '#FFFFFF',
-  successContainer: '#DCEFE3',
-  onSuccessContainer: '#1B4632',
-  warning: '#8A5A00',
+  successContainer: '#E9FBF0',
+  onSuccessContainer: '#166534',
+  warning: '#D97706',
   onWarning: '#FFFFFF',
-  warningContainer: '#F6E3C2',
-  onWarningContainer: '#4A3200',
-  info: '#3D5A73',
+  warningContainer: '#FEF3E2',
+  onWarningContainer: '#92400E',
+  info: '#2563EB',
   onInfo: '#FFFFFF',
-  infoContainer: '#E1E9EF',
-  onInfoContainer: '#263B4C',
-  background: '#F4F5F7',
-  onBackground: '#2A3242',
-  surface: '#F4F5F7',
-  surfaceDim: '#E2E4E8',
-  surfaceBright: '#F4F5F7',
+  infoContainer: '#EFF6FF',
+  onInfoContainer: '#1E40AF',
+  background: '#F8FAFC',
+  onBackground: '#0F172A',
+  surface: '#F8FAFC',
+  surfaceDim: '#E2E8F0',
+  surfaceBright: '#F8FAFC',
   surfaceContainerLowest: '#FFFFFF',
-  surfaceContainerLow: '#EEF0F2',
-  surfaceContainer: '#E8EAED',
-  surfaceContainerHigh: '#E1E3E7',
-  surfaceContainerHighest: '#D6D9DE',
-  surfaceVariant: '#D6D9DE',
-  onSurface: '#2A3242',
-  onSurfaceVariant: '#5B6472',
-  inverseSurface: '#2E3B52',
-  inverseOnSurface: '#F0F1F3',
-  outline: '#8790A0',
-  outlineVariant: '#D2D6DC'
+  surfaceContainerLow: '#F1F5F9',
+  surfaceContainer: '#EEF2F6',
+  surfaceContainerHigh: '#E2E8F0',
+  surfaceContainerHighest: '#CBD5E1',
+  surfaceVariant: '#E2E8F0',
+  onSurface: '#0F172A',
+  onSurfaceVariant: '#64748B',
+  inverseSurface: '#0F172A',
+  inverseOnSurface: '#F1F5F9',
+  outline: '#CBD5E1',
+  outlineVariant: '#E2E8F0',
+  placeholder: '#94A3B8'
 } as const
 
 export const spacing = {
@@ -120,21 +111,21 @@ export const radius = {
 export const elevation = {
   level0: { shadowOpacity: 0, elevation: 0 },
   level1: {
-    shadowColor: '#2E3B52',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
     shadowRadius: 20,
     elevation: 1
   },
   level2: {
-    shadowColor: '#2E3B52',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2
   },
   level4: {
-    shadowColor: '#2E3B52',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.18,
     shadowRadius: 40,
@@ -180,11 +171,11 @@ export const typographyLtr = {
 } satisfies Record<string, TypographyToken>
 
 /**
- * Line-heights genuinely differ from LTR — Vazirmatn needs more vertical
+ * Line-heights genuinely differ from LTR — Persian text needs more vertical
  * room than the Geist/Inter LTR scale — but v2.9.0 trims the excess back
  * down from v2.0.0's flat +20-34% "airy luxury" widening (which read as
  * too much dead space for a professional CRM used all day) to a tighter
- * +8-15% over the LTR scale, still comfortably above what Vazirmatn's
+ * +8-15% over the LTR scale, still comfortably above what the Persian font's
  * diacritics/vertical metrics actually need.
  */
 export const typographyRtl = {
@@ -201,12 +192,12 @@ export const typographyRtl = {
 
 export type TypographyVariant = keyof typeof typographyLtr
 
-/** Filenames match the bundled assets/fonts/Vazirmatn-*.ttf exactly (Android resolves font family by filename). */
-export const vazirmatnFontFamilyByWeight: Record<TypographyToken['fontWeight'], string> = {
-  '400': 'Vazirmatn-Regular',
-  '500': 'Vazirmatn-Medium',
-  '600': 'Vazirmatn-SemiBold',
-  '700': 'Vazirmatn-SemiBold' // no Bold weight is bundled — SemiBold is the closest available
+/** Filenames match the bundled assets/fonts/IRANYekan-*.ttf exactly (Android resolves font family by filename). v3.0.0: IRANYekan, the kssx.ir font, replaces Vazirmatn. */
+export const rtlFontFamilyByWeight: Record<TypographyToken['fontWeight'], string> = {
+  '400': 'IRANYekan-Regular',
+  '500': 'IRANYekan-Medium',
+  '600': 'IRANYekan-Bold',
+  '700': 'IRANYekan-Bold'
 }
 
 /**

@@ -20,18 +20,18 @@ describe('MoneyInput', () => {
     expect(onChangeValue).toHaveBeenCalledWith('5000000')
   })
 
-  it('shows the میلیون chip as a comma-grouped zero string, not a word', async () => {
+  it('labels the میلیون chip with the word (v3.0.0, Amin #4180)', async () => {
     const { getByText } = await render(
       withTheme(<MoneyInput label="قیمت" value="5" onChangeValue={jest.fn()} />)
     )
-    expect(getByText('000,000')).toBeTruthy()
+    expect(getByText('× میلیون')).toBeTruthy()
   })
 
-  it('shows the میلیارد chip as a comma-grouped zero string', async () => {
+  it('labels the میلیارد chip with the word', async () => {
     const { getByText } = await render(
       withTheme(<MoneyInput label="قیمت" value="5" onChangeValue={jest.fn()} />)
     )
-    expect(getByText('000,000,000')).toBeTruthy()
+    expect(getByText('× میلیارد')).toBeTruthy()
   })
 
   it('appends zeros when the میلیون chip is pressed', async () => {
@@ -66,5 +66,12 @@ describe('MoneyInput', () => {
       withTheme(<MoneyInput label="قیمت" value="" onChangeValue={jest.fn()} required />)
     )
     expect(getByText('*')).toBeTruthy()
+  })
+
+  it('writes the amount in words under the field (v3.0.0, Amin #4180)', async () => {
+    const { getByText } = await render(
+      withTheme(<MoneyInput label="قیمت" value="8500000000" onChangeValue={jest.fn()} />)
+    )
+    expect(getByText('هشت میلیارد و پانصد میلیون تومان')).toBeTruthy()
   })
 })
