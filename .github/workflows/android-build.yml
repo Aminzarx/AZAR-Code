@@ -31,6 +31,10 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # the action's default list still names the old 'tools' package, which the SDK no longer has (2026-10:
+          # «Failed to find package 'tools'»); Gradle installs the platform, build-tools and NDK it needs itself
+          packages: 'platform-tools'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
