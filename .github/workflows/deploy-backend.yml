@@ -1,13 +1,9 @@
 name: Deploy Auth Backend
 
+# KSS (Amin #4113, 2026-10-22): the sign-in server now runs on the KSS host as the service azar-auth (/opt/azar-auth),
+# not in the old sandbox container this workflow deploys to. Automatic runs are off so a push never starts a second,
+# unused copy there; KSS deploys server/ changes to the host itself.
 on:
-  push:
-    branches:
-      - main
-      - 'claude/**'
-    paths:
-      - 'server/**'
-      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch: {}
 
 jobs:
