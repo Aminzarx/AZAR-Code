@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -34,8 +34,25 @@ export function FilesScreen({ navigation, route }: Props): React.JSX.Element {
   const [kind, setKind] = useState<FileKind>('properties')
   const { session } = useAuth()
   const userId = session?.userId ?? ''
-  const { properties } = useProperties(userId, '')
-  const { applicants } = useApplicants(userId, '')
+  const { properties, refetch: refetchProperties } = useProperties(userId, '')
+  const { applicants, refetch: refetchApplicants } = useApplicants(userId, '')
+
+  // v1.3.0: tabs stay mounted (lazy: false), so the lists and counts never
+  // reloaded after a file was saved on the create screen — the list kept
+  // showing «هنوز فایلی ثبت نشده». Reload on every return to this tab.
+  const [refreshKey, setRefreshKey] = useState(0)
+  useEffect(() => {
+    if (typeof navigation.addListener !== 'function') {
+      return undefined
+    }
+    return navigation.addListener('focus', () => setRefreshKey((current) => current + 1))
+  }, [navigation])
+  useEffect(() => {
+    if (refreshKey) {
+      refetchProperties()
+      refetchApplicants()
+    }
+  }, [refreshKey, refetchProperties, refetchApplicants])
 
   const options = [
     { value: 'properties' as const, label: withCount('املاک', properties?.length) },
@@ -50,9 +67,19 @@ export function FilesScreen({ navigation, route }: Props): React.JSX.Element {
       </View>
       <View style={styles.body}>
         {kind === 'properties' ? (
-          <PropertyListScreen navigation={navigation as never} route={route as never} embedded />
+          <PropertyListScreen
+            navigation={navigation as never}
+            route={route as never}
+            embedded
+            refreshKey={refreshKey}
+          />
         ) : (
-          <ApplicantListScreen navigation={navigation as never} route={route as never} embedded />
+          <ApplicantListScreen
+            navigation={navigation as never}
+            route={route as never}
+            embedded
+            refreshKey={refreshKey}
+          />
         )}
       </View>
     </SafeAreaView>

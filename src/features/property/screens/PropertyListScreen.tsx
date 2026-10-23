@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -37,6 +37,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'PropertyList'> & {
    * `FilesScreen` passes `embedded` to suppress the header in that case.
    */
   embedded?: boolean
+  /** v1.3.0: FilesScreen bumps this each time the tab comes back into view, so a file saved on another screen shows at once. */
+  refreshKey?: number
 }
 
 const STATUS_OPTIONS: readonly { value: PropertyStatus; label: string }[] = [
@@ -103,13 +105,19 @@ function countFilters(filters: PropertyFilters): number {
   )
 }
 
-export function PropertyListScreen({ navigation, embedded }: Props): React.JSX.Element {
+export function PropertyListScreen({ navigation, embedded, refreshKey }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
   const ownerId = session?.userId ?? ''
   const [search, setSearch] = useState('')
   const { properties, isLoading, error, refetch } = useProperties(ownerId, search)
+
+  useEffect(() => {
+    if (refreshKey) {
+      refetch()
+    }
+  }, [refreshKey, refetch])
 
   // v1.3.0 (design batch 2): deal type, property type, price range and
   // status, all client-side over the already-fetched list. `draft` is

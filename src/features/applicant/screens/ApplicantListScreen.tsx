@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -29,6 +29,8 @@ import type { Applicant, ApplicantStatus } from '../types'
 type Props = NativeStackScreenProps<MainStackParamList, 'ApplicantList'> & {
   /** See PropertyListScreen's identical `embedded` prop for why. */
   embedded?: boolean
+  /** v1.3.0: FilesScreen bumps this each time the tab comes back into view, so a file saved on another screen shows at once. */
+  refreshKey?: number
 }
 
 const STATUS_OPTIONS: readonly { value: ApplicantStatus; label: string }[] = [
@@ -98,13 +100,23 @@ function countFilters(filters: ApplicantFilters): number {
   )
 }
 
-export function ApplicantListScreen({ navigation, embedded }: Props): React.JSX.Element {
+export function ApplicantListScreen({
+  navigation,
+  embedded,
+  refreshKey
+}: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
   const userId = session?.userId ?? ''
   const [search, setSearch] = useState('')
   const { applicants, isLoading, error, refetch } = useApplicants(userId, search)
+
+  useEffect(() => {
+    if (refreshKey) {
+      refetch()
+    }
+  }, [refreshKey, refetch])
 
   // v1.3.0 (design batch 2): same client-side filter model as the
   // property list — `draft` in the open sheet, `applied` on the list.

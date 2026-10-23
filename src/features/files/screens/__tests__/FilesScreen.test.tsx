@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render } from '@testing-library/react-native'
+import { act, fireEvent, render } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { FilesScreen } from '../FilesScreen'
 import { useProperties } from '@features/property/hooks/useProperties'
@@ -51,5 +51,34 @@ describe('FilesScreen', () => {
 
     fireEvent.press(await findByLabelText('متقاضیان ۰'))
     expect(await findByText('هنوز متقاضی‌ای ثبت نشده')).toBeTruthy()
+  })
+})
+
+describe('FilesScreen — reload on return (v1.3.0)', () => {
+  it('reloads the lists when the tab comes back into view', async () => {
+    const refetchProperties = jest.fn()
+    let onFocus: (() => void) | undefined
+    mockedUseProperties.mockReturnValue({
+      properties: [],
+      isLoading: false,
+      error: null,
+      refetch: refetchProperties
+    })
+    const navigation = {
+      addListener: (event: string, callback: () => void) => {
+        if (event === 'focus') {
+          onFocus = callback
+        }
+        return () => undefined
+      }
+    } as never
+
+    await render(withTheme(<FilesScreen navigation={navigation} route={routeProp} />))
+    expect(refetchProperties).not.toHaveBeenCalled()
+
+    await act(async () => {
+      onFocus?.()
+    })
+    expect(refetchProperties).toHaveBeenCalled()
   })
 })

@@ -22,9 +22,11 @@ export function BrandMark({ inverse }: Props): React.JSX.Element {
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
+    // v1.3.0: «EYVAN» is wider than «AZAR»; the tile grows with the word.
     tile: {
-      width: 64,
+      minWidth: 64,
       height: 64,
+      paddingHorizontal: theme.spacing.space4,
       borderRadius: theme.radius.extraLarge,
       backgroundColor: theme.colors.primary,
       alignItems: 'center',

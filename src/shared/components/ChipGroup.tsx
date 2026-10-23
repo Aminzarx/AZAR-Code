@@ -73,7 +73,7 @@ function createStyles(theme: Theme) {
     // reliably stretch to full width, so textAlign alone isn't enough;
     // alignSelf explicitly anchors it to the correct edge.
     label: {
-      color: theme.colors.onSurfaceVariant,
+      color: theme.colors.onSurface,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     chipRow: {
@@ -92,15 +92,17 @@ function createStyles(theme: Theme) {
       borderColor: theme.colors.outlineVariant,
       backgroundColor: theme.colors.surfaceContainerLowest
     },
+    // v1.3.0 (design batch 2): selected = brand navy fill, as in the
+    // approved filter mockup and ChoiceChips.
     chipSelected: {
-      borderColor: theme.colors.primaryContainer,
-      backgroundColor: theme.colors.primaryContainer
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary
     },
     chipLabel: {
-      color: theme.colors.onSurfaceVariant
+      color: theme.colors.onSurface
     },
     chipLabelSelected: {
-      color: theme.colors.onPrimaryContainer
+      color: theme.colors.onPrimary
     }
   })
 }

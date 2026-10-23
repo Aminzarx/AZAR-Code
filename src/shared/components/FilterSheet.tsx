@@ -22,7 +22,8 @@ type Props = {
 // the window, still generous enough that filter content rarely needs to
 // scroll. Ratios, not fixed px, so this scales across phoneBreakpoints
 // (§13).
-const HEIGHT_RATIO = 0.6
+// v1.3.0: 0.75 so four filter groups fit without scrolling on most phones.
+const HEIGHT_RATIO = 0.75
 
 /**
  * design-system.md §7.9's "no new dependency" stance, reused here for

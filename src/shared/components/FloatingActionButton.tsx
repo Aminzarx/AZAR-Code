@@ -60,7 +60,8 @@ function createStyles(theme: Theme) {
     button: {
       position: 'absolute',
       bottom: theme.spacing.space6,
-      start: theme.spacing.space6,
+      // v1.3.0: bottom-left in RTL, as in the approved mockups.
+      end: theme.spacing.space6,
       width: 56,
       height: 56,
       borderRadius: theme.radius.full,
