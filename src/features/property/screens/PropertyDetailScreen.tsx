@@ -11,8 +11,11 @@ import {
   ErrorState,
   FormScreenContainer,
   LoadingIndicator,
+  SpecTiles,
   StatusBadge
 } from '@shared/components'
+import { toPersianDigits } from '@shared/utils/persianText'
+import { moneyLine } from '@shared/utils/shortMoney'
 import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { usePropertyDetail } from '../hooks/usePropertyDetail'
@@ -149,6 +152,9 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   const rentStatusLabel = property
     ? deriveRentStatusLabel(property.depositAmount, property.rentAmount)
     : null
+  const headlinePrice = property
+    ? moneyLine(property.price, property.depositAmount, property.rentAmount)
+    : null
 
   return (
     <FormScreenContainer
@@ -184,67 +190,62 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
       ) : (
         <>
           <Card variant="detail">
-            <View style={styles.titleRow}>
-              <Text
-                style={[theme.typography('headlineMd'), styles.title]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {property.title}
-              </Text>
+            {/* v1.3.0 (design batch 2): deal-type tag and status, title,
+                the price as a broker says it with the exact amount under
+                it, then the key facts as tiles; every number in Persian. */}
+            <View style={styles.tagRow}>
+              {property.transactionType ? (
+                <View style={styles.tag}>
+                  <Text style={[theme.typography('labelSm'), styles.tagText]}>
+                    {property.transactionType}
+                  </Text>
+                </View>
+              ) : null}
               {derivedStatus ? (
                 <StatusBadge label={derivedStatus.label} tone={derivedStatus.tone} />
               ) : null}
             </View>
+            <Text
+              style={[theme.typography('headlineLgMobile'), styles.title]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {property.title}
+            </Text>
             <Text style={[theme.typography('bodyMd'), styles.location]}>
-              {property.city} • {property.address}
+              {[property.city, property.address].filter(Boolean).join('، ')}
             </Text>
 
-            {/* design-system.md Principle 6 — price/area/rooms are what a
-                broker needs first, promoted above every other detail field. */}
-            <View style={styles.headlineStats}>
-              {property.price !== null ? (
-                <Text style={[theme.typography('headlineMd'), styles.priceValue]}>
-                  {property.price.toLocaleString('fa-IR')} تومان
+            {headlinePrice ? (
+              <View style={styles.headlineStats}>
+                <Text style={[theme.typography('headlineLgMobile'), styles.priceValue]}>
+                  {headlinePrice}
                 </Text>
-              ) : null}
-              {property.area !== null || property.rooms !== null ? (
-                <View style={styles.headlineMetaRow}>
-                  {property.area !== null ? (
-                    <Text style={[theme.typography('bodyMd'), styles.headlineMetaValue]}>
-                      {property.area} متر
-                    </Text>
-                  ) : null}
-                  {property.rooms !== null ? (
-                    <Text style={[theme.typography('bodyMd'), styles.headlineMetaValue]}>
-                      {property.rooms} اتاق
-                    </Text>
-                  ) : null}
-                </View>
-              ) : null}
-            </View>
+                {property.price !== null ? (
+                  <Text style={[theme.typography('bodySm'), styles.exactValue]}>
+                    {property.price.toLocaleString('fa-IR')} تومان
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+
+            <SpecTiles
+              tiles={[
+                property.area !== null
+                  ? { label: 'متراژ', value: `${toPersianDigits(String(property.area))} متر` }
+                  : null,
+                property.rooms !== null
+                  ? { label: 'اتاق', value: toPersianDigits(String(property.rooms)) }
+                  : null,
+                property.propertyType ? { label: 'نوع ملک', value: property.propertyType } : null
+              ].filter((tile): tile is { label: string; value: string } => tile !== null)}
+            />
 
             {/* v2.9.2 — reverted the v2.9.1 2-column grid back to a
                 single-column table (label on the right, value on the
                 left, per explicit direction) — long values like deposit
                 amounts didn't fit well in a 47%-wide cell next to their
                 label. */}
-            {property.propertyType ? (
-              <DetailRow
-                label="نوع ملک"
-                value={property.propertyType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {property.transactionType ? (
-              <DetailRow
-                label="نوع معامله"
-                value={property.transactionType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
             {rentStatusLabel ? (
               <DetailRow
                 label="وضعیت رهن/اجاره"
@@ -296,12 +297,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
             ) : null}
 
             <View style={styles.actions}>
-              <Button
-                label="ویرایش"
-                onPress={startEditing}
-                variant="secondary"
-                style={styles.actionButton}
-              />
+              <Button label="ویرایش" onPress={startEditing} style={styles.actionButton} />
               <Button
                 label={property.status === 'archived' ? 'خروج از بایگانی' : 'بایگانی'}
                 onPress={handleToggleArchive}
@@ -309,14 +305,13 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
                 loading={isTogglingArchive}
                 style={styles.actionButton}
               />
-              <Button
-                label="حذف فایل"
-                onPress={() => setIsDeleteConfirmVisible(true)}
-                variant="destructive"
-                loading={isDeleting}
-                style={styles.actionButton}
-              />
             </View>
+            <Button
+              label="حذف فایل"
+              onPress={() => setIsDeleteConfirmVisible(true)}
+              variant="destructiveText"
+              loading={isDeleting}
+            />
             {submitError ? (
               <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
             ) : null}
@@ -389,40 +384,43 @@ function createStyles(theme: Theme) {
       justifyContent: 'center',
       paddingVertical: theme.spacing.space12
     },
-    titleRow: {
+    tagRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.space2
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: theme.spacing.space2,
+      marginBottom: theme.spacing.space3
     },
-    // design-system.md §10 — rides inline in a row beside the status
-    // badge, so it needs flexShrink (overflow safety) instead of
-    // alignSelf (that rule is for standalone column-level Text only).
+    tag: {
+      paddingHorizontal: theme.spacing.space2,
+      paddingVertical: 2,
+      borderRadius: theme.radius.medium,
+      backgroundColor: theme.colors.surfaceContainer
+    },
+    tagText: {
+      color: theme.colors.onSurfaceVariant
+    },
     title: {
       color: theme.colors.onSurface,
-      flexShrink: 1
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     location: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space2,
+      marginTop: theme.spacing.space1,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
-    // design-system.md Principle 6 — the one deliberately "loud" block on
-    // this screen: price/area/rooms, promoted above every other field.
     headlineStats: {
-      marginTop: theme.spacing.space5,
-      marginBottom: theme.spacing.space2,
-      gap: theme.spacing.space1
+      marginTop: theme.spacing.space4,
+      marginBottom: theme.spacing.space4,
+      gap: 2
     },
     priceValue: {
       color: theme.colors.primary,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
-    headlineMetaRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.space4
-    },
-    headlineMetaValue: {
-      color: theme.colors.onSurfaceVariant
+    exactValue: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     // v2.9.2 — a real table row: label (right) / value (left) in one
     // row, per explicit direction — a hairline divider between rows
@@ -457,7 +455,8 @@ function createStyles(theme: Theme) {
     actions: {
       flexDirection: 'row',
       gap: theme.spacing.space3,
-      marginTop: theme.spacing.space5
+      marginTop: theme.spacing.space5,
+      marginBottom: theme.spacing.space1
     },
     actionButton: {
       flex: 1

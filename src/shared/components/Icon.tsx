@@ -28,6 +28,10 @@ export type IconName =
   | 'download'
   | 'share'
   | 'upload'
+  | 'phone'
+  | 'search'
+  | 'bell'
+  | 'time'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -121,5 +125,13 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'share-outline'
     case 'upload':
       return 'cloud-upload-outline'
+    case 'phone':
+      return 'call-outline'
+    case 'search':
+      return 'search-outline'
+    case 'bell':
+      return 'notifications-outline'
+    case 'time':
+      return 'time-outline'
   }
 }

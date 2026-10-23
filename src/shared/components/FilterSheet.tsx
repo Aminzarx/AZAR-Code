@@ -3,7 +3,6 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button } from './Button'
-import { Icon } from './Icon'
 
 type Props = {
   visible: boolean
@@ -14,6 +13,8 @@ type Props = {
   onApply: () => void
   onClear: () => void
   onClose: () => void
+  /** v1.3.0: the apply button says what it will show, e.g. «نمایش ۱۲ فایل». */
+  applyLabel?: string
 }
 
 // v2.9.4 — the v2.9.2 drag-to-resize handle was reported as unwanted
@@ -39,7 +40,8 @@ export function FilterSheet({
   hasActiveFilters,
   onApply,
   onClear,
-  onClose
+  onClose,
+  applyLabel = 'اعمال فیلتر'
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -58,31 +60,34 @@ export function FilterSheet({
           onStartShouldSetResponder={() => true}
           onTouchEnd={(event) => event.stopPropagation()}
         >
+          {/* v1.3.0 (design batch 2): handle, title and «پاک کردن همه» as in
+              the approved mockup; the backdrop and Android back still close. */}
+          <View style={styles.handle} />
           <View style={styles.header}>
             <Text style={[theme.typography('titleMd'), styles.title]}>{title}</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="بستن"
-              onPress={onClose}
+              accessibilityLabel="پاک کردن همه"
+              accessibilityState={{ disabled: !hasActiveFilters }}
+              onPress={onClear}
+              disabled={!hasActiveFilters}
               hitSlop={theme.spacing.space2}
-              style={styles.closeButton}
             >
-              <Icon name="close" size="sm" color={theme.colors.onSurfaceVariant} />
+              <Text
+                style={[
+                  theme.typography('labelMd'),
+                  hasActiveFilters ? styles.clear : styles.clearDisabled
+                ]}
+              >
+                پاک کردن همه
+              </Text>
             </Pressable>
           </View>
-          <View style={styles.headerDivider} />
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
             {children}
           </ScrollView>
           <View style={styles.actions}>
-            <Button
-              label="پاک کردن"
-              variant="secondary"
-              onPress={onClear}
-              disabled={!hasActiveFilters}
-              style={styles.action}
-            />
-            <Button label="اعمال فیلتر" onPress={onApply} style={styles.action} />
+            <Button label={applyLabel} onPress={onApply} style={styles.action} />
           </View>
         </View>
       </Pressable>
@@ -115,7 +120,8 @@ function createStyles(theme: Theme, bottomInset: number) {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing.space4
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
@@ -124,17 +130,19 @@ function createStyles(theme: Theme, bottomInset: number) {
       color: theme.colors.onSurface,
       flexShrink: 1
     },
-    closeButton: {
-      width: theme.touchTargetMinimum,
-      height: theme.touchTargetMinimum,
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    headerDivider: {
-      height: 1,
-      backgroundColor: theme.colors.outlineVariant,
-      marginTop: theme.spacing.space3,
+    handle: {
+      width: 44,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: theme.colors.outline,
+      alignSelf: 'center',
       marginBottom: theme.spacing.space4
+    },
+    clear: {
+      color: theme.colors.onSurfaceVariant
+    },
+    clearDisabled: {
+      color: theme.colors.placeholder
     },
     body: {
       flex: 1

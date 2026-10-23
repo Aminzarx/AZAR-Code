@@ -1,9 +1,11 @@
 import React from 'react'
+import { Linking } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { fireEvent, render } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { DashboardScreen } from '../DashboardScreen'
 import { fetchDashboardData } from '../services/dashboardDataService'
+import type { DashboardData } from '../types'
 
 const mockNavigate = jest.fn()
 
@@ -22,10 +24,23 @@ const mockedFetchDashboardData = fetchDashboardData as jest.MockedFunction<
 const navigationProp = { navigate: mockNavigate } as never
 const routeProp = { key: 'Home', name: 'Home' as const, params: undefined }
 
-// useDashboardData refetches via useFocusEffect (so the Dashboard's
-// stats/activity refresh on every return to this tab, not just on first
-// mount) — that hook needs a real navigation context to resolve focus,
-// hence the NavigationContainer wrapper every render here goes through.
+function homeData(overrides: Partial<DashboardData> = {}): DashboardData {
+  return {
+    stats: [
+      { id: 'properties', label: 'فایل ملکی', value: 24 },
+      { id: 'applicants', label: 'متقاضی', value: 18 },
+      { id: 'contracts', label: 'قرارداد فعال', value: 2 },
+      { id: 'deals', label: 'پیگیری باز', value: 6 }
+    ],
+    followUps: [],
+    hasOverdue: false,
+    matches: { matchCount: 0, applicantCount: 0 },
+    ...overrides
+  }
+}
+
+// useDashboardData refetches via useFocusEffect, which needs a real
+// navigation context — hence the NavigationContainer wrapper.
 function renderDashboard() {
   return render(
     withTheme(
@@ -36,23 +51,20 @@ function renderDashboard() {
   )
 }
 
-describe('DashboardScreen', () => {
+describe('DashboardScreen (v1.3.0 home)', () => {
   beforeEach(() => {
     mockedFetchDashboardData.mockReset()
     mockNavigate.mockReset()
   })
 
-  it('shows a loading indicator, then the stats once data resolves', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'properties', label: 'فایل‌های ملکی', value: '2' }],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
+  it('shows the summary in Persian digits once data resolves', async () => {
+    mockedFetchDashboardData.mockResolvedValue(homeData())
 
-    const { findByText } = await renderDashboard()
+    const { findByText, getByText } = await renderDashboard()
 
-    expect(await findByText('فایل‌های ملکی')).toBeTruthy()
+    expect(await findByText('خلاصه')).toBeTruthy()
+    expect(getByText('۲۴')).toBeTruthy()
+    expect(getByText('پیگیری باز')).toBeTruthy()
     expect(mockedFetchDashboardData).toHaveBeenCalledWith('u1')
   })
 
@@ -61,219 +73,104 @@ describe('DashboardScreen', () => {
 
     const { findByText } = await renderDashboard()
 
-    expect(await findByText('بارگذاری داشبورد با مشکل مواجه شد')).toBeTruthy()
+    expect(await findByText('بارگذاری خانه با مشکل مواجه شد')).toBeTruthy()
     expect(await findByText('اتصال برقرار نشد')).toBeTruthy()
   })
 
-  it('shows the empty state for recent activity when there is none', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
+  it('opens the add screens from the two add buttons', async () => {
+    mockedFetchDashboardData.mockResolvedValue(homeData())
 
-    const { findByText } = await renderDashboard()
+    const { findByLabelText, getByLabelText } = await renderDashboard()
 
-    expect(await findByText('هنوز فعالیتی ثبت نشده')).toBeTruthy()
-  })
+    await fireEvent.press(await findByLabelText('افزودن فایل ملکی'))
+    await fireEvent.press(getByLabelText('افزودن متقاضی'))
 
-  it('navigates to CreateProperty when the add-property quick action is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'properties', label: 'فایل‌های ملکی', value: '0' }],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
-
-    const { findByLabelText } = await renderDashboard()
-
-    fireEvent.press(await findByLabelText('افزودن فایل ملکی'))
     expect(mockNavigate).toHaveBeenCalledWith('CreateProperty')
-  })
-
-  it('navigates to PropertyList when the properties stat card is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'properties', label: 'فایل‌های ملکی', value: '3' }],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
-
-    const { findByLabelText } = await renderDashboard()
-
-    fireEvent.press(await findByLabelText('فایل‌های ملکی: 3'))
-    expect(mockNavigate).toHaveBeenCalledWith('PropertyList')
-  })
-
-  it('navigates to CreateApplicant when the add-applicant quick action is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'applicants', label: 'متقاضیان', value: '0' }],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
-
-    const { findByLabelText } = await renderDashboard()
-
-    fireEvent.press(await findByLabelText('افزودن متقاضی'))
     expect(mockNavigate).toHaveBeenCalledWith('CreateApplicant')
   })
 
-  it('navigates to ApplicantList when the applicants stat card is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'applicants', label: 'متقاضیان', value: '5' }],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
+  it('opens each list from its summary tile', async () => {
+    mockedFetchDashboardData.mockResolvedValue(homeData())
 
-    const { findByLabelText } = await renderDashboard()
+    const { findByLabelText, getByLabelText } = await renderDashboard()
 
-    fireEvent.press(await findByLabelText('متقاضیان: 5'))
+    await fireEvent.press(await findByLabelText('فایل ملکی: 24'))
+    await fireEvent.press(getByLabelText('متقاضی: 18'))
+    await fireEvent.press(getByLabelText('قرارداد فعال: 2'))
+    await fireEvent.press(getByLabelText('پیگیری باز: 6'))
+
+    expect(mockNavigate).toHaveBeenCalledWith('PropertyList')
     expect(mockNavigate).toHaveBeenCalledWith('ApplicantList')
-  })
-
-  it('navigates to DealList when the "مشاهده پیگیری‌ها" quick action is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'deals', label: 'پیگیری‌های فعال', value: '0' }],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
-
-    const { findByLabelText } = await renderDashboard()
-
-    fireEvent.press(await findByLabelText('مشاهده پیگیری‌ها'))
-    expect(mockNavigate).toHaveBeenCalledWith('DealList')
-  })
-
-  it('navigates to DealList when the deals stat card is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'deals', label: 'پیگیری‌های فعال', value: '2' }],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
-
-    const { findByLabelText } = await renderDashboard()
-
-    fireEvent.press(await findByLabelText('پیگیری‌های فعال: 2'))
-    expect(mockNavigate).toHaveBeenCalledWith('DealList')
-  })
-
-  it('navigates to ContractList when the contracts stat card is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [{ id: 'contracts', label: 'قراردادهای فعال', value: '4' }],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
-
-    const { findByLabelText } = await renderDashboard()
-
-    fireEvent.press(await findByLabelText('قراردادهای فعال: 4'))
     expect(mockNavigate).toHaveBeenCalledWith('ContractList')
+    expect(mockNavigate).toHaveBeenCalledWith('DealList')
   })
 
-  it('shows the empty state for upcoming reminders when there are none', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
+  it('shows the matching banner and opens Matching from it', async () => {
+    mockedFetchDashboardData.mockResolvedValue(
+      homeData({ matches: { matchCount: 5, applicantCount: 3 } })
+    )
 
     const { findByText } = await renderDashboard()
 
-    expect(await findByText('یادآوری نزدیکی وجود ندارد')).toBeTruthy()
+    await fireEvent.press(await findByText('۵ تطبیق'))
+    expect(mockNavigate).toHaveBeenCalledWith('Matching')
   })
 
-  it('navigates to ReminderList when "مشاهده همه" is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
+  it("lists today's follow-ups, opens one, and calls from its phone button", async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
+    mockedFetchDashboardData.mockResolvedValue(
+      homeData({
+        hasOverdue: true,
+        followUps: [
+          {
+            id: 'rem-1',
+            title: 'بازدید آپارتمان سعادت‌آباد',
+            subtitle: 'آقای رضایی',
+            timeLabel: '۱۰:۳۰',
+            isOverdue: false,
+            phoneNumber: '09121234567'
+          }
+        ]
+      })
+    )
 
-    const { findByText } = await renderDashboard()
+    const { findByLabelText, getByLabelText } = await renderDashboard()
 
-    fireEvent.press(await findByText('مشاهده همه'))
+    await fireEvent.press(await findByLabelText('بازدید آپارتمان سعادت‌آباد'))
+    expect(mockNavigate).toHaveBeenCalledWith('ReminderDetail', { reminderId: 'rem-1' })
+
+    await fireEvent.press(getByLabelText('تماس با آقای رضایی'))
+    expect(openURL).toHaveBeenCalledWith('tel:09121234567')
+    openURL.mockRestore()
+  })
+
+  it('says so when nothing is due today, and the bell opens reminders', async () => {
+    mockedFetchDashboardData.mockResolvedValue(homeData())
+
+    const { findByText, getByLabelText } = await renderDashboard()
+
+    expect(await findByText('برای امروز پیگیری‌ای ثبت نشده است.')).toBeTruthy()
+    await fireEvent.press(getByLabelText('یادآوری‌ها'))
     expect(mockNavigate).toHaveBeenCalledWith('ReminderList', undefined)
   })
 
-  it('navigates to ReminderDetail when an upcoming reminder is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: [{ id: 'rem-1', title: 'تماس با متقاضی', timestamp: '۱۴۰۴/۰۵/۲۰' }]
-    })
+  it('shows the first-steps checklist on a new account', async () => {
+    mockedFetchDashboardData.mockResolvedValue(
+      homeData({
+        stats: [
+          { id: 'properties', label: 'فایل ملکی', value: 0 },
+          { id: 'applicants', label: 'متقاضی', value: 0 },
+          { id: 'contracts', label: 'قرارداد فعال', value: 0 },
+          { id: 'deals', label: 'پیگیری باز', value: 0 }
+        ]
+      })
+    )
 
-    const { findByLabelText } = await renderDashboard()
+    const { findByText, getByLabelText, queryByText } = await renderDashboard()
 
-    fireEvent.press(await findByLabelText('تماس با متقاضی'))
-    expect(mockNavigate).toHaveBeenCalledWith('ReminderDetail', { reminderId: 'rem-1' })
-  })
-
-  it('navigates to the source record when a recent activity row is pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [],
-      needsAttention: [],
-      recentActivity: [
-        {
-          id: 'property-prop-1',
-          title: 'فایل ملکی جدید: آپارتمان دو خوابه',
-          description: 'تهران • خیابان ولیعصر',
-          timestamp: '۱۴۰۴/۰۵/۲۰',
-          entityType: 'property',
-          entityId: 'prop-1'
-        }
-      ],
-      upcomingReminders: []
-    })
-
-    const { findByLabelText } = await renderDashboard()
-
-    fireEvent.press(await findByLabelText('فایل ملکی جدید: آپارتمان دو خوابه'))
-    expect(mockNavigate).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
-  })
-
-  it('does not render a Needs Attention heading when there is nothing to show', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [],
-      needsAttention: [],
-      recentActivity: [],
-      upcomingReminders: []
-    })
-
-    const { queryByText, findByText } = await renderDashboard()
-
-    // Wait for the loaded screen before asserting an absence.
-    expect(await findByText('اقدامات سریع')).toBeTruthy()
-    expect(queryByText('نیازمند توجه')).toBeNull()
-  })
-
-  it('renders a Needs Attention row and navigates to its target when pressed', async () => {
-    mockedFetchDashboardData.mockResolvedValue({
-      stats: [],
-      needsAttention: [
-        {
-          id: 'overdue-applicant-reminders',
-          label: '3 متقاضی نیازمند پیگیری',
-          tone: 'attention',
-          target: 'ApplicantList'
-        }
-      ],
-      recentActivity: [],
-      upcomingReminders: []
-    })
-
-    const { findByText, findByLabelText } = await renderDashboard()
-
-    expect(await findByText('نیازمند توجه')).toBeTruthy()
-    fireEvent.press(await findByLabelText('3 متقاضی نیازمند پیگیری'))
-    expect(mockNavigate).toHaveBeenCalledWith('ApplicantList')
+    expect(await findByText('سه قدم تا اولین تطبیق')).toBeTruthy()
+    expect(queryByText('خلاصه')).toBeNull()
+    await fireEvent.press(getByLabelText('افزودن اولین متقاضی'))
+    expect(mockNavigate).toHaveBeenCalledWith('CreateApplicant')
   })
 })

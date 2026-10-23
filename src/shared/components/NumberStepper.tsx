@@ -47,8 +47,12 @@ export function NumberStepper({
         >
           <Text style={[theme.typography('titleMd'), styles.btnText]}>+</Text>
         </Pressable>
-        <Text style={[theme.typography('titleMd'), styles.value]} accessibilityLabel={label}>
-          {n === null ? '—' : toPersianDigits(String(n))}
+        {/* v1.3.0: an empty count showed «—», which read as a minus button. */}
+        <Text
+          style={[theme.typography('titleMd'), styles.value, n === null && styles.valueEmpty]}
+          accessibilityLabel={label}
+        >
+          {n === null ? '؟' : toPersianDigits(String(n))}
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -95,6 +99,7 @@ function createStyles(theme: Theme) {
     btnDisabled: { opacity: 0.4 },
     btnText: { color: theme.colors.primary },
     value: { color: theme.colors.onSurface },
+    valueEmpty: { color: theme.colors.placeholder },
     error: { color: theme.colors.error, alignSelf: start }
   })
 }

@@ -199,6 +199,9 @@ export function MainNavigator(): React.JSX.Element {
         // pill (makeTabIcon) now carries the active fill; the tab bar's
         // own background/ripple no longer does (see TabBarButton).
         tabBarButton: TabBarButton,
+        // v1.3.0: the tab bar sat on top of the keyboard while typing
+        // (tester report); hide it while the keyboard is open.
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: theme.colors.onSecondaryContainer,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: {

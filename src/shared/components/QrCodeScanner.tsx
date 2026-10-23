@@ -36,7 +36,7 @@ export function QrCodeScanner({ visible, title, onScan, onClose }: Props): React
     setPermission('checking')
     PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
       title: 'دسترسی دوربین',
-      message: 'برای اسکن بارکد، آزار به دوربین دستگاه شما نیاز دارد.',
+      message: 'برای اسکن بارکد، ایوان به دوربین دستگاه شما نیاز دارد.',
       buttonPositive: 'اجازه می‌دهم',
       buttonNegative: 'انصراف'
     })

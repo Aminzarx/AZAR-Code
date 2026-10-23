@@ -30,12 +30,13 @@ const APPLICANT: Applicant = {
 
 describe('ApplicantListItem', () => {
   it('renders the name, location, and phone number', async () => {
-    const { getByText } = await render(
+    const { getByText, getByLabelText } = await render(
       withTheme(<ApplicantListItem applicant={APPLICANT} onPress={jest.fn()} />)
     )
 
     expect(getByText('علی رضایی')).toBeTruthy()
-    expect(getByText('تهران • 09121234567')).toBeTruthy()
+    expect(getByText('فروش آپارتمان · تهران')).toBeTruthy()
+    expect(getByLabelText('تماس با علی رضایی')).toBeTruthy()
   })
 
   it('calls onPress when tapped', async () => {

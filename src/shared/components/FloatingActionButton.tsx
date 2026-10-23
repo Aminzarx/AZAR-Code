@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { Pressable, StyleSheet } from 'react-native'
+import { Pressable, StyleSheet, Text } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from './Icon'
 
@@ -7,6 +7,8 @@ type Props = {
   accessibilityLabel: string
   onPress: () => void
   icon?: IconName
+  /** v1.3.0: a short label turns it into the wide «+ فایل تازه» pill of the mockups. */
+  label?: string
 }
 
 /**
@@ -20,7 +22,8 @@ type Props = {
 export function FloatingActionButton({
   accessibilityLabel,
   onPress,
-  icon = 'plus'
+  icon = 'plus',
+  label
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -44,9 +47,10 @@ export function FloatingActionButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={handlePress}
-      style={styles.button}
+      style={[styles.button, label ? styles.extended : null]}
     >
       <Icon name={icon} size="md" color={theme.colors.onPrimary} />
+      {label ? <Text style={[theme.typography('titleSm'), styles.label]}>{label}</Text> : null}
     </Pressable>
   )
 }
@@ -64,6 +68,16 @@ function createStyles(theme: Theme) {
       alignItems: 'center',
       justifyContent: 'center',
       ...theme.elevation.level2
+    },
+    extended: {
+      width: undefined,
+      flexDirection: 'row',
+      gap: theme.spacing.space2,
+      paddingHorizontal: theme.spacing.space5,
+      borderRadius: theme.radius.extraLarge
+    },
+    label: {
+      color: theme.colors.onPrimary
     }
   })
 }

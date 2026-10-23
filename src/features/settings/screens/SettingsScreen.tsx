@@ -63,7 +63,7 @@ function importErrorMessage(error: Error): string {
     return 'این نسخه پشتیبان مربوط به نسخه‌ای بسیار قدیمی از اپلیکیشن است و قابل بازیابی نیست.'
   }
   if (error instanceof BackupFormatError || error instanceof SnapshotFormatError) {
-    return 'این فایل یک نسخه پشتیبان معتبر آزار نیست.'
+    return 'این فایل یک نسخه پشتیبان معتبر ایوان نیست.'
   }
   return 'بازیابی نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.'
 }
@@ -412,7 +412,7 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
           <Text style={[theme.typography('bodySm'), styles.hint]}>
             {copied
               ? 'کد معرف کپی شد.'
-              : 'این کد را برای دعوت افراد جدید به آزار به اشتراک بگذارید.'}
+              : 'این کد را برای دعوت افراد جدید به ایوان به اشتراک بگذارید.'}
           </Text>
 
           {session?.referralCode ? (

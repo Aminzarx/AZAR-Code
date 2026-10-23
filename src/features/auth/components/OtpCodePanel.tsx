@@ -48,7 +48,10 @@ export function OtpCodePanel({
   const onSmsCode = useRef<(code: string) => void>(() => undefined)
 
   // v1.2.0 (Amin #4229): the code fills in from the SMS after one «allow» tap.
-  useEffect(() => listenForSmsCode(CODE_LENGTH, (smsCode) => onSmsCode.current(smsCode)), [smsRound])
+  useEffect(
+    () => listenForSmsCode(CODE_LENGTH, (smsCode) => onSmsCode.current(smsCode)),
+    [smsRound]
+  )
 
   // Prevents requesting a fresh code back-to-back (rate-limit-friendly on
   // the server side too, but this is the user-facing reason for it).

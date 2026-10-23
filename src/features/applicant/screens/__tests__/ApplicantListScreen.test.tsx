@@ -15,6 +15,9 @@ jest.mock('@features/auth/AuthProvider', () => ({
 }))
 
 jest.mock('../../hooks/useApplicants')
+jest.mock('@features/property/hooks/useProperties', () => ({
+  useProperties: () => ({ properties: [], isLoading: false, error: null, refetch: jest.fn() })
+}))
 
 const mockedUseApplicants = useApplicants as jest.MockedFunction<typeof useApplicants>
 

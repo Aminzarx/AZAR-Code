@@ -82,7 +82,7 @@ describe('PropertyDetailScreen', () => {
     )
 
     expect(await findByText('آپارتمان دو خوابه')).toBeTruthy()
-    expect(await findByText('تهران • خیابان ولیعصر')).toBeTruthy()
+    expect(await findByText('تهران، خیابان ولیعصر')).toBeTruthy()
   })
 
   it('shows an error state with retry when loading fails', async () => {

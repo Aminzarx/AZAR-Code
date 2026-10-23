@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
@@ -11,8 +11,12 @@ import {
   ErrorState,
   FormScreenContainer,
   LoadingIndicator,
+  Icon,
+  SpecTiles,
   StatusBadge
 } from '@shared/components'
+import { toPersianDigits } from '@shared/utils/persianText'
+import { moneyLine, shortTomanRange } from '@shared/utils/shortMoney'
 import { SuggestedPropertiesSection } from '@features/matching/components/SuggestedPropertiesSection'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { useApplicantDetail } from '../hooks/useApplicantDetail'
@@ -151,6 +155,20 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
   const rentStatusLabel = applicant
     ? deriveRentStatusLabel(applicant.depositAmount, applicant.rentAmount)
     : null
+  const wantsLine = applicant
+    ? [
+        [applicant.preferredTransactionType, applicant.preferredPropertyType]
+          .filter(Boolean)
+          .join(' '),
+        applicant.city
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : ''
+  const headlineBudget = applicant
+    ? (shortTomanRange(applicant.minBudget, applicant.maxBudget) ??
+      moneyLine(null, applicant.depositAmount, applicant.rentAmount))
+    : null
 
   return (
     <FormScreenContainer
@@ -186,69 +204,81 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
       ) : (
         <>
           <Card variant="detail">
-            <View style={styles.titleRow}>
-              <Text
-                style={[theme.typography('headlineMd'), styles.title]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {applicant.fullName}
-              </Text>
-              {derivedStatus ? (
+            {/* v1.3.0 (design batch 2): status, name, what they want and
+                where, a call button, the budget as a broker says it with
+                the exact amounts under it, then the key facts as tiles. */}
+            {derivedStatus ? (
+              <View style={styles.tagRow}>
                 <StatusBadge label={derivedStatus.label} tone={derivedStatus.tone} />
-              ) : null}
-            </View>
-            <Text style={[theme.typography('bodyMd'), styles.location]}>
-              {applicant.city} • {applicant.phoneNumber}
-            </Text>
-
-            {/* design-system.md Principle 6 — budget is what a broker
-                needs first, promoted above every other detail field. */}
-            {applicant.minBudget !== null || applicant.maxBudget !== null ? (
-              <View style={styles.headlineStats}>
-                <Text style={[theme.typography('headlineMd'), styles.budgetValue]}>
-                  {applicant.minBudget?.toLocaleString('fa-IR') ?? '-'} تا{' '}
-                  {applicant.maxBudget?.toLocaleString('fa-IR') ?? '-'} تومان
-                </Text>
               </View>
             ) : null}
+            <Text
+              style={[theme.typography('headlineLgMobile'), styles.title]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {applicant.fullName}
+            </Text>
+            {wantsLine ? (
+              <Text style={[theme.typography('bodyMd'), styles.location]}>{wantsLine}</Text>
+            ) : null}
+            {applicant.phoneNumber ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`تماس با ${applicant.fullName}`}
+                onPress={() => {
+                  Linking.openURL(`tel:${applicant.phoneNumber}`).catch(() => undefined)
+                }}
+                style={styles.callRow}
+              >
+                <Icon name="phone" size="sm" color={theme.colors.success} />
+                <Text style={[theme.typography('labelMd'), styles.callText]}>
+                  {toPersianDigits(applicant.phoneNumber)}
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {headlineBudget ? (
+              <View style={styles.headlineStats}>
+                <Text style={[theme.typography('headlineLgMobile'), styles.budgetValue]}>
+                  {headlineBudget}
+                </Text>
+                {applicant.minBudget !== null || applicant.maxBudget !== null ? (
+                  <Text style={[theme.typography('bodySm'), styles.exactValue]}>
+                    {[applicant.minBudget, applicant.maxBudget]
+                      .filter((amount): amount is number => amount !== null)
+                      .map((amount) => amount.toLocaleString('fa-IR'))
+                      .join(' تا ')}{' '}
+                    تومان
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+
+            <SpecTiles
+              tiles={[
+                applicant.minArea !== null || applicant.maxArea !== null
+                  ? {
+                      label: 'متراژ',
+                      value: `${[applicant.minArea, applicant.maxArea]
+                        .filter((area): area is number => area !== null)
+                        .map((area) => toPersianDigits(String(area)))
+                        .join(' تا ')} متر`
+                    }
+                  : null,
+                applicant.rooms !== null
+                  ? { label: 'اتاق', value: toPersianDigits(String(applicant.rooms)) }
+                  : null,
+                applicant.preferredPropertyType
+                  ? { label: 'نوع ملک', value: applicant.preferredPropertyType }
+                  : null
+              ].filter((tile): tile is { label: string; value: string } => tile !== null)}
+            />
 
             {/* v2.9.2 — reverted the v2.9.1 2-column grid back to a
                 single-column table (label right / value left), same as
                 PropertyDetailScreen — long values didn't fit a 47%-wide
                 cell well. */}
-            {applicant.preferredTransactionType ? (
-              <DetailRow
-                label="نوع معامله مدنظر"
-                value={applicant.preferredTransactionType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.preferredPropertyType ? (
-              <DetailRow
-                label="نوع ملک مدنظر"
-                value={applicant.preferredPropertyType}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.minArea !== null || applicant.maxArea !== null ? (
-              <DetailRow
-                label="متراژ مدنظر"
-                value={`${applicant.minArea ?? '-'} تا ${applicant.maxArea ?? '-'} متر`}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
-            {applicant.rooms !== null ? (
-              <DetailRow
-                label="تعداد اتاق"
-                value={String(applicant.rooms)}
-                theme={theme}
-                styles={styles}
-              />
-            ) : null}
             {rentStatusLabel ? (
               <DetailRow
                 label="وضعیت رهن/اجاره"
@@ -286,12 +316,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
             ) : null}
 
             <View style={styles.actions}>
-              <Button
-                label="ویرایش"
-                onPress={startEditing}
-                variant="secondary"
-                style={styles.actionButton}
-              />
+              <Button label="ویرایش" onPress={startEditing} style={styles.actionButton} />
               <Button
                 label={applicant.status === 'archived' ? 'خروج از بایگانی' : 'بایگانی'}
                 onPress={handleToggleArchive}
@@ -299,14 +324,13 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
                 loading={isTogglingArchive}
                 style={styles.actionButton}
               />
-              <Button
-                label="حذف متقاضی"
-                onPress={() => setIsDeleteConfirmVisible(true)}
-                variant="destructive"
-                loading={isDeleting}
-                style={styles.actionButton}
-              />
             </View>
+            <Button
+              label="حذف متقاضی"
+              onPress={() => setIsDeleteConfirmVisible(true)}
+              variant="destructiveText"
+              loading={isDeleting}
+            />
             {submitError ? (
               <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
             ) : null}
@@ -374,31 +398,47 @@ function createStyles(theme: Theme) {
       justifyContent: 'center',
       paddingVertical: theme.spacing.space12
     },
-    titleRow: {
+    tagRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.space2
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: theme.spacing.space2,
+      marginBottom: theme.spacing.space3
     },
-    // design-system.md §10 — rides inline in a row beside the status
-    // badge, so it needs flexShrink (overflow safety) instead of
-    // alignSelf (that rule is for standalone column-level Text only).
     title: {
       color: theme.colors.onSurface,
-      flexShrink: 1
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     location: {
       color: theme.colors.onSurfaceVariant,
-      marginTop: theme.spacing.space2,
+      marginTop: theme.spacing.space1,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
-    // design-system.md Principle 6 — the one deliberately "loud" block on
-    // this screen: budget, promoted above every other field.
+    callRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
+      marginTop: theme.spacing.space3,
+      paddingHorizontal: theme.spacing.space3,
+      paddingVertical: theme.spacing.space2,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.successContainer
+    },
+    callText: {
+      color: theme.colors.onSuccessContainer
+    },
     headlineStats: {
-      marginTop: theme.spacing.space5,
-      marginBottom: theme.spacing.space2
+      marginTop: theme.spacing.space4,
+      marginBottom: theme.spacing.space4,
+      gap: 2
     },
     budgetValue: {
       color: theme.colors.primary,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+    },
+    exactValue: {
+      color: theme.colors.onSurfaceVariant,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     detailRow: {
@@ -431,7 +471,8 @@ function createStyles(theme: Theme) {
     actions: {
       flexDirection: 'row',
       gap: theme.spacing.space3,
-      marginTop: theme.spacing.space5
+      marginTop: theme.spacing.space5,
+      marginBottom: theme.spacing.space1
     },
     actionButton: {
       flex: 1

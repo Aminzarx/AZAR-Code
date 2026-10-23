@@ -1,41 +1,34 @@
 export type DashboardStat = {
-  id: string
+  id: 'properties' | 'applicants' | 'contracts' | 'deals'
   label: string
-  value: string
-}
-
-export type DashboardActivity = {
-  id: string
-  title: string
-  description: string
-  timestamp: string
-  entityType: 'property' | 'applicant' | 'deal'
-  entityId: string
-}
-
-export type DashboardReminder = {
-  id: string
-  title: string
-  timestamp: string
+  value: number
 }
 
 /**
- * design-system.md §14 point 3 — one concrete, tappable action row. `target`
- * names the screen this row navigates to; each row's own list screen owns
- * the actual filtering (this section only ever routes to a plain,
- * already-existing list, never invents new filter plumbing — see the
- * dashboard delivery report for the reasoning).
+ * v1.3.0 (design batch 2) — one row of «پیگیری‌های امروز»: a not-done
+ * reminder due today or already overdue, with the applicant's phone when
+ * the reminder belongs to one, so the broker can call straight from Home.
  */
-export type DashboardNeedsAttentionItem = {
+export type DashboardFollowUp = {
   id: string
-  label: string
-  tone: 'attention' | 'inProgress'
-  target: 'ApplicantList' | 'DealList'
+  title: string
+  subtitle: string | null
+  /** «۱۰:۳۰» for today, «دیروز» / «۳ روز پیش» for an overdue one. */
+  timeLabel: string
+  isOverdue: boolean
+  phoneNumber: string | null
+}
+
+/** Applicants (active) with at least one suitable active property file. */
+export type DashboardMatchSummary = {
+  matchCount: number
+  applicantCount: number
 }
 
 export type DashboardData = {
   stats: DashboardStat[]
-  needsAttention: DashboardNeedsAttentionItem[]
-  recentActivity: DashboardActivity[]
-  upcomingReminders: DashboardReminder[]
+  followUps: DashboardFollowUp[]
+  /** Any not-done reminder whose time has passed — the bell's red dot. */
+  hasOverdue: boolean
+  matches: DashboardMatchSummary
 }

@@ -1441,3 +1441,48 @@ Android does not blur behind it, so the screen underneath showed through the tex
 update dialog). They now use the solid `surfaceContainerLowest` with an `outlineVariant` border
 (ConfirmDialog, InfoDialog, OtpPromptDialog, PasswordPromptDialog, DateInput, FilterSheet,
 LostReasonDialog, DealNotesSection, SettingsScreen).
+
+---
+
+## 2026-10-23 — v1.3.0: design batch 2 and the EYVAN name
+
+**Change**: The app's shown name is now EYVAN («ایوان»): launcher label (`strings.xml`
+`app_name`, `app.json` `displayName`), the sign-in mark, and the user-facing texts that named the
+app. The package id stays `com.azarapp`, so 1.2.0 installs update in place. Design batch 2
+follows Amin's approved mockups:
+
+- **Home**: greeting with a reminders bell (red dot when a reminder is overdue), two add buttons
+  («فایل ملکی» / «متقاضی»), a matching banner (how many suitable files for how many active
+  applicants, from the existing matching engine), «پیگیری‌های امروز» (today's and overdue
+  not-done reminders with the applicant's name and a call button), and a four-tile «خلاصه». A new
+  account sees the «سه قدم تا اولین تطبیق» checklist. The old needs-attention and recent-activity
+  blocks and their components (StatCard, QuickActions, NeedsAttentionList, UpcomingRemindersList)
+  are gone.
+- **Files**: «فایل‌ها» title, counts on the segments, one search pill, a filter button with the
+  applied-filter count, removable chips for applied filters, a count line, and the wide «فایل
+  تازه» / «متقاضی تازه» button. Cards show the deal-type tag, area and rooms, the price as a
+  broker says it («۸٫۵ میلیارد تومان», «رهن ۲ میلیارد · اجاره ۴۵ میلیون»), suitable matches and
+  how long ago the file was added; applicant cards have a call button.
+- **Filter sheet**: handle, «پاک کردن همه», deal type, property type, price / budget range in
+  billions of toman, status, and one button that says how many it will show («نمایش ۱۲ فایل»).
+- **Detail pages** (property and applicant): tag and status, large title, short price with the
+  exact amount under it, area / rooms / type as tiles, Persian digits everywhere (area and rooms
+  were Latin), «ویرایش» as the main action and delete as a quiet text button; the applicant page
+  has a call button.
+- Fixes: the tab bar no longer sits above the keyboard (`tabBarHideOnKeyboard`); an empty rooms
+  stepper shows a muted «؟» instead of «—», which looked like a minus button.
+
+**Reason**: Amin #4180/#4265/#4268 (continue without the icon; the icon comes later).
+
+**Affected modules**: `features/dashboard` (screen, types, service, new `HomeSections`),
+`features/files`, property and applicant list/detail screens and cards, shared `ListToolbar`,
+`RangeFilter`, `SpecTiles`, `FilterSheet` (`applyLabel`), `FloatingActionButton` (`label`),
+`NumberStepper`, `Icon` (phone/search/bell/time), new `shared/utils/shortMoney`, navigation tab
+options, version files.
+
+**Migration requirements**: None (no data change).
+
+**Tests**: shortMoney (short amounts, ranges, money line, relative days), dashboard service
+(counts, today/overdue follow-ups with phone, matching count without archived applicants), home
+screen (summary, add buttons, tiles, banner, follow-up call, empty day, bell, first steps), list
+and detail screens and cards updated for the new texts.

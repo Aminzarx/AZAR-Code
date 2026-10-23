@@ -40,13 +40,14 @@ describe('fetchDashboardData', () => {
     const result = await fetchDashboardData(USER_ID)
 
     expect(result.stats).toEqual([
-      { id: 'properties', label: 'فایل‌های ملکی', value: '0' },
-      { id: 'applicants', label: 'متقاضیان', value: '0' },
-      { id: 'deals', label: 'پیگیری‌های فعال', value: '0' },
-      { id: 'contracts', label: 'قراردادهای فعال', value: '0' }
+      { id: 'properties', label: 'فایل ملکی', value: 0 },
+      { id: 'applicants', label: 'متقاضی', value: 0 },
+      { id: 'contracts', label: 'قرارداد فعال', value: 0 },
+      { id: 'deals', label: 'پیگیری باز', value: 0 }
     ])
-    expect(result.needsAttention).toEqual([])
-    expect(result.recentActivity).toEqual([])
+    expect(result.followUps).toEqual([])
+    expect(result.hasOverdue).toBe(false)
+    expect(result.matches).toEqual({ matchCount: 0, applicantCount: 0 })
   })
 
   it('returns real counts scoped to the requesting user only', async () => {
@@ -124,11 +125,13 @@ describe('fetchDashboardData', () => {
     const result = await fetchDashboardData(USER_ID)
 
     expect(result.stats).toEqual([
-      { id: 'properties', label: 'فایل‌های ملکی', value: '1' },
-      { id: 'applicants', label: 'متقاضیان', value: '1' },
-      { id: 'deals', label: 'پیگیری‌های فعال', value: '1' },
-      { id: 'contracts', label: 'قراردادهای فعال', value: '0' }
+      { id: 'properties', label: 'فایل ملکی', value: 1 },
+      { id: 'applicants', label: 'متقاضی', value: 1 },
+      { id: 'contracts', label: 'قرارداد فعال', value: 0 },
+      { id: 'deals', label: 'پیگیری باز', value: 1 }
     ])
+    // Same city is already a suitable file for the matching engine.
+    expect(result.matches).toEqual({ matchCount: 1, applicantCount: 1 })
   })
 
   it('does not count a cancelled deal toward active deals', async () => {
@@ -185,7 +188,7 @@ describe('fetchDashboardData', () => {
     await dealRepository.updateStatus(deal.id, 'cancelled')
 
     const result = await fetchDashboardData(USER_ID)
-    expect(result.stats.find((stat) => stat.id === 'deals')?.value).toBe('0')
+    expect(result.stats.find((stat) => stat.id === 'deals')?.value).toBe(0)
   })
 
   it('does not count a cancelled contract toward active contracts', async () => {
@@ -257,174 +260,85 @@ describe('fetchDashboardData', () => {
     })
 
     const result = await fetchDashboardData(USER_ID)
-    expect(result.stats.find((stat) => stat.id === 'contracts')?.value).toBe('0')
+    expect(result.stats.find((stat) => stat.id === 'contracts')?.value).toBe(0)
   })
 
-  it('builds recent activity from real property/applicant/deal records', async () => {
+  it('lists overdue and today follow-ups with the applicant phone, not later ones', async () => {
+    await seedUsers()
+    const db = await getDatabase()
+    const applicantRepository = new ApplicantRepository(db)
+    const reminderRepository = new ReminderRepository(db)
+    const now = new Date(2026, 9, 23, 9, 0)
+
+    const applicant = await applicantRepository.create({
+      id: 'app-1',
+      userId: USER_ID,
+      fullName: 'علی رضایی',
+      phoneNumber: '09121234567',
+      email: null,
+      applicantType: null,
+      preferredTransactionType: null,
+      preferredPropertyType: null,
+      city: 'تهران',
+      minBudget: null,
+      maxBudget: null,
+      minArea: null,
+      maxArea: null,
+      rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
+      description: null
+    })
+    const base = {
+      userId: USER_ID,
+      propertyId: null,
+      dealId: null,
+      description: null,
+      reminderType: 'general' as const
+    }
+    await reminderRepository.create({
+      ...base,
+      id: 'rem-overdue',
+      applicantId: applicant.id,
+      title: 'تماس با متقاضی',
+      remindAt: new Date(2026, 9, 21, 10, 0).toISOString()
+    })
+    await reminderRepository.create({
+      ...base,
+      id: 'rem-today',
+      applicantId: null,
+      title: 'بازدید آپارتمان',
+      remindAt: new Date(2026, 9, 23, 17, 15).toISOString()
+    })
+    await reminderRepository.create({
+      ...base,
+      id: 'rem-tomorrow',
+      applicantId: null,
+      title: 'فردا',
+      remindAt: new Date(2026, 9, 24, 10, 0).toISOString()
+    })
+
+    const result = await fetchDashboardData(USER_ID, now)
+
+    expect(result.followUps.map((item) => item.id)).toEqual(['rem-overdue', 'rem-today'])
+    expect(result.followUps[0]).toMatchObject({
+      subtitle: 'علی رضایی',
+      timeLabel: '۲ روز پیش',
+      isOverdue: true,
+      phoneNumber: '09121234567'
+    })
+    expect(result.followUps[1]).toMatchObject({ isOverdue: false, phoneNumber: null })
+    expect(result.hasOverdue).toBe(true)
+  })
+
+  it('leaves archived applicants out of the matching count', async () => {
     await seedUsers()
     const db = await getDatabase()
     const propertyRepository = new PropertyRepository(db)
     const applicantRepository = new ApplicantRepository(db)
 
     await propertyRepository.create({
-      id: 'prop-1',
-      ownerId: USER_ID,
-      title: 'آپارتمان دو خوابه',
-      propertyType: null,
-      transactionType: null,
-      city: 'تهران',
-      address: 'خیابان ولیعصر',
-      price: null,
-      area: null,
-      rooms: null,
-      depositAmount: null,
-      rentAmount: null,
-      isConvertible: false,
-      barterItems: [],
-      barterOtherDescription: null,
-      description: null
-    })
-    await applicantRepository.create({
-      id: 'app-1',
-      userId: USER_ID,
-      fullName: 'علی رضایی',
-      phoneNumber: '09121234567',
-      email: null,
-      applicantType: null,
-      preferredTransactionType: null,
-      preferredPropertyType: null,
-      city: 'تهران',
-      minBudget: null,
-      maxBudget: null,
-      minArea: null,
-      maxArea: null,
-      rooms: null,
-      depositAmount: null,
-      rentAmount: null,
-      isConvertible: false,
-      description: null
-    })
-
-    const result = await fetchDashboardData(USER_ID)
-
-    expect(result.recentActivity).toHaveLength(2)
-    expect(result.recentActivity.map((item) => item.id).sort()).toEqual([
-      'applicant-app-1',
-      'property-prop-1'
-    ])
-    expect(result.recentActivity.find((item) => item.id === 'property-prop-1')?.title).toBe(
-      'فایل ملکی جدید: آپارتمان دو خوابه'
-    )
-    expect(result.recentActivity.find((item) => item.id === 'applicant-app-1')?.title).toBe(
-      'متقاضی جدید: علی رضایی'
-    )
-    expect(result.recentActivity.find((item) => item.id === 'property-prop-1')).toEqual(
-      expect.objectContaining({ entityType: 'property', entityId: 'prop-1' })
-    )
-    expect(result.recentActivity.find((item) => item.id === 'applicant-app-1')).toEqual(
-      expect.objectContaining({ entityType: 'applicant', entityId: 'app-1' })
-    )
-  })
-
-  it('includes a needs-attention row for an overdue applicant reminder', async () => {
-    await seedUsers()
-    const db = await getDatabase()
-    const applicantRepository = new ApplicantRepository(db)
-    const reminderRepository = new ReminderRepository(db)
-
-    const applicant = await applicantRepository.create({
-      id: 'app-1',
-      userId: USER_ID,
-      fullName: 'علی رضایی',
-      phoneNumber: '09121234567',
-      email: null,
-      applicantType: null,
-      preferredTransactionType: null,
-      preferredPropertyType: null,
-      city: 'تهران',
-      minBudget: null,
-      maxBudget: null,
-      minArea: null,
-      maxArea: null,
-      rooms: null,
-      depositAmount: null,
-      rentAmount: null,
-      isConvertible: false,
-      description: null
-    })
-    await reminderRepository.create({
-      id: 'rem-1',
-      userId: USER_ID,
-      propertyId: null,
-      applicantId: applicant.id,
-      dealId: null,
-      title: 'تماس با متقاضی',
-      description: null,
-      remindAt: '2020-01-01T00:00:00.000Z',
-      reminderType: 'general'
-    })
-
-    const result = await fetchDashboardData(USER_ID)
-
-    expect(result.needsAttention).toContainEqual({
-      id: 'overdue-applicant-reminders',
-      label: '1 متقاضی نیازمند پیگیری',
-      tone: 'attention',
-      target: 'ApplicantList'
-    })
-  })
-
-  it('does not treat a future applicant reminder as needing attention', async () => {
-    await seedUsers()
-    const db = await getDatabase()
-    const applicantRepository = new ApplicantRepository(db)
-    const reminderRepository = new ReminderRepository(db)
-
-    const applicant = await applicantRepository.create({
-      id: 'app-1',
-      userId: USER_ID,
-      fullName: 'علی رضایی',
-      phoneNumber: '09121234567',
-      email: null,
-      applicantType: null,
-      preferredTransactionType: null,
-      preferredPropertyType: null,
-      city: 'تهران',
-      minBudget: null,
-      maxBudget: null,
-      minArea: null,
-      maxArea: null,
-      rooms: null,
-      depositAmount: null,
-      rentAmount: null,
-      isConvertible: false,
-      description: null
-    })
-    await reminderRepository.create({
-      id: 'rem-1',
-      userId: USER_ID,
-      propertyId: null,
-      applicantId: applicant.id,
-      dealId: null,
-      title: 'تماس با متقاضی',
-      description: null,
-      remindAt: '2099-01-01T00:00:00.000Z',
-      reminderType: 'general'
-    })
-
-    const result = await fetchDashboardData(USER_ID)
-
-    expect(result.needsAttention).toEqual([])
-  })
-
-  it('includes a needs-attention row for a deal awaiting action in the contract stage', async () => {
-    await seedUsers()
-    const db = await getDatabase()
-    const propertyRepository = new PropertyRepository(db)
-    const applicantRepository = new ApplicantRepository(db)
-    const dealRepository = new DealRepository(db)
-
-    const property = await propertyRepository.create({
       id: 'prop-1',
       ownerId: USER_ID,
       title: 'آپارتمان',
@@ -462,21 +376,10 @@ describe('fetchDashboardData', () => {
       isConvertible: false,
       description: null
     })
-    const deal = await dealRepository.create({
-      id: 'deal-1',
-      userId: USER_ID,
-      propertyId: property.id,
-      applicantId: applicant.id
-    })
-    await dealRepository.transitionStage(deal.id, 'contract', USER_ID)
+    await db.execute(`UPDATE applicants SET status = 'archived' WHERE id = ?`, [applicant.id])
 
     const result = await fetchDashboardData(USER_ID)
 
-    expect(result.needsAttention).toContainEqual({
-      id: 'deals-awaiting-action',
-      label: '1 معامله در انتظار اقدام',
-      tone: 'inProgress',
-      target: 'DealList'
-    })
+    expect(result.matches).toEqual({ matchCount: 0, applicantCount: 0 })
   })
 })

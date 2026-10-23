@@ -12,9 +12,9 @@ export function BrandMark({ inverse }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   return (
-    <View style={[styles.tile, inverse ? styles.tileInverse : null]} accessibilityLabel="AZAR">
+    <View style={[styles.tile, inverse ? styles.tileInverse : null]} accessibilityLabel="EYVAN">
       <Text style={[theme.typography('titleMd'), styles.text, inverse ? styles.textInverse : null]}>
-        AZAR
+        EYVAN
       </Text>
     </View>
   )

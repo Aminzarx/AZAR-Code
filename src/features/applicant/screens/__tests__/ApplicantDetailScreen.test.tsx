@@ -86,7 +86,8 @@ describe('ApplicantDetailScreen', () => {
     )
 
     expect(await findByText('علی رضایی')).toBeTruthy()
-    expect(await findByText('تهران • 09121234567')).toBeTruthy()
+    expect(await findByText('تهران')).toBeTruthy()
+    expect(await findByText('۰۹۱۲۱۲۳۴۵۶۷')).toBeTruthy()
   })
 
   it('shows an error state with retry when loading fails', async () => {

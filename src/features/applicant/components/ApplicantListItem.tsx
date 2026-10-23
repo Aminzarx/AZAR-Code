@@ -1,38 +1,55 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, EntityIconBadge, StatusBadge } from '@shared/components'
-import { baseApplicantStatus } from '../statusDerivation'
+import { Card, Icon } from '@shared/components'
+import { createListCardStyles } from '@features/property/components/PropertyListItem'
+import { toPersianDigits } from '@shared/utils/persianText'
+import { moneyLine, relativeDay, shortTomanRange } from '@shared/utils/shortMoney'
 import type { Applicant } from '../types'
 
 type Props = {
   applicant: Applicant
   onPress: () => void
+  /** Suitable property files from the matching engine, computed once per screen. */
+  matchCount?: number
 }
 
-function formatBudgetRange(min: number | null, max: number | null): string | null {
+function areaRange(min: number | null, max: number | null): string | null {
   if (min === null && max === null) {
     return null
   }
-  if (min !== null && max !== null) {
-    return `${min.toLocaleString('fa-IR')} تا ${max.toLocaleString('fa-IR')} تومان`
+  if (min !== null && max !== null && min !== max) {
+    return `${toPersianDigits(String(min))} تا ${toPersianDigits(String(max))} متر`
   }
-  const value = min ?? max
-  return `${value?.toLocaleString('fa-IR')} تومان`
+  return `${toPersianDigits(String(min ?? max))} متر`
 }
 
-export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Element {
+/**
+ * v1.3.0 (design batch 2, approved «متقاضیان» mockup): name with a call
+ * button, what they want and where, size and rooms, the budget as a
+ * broker says it, then suitable files and how long ago they were added.
+ */
+export function ApplicantListItem({ applicant, onPress, matchCount }: Props): React.JSX.Element {
   const theme = useTheme()
-  const styles = createStyles(theme)
-  const budgetLabel = formatBudgetRange(applicant.minBudget, applicant.maxBudget)
-  const status = baseApplicantStatus(applicant.status)
+  const styles = createListCardStyles(theme)
+  const own = createStyles(theme)
+  const wants = [applicant.preferredTransactionType, applicant.preferredPropertyType]
+    .filter(Boolean)
+    .join(' ')
+  const subtitle = [wants, applicant.city].filter(Boolean).join(' · ')
+  const specs = [
+    areaRange(applicant.minArea, applicant.maxArea),
+    applicant.rooms !== null ? `${toPersianDigits(String(applicant.rooms))} اتاق` : null
+  ].filter((part): part is string => Boolean(part))
+  const budget =
+    shortTomanRange(applicant.minBudget, applicant.maxBudget) ??
+    moneyLine(null, applicant.depositAmount, applicant.rentAmount)
 
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={applicant.fullName} onPress={onPress}>
       <Card>
         <View style={styles.titleRow}>
-          <EntityIconBadge icon="person" tone="tertiary" />
-          <View style={styles.identity}>
+          <View style={own.identity}>
             <Text
               style={[theme.typography('titleSm'), styles.title]}
               numberOfLines={1}
@@ -40,39 +57,65 @@ export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Elem
             >
               {applicant.fullName}
             </Text>
-            <Text
-              style={[theme.typography('bodySm'), styles.subtitle]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
+            {subtitle ? (
+              <Text
+                style={[theme.typography('bodySm'), styles.muted]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+          {applicant.phoneNumber ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`تماس با ${applicant.fullName}`}
+              onPress={() => {
+                Linking.openURL(`tel:${applicant.phoneNumber}`).catch(() => undefined)
+              }}
+              style={own.callButton}
             >
-              {applicant.city} • {applicant.phoneNumber}
-            </Text>
-          </View>
-          <StatusBadge label={status.label} tone={status.tone} />
+              <Icon name="phone" size="sm" color={theme.colors.success} />
+            </Pressable>
+          ) : null}
         </View>
-        {budgetLabel ? (
-          <Text style={[theme.typography('labelMd'), styles.budget]}>{budgetLabel}</Text>
+        {specs.length > 0 ? (
+          <Text style={[theme.typography('bodySm'), styles.muted]} numberOfLines={1}>
+            {specs.join('   ')}
+          </Text>
         ) : null}
-        {applicant.rooms !== null || applicant.preferredPropertyType ? (
-          <View style={styles.metaGrid}>
-            {applicant.preferredPropertyType ? (
-              <View style={styles.metaCell}>
-                <Text style={[theme.typography('bodySm'), styles.metaLabel]}>نوع ملک مدنظر</Text>
-                <Text style={[theme.typography('labelMd'), styles.metaValue]}>
-                  {applicant.preferredPropertyType}
-                </Text>
-              </View>
-            ) : null}
-            {applicant.rooms !== null ? (
-              <View style={styles.metaCell}>
-                <Text style={[theme.typography('bodySm'), styles.metaLabel]}>تعداد اتاق</Text>
-                <Text style={[theme.typography('labelMd'), styles.metaValue]}>
-                  {applicant.rooms} اتاق
-                </Text>
-              </View>
-            ) : null}
-          </View>
+        {budget ? (
+          <Text style={[theme.typography('titleMd'), styles.price]} numberOfLines={1}>
+            {budget}
+          </Text>
         ) : null}
+
+        <View style={styles.footer}>
+          {applicant.status === 'archived' ? (
+            <View style={[styles.pill, styles.pillNeutral]}>
+              <Text style={[theme.typography('labelSm'), styles.pillNeutralText]}>غیرفعال</Text>
+            </View>
+          ) : matchCount ? (
+            <View style={[styles.pill, styles.pillPositive]}>
+              <View style={styles.dot} />
+              <Text style={[theme.typography('labelSm'), styles.pillPositiveText]}>
+                {`${toPersianDigits(String(matchCount))} فایل مناسب`}
+              </Text>
+            </View>
+          ) : matchCount === 0 ? (
+            <View style={[styles.pill, styles.pillNeutral]}>
+              <Text style={[theme.typography('labelSm'), styles.pillNeutralText]}>
+                هنوز فایل مناسبی نیست
+              </Text>
+            </View>
+          ) : (
+            <View />
+          )}
+          <Text style={[theme.typography('labelSm'), styles.age]}>
+            {relativeDay(applicant.createdAt)}
+          </Text>
+        </View>
       </Card>
     </Pressable>
   )
@@ -80,53 +123,15 @@ export function ApplicantListItem({ applicant, onPress }: Props): React.JSX.Elem
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    titleRow: {
-      flexDirection: 'row',
+    identity: { flex: 1, minWidth: 0 },
+    callButton: {
+      width: 44,
+      height: 44,
+      borderRadius: theme.radius.full,
+      borderWidth: 1,
+      borderColor: theme.colors.outlineVariant,
       alignItems: 'center',
-      gap: theme.spacing.space3
-    },
-    identity: {
-      flex: 1,
-      gap: theme.spacing.space1
-    },
-    // design-system.md §10 — a short Text in a column container (here,
-    // `identity`) doesn't reliably stretch to full width, so alignSelf
-    // anchors the box to the correct edge; flexShrink is separately
-    // needed so long titles/subtitles truncate instead of overflowing
-    // the row now that a badge and StatusBadge also share it.
-    title: {
-      color: theme.colors.onSurface,
-      flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    subtitle: {
-      color: theme.colors.onSurfaceVariant,
-      flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    budget: {
-      color: theme.colors.primary,
-      marginTop: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    metaGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.space3,
-      marginTop: theme.spacing.space3
-    },
-    metaCell: {
-      flexBasis: theme.component.statCardGrid.columnBasisPercent,
-      flexGrow: 0,
-      gap: theme.spacing.space1
-    },
-    metaLabel: {
-      color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    metaValue: {
-      color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      justifyContent: 'center'
     }
   })
 }

@@ -6,80 +6,73 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import {
-  ActivityTimeline,
-  Avatar,
-  Button,
-  ErrorState,
-  Icon,
-  LoadingIndicator
-} from '@shared/components'
+import { Avatar, ErrorState, LoadingIndicator } from '@shared/components'
 import { useDisplayName } from '@shared/hooks/useDisplayName'
 import { getTimeBasedGreeting } from '@shared/utils/greeting'
 import { useDashboardData } from './hooks/useDashboardData'
-import { StatCard } from './components/StatCard'
-import { NeedsAttentionList } from './components/NeedsAttentionList'
-import { QuickActions, type QuickAction } from './components/QuickActions'
-import { UpcomingRemindersList } from './components/UpcomingRemindersList'
-import type { DashboardActivity, DashboardNeedsAttentionItem } from './types'
+import {
+  FirstStepsCard,
+  FollowUpList,
+  HomeAddButtons,
+  MatchBanner,
+  RoundIconButton,
+  SectionHeader,
+  SummaryTiles
+} from './components/HomeSections'
+import type { DashboardStat } from './types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
 
+/**
+ * Home, v1.3.0 (design batch 2, Amin's approved mockups): greeting and
+ * reminders bell, the two add buttons, the matching banner, today's
+ * follow-ups with a call button, and the four-number summary. A new
+ * account sees the first-steps checklist instead of the banner.
+ */
 export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
   const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
   const { displayName } = useDisplayName()
-  const greeting = getTimeBasedGreeting()
 
-  // design-system.md §14 point 4 — exactly the two primary actions get the
-  // elevated/prominent treatment; every other Dashboard action (below)
-  // renders as a visually secondary row instead.
-  const primaryActions: QuickAction[] = [
-    {
-      id: 'add-property',
-      label: 'افزودن فایل ملکی',
-      icon: 'files',
-      onPress: () => navigateAcrossTabs(navigation, 'CreateProperty', undefined)
-    },
-    {
-      id: 'add-applicant',
-      label: 'افزودن متقاضی',
-      icon: 'person',
-      onPress: () => navigateAcrossTabs(navigation, 'CreateApplicant', undefined)
-    }
-  ]
+  const count = (id: DashboardStat['id']) => data?.stats.find((stat) => stat.id === id)?.value ?? 0
+  const hasProperty = count('properties') > 0
+  const hasApplicant = count('applicants') > 0
+  const isNewAccount = Boolean(data) && !hasProperty && !hasApplicant
+  const greeting = isNewAccount ? 'خوش آمدید' : getTimeBasedGreeting()
 
-  function handleNeedsAttentionSelect(item: DashboardNeedsAttentionItem): void {
-    navigateAcrossTabs(navigation, item.target, undefined)
-  }
+  const addProperty = () => navigateAcrossTabs(navigation, 'CreateProperty', undefined)
+  const addApplicant = () => navigateAcrossTabs(navigation, 'CreateApplicant', undefined)
 
-  function handleActivitySelect(item: DashboardActivity): void {
-    switch (item.entityType) {
-      case 'property':
-        navigateAcrossTabs(navigation, 'PropertyDetail', { propertyId: item.entityId })
+  function openStat(id: DashboardStat['id']): void {
+    switch (id) {
+      case 'properties':
+        navigateAcrossTabs(navigation, 'PropertyList', undefined)
         break
-      case 'applicant':
-        navigateAcrossTabs(navigation, 'ApplicantDetail', { applicantId: item.entityId })
+      case 'applicants':
+        navigateAcrossTabs(navigation, 'ApplicantList', undefined)
         break
-      case 'deal':
-        navigateAcrossTabs(navigation, 'DealDetail', { dealId: item.entityId })
+      case 'deals':
+        navigateAcrossTabs(navigation, 'DealList', undefined)
+        break
+      case 'contracts':
+        navigateAcrossTabs(navigation, 'ContractList', undefined)
         break
     }
   }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content} accessibilityLabel="داشبورد">
-        <Pressable
-          onPress={() => navigateAcrossTabs(navigation, 'Settings', undefined)}
-          accessibilityRole="button"
-          accessibilityLabel="مشاهده پروفایل و تنظیمات"
-          style={styles.header}
-        >
-          <View style={styles.headerLeading}>
-            <Avatar name={displayName ?? 'کاربر آزار'} size="lg" />
+      <ScrollView contentContainerStyle={styles.content} accessibilityLabel="خانه">
+        <View style={styles.header}>
+          <Pressable
+            onPress={() => navigateAcrossTabs(navigation, 'Settings', undefined)}
+            accessibilityRole="button"
+            accessibilityLabel="مشاهده پروفایل و تنظیمات"
+            style={styles.headerLeading}
+          >
+            <Avatar name={displayName ?? 'کاربر ایوان'} size="lg" />
             <View style={styles.headerText}>
               <Text
                 style={[theme.typography('headlineLgMobile'), styles.greeting]}
@@ -89,133 +82,83 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                 {greeting}
                 {displayName ? `، ${displayName}` : ''}
               </Text>
+              {isNewAccount ? (
+                <Text style={[theme.typography('bodySm'), styles.subGreeting]}>
+                  سه قدم تا اولین تطبیق
+                </Text>
+              ) : null}
             </View>
-          </View>
-          <Icon name="chevron" size="sm" color={theme.colors.outline} />
-        </Pressable>
+          </Pressable>
+          <RoundIconButton
+            icon="bell"
+            accessibilityLabel="یادآوری‌ها"
+            showDot={data?.hasOverdue}
+            onPress={() => navigation.navigate('ReminderList', undefined)}
+          />
+        </View>
 
-        {isLoading ? (
+        {isLoading && !data ? (
           <View style={styles.centeredSection}>
             <LoadingIndicator size="large" />
           </View>
         ) : error ? (
           <View style={styles.centeredSection}>
             <ErrorState
-              title="بارگذاری داشبورد با مشکل مواجه شد"
+              title="بارگذاری خانه با مشکل مواجه شد"
               description={error.message}
               retryLabel="تلاش مجدد"
               onRetry={refetch}
             />
           </View>
-        ) : (
-          data && (
-            <>
-              {/* design-system.md §14 point 2 — Today/Overview, kept quiet (StatCard's `flat` Card), no heading needed. */}
-              <View style={styles.statsRow}>
-                {data.stats.map((stat) => (
-                  <StatCard
-                    key={stat.id}
-                    stat={stat}
-                    onPress={
-                      stat.id === 'properties'
-                        ? () => navigateAcrossTabs(navigation, 'PropertyList', undefined)
-                        : stat.id === 'applicants'
-                          ? () => navigateAcrossTabs(navigation, 'ApplicantList', undefined)
-                          : stat.id === 'deals'
-                            ? () => navigateAcrossTabs(navigation, 'DealList', undefined)
-                            : stat.id === 'contracts'
-                              ? () => navigateAcrossTabs(navigation, 'ContractList', undefined)
-                              : undefined
-                    }
-                  />
-                ))}
-              </View>
+        ) : data ? (
+          <>
+            {!hasProperty || !hasApplicant ? (
+              <FirstStepsCard
+                hasProperty={hasProperty}
+                hasApplicant={hasApplicant}
+                onAddProperty={addProperty}
+                onAddApplicant={addApplicant}
+              />
+            ) : null}
 
-              {/* design-system.md §14 point 3 — Needs Attention; renders nothing at all when empty, per the spec (no empty heading with nothing under it). */}
-              {data.needsAttention.length > 0 ? (
+            <HomeAddButtons onAddProperty={addProperty} onAddApplicant={addApplicant} />
+
+            {data.matches.matchCount > 0 ? (
+              <MatchBanner
+                matches={data.matches}
+                onPress={() => navigateAcrossTabs(navigation, 'Matching', undefined)}
+              />
+            ) : null}
+
+            {!isNewAccount ? (
+              <>
                 <View style={styles.section}>
-                  <Text
-                    style={[theme.typography('titleMd'), styles.sectionTitle]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    نیازمند توجه
-                  </Text>
-                  <NeedsAttentionList
-                    items={data.needsAttention}
-                    onSelect={handleNeedsAttentionSelect}
+                  <SectionHeader
+                    title="پیگیری‌های امروز"
+                    actionLabel="همه"
+                    onAction={() => navigation.navigate('ReminderList', undefined)}
+                  />
+                  <FollowUpList
+                    followUps={data.followUps}
+                    onSelect={(reminderId) => navigation.navigate('ReminderDetail', { reminderId })}
                   />
                 </View>
-              ) : null}
 
-              <View style={styles.section}>
-                <Text
-                  style={[theme.typography('titleMd'), styles.sectionTitle]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  اقدامات سریع
-                </Text>
-                <QuickActions actions={primaryActions} />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="مشاهده پیگیری‌ها"
-                  onPress={() => navigateAcrossTabs(navigation, 'DealList', undefined)}
-                  style={styles.secondaryAction}
-                >
-                  <Icon name="deal" size="xs" color={theme.colors.onSurfaceVariant} />
-                  <Text style={[theme.typography('labelMd'), styles.secondaryActionLabel]}>
-                    مشاهده پیگیری‌ها
-                  </Text>
-                  <Icon name="chevron" size="xs" color={theme.colors.outline} />
-                </Pressable>
-              </View>
-
-              <View style={styles.section}>
-                <Text
-                  style={[theme.typography('titleMd'), styles.sectionTitle]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  آخرین فعالیت‌ها
-                </Text>
-                <ActivityTimeline
-                  activity={data.recentActivity}
-                  emptyDescription="با افزودن فایل‌های ملکی و متقاضیان، آخرین فعالیت‌های شما اینجا نمایش داده می‌شود."
-                  onSelect={handleActivitySelect}
-                />
-              </View>
-
-              <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text
-                    style={[theme.typography('titleMd'), styles.sectionTitle]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    یادآوری‌های نزدیک
-                  </Text>
-                  <Button
-                    label="مشاهده همه"
-                    variant="text"
-                    fullWidth={false}
-                    onPress={() => navigation.navigate('ReminderList', undefined)}
-                  />
+                <View style={styles.section}>
+                  <SectionHeader title="خلاصه" />
+                  <SummaryTiles stats={data.stats} onSelect={openStat} />
                 </View>
-                <UpcomingRemindersList
-                  reminders={data.upcomingReminders}
-                  onSelect={(reminderId) => navigation.navigate('ReminderDetail', { reminderId })}
-                />
-              </View>
-            </>
-          )
-        )}
+              </>
+            ) : null}
+          </>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   )
 }
 
 function createStyles(theme: Theme) {
+  const start = theme.isRTL ? 'flex-start' : 'flex-end'
   return StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -225,7 +168,7 @@ function createStyles(theme: Theme) {
       paddingHorizontal: theme.layout.screenPaddingX,
       paddingTop: theme.layout.screenPaddingX,
       paddingBottom: theme.layout.screenPaddingBottom,
-      gap: theme.layout.sectionSpacing
+      gap: theme.spacing.space5
     },
     header: {
       flexDirection: 'row',
@@ -233,14 +176,10 @@ function createStyles(theme: Theme) {
       justifyContent: 'space-between',
       gap: theme.spacing.space4
     },
-    // See QuickActions.tsx's `leading` comment — the avatar and greeting
-    // stay grouped in their own row so `justifyContent: 'space-between'`
-    // only pushes the chevron to the opposite edge, not the greeting text
-    // itself away from the avatar it belongs next to.
     headerLeading: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space4,
+      gap: theme.spacing.space3,
       flexShrink: 1,
       minWidth: 0
     },
@@ -248,45 +187,16 @@ function createStyles(theme: Theme) {
       flexShrink: 1,
       minWidth: 0
     },
-    // design-system.md §10 — a short Text in a column container doesn't
-    // reliably stretch to full width, so textAlign alone isn't enough;
-    // alignSelf explicitly anchors it to the correct edge.
     greeting: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      alignSelf: start
     },
-    statsRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.component.statCardGrid.gap
+    subGreeting: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: start
     },
     section: {
       gap: theme.layout.componentSpacing
-    },
-    sectionHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: theme.spacing.space2
-    },
-    sectionTitle: {
-      color: theme.colors.onSurface,
-      flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    // design-system.md §14 point 4 — every Dashboard action besides the two
-    // primary ones reads as visually secondary: no Card, no elevation,
-    // smaller than the primary actions' row.
-    secondaryAction: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.space2,
-      minHeight: theme.touchTargetMinimum,
-      paddingHorizontal: theme.spacing.space2
-    },
-    secondaryActionLabel: {
-      flexShrink: 1,
-      color: theme.colors.onSurfaceVariant
     },
     centeredSection: {
       alignItems: 'center',

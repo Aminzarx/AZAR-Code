@@ -90,7 +90,7 @@ export function UpdateChecker(): React.JSX.Element | null {
         visible
         title="یک اجازهٔ یک‌باره"
         description={
-          'اندروید برای نصب نسخهٔ تازه از داخل AZAR یک بار اجازه می‌خواهد. در صفحه‌ای که باز می‌شود «اجازه از این منبع» را روشن کنید و برگردید؛ نصب خودش ادامه پیدا می‌کند.'
+          'اندروید برای نصب نسخهٔ تازه از داخل EYVAN یک بار اجازه می‌خواهد. در صفحه‌ای که باز می‌شود «اجازه از این منبع» را روشن کنید و برگردید؛ نصب خودش ادامه پیدا می‌کند.'
         }
         confirmLabel="باز کردن تنظیمات"
         cancelLabel="بعداً"
@@ -123,7 +123,7 @@ export function UpdateChecker(): React.JSX.Element | null {
     <ConfirmDialog
       visible
       title="نسخهٔ تازه آماده است"
-      description={`نسخهٔ ${toPersianDigits(ready.update.version)} AZAR دریافت شد و آمادهٔ نصب است.${
+      description={`نسخهٔ ${toPersianDigits(ready.update.version)} EYVAN دریافت شد و آمادهٔ نصب است.${
         notes ? `\n\n${notes}` : ''
       }\n\nاطلاعات شما روی گوشی دست نمی‌خورد.`}
       confirmLabel="نصب"
