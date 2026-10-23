@@ -51,7 +51,7 @@ export function ApplicantListItem({ applicant, onPress, matchCount }: Props): Re
         <View style={styles.titleRow}>
           <View style={own.identity}>
             <Text
-              style={[theme.typography('titleSm'), styles.title]}
+              style={[theme.typography('titleSm'), styles.title, own.name]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -124,6 +124,9 @@ export function ApplicantListItem({ applicant, onPress, matchCount }: Props): Re
 function createStyles(theme: Theme) {
   return StyleSheet.create({
     identity: { flex: 1, minWidth: 0 },
+    // v1.4.0 (Amin #4318 «اسم متقاضی باید بره راست»): the name hugged the call button; it starts the line like the rows under it
+    // (alignSelf as the subtitle under it, which lands right: a stretched Text fell back to the left edge)
+    name: { alignSelf: theme.isRTL ? 'flex-start' : 'flex-end', maxWidth: '100%' },
     callButton: {
       width: 44,
       height: 44,

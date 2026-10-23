@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '../theme'
+import { rtlFontFamilyByWeight } from '@shared/theme/tokens'
 
 export type SegmentedControlOption<T extends string> = {
   value: T
@@ -71,14 +72,18 @@ function createStyles(theme: Theme) {
       paddingVertical: theme.spacing.space2,
       minHeight: theme.touchTargetMinimum
     },
+    // v1.4.0 (Amin #4318: «زیاد تمایزی بین انتخاب شده و انتخاب نشده نیست»): primaryContainer (#EDF1F6) on the
+    // #F1F5F9 track was almost invisible; the chosen segment is now the solid primary fill with white bold text
     segmentSelected: {
-      backgroundColor: theme.colors.primaryContainer
+      backgroundColor: theme.colors.primary
     },
     labelDefault: {
       color: theme.colors.onSurfaceVariant
     },
     labelSelected: {
-      color: theme.colors.onPrimaryContainer
+      color: theme.colors.onPrimary,
+      // after theme.typography('labelMd') in the style array, so the bold face wins
+      ...(theme.isRTL ? { fontFamily: rtlFontFamilyByWeight['600'] } : { fontWeight: '600' as const })
     }
   })
 }
