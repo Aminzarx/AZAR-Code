@@ -12,6 +12,10 @@ const OTP_TTL_MS = 3 * 60 * 1000 // a code is good for 3 minutes
 const OTP_RESEND_MS = 60 * 1000 // a new code at most once a minute per number (sooner = the last code still stands)
 const OTP_MAX_PER_HOUR = 5 // codes sent to one number per hour
 const OTP_MAX_ATTEMPTS = 5 // wrong tries before the code is void
+// KSS (Amin #4277): until the app's final approval no SMS is sent; every sign-in code is AZAR_FIXED_OTP_CODE (123456)
+// from the service's environment file. The rest of the flow (expiry, wrong-try limit) is unchanged. Remove that line
+// from the environment file to switch the real SMS code back on.
+const FIXED_OTP_CODE = /^\d{6}$/.test(process.env.AZAR_FIXED_OTP_CODE || '') ? process.env.AZAR_FIXED_OTP_CODE : ''
 
 // The "mother" referral code — always valid for registration regardless of
 // whether it's ever actually stored as a real user.referral_code, until
@@ -78,14 +82,16 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     const sameWindow = !!row?.window_start && now - Date.parse(row.window_start) < 60 * 60 * 1000
     const windowStart = sameWindow ? row.window_start : new Date(now).toISOString()
     const sentInWindow = sameWindow ? row.sent_count || 0 : 0
-    if (sentInWindow >= OTP_MAX_PER_HOUR) {
+    if (!FIXED_OTP_CODE && sentInWindow >= OTP_MAX_PER_HOUR) {
       return fail(res, 429, 'too_many_codes', 'Too many codes for this number; try again later.')
     }
-    if (!sms.ready()) {
+    if (!FIXED_OTP_CODE && !sms.ready()) {
       return fail(res, 503, 'sms_unavailable', 'Codes cannot be sent right now.')
     }
-    const code = sms.newCode()
-    await sms.sendCode(mobile, code) // throws when Kavenegar refuses: nothing is stored then
+    const code = FIXED_OTP_CODE || sms.newCode()
+    if (!FIXED_OTP_CODE) {
+      await sms.sendCode(mobile, code) // throws when Kavenegar refuses: nothing is stored then
+    }
     const at = new Date(now).toISOString()
     db.prepare(
       `INSERT INTO otp_requests (phone_number, verified, requested_at, verified_at, code_hash, expires_at, attempts, sent_at, sent_count, window_start)

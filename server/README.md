@@ -4,12 +4,12 @@ The entire online surface of AZAR CRM (ADR-009): phone number, OTP-request
 state, referral validation/relationships, and sessions. No business data —
 properties/applicants/deals/etc. all stay on-device (ADR-002).
 
-**OTP delivery is disabled by product decision.** No SMS is ever sent;
-`/auth/verify-otp` accepts the fixed code `555555` for any phone number, on
-any device, whether or not `/auth/send-otp` was called for it first (and
-with no expiry). The two-step screen flow in the app is unchanged — it just
-never gets an SMS. Remove `FIXED_OTP_CODE` (and the state-free acceptance)
-in `authRoutes.js` once a real SMS panel exists.
+**Sign-in codes.** `/auth/send-otp` sends a one-time code by SMS through KSS's
+Kavenegar account (verify/lookup API, `KAVENEGAR_API_KEY` + `KAVENEGAR_OTP_TEMPLATE`
+in the service's environment file); the code lasts 3 minutes, 5 wrong tries void it.
+Until the app's final approval (Amin #4277) the environment file also sets
+`AZAR_FIXED_OTP_CODE=123456`: then no SMS is sent and every code is that one
+(expiry and wrong-try limit unchanged). Remove the line and restart to switch SMS back on.
 
 **`AMINZX` is a "mother" referral code**, always valid at `/auth/register`
 regardless of whether any user actually holds it, until told otherwise —
@@ -22,7 +22,7 @@ from the new code minted for that account.
 
 - `GET /health`
 - `POST /auth/send-otp` `{ phoneNumber }`
-- `POST /auth/verify-otp` `{ phoneNumber, code }` — `code` must be `555555`
+- `POST /auth/verify-otp` `{ phoneNumber, code }` — `code` is the SMS code (or `AZAR_FIXED_OTP_CODE` while set)
 - `POST /auth/register` `{ phoneNumber, referralCode }`
 - `POST /auth/login` `{ phoneNumber }`
 - `POST /auth/delete-account` `{ phoneNumber }` — requires a fresh OTP-verified state
