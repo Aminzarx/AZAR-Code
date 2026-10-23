@@ -282,4 +282,15 @@ export class DealRepository {
   async delete(id: string): Promise<void> {
     await this.db.execute('DELETE FROM deals WHERE id = ?', [id])
   }
+
+  /** v1.4.0: whether anything was ever recorded on a deal (a stage move, a reminder or a contract). */
+  async hasActivity(id: string): Promise<boolean> {
+    const result = await this.db.execute(
+      `SELECT (SELECT COUNT(*) FROM deal_stage_history WHERE deal_id = ?)
+            + (SELECT COUNT(*) FROM reminders WHERE deal_id = ?)
+            + (SELECT COUNT(*) FROM contracts WHERE deal_id = ?) AS n`,
+      [id, id, id]
+    )
+    return Number(result.rows[0]?.n ?? 0) > 0
+  }
 }

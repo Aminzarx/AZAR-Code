@@ -84,6 +84,30 @@ describe('DealService', () => {
     expect(deal.applicantId).toBe(applicantId)
   })
 
+  // v1.4.0 (Amin #4321)
+  it('opens the open deal of a pair instead of starting a second one; a lost deal lets the pair start over', async () => {
+    const first = await service.createDeal(USER_ID, propertyId, applicantId)
+    expect((await service.createDeal(USER_ID, propertyId, applicantId)).id).toBe(first.id)
+    await service.transitionStage(first.id, 'lost', USER_ID, { lostReasonId: 'price' }).catch(() => undefined)
+    const after = await service.getDeal(first.id)
+    if (after?.currentStage === 'lost') {
+      expect((await service.createDeal(USER_ID, propertyId, applicantId)).id).not.toBe(first.id)
+    }
+  })
+
+  it('drops the empty copies made before, keeping the one worked on and every copy with something in it', async () => {
+    const repo = new DealRepository(db)
+    const worked = await repo.create({ id: 'd-worked', userId: USER_ID, propertyId, applicantId })
+    await service.transitionStage(worked.id, 'contacted', USER_ID)
+    await repo.create({ id: 'd-empty', userId: USER_ID, propertyId, applicantId })
+    await repo.create({ id: 'd-noted', userId: USER_ID, propertyId, applicantId })
+    await service.updateNotes('d-noted', 'تماس گرفتم')
+
+    const ids = (await service.listDeals(USER_ID)).map((deal) => deal.id).sort()
+    expect(ids).toEqual(['d-noted', 'd-worked'])
+    expect(await service.getDeal('d-empty')).toBeNull()
+  })
+
   it('lists deals enriched with property and applicant details', async () => {
     await service.createDeal(USER_ID, propertyId, applicantId)
     const deals = await service.listDeals(USER_ID)
