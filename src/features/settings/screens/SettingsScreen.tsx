@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Clipboard, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Clipboard, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -507,6 +507,19 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
             </Pressable>
           </View>
         </Card>
+
+        {/* v1.4.0 (Amin #4324): whose app this is, linked to the company site */}
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="ایوان، برنامه‌ای از خیام صنعت شریف؛ ورود به وبسایت kssx.ir"
+          onPress={() => {
+            Linking.openURL(COMPANY_SITE_URL).catch(() => undefined)
+          }}
+          style={styles.madeBy}
+        >
+          <Text style={[theme.typography('bodySm'), styles.madeByText]}>ایوان، برنامه‌ای از خیام صنعت شریف</Text>
+          <Text style={[theme.typography('labelMd'), styles.madeByLink]}>kssx.ir</Text>
+        </Pressable>
       </ScrollView>
 
       <ConfirmDialog
@@ -638,8 +651,24 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   )
 }
 
+const COMPANY_SITE_URL = 'https://kssx.ir'
+
 function createStyles(theme: Theme) {
   return StyleSheet.create({
+    madeBy: {
+      alignItems: 'center',
+      gap: theme.spacing.space1,
+      paddingVertical: theme.spacing.space4,
+      minHeight: theme.touchTargetMinimum
+    },
+    madeByText: {
+      color: theme.colors.onSurfaceVariant,
+      textAlign: 'center'
+    },
+    madeByLink: {
+      color: theme.colors.primary,
+      textDecorationLine: 'underline'
+    },
     safeArea: {
       flex: 1,
       backgroundColor: theme.colors.background

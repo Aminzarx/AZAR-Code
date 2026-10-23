@@ -1,5 +1,5 @@
 import React from 'react'
-import { Clipboard } from 'react-native'
+import { Clipboard, Linking } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { SettingsScreen } from '../SettingsScreen'
@@ -126,6 +126,18 @@ describe('SettingsScreen', () => {
     )
 
     expect(await findByText('+989121234567')).toBeTruthy()
+  })
+
+  // v1.4.0 (Amin #4324)
+  it('says whose app this is and opens the company site', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
+    const { findByText, findByLabelText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findByText('ایوان، برنامه‌ای از خیام صنعت شریف')).toBeTruthy()
+    fireEvent.press(await findByLabelText('ایوان، برنامه‌ای از خیام صنعت شریف؛ ورود به وبسایت kssx.ir'))
+    expect(openURL).toHaveBeenCalledWith('https://kssx.ir')
   })
 
   it('copies the referral code to the clipboard', async () => {
