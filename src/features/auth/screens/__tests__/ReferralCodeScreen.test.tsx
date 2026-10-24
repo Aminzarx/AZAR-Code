@@ -28,7 +28,9 @@ describe('ReferralCodeScreen', () => {
       login: jest.fn(),
       logout: jest.fn(),
       deleteAccount: jest.fn(),
-      createInvite: jest.fn()
+      createInvite: jest.fn(),
+      changePhone: jest.fn(),
+      getSupportContacts: jest.fn()
     })
   })
 

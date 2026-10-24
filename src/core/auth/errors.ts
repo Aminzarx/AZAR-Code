@@ -29,6 +29,8 @@ export class ValidationFailureError extends Error {
       | 'otp_expired'
       | 'invalid_referral_code'
       | 'self_referral'
+      | 'phone_moved'
+      | 'same_phone_number'
   ) {
     super(message)
     this.name = 'ValidationFailureError'

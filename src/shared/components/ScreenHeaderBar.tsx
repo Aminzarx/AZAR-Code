@@ -1,6 +1,7 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
+import { MarqueeText } from './MarqueeText'
 import { BackButton } from './BackButton'
 import { SECTIONS, SectionMark, WhereAmILine, type SectionKey } from './SectionMark'
 
@@ -38,13 +39,10 @@ export function ScreenHeaderBar({ onBack, title, section }: Props): React.JSX.El
         <View style={styles.titleBlock}>
           <View style={styles.titleRow}>
             {section ? <SectionMark section={section} /> : null}
-            <Text
-              style={[theme.typography('titleSm'), styles.title]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
+            <MarqueeText
+              style={[theme.typography('titleSm'), styles.title]}>
               {title}
-            </Text>
+            </MarqueeText>
           </View>
           {section ? <WhereAmILine theme={theme} /> : null}
         </View>

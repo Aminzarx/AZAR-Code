@@ -32,7 +32,9 @@ describe('OtpCodePanel — code from the SMS (v1.2.0, Amin #4229)', () => {
       login: jest.fn().mockResolvedValue({}),
       logout: jest.fn(),
       deleteAccount: jest.fn(),
-      createInvite: jest.fn()
+      createInvite: jest.fn(),
+      changePhone: jest.fn(),
+      getSupportContacts: jest.fn()
     })
 
     const { unmount } = await render(

@@ -119,6 +119,12 @@ export function OtpCodePanel({
         onNeedsReferral(phoneNumber)
         return
       }
+      if (caughtError instanceof ValidationFailureError && caughtError.code === 'phone_moved') {
+        // v1.5.0 (Amin #4632): this account moved to a new number
+        setStatus('error')
+        setError('این حساب به شمارهٔ دیگری منتقل شده است؛ با شمارهٔ تازه وارد شوید.')
+        return
+      }
       setStatus('error')
       setError('ورود با مشکل مواجه شد. دوباره تلاش کنید.')
     }

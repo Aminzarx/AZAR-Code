@@ -1,6 +1,7 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
+import { MarqueeText } from './MarqueeText'
 import { Icon } from './Icon'
 
 type Props = {
@@ -23,23 +24,17 @@ export function ContextHeader({ primary, secondary }: Props): React.JSX.Element 
 
   return (
     <View style={styles.row}>
-      <Text
-        style={[theme.typography('bodyMd'), styles.text]}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-      >
+      <MarqueeText
+        style={[theme.typography('bodyMd'), styles.text]}>
         {primary}
-      </Text>
+      </MarqueeText>
       {secondary ? (
         <>
           <Icon name="close" size="xs" color={theme.colors.outline} />
-          <Text
-            style={[theme.typography('bodyMd'), styles.text]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <MarqueeText
+            style={[theme.typography('bodyMd'), styles.text]}>
             {secondary}
-          </Text>
+          </MarqueeText>
         </>
       ) : null}
     </View>

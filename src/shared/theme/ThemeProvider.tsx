@@ -13,6 +13,8 @@ import {
   typographyLtr,
   typographyRtl,
   rtlFontFamilyByWeight,
+  rtlHeadingFontFamilyByWeight,
+  HEADING_VARIANTS,
   type StatusTone,
   type TypographyVariant
 } from './tokens'
@@ -55,9 +57,11 @@ function buildTheme(isRTL: boolean): Theme {
     layout: layoutTokens,
     typography: (variant) => ({
       ...table[variant],
-      // Only Vazirmatn (RTL) is bundled as a real asset — LTR falls back
+      // Persian fonts are bundled (Vazirmatn, IRANYekan for headings) — LTR falls back
       // to the system font until Geist/Inter are added.
-      fontFamily: isRTL ? rtlFontFamilyByWeight[table[variant].fontWeight] : undefined,
+      fontFamily: isRTL
+        ? (HEADING_VARIANTS.has(variant) ? rtlHeadingFontFamilyByWeight : rtlFontFamilyByWeight)[table[variant].fontWeight]
+        : undefined,
       textAlign: isRTL ? 'right' : 'left',
       writingDirection: isRTL ? 'rtl' : 'ltr'
     }),

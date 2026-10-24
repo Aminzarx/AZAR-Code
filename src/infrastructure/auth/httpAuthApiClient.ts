@@ -8,6 +8,14 @@ import {
 /** `message` (server since Amin #4625): the SMS text word for word; older servers leave it out. */
 export type InviteResult = { code: string; url: string; message?: string; referralCode: string }
 
+/** Where «راهنما و پشتیبانی» sends people (server settings, Amin #4632); null = not set yet. */
+export type SupportContacts = {
+  prefix: string
+  whatsapp: string | null
+  telegram: string | null
+  rubika: string | null
+}
+
 type ErrorBody = { error?: { code?: string; message?: string } }
 
 const VALIDATION_CODES = new Set([
@@ -16,7 +24,9 @@ const VALIDATION_CODES = new Set([
   'invalid_otp',
   'otp_expired',
   'invalid_referral_code',
-  'self_referral'
+  'self_referral',
+  'phone_moved',
+  'same_phone_number'
 ])
 
 /**
@@ -62,6 +72,27 @@ export class HttpAuthApiClient implements AuthApiClient {
    */
   async createInvite(sessionToken: string, phoneNumber: string): Promise<InviteResult> {
     return this.post('/auth/invite', { sessionToken, phoneNumber })
+  }
+
+  /**
+   * v1.5.0 (Amin #4632, «تغییر شماره»): moves the account to `newPhoneNumber`,
+   * which must have just been confirmed with its own code (sendOtp + verifyOtp).
+   */
+  async changePhone(sessionToken: string, newPhoneNumber: string): Promise<{ phoneNumber: string }> {
+    return this.post('/auth/change-phone', { sessionToken, newPhoneNumber })
+  }
+
+  async getSupportContacts(): Promise<SupportContacts> {
+    let response: Response
+    try {
+      response = await fetch(`${this.baseUrl}/auth/support`)
+    } catch {
+      throw new NetworkFailureError()
+    }
+    if (!response.ok) {
+      throw new NetworkFailureError()
+    }
+    return (await response.json()) as SupportContacts
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, EntityIconBadge } from '@shared/components'
+import { Card, EntityIconBadge, MarqueeText } from '@shared/components'
 import { formatDateTime } from '@shared/utils/formatDate'
 import type { Reminder } from '../types'
 import type { ReminderContext } from '../hooks/useReminderContexts'
@@ -40,9 +40,9 @@ export function ReminderListItem({
           style={styles.content}
         >
           {contextText ? (
-            <Text style={[theme.typography('labelSm'), styles.context]} numberOfLines={1}>
+            <MarqueeText style={[theme.typography('labelSm'), styles.context]}>
               {contextText}
-            </Text>
+            </MarqueeText>
           ) : null}
           <Text
             style={[theme.typography('titleSm'), styles.title, reminder.isDone && styles.titleDone]}

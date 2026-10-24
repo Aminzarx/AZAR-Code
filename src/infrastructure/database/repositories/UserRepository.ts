@@ -51,6 +51,15 @@ export class UserRepository {
     return row ? toUser(row) : null
   }
 
+  /** v1.5.0 (Amin #4632): the account moved to a new number on the server. */
+  async updatePhoneNumber(id: string, phoneNumber: string): Promise<void> {
+    await this.db.execute('UPDATE users SET phone_number = ?, updated_at = ? WHERE id = ?', [
+      phoneNumber,
+      new Date().toISOString(),
+      id
+    ])
+  }
+
   async findById(id: string): Promise<UserRecord | null> {
     const result = await this.db.execute('SELECT * FROM users WHERE id = ?', [id])
     const row = result.rows[0]

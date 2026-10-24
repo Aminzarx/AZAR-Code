@@ -192,13 +192,30 @@ export const typographyRtl = {
 
 export type TypographyVariant = keyof typeof typographyLtr
 
-/** Filenames match the bundled assets/fonts/IRANYekan-*.ttf exactly (Android resolves font family by filename). v3.0.0: IRANYekan, the kssx.ir font, replaces Vazirmatn. */
+/**
+ * Filenames match the bundled assets/fonts/*.ttf exactly (Android resolves font family by filename).
+ * v1.5.0 (Amin #4632): Vazirmatn everywhere, IRANYekan (the kssx.ir v2 font) for headings.
+ */
 export const rtlFontFamilyByWeight: Record<TypographyToken['fontWeight'], string> = {
+  '400': 'Vazirmatn-Regular',
+  '500': 'Vazirmatn-Medium',
+  '600': 'Vazirmatn-Bold',
+  '700': 'Vazirmatn-Bold'
+}
+
+export const rtlHeadingFontFamilyByWeight: Record<TypographyToken['fontWeight'], string> = {
   '400': 'IRANYekan-Regular',
   '500': 'IRANYekan-Medium',
   '600': 'IRANYekan-Bold',
   '700': 'IRANYekan-Bold'
 }
+
+/** The variants drawn in the heading font: page and section titles. */
+export const HEADING_VARIANTS: ReadonlySet<TypographyVariant> = new Set<TypographyVariant>([
+  'headlineLgMobile',
+  'headlineMd',
+  'titleMd'
+])
 
 /**
  * design-tokens.json's `component` block — per-component size/spacing/

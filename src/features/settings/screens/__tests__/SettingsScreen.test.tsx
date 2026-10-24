@@ -16,8 +16,9 @@ const mockRestoreBackupFile = jest.fn()
 const mockPickBackupFileBytes = jest.fn()
 const mockSaveBackupFileToDevice = jest.fn()
 const mockShareBackupFile = jest.fn()
-const mockGetDisplayName = jest.fn()
-const mockSetDisplayName = jest.fn()
+const mockUseProfile = jest.fn()
+const mockNavigate = jest.fn()
+const mockGetSupportContacts = jest.fn()
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -25,7 +26,8 @@ jest.mock('@features/auth/AuthProvider', () => ({
     logout: mockLogout,
     sendOtp: mockSendOtp,
     verifyOtp: mockVerifyOtp,
-    deleteAccount: mockDeleteAccount
+    deleteAccount: mockDeleteAccount,
+    getSupportContacts: mockGetSupportContacts
   })
 }))
 
@@ -60,11 +62,28 @@ jest.mock('@infrastructure/backup/backupFileTransfer', () => ({
   shareBackupFile: (...args: unknown[]) => mockShareBackupFile(...args)
 }))
 
-jest.mock('@shared/hooks/useDisplayName', () => ({
-  useDisplayName: () => mockGetDisplayName()
+jest.mock('../../hooks/useProfile', () => ({
+  useProfile: () => mockUseProfile()
 }))
 
-const navigationProp = {} as never
+jest.mock('@infrastructure/images/profilePhoto', () => ({
+  photoUri: (path: string | null) => (path ? `file://${path}` : null)
+}))
+
+function profileWith(over: { displayName?: string | null } = {}) {
+  return {
+    profile: {
+      displayName: over.displayName ?? null,
+      agencyName: null,
+      photoPath: null,
+      phoneNumber: '+989121234567'
+    },
+    storage: { bytes: 97600, tokens: 12.4, allowance: 6350, share: 12.4 / 6350 },
+    reload: jest.fn()
+  }
+}
+
+const navigationProp = { navigate: mockNavigate } as never
 const routeProp = { key: 'Settings', name: 'Settings' as const, params: undefined }
 
 // v1.4.0: «خروج» and «حذف حساب» sit on the page itself now (no ⋮ menu)
@@ -98,12 +117,15 @@ describe('SettingsScreen', () => {
     mockPickBackupFileBytes.mockReset()
     mockSaveBackupFileToDevice.mockReset()
     mockShareBackupFile.mockReset()
-    mockGetDisplayName.mockReset()
-    mockSetDisplayName.mockReset()
-    mockGetDisplayName.mockReturnValue({
-      displayName: null,
-      isLoading: false,
-      setDisplayName: mockSetDisplayName
+    mockUseProfile.mockReset()
+    mockUseProfile.mockReturnValue(profileWith())
+    mockNavigate.mockReset()
+    mockGetSupportContacts.mockReset()
+    mockGetSupportContacts.mockResolvedValue({
+      prefix: 'پشتیبانی اپلیکیشن ایوان',
+      whatsapp: '989120000000',
+      telegram: null,
+      rubika: null
     })
   })
 
@@ -218,6 +240,7 @@ describe('SettingsScreen', () => {
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
+    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
     fireEvent.press(await findByLabelText('تهیه نسخه پشتیبان'))
     fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
     fireEvent.press(await findByText('ایجاد نسخه پشتیبان'))
@@ -243,6 +266,7 @@ describe('SettingsScreen', () => {
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
+    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
     fireEvent.press(await findByLabelText('تهیه نسخه پشتیبان'))
     fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
     fireEvent.press(await findByText('ایجاد نسخه پشتیبان'))
@@ -264,6 +288,7 @@ describe('SettingsScreen', () => {
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
+    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
     fireEvent.press(await findByLabelText('تهیه نسخه پشتیبان'))
     fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
     fireEvent.press(await findByText('ایجاد نسخه پشتیبان'))
@@ -273,25 +298,42 @@ describe('SettingsScreen', () => {
     expect(mockShareBackupFile).not.toHaveBeenCalled()
   })
 
-  it('shows the name as a label with an edit affordance, and saves once edited', async () => {
-    mockGetDisplayName.mockReturnValue({
-      displayName: 'محمد رضایی',
-      isLoading: false,
-      setDisplayName: mockSetDisplayName
-    })
+  // v1.5.0 (Amin #4632): «ویرایش» opens the profile page
+  it('shows the name and opens the profile page from «ویرایش»', async () => {
+    mockUseProfile.mockReturnValue(profileWith({ displayName: 'محمد رضایی' }))
 
     const { findByText, findByLabelText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
     expect(await findByText('محمد رضایی')).toBeTruthy()
+    fireEvent.press(await findByLabelText('ویرایش پروفایل'))
+    expect(mockNavigate).toHaveBeenCalledWith('Profile')
+  })
 
-    fireEvent.press(await findByLabelText('ویرایش نام'))
-    const nameField = await findByLabelText('نام')
-    await fireEvent.changeText(nameField, 'رضا محمدی')
-    await fireEvent(nameField, 'blur')
+  // v1.5.0 (Amin #4632 «چرا بخش توکن‌ها نیست؟»)
+  it('shows the storage tokens used out of 6,350', async () => {
+    const { findByText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
 
-    expect(mockSetDisplayName).toHaveBeenCalledWith('رضا محمدی')
+    expect(await findByText('۱۲٫۴ از ۶٬۳۵۰ توکن مصرف شده')).toBeTruthy()
+  })
+
+  // v1.5.0 (Amin #4632): support in the messenger the user picks, labelled for IRIS
+  it('opens support in WhatsApp with the support line first; unset messengers wait', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
+    const { findByLabelText, findAllByText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    fireEvent.press(await findByLabelText('راهنما و پشتیبانی'))
+    await waitFor(() => expect(mockGetSupportContacts).toHaveBeenCalled())
+    expect((await findAllByText('به‌زودی')).length).toBe(2)
+    fireEvent.press(await findByLabelText('واتس‌اپ'))
+    const url = openURL.mock.calls[openURL.mock.calls.length - 1]?.[0] as string
+    expect(url.startsWith('https://wa.me/989120000000?text=')).toBe(true)
+    expect(decodeURIComponent(url.split('text=')[1] ?? '').split(String.fromCharCode(10))[0]).toBe('پشتیبانی اپلیکیشن ایوان')
   })
 
   it('warns before importing, then picks a file, enters a password, and logs out on success', async () => {
@@ -301,6 +343,7 @@ describe('SettingsScreen', () => {
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
+    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
     fireEvent.press(await findByLabelText('بازیابی از نسخه پشتیبان'))
     expect(
       await findByText(
@@ -333,6 +376,7 @@ describe('SettingsScreen', () => {
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
+    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
     fireEvent.press(await findByLabelText('بازیابی از نسخه پشتیبان'))
     fireEvent.press(await findByText('انتخاب فایل'))
 
@@ -347,6 +391,7 @@ describe('SettingsScreen', () => {
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
+    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
     fireEvent.press(await findByLabelText('بازیابی از نسخه پشتیبان'))
     fireEvent.press(await findByText('انتخاب فایل'))
     fireEvent.changeText(await findByLabelText('رمز عبور'), 'wrong password')

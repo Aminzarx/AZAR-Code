@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Icon, type IconName } from '@shared/components'
+import { Icon, type IconName, MarqueeText } from '@shared/components'
 
 type Props = {
   icon: IconName
@@ -27,9 +27,9 @@ export function SettingsRow({ icon, label, value, badge, onPress, destructive, l
       <View style={styles.text}>
         <Text style={[theme.typography('bodyLg'), { color }]}>{label}</Text>
         {value ? (
-          <Text style={[theme.typography('labelSm'), styles.value]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('labelSm'), styles.value]}>
             {value}
-          </Text>
+          </MarqueeText>
         ) : null}
       </View>
       {badge ? <Text style={[theme.typography('labelSm'), styles.badge]}>{badge}</Text> : null}

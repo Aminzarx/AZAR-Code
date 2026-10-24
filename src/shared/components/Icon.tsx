@@ -40,6 +40,12 @@ export type IconName =
   | 'help'
   | 'mobile'
   | 'qr'
+  | 'camera'
+  | 'whatsapp'
+  | 'telegram'
+  | 'chat'
+  | 'token'
+  | 'edit'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -157,5 +163,17 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'phone-portrait-outline'
     case 'qr':
       return 'qr-code-outline'
+    case 'camera':
+      return 'camera-outline'
+    case 'whatsapp':
+      return 'logo-whatsapp'
+    case 'telegram':
+      return 'paper-plane-outline'
+    case 'chat':
+      return 'chatbubbles-outline'
+    case 'token':
+      return 'server-outline'
+    case 'edit':
+      return 'create-outline'
   }
 }

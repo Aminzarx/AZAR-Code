@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit')
 const db = require('./db')
 const { generateId, generateReferralCode, generateSessionToken } = require('./ids')
 const { findOpenInvite } = require('./inviteRoutes')
+const { isMovedNumber } = require('./phoneRoutes')
 
 const PHONE_NUMBER_PATTERN = /^\+?[1-9]\d{7,14}$/
 
@@ -180,6 +181,9 @@ router.post('/register', registerLimiter, (req, res) => {
   if (referrer.phone_number === phoneNumber) {
     return fail(res, 422, 'self_referral', 'You cannot use your own referral code.')
   }
+  if (isMovedNumber(phoneNumber)) {
+    return fail(res, 422, 'phone_moved', 'This number was moved to another number.')
+  }
   if (findUserByPhone(phoneNumber)) {
     return fail(
       res,
@@ -243,6 +247,10 @@ router.post('/login', registerLimiter, (req, res) => {
   }
 
   let user = findUserByPhone(phoneNumber)
+  if (!user && isMovedNumber(phoneNumber)) {
+    // KSS (Amin #4632): the account moved to a new number; the old one no longer signs in
+    return fail(res, 422, 'phone_moved', 'This number was moved to another number.')
+  }
   if (!user) {
     // KSS (Amin #4311): a mobile someone invited by SMS signs up right here,
     // with the inviter as its referrer, instead of being asked for a code.
@@ -297,6 +305,7 @@ router.post('/delete-account', registerLimiter, (req, res) => {
     ).run(user.id, user.id)
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
     db.prepare('DELETE FROM invites WHERE referrer_user_id = ?').run(user.id)
+    db.prepare('DELETE FROM phone_changes WHERE user_id = ?').run(user.id)
     db.prepare('DELETE FROM users WHERE id = ?').run(user.id)
     db.prepare('DELETE FROM otp_requests WHERE phone_number = ?').run(phoneNumber)
   })()

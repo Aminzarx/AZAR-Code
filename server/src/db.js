@@ -69,6 +69,18 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS invites_phone ON invites(phone_number);
 `)
 
+// KSS (Amin #4632): «تغییر شماره» — every number an account moved away from (see phoneRoutes.js)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS phone_changes (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    old_phone TEXT NOT NULL,
+    new_phone TEXT NOT NULL,
+    changed_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS phone_changes_old ON phone_changes(old_phone);
+`)
+
 // Registration requires a valid referral code with no bypass (ADR-009), so a
 // brand-new server has no user to be a referrer for the very first real
 // registration. Mirrors the client's own former bootstrap-seed migration

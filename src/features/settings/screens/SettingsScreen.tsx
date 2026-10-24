@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Clipboard, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
+import { Clipboard, Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -12,11 +12,9 @@ import {
   Icon,
   InfoDialog,
   OtpPromptDialog,
-  PasswordPromptDialog,
-  TextInput
+  PasswordPromptDialog
 } from '@shared/components'
 import { getDatabase } from '@infrastructure/database/connection'
-import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
 import {
   SessionRepository,
   type SessionRecord
@@ -38,7 +36,6 @@ import {
   saveBackupFileToDevice,
   shareBackupFile
 } from '@infrastructure/backup/backupFileTransfer'
-import { useDisplayName } from '@shared/hooks/useDisplayName'
 import { useNetworkStatus } from '@shared/hooks/useNetworkStatus'
 import { formatDateTime } from '@shared/utils/formatDate'
 import { toPersianDigits } from '@shared/utils/persianText'
@@ -46,9 +43,21 @@ import { formatIranPhoneNumberForDisplay } from '@shared/utils/iranPhoneNumber'
 import { APP_VERSION } from '@shared/appVersion'
 import { InviteSmsDialog } from '../components/InviteSmsDialog'
 import { SettingsRow } from '../components/SettingsRow'
+import { OptionsSheet, type SheetOption } from '../components/OptionsSheet'
+import { useProfile } from '../hooks/useProfile'
+import { roundTokens, STORAGE_TOKEN_ALLOWANCE } from '../services/storageTokens'
+import { photoUri } from '@infrastructure/images/profilePhoto'
+import type { SupportContacts } from '@infrastructure/auth/httpAuthApiClient'
+import { ValidationFailureError } from '@core/auth/errors'
 
 const APP_DOWNLOAD_URL = 'https://eyvan.kssx.ir/' // Amin #4623: customer-facing links on kssx.ir
-import { ValidationFailureError } from '@core/auth/errors'
+
+/** «۱۲٫۴» — Persian digits, Persian decimal and thousands marks */
+function persianNumber(value: number): string {
+  const [whole, fraction] = String(value).split('.')
+  const grouped = (whole ?? '0').replace(/\B(?=(\d{3})+(?!\d))/g, '٬')
+  return toPersianDigits(fraction ? `${grouped}٫${fraction}` : grouped)
+}
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>
 
@@ -86,12 +95,15 @@ type ImportStep = 'closed' | 'password' | 'success'
 export function SettingsScreen(props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const { session, logout, sendOtp, verifyOtp, deleteAccount } = useAuth()
-  const { displayName, setDisplayName } = useDisplayName()
+  const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts } = useAuth()
+  const { profile, storage } = useProfile({ withStorage: true })
+  const displayName = profile.displayName
+  const phoneNumber = profile.phoneNumber
   const isOnline = useNetworkStatus()
-  const [nameInput, setNameInput] = useState('')
-  const [isEditingName, setIsEditingName] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
+  const [isBackupSheetVisible, setIsBackupSheetVisible] = useState(false)
+  const [isSupportSheetVisible, setIsSupportSheetVisible] = useState(false)
+  const [support, setSupport] = useState<SupportContacts | null>(null)
+  const [supportError, setSupportError] = useState<string | null>(null)
   const [sessionRecord, setSessionRecord] = useState<SessionRecord | null>(null)
   const [copied, setCopied] = useState(false)
   const [isInviteVisible, setIsInviteVisible] = useState(false)
@@ -122,11 +134,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       return
     }
     getDatabase().then((db) => {
-      new UserRepository(db).findById(session.userId).then((user) => {
-        if (!cancelled) {
-          setPhoneNumber(user?.phoneNumber ?? null)
-        }
-      })
       // Real session state (not a hardcoded "فعال") — the local sessions
       // table already tracks creation/revocation; RootNavigator wouldn't
       // have routed here at all if this session were revoked, but reading
@@ -142,17 +149,54 @@ export function SettingsScreen(props: Props): React.JSX.Element {
     }
   }, [session])
 
-  useEffect(() => {
-    if (displayName !== null) {
-      setNameInput(displayName)
-    }
-  }, [displayName])
+  function openSupport(): void {
+    setIsSupportSheetVisible(true)
+    setSupportError(null)
+    getSupportContacts()
+      .then(setSupport)
+      .catch(() => setSupportError('برای دیدن راه‌های پشتیبانی به اینترنت وصل شوید.'))
+  }
 
-  function handleNameBlur(): void {
-    setIsEditingName(false)
-    if (nameInput.trim() !== (displayName ?? '')) {
-      setDisplayName(nameInput)
+  /**
+   * v1.5.0 (Amin #4632): help goes to the company's support number in the
+   * messenger the user picks. Every message opens with the support line
+   * (server setting) so the company's IRIS files it under «پشتیبانی اپلیکیشن».
+   */
+  function supportOptions(): SheetOption[] {
+    const prefix = support?.prefix ?? 'پشتیبانی اپلیکیشن ایوان'
+    const text = `${prefix}\n${displayName ? `${displayName} — ` : ''}${phoneNumber ? toPersianDigits(formatIranPhoneNumberForDisplay(phoneNumber)) : ''}\n`
+    const open = (url: string, copyFirst = false) => () => {
+      if (copyFirst) Clipboard.setString(text)
+      setIsSupportSheetVisible(false)
+      Linking.openURL(url).catch(() => setSupportError('این پیام‌رسان روی گوشی نصب نیست.'))
     }
+    const soon = 'به‌زودی'
+    return [
+      {
+        icon: 'whatsapp',
+        label: 'واتس‌اپ',
+        tint: '#25D366',
+        description: support?.whatsapp ? 'گفت‌وگو با پشتیبانی' : soon,
+        disabled: !support?.whatsapp,
+        onPress: open(`https://wa.me/${support?.whatsapp ?? ''}?text=${encodeURIComponent(text)}`)
+      },
+      {
+        icon: 'telegram',
+        label: 'تلگرام',
+        tint: '#229ED9',
+        description: support?.telegram ? 'گفت‌وگو با پشتیبانی' : soon,
+        disabled: !support?.telegram,
+        onPress: open(`https://t.me/${support?.telegram ?? ''}?text=${encodeURIComponent(text)}`)
+      },
+      {
+        icon: 'chat',
+        label: 'روبیکا',
+        tint: '#7B3FE4',
+        description: support?.rubika ? 'متن آغاز پیام کپی می‌شود؛ در گفت‌وگو بچسبانید' : soon,
+        disabled: !support?.rubika,
+        onPress: open(`https://rubika.ir/${support?.rubika ?? ''}`, true)
+      }
+    ]
   }
 
   function handleCopyReferralCode(): void {
@@ -330,40 +374,39 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="من">
         {/* v1.4.0 (approved «من» design): who you are, the invite card, then one list */}
         <View style={styles.profileRow}>
-          <View style={styles.avatar}>
-            <Text style={[theme.typography('titleMd'), styles.avatarText]}>
-              {(displayName || 'ا').trim().charAt(0)}
-            </Text>
-          </View>
-          <View style={styles.profileText}>
-            {isEditingName ? (
-              <TextInput
-                label="نام"
-                value={nameInput}
-                onChangeText={setNameInput}
-                onBlur={handleNameBlur}
-                placeholder="نام خود را وارد کنید"
-                autoFocus
-              />
-            ) : (
-              <Text style={[theme.typography('titleMd'), styles.value]} numberOfLines={1}>
-                {displayName || 'نام ثبت نشده'}
+          {photoUri(profile.photoPath) ? (
+            <Image
+              source={{ uri: photoUri(profile.photoPath) ?? undefined }}
+              style={styles.avatar}
+              accessibilityLabel="عکس پروفایل"
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={[theme.typography('titleMd'), styles.avatarText]}>
+                {(displayName || 'ا').trim().charAt(0)}
               </Text>
-            )}
+            </View>
+          )}
+          <View style={styles.profileText}>
+            <Text style={[theme.typography('titleMd'), styles.value]} numberOfLines={1}>
+              {displayName || 'نام ثبت نشده'}
+            </Text>
             <Text style={[theme.typography('bodySm'), styles.phone]}>
               {phoneNumber ? toPersianDigits(formatIranPhoneNumberForDisplay(phoneNumber)) : '-'}
+              {profile.agencyName ? ` · ${profile.agencyName}` : ''}
             </Text>
           </View>
-          {!isEditingName ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="ویرایش نام"
-              onPress={() => setIsEditingName(true)}
-              hitSlop={theme.spacing.space2}
-            >
-              <Text style={[theme.typography('labelMd'), styles.editLabel]}>ویرایش</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="ویرایش پروفایل"
+            onPress={() => props.navigation.navigate('Profile')}
+            hitSlop={theme.spacing.space2}
+            style={styles.editButton}
+          >
+            <Icon name="edit" size="xs" color={theme.colors.primary} />
+            <Text style={[theme.typography('labelMd'), styles.editLabel]}>ویرایش</Text>
+          </Pressable>
         </View>
 
         {session?.referralCode ? (
@@ -422,20 +465,31 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           </View>
         ) : null}
 
+        {/* v1.5.0 (Amin #4632 «چرا بخش توکن‌ها نیست؟», rule #4164): storage shown as tokens */}
+        <View style={styles.tokenCard} accessibilityLabel="فضای ذخیره‌سازی">
+          <View style={styles.tokenHead}>
+            <View style={styles.tokenIcon}>
+              <Icon name="token" size="sm" color={theme.colors.primary} />
+            </View>
+            <Text style={[theme.typography('titleSm'), styles.tokenTitle]}>توکن‌های فضای ذخیره‌سازی</Text>
+          </View>
+          <Text style={[theme.typography('bodyMd'), styles.tokenValue]}>
+            {`${persianNumber(roundTokens(storage?.tokens ?? 0))} از ${persianNumber(STORAGE_TOKEN_ALLOWANCE)} توکن مصرف شده`}
+          </Text>
+          <View style={styles.tokenTrack}>
+            <View style={[styles.tokenFill, { width: `${Math.max(storage && storage.tokens > 0 ? 1.5 : 0, (storage?.share ?? 0) * 100)}%` }]} />
+          </View>
+          <Text style={[theme.typography('bodySm'), styles.tokenHint]}>
+            {`${persianNumber(Math.max(0, Math.floor((STORAGE_TOKEN_ALLOWANCE - (storage?.tokens ?? 0)) * 10) / 10))} توکن باقی مانده · هر فایل به اندازهٔ اطلاعات و عکس‌هایش توکن می‌گیرد و با حذفش برمی‌گردد.`}
+          </Text>
+        </View>
+
         <View style={styles.list}>
           <SettingsRow
             icon="cloud"
-            label="تهیه نسخه پشتیبان"
-            value="ذخیرهٔ امن اطلاعات"
-            onPress={() => setIsBackupDialogVisible(true)}
-          />
-          <SettingsRow
-            icon="download"
-            label="بازیابی از نسخه پشتیبان"
-            onPress={() => {
-              setImportError(null)
-              setIsImportWarningVisible(true)
-            }}
+            label="نسخه پشتیبان"
+            value="تهیه یا بازیابی اطلاعات این گوشی"
+            onPress={() => setIsBackupSheetVisible(true)}
           />
           <SettingsRow
             icon="bell"
@@ -455,9 +509,8 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           <SettingsRow
             icon="help"
             label="راهنما و پشتیبانی"
-            onPress={() => {
-              Linking.openURL(COMPANY_SITE_URL).catch(() => undefined)
-            }}
+            value="پیام به پشتیبانی در واتس‌اپ، تلگرام یا روبیکا"
+            onPress={openSupport}
           />
           <SettingsRow
             icon="logout"
@@ -501,6 +554,42 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       <InviteSmsDialog
         visible={isInviteVisible}
         onClose={() => setIsInviteVisible(false)}
+      />
+
+      <OptionsSheet
+        visible={isBackupSheetVisible}
+        title="نسخه پشتیبان"
+        lead="اطلاعات شما فعلاً فقط روی همین گوشی است؛ با نسخه پشتیبان، اگر گوشی گم یا عوض شود، اطلاعات از دست نمی‌رود."
+        onClose={() => setIsBackupSheetVisible(false)}
+        options={[
+          {
+            icon: 'cloud',
+            label: 'تهیه نسخه پشتیبان',
+            description: 'یک فایل رمزدار از همهٔ اطلاعات',
+            onPress: () => {
+              setIsBackupSheetVisible(false)
+              setIsBackupDialogVisible(true)
+            }
+          },
+          {
+            icon: 'download',
+            label: 'بازیابی از نسخه پشتیبان',
+            description: 'برگرداندن اطلاعات از فایل پشتیبان',
+            onPress: () => {
+              setIsBackupSheetVisible(false)
+              setImportError(null)
+              setIsImportWarningVisible(true)
+            }
+          }
+        ]}
+      />
+
+      <OptionsSheet
+        visible={isSupportSheetVisible}
+        title="راهنما و پشتیبانی"
+        lead={supportError ?? 'پیام‌رسان دلخواهتان را انتخاب کنید تا با پشتیبانی ایوان گفت‌وگو کنید.'}
+        onClose={() => setIsSupportSheetVisible(false)}
+        options={supportOptions()}
       />
 
       <ConfirmDialog
@@ -648,6 +737,43 @@ function createStyles(theme: Theme) {
     },
     avatarText: { color: theme.colors.onPrimary },
     profileText: { flex: 1, gap: 2, alignItems: start },
+    editButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space1,
+      paddingHorizontal: theme.spacing.space3,
+      paddingVertical: theme.spacing.space2,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.primaryContainer
+    },
+    tokenCard: {
+      backgroundColor: theme.colors.surfaceContainerLowest,
+      borderRadius: theme.radius.large,
+      borderWidth: 1,
+      borderColor: theme.colors.outlineVariant,
+      padding: theme.spacing.space4,
+      gap: theme.spacing.space2
+    },
+    tokenHead: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.space2 },
+    tokenIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radius.medium,
+      backgroundColor: theme.colors.primaryContainer,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    tokenTitle: { color: theme.colors.onSurface },
+    tokenValue: { color: theme.colors.onSurface, alignSelf: start },
+    tokenTrack: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: theme.colors.surfaceContainerLow,
+      overflow: 'hidden',
+      flexDirection: 'row'
+    },
+    tokenFill: { height: 8, borderRadius: 4, backgroundColor: theme.colors.primary },
+    tokenHint: { color: theme.colors.onSurfaceVariant, alignSelf: start },
     phone: { color: theme.colors.onSurfaceVariant },
     inviteCard: {
       backgroundColor: theme.colors.primary,

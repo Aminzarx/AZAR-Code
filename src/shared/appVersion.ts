@@ -5,4 +5,4 @@
  * package.json's "version" and android/app/build.gradle's versionName on
  * every release tag.
  */
-export const APP_VERSION = '1.4.1'
+export const APP_VERSION = '1.5.0'

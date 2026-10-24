@@ -2,7 +2,11 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { getDatabase } from '@infrastructure/database/connection'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
 import { SessionRepository } from '@infrastructure/database/repositories/SessionRepository'
-import { HttpAuthApiClient, type InviteResult } from '@infrastructure/auth/httpAuthApiClient'
+import {
+  HttpAuthApiClient,
+  type InviteResult,
+  type SupportContacts
+} from '@infrastructure/auth/httpAuthApiClient'
 import { AUTH_API_BASE_URL } from '@infrastructure/auth/config'
 import { generateId } from '@infrastructure/auth/idGenerators'
 import { keychainSecureStorage } from '@infrastructure/security/keychainSecureStorage'
@@ -19,6 +23,10 @@ type AuthContextValue = {
   deleteAccount: (phoneNumber: string) => Promise<void>
   /** v1.4.0: invite a colleague's mobile; returns the link to send by SMS */
   createInvite: (phoneNumber: string) => Promise<InviteResult>
+  /** v1.5.0: move the account to a new number already confirmed with its code */
+  changePhone: (newPhoneNumber: string) => Promise<void>
+  /** v1.5.0: the support contacts set on the server */
+  getSupportContacts: () => Promise<SupportContacts>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -122,7 +130,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
           throw new Error('Not signed in.')
         }
         return authApiClient.createInvite(session.sessionToken, phoneNumber)
-      }
+      },
+      changePhone: async (newPhoneNumber) => {
+        if (!session) {
+          throw new Error('Not signed in.')
+        }
+        const result = await authApiClient.changePhone(session.sessionToken, newPhoneNumber)
+        await userRepository?.updatePhoneNumber(session.userId, result.phoneNumber)
+      },
+      getSupportContacts: () => authApiClient.getSupportContacts()
     }
   }, [authApiClient, sessionManager, session, isInitializing, userRepository])
 
@@ -142,7 +158,9 @@ const placeholderValue: AuthContextValue = {
   login: () => Promise.reject(new Error('Auth is still initializing.')),
   logout: () => Promise.reject(new Error('Auth is still initializing.')),
   deleteAccount: () => Promise.reject(new Error('Auth is still initializing.')),
-  createInvite: () => Promise.reject(new Error('Auth is still initializing.'))
+  createInvite: () => Promise.reject(new Error('Auth is still initializing.')),
+  changePhone: () => Promise.reject(new Error('Auth is still initializing.')),
+  getSupportContacts: () => Promise.reject(new Error('Auth is still initializing.'))
 }
 
 export function useAuth(): AuthContextValue {

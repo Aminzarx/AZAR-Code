@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card } from '@shared/components'
+import { Card, MarqueeText } from '@shared/components'
 import type { ReminderRecord } from '@infrastructure/database/repositories/ReminderRepository'
 import type { DealStage } from '@infrastructure/database/repositories/DealRepository'
 import { DEAL_STAGE_LABELS } from '@shared/data/dealStageLabels'
@@ -91,13 +91,13 @@ export function DealListItem({
       <Card>
         <View style={styles.titleRow}>
           <View style={styles.who}>
-            <Text style={[theme.typography('titleSm'), styles.title]} numberOfLines={1}>
+            <MarqueeText style={[theme.typography('titleSm'), styles.title]}>
               {deal.applicant?.fullName ?? 'متقاضی نامشخص'}
-            </Text>
+            </MarqueeText>
             <Text style={[theme.typography('titleSm'), styles.arrow]}>←</Text>
-            <Text style={[theme.typography('titleSm'), styles.title, styles.shrink]} numberOfLines={1}>
+            <MarqueeText style={[theme.typography('titleSm'), styles.title, styles.shrink]}>
               {deal.property?.title ?? 'ملک نامشخص'}
-            </Text>
+            </MarqueeText>
           </View>
           <View style={[styles.tag, group === 'won' && styles.tagWon]}>
             <Text style={[theme.typography('labelSm'), group === 'won' ? styles.tagWonText : styles.tagText]}>
@@ -106,9 +106,9 @@ export function DealListItem({
           </View>
         </View>
         {subtitle ? (
-          <Text style={[theme.typography('bodySm'), styles.muted]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('bodySm'), styles.muted]}>
             {subtitle}
-          </Text>
+          </MarqueeText>
         ) : null}
 
         <View style={styles.steps} testID="deal-steps">
@@ -124,12 +124,10 @@ export function DealListItem({
           {nextReminder ? (
             <View style={[styles.pill, isToday || isOverdue ? styles.pillUrgent : styles.pillQuiet]}>
               {isToday || isOverdue ? <View style={styles.dot} /> : null}
-              <Text
-                style={[theme.typography('labelSm'), isToday || isOverdue ? styles.pillUrgentText : styles.pillQuietText]}
-                numberOfLines={1}
-              >
+              <MarqueeText
+                style={[theme.typography('labelSm'), isToday || isOverdue ? styles.pillUrgentText : styles.pillQuietText]}>
                 {`${nextReminder.title} ${whenText(nextReminder.remindAt)}`}
-              </Text>
+              </MarqueeText>
             </View>
           ) : (
             <View />

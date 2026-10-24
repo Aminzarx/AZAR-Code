@@ -12,6 +12,18 @@
     {
       "path": "assets/fonts/IRANYekan-Regular.ttf",
       "sha1": "981b1e6cc4803654f024ab26d7d3261b6307100e"
+    },
+    {
+      "path": "assets/fonts/Vazirmatn-Bold.ttf",
+      "sha1": "c01e41bc392a8b2cd4b9f7ae995c5a284a2920c7"
+    },
+    {
+      "path": "assets/fonts/Vazirmatn-Medium.ttf",
+      "sha1": "5c21c7fe0ae95852891f0d527fbcbee5b51e637e"
+    },
+    {
+      "path": "assets/fonts/Vazirmatn-Regular.ttf",
+      "sha1": "253d2f6e4121d70ee0928568470b032d5eec773a"
     }
   ]
 }

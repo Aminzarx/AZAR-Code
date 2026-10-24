@@ -14,7 +14,8 @@ import {
   LoadingIndicator,
   MatchingResult,
   SegmentedControl,
-  type MatchingCriterionState
+  type MatchingCriterionState,
+  MarqueeText
 } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { moneyLine, shortTomanRange } from '@shared/utils/shortMoney'
@@ -528,9 +529,9 @@ function OverviewCard({
     <View style={styles.card}>
       <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onOpen} style={styles.cardHead}>
         <View style={styles.cardTitleRow}>
-          <Text style={[theme.typography('titleSm'), styles.cardTitle]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('titleSm'), styles.cardTitle]}>
             {title}
-          </Text>
+          </MarqueeText>
           {count > 0 ? (
             <View style={styles.countPill}>
               <Text style={[theme.typography('labelSm'), styles.countText]}>{`${toPersianDigits(String(count))} مورد`}</Text>
@@ -538,9 +539,9 @@ function OverviewCard({
           ) : null}
         </View>
         {subtitle ? (
-          <Text style={[theme.typography('bodySm'), styles.muted]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('bodySm'), styles.muted]}>
             {subtitle}
-          </Text>
+          </MarqueeText>
         ) : null}
       </Pressable>
       {rows.length === 0 ? (
@@ -555,13 +556,13 @@ function OverviewCard({
             style={({ pressed }) => [styles.matchRow, pressed && styles.matchRowPressed]}
           >
             <View style={styles.matchText}>
-              <Text style={[theme.typography('labelMd'), styles.matchTitle]} numberOfLines={1}>
+              <MarqueeText style={[theme.typography('labelMd'), styles.matchTitle]}>
                 {row.title}
-              </Text>
+              </MarqueeText>
               {row.detail ? (
-                <Text style={[theme.typography('labelSm'), styles.muted]} numberOfLines={1}>
+                <MarqueeText style={[theme.typography('labelSm'), styles.muted]}>
                   {row.detail}
-                </Text>
+                </MarqueeText>
               ) : null}
             </View>
             <View style={styles.scoreBadge}>

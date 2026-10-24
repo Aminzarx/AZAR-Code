@@ -15,7 +15,8 @@ import {
   NextAction,
   PipelineIndicator,
   ScreenHeaderBar,
-  StatusBadge
+  StatusBadge,
+  MarqueeText
 } from '@shared/components'
 import { formatDateTime } from '@shared/utils/formatDate'
 import type { DealStage } from '@infrastructure/database/repositories/DealRepository'
@@ -288,21 +289,15 @@ function SummaryBlock({
 }: SummaryBlockProps): React.JSX.Element {
   const content = (
     <Card style={styles.summaryCard}>
-      <Text
-        style={[theme.typography('titleSm'), styles.summaryTitle]}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-      >
+      <MarqueeText
+        style={[theme.typography('titleSm'), styles.summaryTitle]}>
         {title}
-      </Text>
+      </MarqueeText>
       {detail ? (
-        <Text
-          style={[theme.typography('bodySm'), styles.summaryDetail]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
+        <MarqueeText
+          style={[theme.typography('bodySm'), styles.summaryDetail]}>
           {detail}
-        </Text>
+        </MarqueeText>
       ) : null}
     </Card>
   )

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card } from '@shared/components'
+import { Card, MarqueeText } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { moneyLine, relativeDay } from '@shared/utils/shortMoney'
 import type { Property } from '../types'
@@ -41,13 +41,10 @@ export function PropertyListItem({ property, onPress, matchCount, onLongPress }:
       delayLongPress={350}>
       <Card>
         <View style={styles.titleRow}>
-          <Text
-            style={[theme.typography('titleSm'), styles.title]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <MarqueeText
+            style={[theme.typography('titleSm'), styles.title]}>
             {property.title}
-          </Text>
+          </MarqueeText>
           {property.transactionType ? (
             <View style={styles.tag}>
               <Text style={[theme.typography('labelSm'), styles.tagText]}>
@@ -57,23 +54,20 @@ export function PropertyListItem({ property, onPress, matchCount, onLongPress }:
           ) : null}
         </View>
         {location ? (
-          <Text
-            style={[theme.typography('bodySm'), styles.muted]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <MarqueeText
+            style={[theme.typography('bodySm'), styles.muted]}>
             {location}
-          </Text>
+          </MarqueeText>
         ) : null}
         {specs.length > 0 ? (
-          <Text style={[theme.typography('bodySm'), styles.muted]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('bodySm'), styles.muted]}>
             {specs.join('   ')}
-          </Text>
+          </MarqueeText>
         ) : null}
         {price ? (
-          <Text style={[theme.typography('titleMd'), styles.price]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('titleMd'), styles.price]}>
             {price}
-          </Text>
+          </MarqueeText>
         ) : null}
 
         <View style={styles.footer}>

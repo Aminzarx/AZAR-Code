@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card } from '@shared/components'
+import { Card, MarqueeText } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { formatJalaliDate, gregorianIsoToJalali } from '@shared/utils/jalaliDate'
 import { moneyLine } from '@shared/utils/shortMoney'
@@ -69,9 +69,9 @@ export function ContractListItem({ contract, onPress, onLongPress, onRenewRemind
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
       <Card>
         <View style={styles.titleRow}>
-          <Text style={[theme.typography('titleSm'), styles.title]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('titleSm'), styles.title]}>
             {title}
-          </Text>
+          </MarqueeText>
           {endingSoon && days !== null ? (
             <View style={[styles.tag, styles.tagWarn]}>
               <Text style={[theme.typography('labelSm'), styles.tagWarnText]}>
@@ -86,13 +86,13 @@ export function ContractListItem({ contract, onPress, onLongPress, onRenewRemind
             </View>
           )}
         </View>
-        <Text style={[theme.typography('bodySm'), styles.muted]} numberOfLines={1}>
+        <MarqueeText style={[theme.typography('bodySm'), styles.muted]}>
           {sides}
-        </Text>
+        </MarqueeText>
         {terms ? (
-          <Text style={[theme.typography('bodyMd'), styles.terms]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('bodyMd'), styles.terms]}>
             {terms}
-          </Text>
+          </MarqueeText>
         ) : null}
         <View style={styles.footer}>
           <Text style={[theme.typography('labelSm'), styles.muted]}>{endText ? `پایان: ${endText}` : ''}</Text>

@@ -12,7 +12,8 @@ import {
   FormScreenContainer,
   Icon,
   LoadingIndicator,
-  StatusBadge
+  StatusBadge,
+  MarqueeText
 } from '@shared/components'
 import { formatJalaliDate, gregorianIsoToJalali } from '@shared/utils/jalaliDate'
 import { useContractDetail } from '../hooks/useContractDetail'
@@ -328,13 +329,10 @@ function LinkRow({ label, value, onPress, theme, styles }: LinkRowProps): React.
     <View style={styles.linkRow}>
       <View style={styles.linkTextGroup}>
         <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
-        <Text
-          style={[theme.typography('bodyMd'), styles.value]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
+        <MarqueeText
+          style={[theme.typography('bodyMd'), styles.value]}>
           {value}
-        </Text>
+        </MarqueeText>
       </View>
       {onPress ? <Icon name="chevron" size="sm" color={theme.colors.outline} /> : null}
     </View>

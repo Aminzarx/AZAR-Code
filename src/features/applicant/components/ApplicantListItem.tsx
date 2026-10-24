@@ -1,7 +1,7 @@
 import React from 'react'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, Icon } from '@shared/components'
+import { Card, Icon, MarqueeText } from '@shared/components'
 import { createListCardStyles } from '@features/property/components/PropertyListItem'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { moneyLine, relativeDay, shortTomanRange } from '@shared/utils/shortMoney'
@@ -54,21 +54,15 @@ export function ApplicantListItem({ applicant, onPress, matchCount, onLongPress 
       <Card>
         <View style={styles.titleRow}>
           <View style={own.identity}>
-            <Text
-              style={[theme.typography('titleSm'), styles.title, own.name]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
+            <MarqueeText
+              style={[theme.typography('titleSm'), styles.title, own.name]}>
               {applicant.fullName}
-            </Text>
+            </MarqueeText>
             {subtitle ? (
-              <Text
-                style={[theme.typography('bodySm'), styles.muted]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
+              <MarqueeText
+                style={[theme.typography('bodySm'), styles.muted]}>
                 {subtitle}
-              </Text>
+              </MarqueeText>
             ) : null}
           </View>
           {applicant.phoneNumber ? (
@@ -85,14 +79,14 @@ export function ApplicantListItem({ applicant, onPress, matchCount, onLongPress 
           ) : null}
         </View>
         {specs.length > 0 ? (
-          <Text style={[theme.typography('bodySm'), styles.muted]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('bodySm'), styles.muted]}>
             {specs.join('   ')}
-          </Text>
+          </MarqueeText>
         ) : null}
         {budget ? (
-          <Text style={[theme.typography('titleMd'), styles.price]} numberOfLines={1}>
+          <MarqueeText style={[theme.typography('titleMd'), styles.price]}>
             {budget}
-          </Text>
+          </MarqueeText>
         ) : null}
 
         <View style={styles.footer}>

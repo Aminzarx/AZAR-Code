@@ -1,7 +1,7 @@
 import React from 'react'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Icon, type IconName } from '@shared/components'
+import { Icon, type IconName, MarqueeText } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import type { DashboardFollowUp, DashboardMatchSummary, DashboardStat } from '../types'
 
@@ -109,21 +109,15 @@ export function FollowUpList({ followUps, onSelect }: FollowUpListProps) {
             </Text>
           </View>
           <View style={styles.followUpText}>
-            <Text
-              style={[theme.typography('titleSm'), styles.rowTitle]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
+            <MarqueeText
+              style={[theme.typography('titleSm'), styles.rowTitle]}>
               {item.title}
-            </Text>
+            </MarqueeText>
             {item.subtitle ? (
-              <Text
-                style={[theme.typography('bodySm'), styles.muted, styles.start]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
+              <MarqueeText
+                style={[theme.typography('bodySm'), styles.muted, styles.start]}>
                 {item.subtitle}
-              </Text>
+              </MarqueeText>
             ) : null}
           </View>
           {item.phoneNumber ? (
@@ -165,13 +159,10 @@ export function SummaryTiles({ stats, onSelect }: SummaryTilesProps) {
           <Text style={[theme.typography('headlineLgMobile'), styles.tileValue]}>
             {toPersianDigits(String(stat.value))}
           </Text>
-          <Text
-            style={[theme.typography('labelSm'), styles.tileLabel]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <MarqueeText
+            style={[theme.typography('labelSm'), styles.tileLabel]}>
             {stat.label}
-          </Text>
+          </MarqueeText>
         </Pressable>
       ))}
     </View>
