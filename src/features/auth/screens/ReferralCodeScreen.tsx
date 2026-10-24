@@ -6,6 +6,7 @@ import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Icon, QrCodeScanner, TextInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
+import { validationText } from '@features/auth/validationText'
 import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
 
 /** a referral code as minted (8) or the mother code (6) — no 0/O/1/I/L */
@@ -68,7 +69,7 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
       })
     } catch (caughtError) {
       if (caughtError instanceof ValidationFailureError) {
-        setError(caughtError.message)
+        setError(validationText(caughtError))
       } else {
         setError('ثبت‌نام با مشکل مواجه شد. دوباره تلاش کنید.')
       }

@@ -6,6 +6,7 @@ import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, TextInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
+import { validationText } from '@features/auth/validationText'
 import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
 import { OtpCodePanel } from '@features/auth/components/OtpCodePanel'
 import { BrandMark } from '@features/auth/components/BrandMark'
@@ -44,7 +45,7 @@ export function PhoneEntryScreen({ navigation }: Props): React.JSX.Element {
       setSentTo(canonicalPhoneNumber)
     } catch (caughtError) {
       if (caughtError instanceof ValidationFailureError) {
-        setError(caughtError.message)
+        setError(validationText(caughtError))
       } else {
         setError('ارسال کد تأیید با مشکل مواجه شد. دوباره تلاش کنید.')
       }

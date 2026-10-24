@@ -4,6 +4,7 @@ import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import { OtpInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
+import { validationText } from '@features/auth/validationText'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { listenForSmsCode } from '@infrastructure/sms/smsCodeReader'
 
@@ -93,7 +94,7 @@ export function OtpCodePanel({
     } catch (caughtError) {
       setStatus('error')
       if (caughtError instanceof ValidationFailureError) {
-        setError(caughtError.message)
+        setError(validationText(caughtError))
       } else {
         setError('تأیید کد با مشکل مواجه شد. دوباره تلاش کنید.')
       }

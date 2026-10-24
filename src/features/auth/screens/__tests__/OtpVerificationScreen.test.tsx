@@ -95,14 +95,14 @@ describe('OtpVerificationScreen', () => {
   })
 
   it('shows an error message and does not navigate when verification fails', async () => {
-    mockVerifyOtp.mockRejectedValue(new ValidationFailureError('کد نامعتبر است.', 'invalid_otp'))
+    mockVerifyOtp.mockRejectedValue(new ValidationFailureError('That code is incorrect.', 'invalid_otp'))
     const { getByLabelText, findByText } = await render(
       withTheme(<OtpVerificationScreen navigation={navigationProp} route={routeProp} />)
     )
 
     await typeCode(getByLabelText, '000000')
 
-    expect(await findByText('کد نامعتبر است.')).toBeTruthy()
+    expect(await findByText('کد درست نیست. دوباره نگاه کنید.')).toBeTruthy()
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
