@@ -1,8 +1,11 @@
 import NetInfo from '@react-native-community/netinfo'
 import { NetworkFailureError } from '../../core/auth/errors'
 
-/** a request the network never answers counts as offline after this long (React Native's fetch has no timeout) */
-const REQUEST_TIMEOUT_MS = 15000
+/**
+ * a request the network never answers counts as offline after this long (React Native's fetch has no timeout).
+ * It only covers waiting for the server to start answering: a large download is not cut off.
+ */
+const REQUEST_TIMEOUT_MS = 8000
 
 /** One change sent to the server: the row as the phone has it now, or null when it was deleted. */
 export type SyncChange = { t: string; k: string; row: Record<string, unknown> | null }
@@ -61,7 +64,14 @@ export class SyncApiClient {
   private async post<T>(path: string, body: unknown): Promise<T> {
     // offline (airplane mode, no network): say so at once instead of waiting on a request that cannot go out
     const network = await NetInfo.fetch().catch(() => null)
-    if (network?.isConnected === false) throw new NetworkFailureError()
+    if (
+      network &&
+      (network.isConnected === false ||
+        network.type === 'none' ||
+        network.isInternetReachable === false)
+    ) {
+      throw new NetworkFailureError()
+    }
     const abort = new AbortController()
     const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS)
     let response: Response
