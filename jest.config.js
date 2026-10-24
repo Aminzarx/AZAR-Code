@@ -1,6 +1,6 @@
 module.exports = {
   preset: '@react-native/jest-preset',
-  testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
+  testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/', '/server/'],
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-.*|@op-engineering)/)'
   ],

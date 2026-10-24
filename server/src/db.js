@@ -81,6 +81,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS phone_changes_old ON phone_changes(old_phone);
 `)
 
+// KSS (Amin #5045): a deleted account stays as a tombstone (no number, no data) so the referral chain never breaks
+if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'deleted_at')) {
+  db.exec('ALTER TABLE users ADD COLUMN deleted_at TEXT')
+}
+
 // Registration requires a valid referral code with no bypass (ADR-009), so a
 // brand-new server has no user to be a referrer for the very first real
 // registration. Mirrors the client's own former bootstrap-seed migration

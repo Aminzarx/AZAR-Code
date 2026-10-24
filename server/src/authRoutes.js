@@ -78,8 +78,13 @@ function findUserByPhone(phoneNumber) {
   return db.prepare('SELECT * FROM users WHERE phone_number = ?').get(phoneNumber)
 }
 
+/** a deleted account's code stays reserved (never minted again) but no longer brings anyone in */
 function findUserByReferralCode(referralCode) {
-  return db.prepare('SELECT * FROM users WHERE referral_code = ?').get(referralCode)
+  return db.prepare('SELECT * FROM users WHERE referral_code = ? AND deleted_at IS NULL').get(referralCode)
+}
+
+function referralCodeTaken(referralCode) {
+  return !!db.prepare('SELECT 1 FROM users WHERE referral_code = ?').get(referralCode)
 }
 
 function uniqueReferralCode() {
@@ -89,7 +94,7 @@ function uniqueReferralCode() {
   // randomness.
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateReferralCode()
-    if (!findUserByReferralCode(code)) {
+    if (!referralCodeTaken(code)) {
       return code
     }
   }
@@ -300,23 +305,29 @@ router.post('/delete-account', registerLimiter, (req, res) => {
     return fail(res, 422, 'invalid_phone_number', 'No account found for this number.')
   }
 
+  // KSS (Amin #5045): the referral chain never breaks. The account becomes a tombstone: its number, sessions,
+  // invites, number history, licence and files go; the users row (id, referral code, the code it used) and both
+  // directions of referral_relationships stay. The number itself is free to sign up again as a new account.
   db.transaction(() => {
-    // referral_relationships has no ON DELETE action on its user
-    // references, so this account's referral trail (both as referrer and
-    // as referred) has to go first, or the FK constraint blocks the user
-    // row's own delete.
-    db.prepare(
-      'DELETE FROM referral_relationships WHERE referrer_user_id = ? OR referred_user_id = ?'
-    ).run(user.id, user.id)
+    db.prepare('UPDATE users SET phone_number = ?, deleted_at = ? WHERE id = ?').run(
+      deletedMarker(user.id),
+      new Date().toISOString(),
+      user.id
+    )
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
     db.prepare('DELETE FROM invites WHERE referrer_user_id = ?').run(user.id)
     db.prepare('DELETE FROM phone_changes WHERE user_id = ?').run(user.id)
-    db.prepare('DELETE FROM users WHERE id = ?').run(user.id)
+    db.prepare('DELETE FROM licences WHERE user_id = ?').run(user.id)
     db.prepare('DELETE FROM otp_requests WHERE phone_number = ?').run(phoneNumber)
     deleteAccountData(user.id)
   })()
 
   res.status(204).end()
 })
+
+/** what a tombstone holds instead of a number: unique, and never a valid phone number (so never signs in) */
+function deletedMarker(userId) {
+  return `deleted:${userId}`
+}
 
 module.exports = router
