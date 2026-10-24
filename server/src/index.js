@@ -5,6 +5,7 @@ const invites = require('./inviteRoutes')
 const phone = require('./phoneRoutes')
 const sync = require('./syncRoutes')
 const licence = require('./licenceRoutes')
+const tokens = require('./tokens')
 
 const PORT = Number(process.env.PORT) || 8787
 // Explicit, not left to Node's default — nginx on the VPS host proxies to
@@ -29,6 +30,7 @@ app.use('/auth', authRoutes)
 app.use('/auth', invites.api)
 app.use('/auth', phone.router)
 app.use('/licence', licence.router)
+app.use('/tokens', tokens.router)
 app.use(invites.page)
 
 app.use((_req, res) => {

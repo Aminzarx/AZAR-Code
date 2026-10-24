@@ -92,7 +92,8 @@ export class SyncApiClient {
     }
     const parsed = (await response.json().catch(() => ({}))) as ErrorBody
     if (response.status === 401) throw new SessionRevokedError()
-    if (parsed.error?.code === 'storage_full') throw new StorageFullError()
+    // Amin #5052: the token ledger refuses a change that does not fit (tokens_short); same «full» state for the user
+    if (parsed.error?.code === 'storage_full' || parsed.error?.code === 'tokens_short') throw new StorageFullError()
     throw new NetworkFailureError()
   }
 }

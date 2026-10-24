@@ -56,10 +56,19 @@ async function appPrices() {
     })
     if (res.ok) {
       const byKey = Object.fromEntries((await res.json()).apps.map((a) => [a.key, a]))
+      const num = (key) => (typeof byKey[key]?.value === 'number' ? byKey[key].value : null)
       prices = {
         trialDays: byKey.eyvan_trial_days?.value ?? null,
         monthlyToman: byKey.eyvan_monthly?.price_toman ?? null,
-        phoneChangeToman: byKey.eyvan_phone_change?.price_toman ?? null
+        // Amin #5052/#5054 token economy (kss-pricing 0.37.0): an empty input is null = that part is off
+        tokenAllowance: num('eyvan_token_allowance'),
+        tokensPerKb: num('eyvan_tokens_per_kb'),
+        phoneChangeTokens: num('eyvan_phone_change_tokens'),
+        referralBonus: num('eyvan_referral_bonus'),
+        profileBonus: num('eyvan_profile_bonus'),
+        dailyBonusCap: num('eyvan_daily_bonus_cap'),
+        tokenPriceToman: byKey.eyvan_token_price?.price_toman ?? null,
+        tokenPacks: ['eyvan_token_pack_1', 'eyvan_token_pack_2', 'eyvan_token_pack_3'].map(num).filter((n) => n !== null)
       }
       pricesAt = Date.now()
     }
@@ -116,4 +125,10 @@ router.post('/status', async (req, res, next) => {
   }
 })
 
-module.exports = { router, licenceOf, appPrices }
+/** tests: forget the cached prices so the next read asks kss-pricing again */
+function resetPricesCache() {
+  prices = null
+  pricesAt = 0
+}
+
+module.exports = { router, licenceOf, appPrices, resetPricesCache }

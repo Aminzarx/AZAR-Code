@@ -2,6 +2,7 @@ const express = require('express')
 const rateLimit = require('express-rate-limit')
 const db = require('./db')
 const { generateId } = require('./ids')
+const tokens = require('./tokens')
 
 // KSS (Amin #4632, v1.5.0): «تغییر شماره». The user proves the new number with
 // the usual code (send-otp + verify-otp on the NEW number), then this moves the
@@ -9,6 +10,8 @@ const { generateId } = require('./ids')
 // the change is kept in phone_changes; every other session of the account ends.
 // From then on the old number cannot sign in (authRoutes answers phone_moved)
 // unless it is later given to an account again.
+// Amin #5052: a number change costs tokens (kss-pricing app.eyvan_phone_change_tokens), spent in the same transaction
+// as the move. While that number is empty the change is off (phone_change_off); a short balance refuses it.
 
 const IRAN_MOBILE = /^\+989\d{9}$/
 
@@ -27,7 +30,8 @@ function isMovedNumber(phoneNumber) {
 const router = express.Router()
 
 // POST /auth/change-phone { sessionToken, newPhoneNumber } → { phoneNumber }
-router.post('/change-phone', limiter, (req, res) => {
+router.post('/change-phone', limiter, async (req, res, next) => {
+  try {
   const sessionToken = typeof req.body?.sessionToken === 'string' ? req.body.sessionToken : ''
   const newPhone = typeof req.body?.newPhoneNumber === 'string' ? req.body.newPhoneNumber : ''
 
@@ -50,18 +54,39 @@ router.post('/change-phone', limiter, (req, res) => {
     return fail(res, 401, 'otp_required', 'Confirm the new number with its code first.')
   }
 
+  const s = await tokens.settings()
+  const cost = s?.phoneChangeTokens
+  if (!s || cost == null) {
+    return fail(res, 403, 'phone_change_off', 'Changing the number is not available yet.')
+  }
+
   const at = new Date().toISOString()
+  const changeId = generateId()
+  try {
   db.transaction(() => {
+    tokens.ensureOpening(user.id, s)
+    const balance = tokens.balanceOf(user.id)
+    if (balance < cost) throw new tokens.TokensShortError(balance, cost)
+    tokens.post(user.id, 'phone_change', -cost, `phone-change:${changeId}`, changeId, at)
     db.prepare(
       'INSERT INTO phone_changes (id, user_id, old_phone, new_phone, changed_at) VALUES (?, ?, ?, ?, ?)'
-    ).run(generateId(), user.id, user.phone_number, newPhone, at)
+    ).run(changeId, user.id, user.phone_number, newPhone, at)
     db.prepare('UPDATE users SET phone_number = ? WHERE id = ?').run(newPhone, user.id)
     db.prepare('DELETE FROM sessions WHERE user_id = ? AND token <> ?').run(user.id, sessionToken)
     db.prepare('DELETE FROM otp_requests WHERE phone_number IN (?, ?)').run(newPhone, user.phone_number)
     db.prepare('DELETE FROM invites WHERE phone_number = ? AND used_at IS NULL').run(newPhone)
   })()
+  } catch (error) {
+    if (error instanceof tokens.TokensShortError) {
+      return fail(res, 422, 'tokens_short', 'Not enough tokens to change the number.')
+    }
+    throw error
+  }
 
-  res.status(200).json({ phoneNumber: newPhone })
+  res.status(200).json({ phoneNumber: newPhone, tokensSpent: cost })
+  } catch (error) {
+    next(error)
+  }
 })
 
 // GET /auth/support → where «راهنما و پشتیبانی» sends people (Amin #4632). Set in the
