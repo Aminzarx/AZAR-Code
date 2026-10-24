@@ -21,6 +21,7 @@ import { ContractDetailScreen } from '@features/contract/screens/ContractDetailS
 import { SettingsScreen } from '@features/settings/screens/SettingsScreen'
 import { ProfileScreen } from '@features/settings/screens/ProfileScreen'
 import { ChangePhoneScreen } from '@features/settings/screens/ChangePhoneScreen'
+import { TokenLedgerScreen } from '@features/settings/screens/TokenLedgerScreen'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
@@ -56,6 +57,7 @@ export type MainStackParamList = {
   Settings: undefined
   Profile: undefined
   ChangePhone: undefined
+  TokenLedger: undefined
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -115,6 +117,7 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['ReminderList', ReminderListScreen],
   ['Profile', ProfileScreen],
   ['ChangePhone', ChangePhoneScreen],
+  ['TokenLedger', TokenLedgerScreen],
   ['CreateReminder', LockedCreateReminder],
   ['ReminderDetail', ReminderDetailScreen],
   ['ContractList', LockedContractList],

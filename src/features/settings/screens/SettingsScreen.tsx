@@ -343,6 +343,14 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           <View style={styles.tokenTrack}>
             <View style={[styles.tokenFill, { width: `${Math.max(usedTokens > 0 ? 1.5 : 0, usedShare * 100)}%` }]} />
           </View>
+          {/* Amin #5052/#5054: the balance and its history */}
+          <SettingsRow
+            icon="token"
+            label="کارنامهٔ توکن"
+            value="موجودی و تاریخچه"
+            onPress={() => props.navigation.navigate('TokenLedger')}
+            last
+          />
         </View>
 
         {/* Amin #5055: night mode; the phone's own setting is the default */}

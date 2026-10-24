@@ -59,6 +59,14 @@ class FakeServer {
       deleteBlob: async (_t: string, hash: string) => {
         this.blobs.delete(hash)
         return { usage: this.usage() }
+      },
+      tokenLedger: async () => {
+        this.check()
+        return {
+          summary: { balance: 6340, allowance: 6350, earned: 0, bought: 0, spent: 10 },
+          rows: [{ at: '2026-10-24T10:00:00Z', reason: 'file_spend', amount: -10 }],
+          settings: { tokensPerKb: 0.127, phoneChangeTokens: null, packsOn: false }
+        }
       }
     } as unknown as SyncApiClient
   }
@@ -440,5 +448,22 @@ describe('file and contract photos (Amin #5062)', () => {
     await app.sync.push(TOKEN, USER)
     expect(server.blobs.size).toBe(0)
     expect([...server.rows.keys()].filter((k) => k.startsWith('photos/'))).toEqual([])
+  })
+})
+
+describe('token ledger (Amin #5052)', () => {
+  it('kept on the phone for offline, gone on sign-out', async () => {
+    const server = new FakeServer()
+    const app = await launch(server)
+    await app.sync.claim(USER)
+    expect((await app.sync.tokenLedger(TOKEN))?.fresh).toBe(true)
+
+    server.offline = true
+    const offline = await app.sync.tokenLedger(TOKEN)
+    expect(offline?.fresh).toBe(false)
+    expect(offline?.ledger.summary.balance).toBe(6340)
+
+    await app.sync.wipe()
+    expect(await app.sync.tokenLedger(TOKEN)).toBeNull()
   })
 })

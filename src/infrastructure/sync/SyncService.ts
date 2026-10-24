@@ -2,6 +2,7 @@ import type { DB } from '@op-engineering/op-sqlite'
 import { SYNCED_SETTING_KEYS } from '../database/migrations/0019_server_sync'
 import { applying, FILE_TABLE_ORDER, type DeviceStore, type QueuedChange } from '../database/deviceStore'
 import { BLOB_TRASH_KEY } from '../database/repositories/PhotoRepository'
+import type { TokenLedger } from '@features/settings/services/tokenLedger'
 import { type SyncApiClient, type SyncChange, type SyncUsage } from './syncApiClient'
 
 /** Where the profile photo is read from and written to (react-native-fs in the app, a fake in tests). */
@@ -126,6 +127,21 @@ export class SyncService {
     }
   }
 
+  /**
+   * Amin #5052: the token ledger from the server, kept (encrypted device state) for offline; offline it is the last
+   * kept answer with `fresh: false`, or null when there has never been one.
+   */
+  async tokenLedger(sessionToken: string): Promise<{ ledger: TokenLedger; fresh: boolean } | null> {
+    try {
+      const ledger = await this.api.tokenLedger(sessionToken)
+      await this.setState('token_ledger', JSON.stringify(ledger))
+      return { ledger, fresh: true }
+    } catch {
+      const kept = await this.getState('token_ledger')
+      return kept ? { ledger: JSON.parse(kept) as TokenLedger, fresh: false } : null
+    }
+  }
+
   /** Asks the server how much space the account uses (for the tokens card). */
   async refreshUsage(sessionToken: string): Promise<SyncUsage> {
     const { usage } = await this.api.usage(sessionToken)
@@ -181,6 +197,7 @@ export class SyncService {
     await this.setState('usage', null)
     await this.setState('photo_hash', null)
     await this.setState(BLOB_TRASH_KEY, null)
+    await this.setState('token_ledger', null)
     this.photoCache.clear()
     this.isLoaded = false
   }

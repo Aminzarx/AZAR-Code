@@ -50,7 +50,8 @@ describe('OtpVerificationScreen', () => {
       getSupportContacts: jest.fn(),
       sync: { state: 'idle', pending: 0, usage: null, loaded: true, settled: true },
       syncNow: jest.fn(),
-      loadPhoto: jest.fn()
+      loadPhoto: jest.fn(),
+      getTokenLedger: jest.fn()
     })
   })
 

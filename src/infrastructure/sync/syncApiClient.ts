@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo'
 import { NetworkFailureError } from '../../core/auth/errors'
+import type { TokenLedger } from '@features/settings/services/tokenLedger'
 
 /**
  * a request the network never answers counts as offline after this long (React Native's fetch has no timeout).
@@ -59,6 +60,11 @@ export class SyncApiClient {
 
   deleteBlob(sessionToken: string, hash: string): Promise<{ usage: SyncUsage }> {
     return this.post('/sync/blob/delete', { sessionToken, hash })
+  }
+
+  /** Amin #5052: the account's token ledger (summary + latest rows) */
+  tokenLedger(sessionToken: string): Promise<TokenLedger> {
+    return this.post('/tokens/ledger', { sessionToken })
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {

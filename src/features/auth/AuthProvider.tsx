@@ -21,6 +21,7 @@ import {
   SyncApiClient,
   type SyncUsage
 } from '@infrastructure/sync/syncApiClient'
+import type { TokenLedger } from '@features/settings/services/tokenLedger'
 
 /** AZAR-SYNC-001: where the account's files stand against the server. */
 export type SyncStatus = {
@@ -73,6 +74,8 @@ type AuthContextValue = {
   syncNow: () => Promise<number>
   /** Amin #5062: a file/contract photo's bytes (base64) for showing; null while it cannot be fetched (offline) */
   loadPhoto: (photo: { data: string | null; blobHash: string | null }) => Promise<string | null>
+  /** Amin #5052: «کارنامهٔ توکن»; offline the last kept answer (fresh false); null when there is none */
+  getTokenLedger: () => Promise<{ ledger: TokenLedger; fresh: boolean } | null>
 }
 
 export type SignUpProfile = { displayName?: string; agencyName?: string }
@@ -253,6 +256,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       session,
       sync,
       syncNow: () => (session ? syncOnce(session) : Promise.resolve(0)),
+      getTokenLedger: () =>
+        session && syncService ? syncService.tokenLedger(session.sessionToken) : Promise.resolve(null),
       loadPhoto: (photo) =>
         photo.data
           ? Promise.resolve(photo.data)
@@ -319,6 +324,7 @@ const placeholderValue: AuthContextValue = {
   sync: IDLE_SYNC,
   syncNow: () => Promise.resolve(0),
   loadPhoto: (photo) => Promise.resolve(photo.data),
+  getTokenLedger: () => Promise.resolve(null),
   sendOtp: () => Promise.reject(new Error('Auth is still initializing.')),
   verifyOtp: () => Promise.reject(new Error('Auth is still initializing.')),
   register: () => Promise.reject(new Error('Auth is still initializing.')),
