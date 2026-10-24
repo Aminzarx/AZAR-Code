@@ -16,6 +16,8 @@ let instance: DB | null = null
 let deviceStore: DeviceStore | null = null
 let wasFreshlyCreated = false
 let openPromise: Promise<DB> | null = null
+/** bumped by closeDatabase(), so an open still under way when it runs lets go of what it opened */
+let generation = 0
 
 /**
  * Opens (or returns the already-open) working database.
@@ -37,6 +39,7 @@ export async function getDatabase(): Promise<DB> {
     return openPromise
   }
 
+  const opening = generation
   openPromise = (async () => {
     const encryptionKey = await getOrCreateDatabaseKey(keychainSecureStorage)
     const store = new DeviceStore(open({ name: STORE_NAME, encryptionKey }))
@@ -48,16 +51,23 @@ export async function getDatabase(): Promise<DB> {
 
     const hadLegacy = await takeOverLegacyDatabase(encryptionKey, store)
     await store.loadInto(db)
+    if (opening !== generation) {
+      // closeDatabase() ran meanwhile: this open must not hold the store file behind its back
+      db.close()
+      store.close()
+      throw new Error('The database was closed while it was opening.')
+    }
     wasFreshlyCreated = storeIsNew && !hadLegacy
     deviceStore = store
     instance = persisting(db, store)
     return instance
   })()
 
+  const mine = openPromise
   try {
-    return await openPromise
+    return await mine
   } finally {
-    openPromise = null
+    if (openPromise === mine) openPromise = null
   }
 }
 
@@ -132,6 +142,8 @@ export function wasDatabaseFreshlyCreated(): boolean {
  * lifetime.
  */
 export function closeDatabase(): void {
+  generation += 1
+  openPromise = null
   instance?.close()
   instance = null
   deviceStore?.close()

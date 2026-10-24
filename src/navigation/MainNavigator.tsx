@@ -27,6 +27,8 @@ import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
 import { TabBarButton } from './TabBarButton'
 import { withLicence } from '@features/licence/LicenceLocked'
+import { getFocusedRouteNameFromRoute, type RouteProp, type ParamListBase } from '@react-navigation/native'
+import { TabSwipe, shiftFor } from './TabSwipe'
 
 export type MainStackParamList = {
   Home: undefined
@@ -121,14 +123,25 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
 ]
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
-  return function TabStack(): React.JSX.Element {
+  return function TabStack({
+    navigation,
+    route
+  }: {
+    navigation: React.ComponentProps<typeof TabSwipe>['navigation']
+    route: RouteProp<ParamListBase>
+  }): React.JSX.Element {
+    const theme = useTheme()
+    // Amin #5046: the swipe between tabs works on the tab's first page only
+    const focused = getFocusedRouteNameFromRoute(route) ?? root
     return (
-      <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false }}>
-        <Stack.Screen name={root} component={RootScreen} />
-        {SHARED_SCREENS.filter(([name]) => name !== root).map(([name, component]) => (
-          <Stack.Screen key={name} name={name} component={component} />
-        ))}
-      </Stack.Navigator>
+      <TabSwipe navigation={navigation} atRoot={focused === root} isRTL={theme.isRTL}>
+        <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false }}>
+          <Stack.Screen name={root} component={RootScreen} />
+          {SHARED_SCREENS.filter(([name]) => name !== root).map(([name, component]) => (
+            <Stack.Screen key={name} name={name} component={component} />
+          ))}
+        </Stack.Navigator>
+      </TabSwipe>
     )
   }
 }
@@ -203,6 +216,9 @@ export function MainNavigator(): React.JSX.Element {
         // v1.3.0: the tab bar sat on top of the keyboard while typing
         // (tester report); hide it while the keyboard is open.
         tabBarHideOnKeyboard: true,
+        // Amin #5046: a tab change (a tap or a swipe) slides in from the tab's side of the bar
+        animation: 'shift',
+        sceneStyleInterpolator: shiftFor(theme.isRTL),
         tabBarActiveTintColor: theme.colors.onSecondaryContainer,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: {

@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { cleanup, render } from '@testing-library/react-native'
 import { closeDatabase } from '@infrastructure/database/connection'
 import { App } from '../App'
 
@@ -15,7 +15,10 @@ jest.mock('@infrastructure/updates/updateService', () => ({
 const DB_FILE = path.join(process.cwd(), `azar-store.test-${process.env.JEST_WORKER_ID}.db`)
 
 describe('App', () => {
-  afterEach(() => {
+  afterEach(async () => {
+    // unmount first: a still-mounted app would open the store again after the close below, and keep the file
+    // locked for the next test file on this worker
+    await cleanup()
     closeDatabase()
     if (fs.existsSync(DB_FILE)) {
       fs.unlinkSync(DB_FILE)

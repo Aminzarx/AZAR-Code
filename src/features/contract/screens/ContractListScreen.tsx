@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react'
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+// Amin #5046: the gesture-handler ScrollView, so sliding the filter chips wins over the swipe between tabs
+import { ScrollView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
