@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -130,6 +130,19 @@ export function MatchingScreen({ navigation, route }: Props): React.JSX.Element 
 
   const propertiesResult = useProperties(userId, '')
   const applicantsResult = useApplicants(userId, '')
+  // tabs stay mounted (lazy: false): reload both lists on every return to this tab — an applicant added since showed
+  // «هنوز متقاضی‌ای ثبت نشده» while home counted its match (emulator test 2026-10-24)
+  const refetchProperties = propertiesResult.refetch
+  const refetchApplicants = applicantsResult.refetch
+  useEffect(() => {
+    if (typeof navigation.addListener !== 'function') {
+      return undefined
+    }
+    return navigation.addListener('focus', () => {
+      refetchProperties()
+      refetchApplicants()
+    })
+  }, [navigation, refetchProperties, refetchApplicants])
 
   // the overview: every applicant with the files that fit (or every file
   // with its applicants), best first — both lists are already loaded

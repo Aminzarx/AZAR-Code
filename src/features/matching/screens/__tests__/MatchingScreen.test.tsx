@@ -115,6 +115,26 @@ describe('MatchingScreen', () => {
     mockedUseDealService.mockReturnValue({ createDeal: mockCreateDeal } as never)
   })
 
+  it('reloads both lists on every return to the tab (tabs stay mounted)', async () => {
+    let onFocus: () => void = () => undefined
+    const refetchProperties = jest.fn()
+    const refetchApplicants = jest.fn()
+    mockedUseProperties.mockReturnValue({ properties: [], isLoading: false, error: null, refetch: refetchProperties })
+    mockedUseApplicants.mockReturnValue({ applicants: [], isLoading: false, error: null, refetch: refetchApplicants })
+    const navigation = {
+      navigate: mockNavigate,
+      addListener: (event: string, callback: () => void) => {
+        if (event === 'focus') onFocus = callback
+        return () => undefined
+      }
+    } as never
+    await render(withTheme(<MatchingScreen navigation={navigation} route={routeProp} />))
+
+    onFocus()
+    expect(refetchProperties).toHaveBeenCalledTimes(1)
+    expect(refetchApplicants).toHaveBeenCalledTimes(1)
+  })
+
   it('shows each applicant with the files that fit, then opens one applicant in full', async () => {
     const { findByText, findByLabelText, queryByText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 // Amin #5046: the gesture-handler ScrollView, so sliding the filter chips wins over the swipe between tabs
 import { ScrollView } from 'react-native-gesture-handler'
@@ -80,6 +80,14 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
   const { session } = useAuth()
   const userId = session?.userId ?? ''
   const { contracts, isLoading, error, refetch } = useContracts(userId)
+  // tabs stay mounted (lazy: false): reload on every return to this tab, or a contract saved from a follow-up never
+  // shows here (same fix as FilesScreen; emulator test 2026-10-24)
+  useEffect(() => {
+    if (typeof navigation.addListener !== 'function') {
+      return undefined
+    }
+    return navigation.addListener('focus', refetch)
+  }, [navigation, refetch])
   const contractService = useContractService()
   const del = useUndoableDelete({
     noun: 'قرارداد',
