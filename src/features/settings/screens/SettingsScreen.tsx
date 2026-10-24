@@ -47,7 +47,7 @@ import { APP_VERSION } from '@shared/appVersion'
 import { InviteSmsDialog } from '../components/InviteSmsDialog'
 import { SettingsRow } from '../components/SettingsRow'
 
-const APP_DOWNLOAD_URL = 'https://api.zarandix.ir/app/'
+const APP_DOWNLOAD_URL = 'https://eyvan.kssx.ir/' // Amin #4623: customer-facing links on kssx.ir
 import { ValidationFailureError } from '@core/auth/errors'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>
@@ -501,7 +501,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       <InviteSmsDialog
         visible={isInviteVisible}
         onClose={() => setIsInviteVisible(false)}
-        senderName={displayName}
       />
 
       <ConfirmDialog

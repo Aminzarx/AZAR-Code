@@ -10,8 +10,6 @@ import { toEnglishDigits } from '@shared/utils/persianText'
 type Props = {
   visible: boolean
   onClose: () => void
-  /** the sender's name for the message, when set */
-  senderName?: string | null
 }
 
 function errorText(error: unknown): string {
@@ -32,7 +30,7 @@ function errorText(error: unknown): string {
  * SMS app opens with a short note and the personal link. When that
  * colleague signs in with this number, no referral code is asked for.
  */
-export function InviteSmsDialog({ visible, onClose, senderName }: Props): React.JSX.Element {
+export function InviteSmsDialog({ visible, onClose }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { createInvite } = useAuth()
@@ -56,8 +54,8 @@ export function InviteSmsDialog({ visible, onClose, senderName }: Props): React.
     setIsSending(true)
     try {
       const invite = await createInvite(canonical)
-      const from = senderName ? `${senderName} شما را` : 'شما را'
-      const body = `سلام، ${from} به ایوان دعوت کرده؛ دفتر کار همراه مشاوران املاک.\nبرنامه را از این پیوند بگیرید و با همین شماره وارد شوید:\n${invite.url}`
+      // Amin #4625: the server holds the exact text, so it can change without a new app
+      const body = invite.message ?? `سلام، لینک دانلود اپلیکیشن دفترکار همراه مشاوران املاک:\n${invite.url}`
       const local = `0${canonical.slice(3)}`
       await Linking.openURL(`sms:${local}?body=${encodeURIComponent(body)}`)
       close()

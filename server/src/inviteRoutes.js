@@ -14,7 +14,17 @@ const db = require('./db')
 const PHONE_NUMBER_PATTERN = /^\+989\d{9}$/
 const INVITE_CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
 const INVITE_CODE_LENGTH = 7
-const PUBLIC_BASE_URL = process.env.AZAR_PUBLIC_BASE_URL || 'https://api.zarandix.ir'
+// Amin #4623: every address customers see is on kssx.ir (old api.zarandix.ir/i/ links redirect here in nginx)
+const PUBLIC_BASE_URL = process.env.AZAR_PUBLIC_BASE_URL || 'https://eyvan.kssx.ir'
+// Amin #4625: the «اطلاعات بیشتر» line appears only once a promotional article page is set
+const INVITE_ARTICLE_URL = process.env.AZAR_INVITE_ARTICLE_URL || ''
+
+/** Amin #4625: the invite SMS, word for word. The app sends this text as is. */
+function inviteMessage(url) {
+  const lines = ['سلام، لینک دانلود اپلیکیشن دفترکار همراه مشاوران املاک:', url]
+  if (INVITE_ARTICLE_URL) lines.push('اطلاعات بیشتر:', INVITE_ARTICLE_URL)
+  return lines.join('\n')
+}
 
 const inviteLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -74,7 +84,8 @@ api.post('/invite', inviteLimiter, (req, res) => {
     ).run(code, referrer.id, phoneNumber, new Date().toISOString())
   })()
 
-  res.status(201).json({ code, url: `${PUBLIC_BASE_URL}/i/${code}`, referralCode: referrer.referral_code })
+  const url = `${PUBLIC_BASE_URL}/i/${code}`
+  res.status(201).json({ code, url, message: inviteMessage(url), referralCode: referrer.referral_code })
 })
 
 /** The open invite for a mobile, with its referrer's user row, or null. */
@@ -100,12 +111,27 @@ page.get('/i/:code', (req, res) => {
     ? db.prepare('SELECT * FROM invites WHERE code = ?').get(code)
     : null
   const referrer = invite ? db.prepare('SELECT * FROM users WHERE id = ?').get(invite.referrer_user_id) : null
-  const referralCode = referrer ? referrer.referral_code : ''
   res.set('Cache-Control', 'no-store')
-  res.status(invite ? 200 : 404).type('html').send(`<!doctype html>
+  res.status(invite ? 200 : 404).type('html').send(renderPage(invite ? 'invite' : 'missing', referrer ? referrer.referral_code : ''))
+})
+
+// GET /dl — the plain download page (eyvan.kssx.ir/ serves it): for shares that carry no invite
+page.get('/dl', (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  res.type('html').send(renderPage('download', ''))
+})
+
+const LEADS = {
+  invite: 'یک همکار شما را به ایوان، دفتر کار همراه مشاوران املاک، دعوت کرده است.',
+  missing: 'این دعوت پیدا نشد. از دعوت‌کننده بخواهید دوباره بفرستد.',
+  download: 'ایوان، دفتر کار همراه مشاوران املاک: فایل‌ها، متقاضیان، تطبیق، معامله‌ها و قراردادها در گوشی شما.'
+}
+
+function renderPage(kind, referralCode) {
+  return `<!doctype html>
 <html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>دعوت به ایوان</title>
+<title>${kind === 'download' ? 'دریافت ایوان' : 'دعوت به ایوان'}</title>
 <style>
 body{margin:0;font-family:Tahoma,sans-serif;background:#f4f6f9;color:#1c2b3a}
 .wrap{max-width:420px;margin:0 auto;padding:32px 20px}
@@ -118,8 +144,8 @@ button,.btn{font:inherit;border:0;border-radius:12px;padding:12px 16px;cursor:po
 .btn{display:block;text-align:center;text-decoration:none;background:#21364f;color:#fff;font-weight:bold;margin-top:20px;padding:16px}
 .note{font-size:13px;color:#4a6383;margin-top:14px}
 </style></head><body><div class="wrap">
-<div class="hero"><h1>دعوت به ایوان</h1>
-<p>${invite ? 'یک همکار شما را به ایوان، دفتر کار همراه مشاوران املاک، دعوت کرده است.' : 'این دعوت پیدا نشد. از دعوت‌کننده بخواهید دوباره بفرستد.'}</p></div>
+<div class="hero"><h1>${kind === 'download' ? 'ایوان' : 'دعوت به ایوان'}</h1>
+<p>${LEADS[kind]}</p></div>
 ${referralCode ? `<div class="code"><b id="c">${escapeHtml(referralCode)}</b><button class="copy" onclick="copyCode()">کپی کد</button></div>
 <p class="note" id="n">با همین شماره‌ای که دعوت شده‌اید وارد شوید؛ کد معرف خودکار ثبت می‌شود.</p>` : ''}
 <a class="btn" id="dl" href="/app/" onclick="copyCode()">دریافت برنامه</a>
@@ -127,8 +153,8 @@ ${referralCode ? `<div class="code"><b id="c">${escapeHtml(referralCode)}</b><bu
 </div><script>
 function copyCode(){var c=document.getElementById('c');if(!c)return;try{navigator.clipboard.writeText(c.textContent)}catch(e){}
 var n=document.getElementById('n');if(n)n.textContent='کد معرف کپی شد. با همین شماره وارد شوید.'}
-fetch('/app/update.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(m){if(m&&m.url)document.getElementById('dl').href=m.url}).catch(function(){})
-</script></body></html>`)
-})
+fetch('/app/update.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(m){if(m&&m.url)document.getElementById('dl').href='/app/'+m.url.split('/').pop()}).catch(function(){})
+</script></body></html>`
+}
 
 module.exports = { api, page, findOpenInvite }

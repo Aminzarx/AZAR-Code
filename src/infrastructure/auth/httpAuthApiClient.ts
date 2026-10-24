@@ -5,7 +5,8 @@ import {
   ValidationFailureError
 } from '../../core/auth/errors'
 
-export type InviteResult = { code: string; url: string; referralCode: string }
+/** `message` (server since Amin #4625): the SMS text word for word; older servers leave it out. */
+export type InviteResult = { code: string; url: string; message?: string; referralCode: string }
 
 type ErrorBody = { error?: { code?: string; message?: string } }
 
