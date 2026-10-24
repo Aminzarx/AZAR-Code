@@ -63,6 +63,8 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
     value: ApplicantFormValues[K]
   ): void {
     setValues((current) => ({ ...current, [field]: value }))
+    // a field's error goes as soon as it is edited (emulator test 2026-10-24: «این مورد لازم است.» stayed under a filled field)
+    setErrors((current) => (current[field as keyof typeof current] ? { ...current, [field]: undefined } : current))
     setIsDirty(true)
   }
 

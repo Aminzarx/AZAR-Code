@@ -95,6 +95,8 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
     value: PropertyFormValues[K]
   ): void {
     setValues((current) => (current ? { ...current, [field]: value } : current))
+    // a field's error goes as soon as it is edited (emulator test 2026-10-24: «این مورد لازم است.» stayed under a filled field)
+    setErrors((current) => (current[field as keyof typeof current] ? { ...current, [field]: undefined } : current))
   }
 
   async function handleSubmit(): Promise<void> {

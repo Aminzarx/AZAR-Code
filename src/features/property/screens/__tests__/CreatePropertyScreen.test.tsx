@@ -80,6 +80,18 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
     expect(mockCreateProperty).not.toHaveBeenCalled()
   })
 
+  it('a field error goes as soon as the field is edited', async () => {
+    const { getByText, getByLabelText, findAllByText, queryAllByText } = await render(
+      withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
+    expect(await findAllByText('این مورد لازم است.')).toHaveLength(2)
+
+    await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
+    expect(queryAllByText('این مورد لازم است.')).toHaveLength(1)
+  })
+
   it('walks the three steps, suggests a title, saves and opens the new file', async () => {
     mockCreateProperty.mockResolvedValue({ id: 'prop-1' })
 
