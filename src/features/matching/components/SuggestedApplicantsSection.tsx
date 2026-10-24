@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Card, EmptyState, ErrorState, LoadingIndicator } from '@shared/components'
@@ -14,6 +14,8 @@ type Props = {
   onDealCreated: (dealId: string) => void
   /** Opens the full Matching Workspace preselected to this property, instead of this compact top-N preview. */
   onViewAll: () => void
+  /** bumped by the screen each time it comes back into view; the suggestions are computed again */
+  refreshKey?: number
 }
 
 /** Rendered inside PropertyDetailScreen — this property owner's applicants, ranked by match score. */
@@ -21,11 +23,15 @@ export function SuggestedApplicantsSection({
   property,
   onSelectApplicant,
   onDealCreated,
-  onViewAll
+  onViewAll,
+  refreshKey = 0
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { matches, isLoading, error, refetch } = useApplicantMatchesForProperty(property)
+  useEffect(() => {
+    if (refreshKey > 0) refetch()
+  }, [refreshKey, refetch])
 
   return (
     <View style={styles.section}>

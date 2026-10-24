@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useLicence } from '@shared/licence/LicenceContext'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -54,6 +54,15 @@ function toFormValues(applicant: Applicant): ApplicantFormValues {
 
 export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
+  // the stack keeps this screen while other tabs are used: the suggestions are computed again on every return, or an
+  // applicant / file added meanwhile is missing (emulator test 2026-10-24)
+  const [suggestionsKey, setSuggestionsKey] = useState(0)
+  useEffect(() => {
+    if (typeof navigation.addListener !== 'function') {
+      return undefined
+    }
+    return navigation.addListener('focus', () => setSuggestionsKey((current) => current + 1))
+  }, [navigation])
   // Amin #4906: after the licence ends the file stays readable; its edit actions are hidden
   const { canEdit } = useLicence()
   const styles = createStyles(theme)
@@ -346,6 +355,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
           {canEdit ? (
             <SuggestedPropertiesSection
               applicant={applicant}
+              refreshKey={suggestionsKey}
               onSelectProperty={(propertyId) =>
                 navigation.navigate('PropertyDetail', { propertyId })
               }
