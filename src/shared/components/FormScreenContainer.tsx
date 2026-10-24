@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   View
 } from 'react-native'
-import { Pressable, ScrollView } from 'react-native-gesture-handler'
+import { Pressable } from 'react-native-gesture-handler'
+import { KeyboardAwareScroll } from './KeyboardAwareScroll'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon } from './Icon'
@@ -70,16 +69,13 @@ type Props = {
 /**
  * Shared safe-area + scrollable + keyboard-aware layout for create/edit
  * forms (§6 of the forms/matching brief — keyboard was hiding the bottom
- * fields and the submit button). `behavior` is iOS-only: Android's
- * `windowSoftInputMode="adjustResize"` (AndroidManifest.xml) already
- * resizes the window when the keyboard opens, so adding
- * KeyboardAvoidingView's own resize on top of that double-adjusts and
- * makes the content jump. The extra bottom padding keeps the submit
- * button reachable past the last field even when the keyboard is open;
- * RN's TextInput already auto-scrolls itself into view inside a
- * ScrollView on focus, so no extra scroll-tracking code is needed.
+ * fields and the submit button). Amin #5057: KeyboardAwareScroll lifts the
+ * scroll and the footer by exactly what the keyboard hides (nothing where
+ * Android's adjustResize already shrank the window; the keyboard's height
+ * on Android 15+, which no longer shrinks it) and scrolls the focused field
+ * into view when the keyboard opens.
  *
- * The optional header (`onSave`) sits above the `KeyboardAvoidingView`,
+ * The optional header (`onSave`) sits above the keyboard-aware area,
  * not inside the `ScrollView` — a fixed save affordance the keyboard
  * can never cover and scrolling can never carry off-screen, in addition
  * to the form's own full-width bottom submit button. Row order is
@@ -181,19 +177,11 @@ export function FormScreenContainer({
         </View>
       ) : null}
       {subheader}
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-        >
-          {children}
-        </ScrollView>
-        {footer ? <View style={styles.footer}>{footer}</View> : null}
-      </KeyboardAvoidingView>
+      {/* Amin #5057: lifted above the keyboard, focused field scrolled into view (also where Android 15+ no longer
+          shrinks the window) */}
+      <KeyboardAwareScroll contentContainerStyle={styles.content} footer={footer} footerStyle={styles.footer}>
+        {children}
+      </KeyboardAwareScroll>
     </SafeAreaView>
   )
 }

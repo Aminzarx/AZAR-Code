@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Card, EmptyState, TextInput } from '@shared/components'
+import { KeyboardLift } from '@shared/components/KeyboardAwareScroll'
 
 type Props = {
   notes: string | null
@@ -74,37 +75,39 @@ export function DealNotesSection({
         animationType="fade"
         onRequestClose={() => setIsEditing(false)}
       >
-        <Pressable
-          style={styles.backdrop}
-          onPress={() => setIsEditing(false)}
-          accessibilityRole="button"
-          accessibilityLabel="بستن"
-        >
-          <Pressable style={styles.dialog} onPress={(event) => event.stopPropagation()}>
-            <Text style={[theme.typography('titleMd'), styles.dialogTitle]}>یادداشت</Text>
-            <TextInput
-              label="یادداشت"
-              value={draft}
-              onChangeText={setDraft}
-              placeholder="یادداشت این معامله"
-            />
-            <View style={styles.dialogActions}>
-              <Button
-                label="انصراف"
-                variant="secondary"
-                onPress={() => setIsEditing(false)}
-                disabled={isSaving}
-                style={styles.dialogAction}
+        <KeyboardLift>
+          <Pressable
+            style={styles.backdrop}
+            onPress={() => setIsEditing(false)}
+            accessibilityRole="button"
+            accessibilityLabel="بستن"
+          >
+            <Pressable style={styles.dialog} onPress={(event) => event.stopPropagation()}>
+              <Text style={[theme.typography('titleMd'), styles.dialogTitle]}>یادداشت</Text>
+              <TextInput
+                label="یادداشت"
+                value={draft}
+                onChangeText={setDraft}
+                placeholder="یادداشت این معامله"
               />
-              <Button
-                label="ذخیره"
-                onPress={handleSave}
-                loading={isSaving}
-                style={styles.dialogAction}
-              />
-            </View>
+              <View style={styles.dialogActions}>
+                <Button
+                  label="انصراف"
+                  variant="secondary"
+                  onPress={() => setIsEditing(false)}
+                  disabled={isSaving}
+                  style={styles.dialogAction}
+                />
+                <Button
+                  label="ذخیره"
+                  onPress={handleSave}
+                  loading={isSaving}
+                  style={styles.dialogAction}
+                />
+              </View>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardLift>
       </Modal>
     </View>
   )

@@ -1,6 +1,7 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { KeyboardAwareScroll } from '@shared/components/KeyboardAwareScroll'
 import { useTheme, type Theme } from '@shared/theme'
 
 type Props = {
@@ -38,13 +39,15 @@ export function AuthScreenContainer({
     )
   }
 
+  // Amin #5057: scrolls (a small screen with the keyboard open still reaches every field and the button) and is lifted
+  // above the keyboard where Android does not shrink the window
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <KeyboardAwareScroll contentContainerStyle={styles.container}>
         <View style={styles.topSpacer} />
         {children}
         <View style={styles.bottomSpacer} />
-      </View>
+      </KeyboardAwareScroll>
     </SafeAreaView>
   )
 }

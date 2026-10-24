@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button } from './Button'
+import { KeyboardLift } from './KeyboardAwareScroll'
 
 type Props = {
   visible: boolean
@@ -50,48 +51,50 @@ export function FilterSheet({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        style={styles.backdrop}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="بستن"
-      >
-        <View
-          style={styles.sheet}
-          onStartShouldSetResponder={() => true}
-          onTouchEnd={(event) => event.stopPropagation()}
+      <KeyboardLift>
+        <Pressable
+          style={styles.backdrop}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="بستن"
         >
-          {/* v1.3.0 (design batch 2): handle, title and «پاک کردن همه» as in
-              the approved mockup; the backdrop and Android back still close. */}
-          <View style={styles.handle} />
-          <View style={styles.header}>
-            <Text style={[theme.typography('titleMd'), styles.title]}>{title}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="پاک کردن همه"
-              accessibilityState={{ disabled: !hasActiveFilters }}
-              onPress={onClear}
-              disabled={!hasActiveFilters}
-              hitSlop={theme.spacing.space2}
-            >
-              <Text
-                style={[
-                  theme.typography('labelMd'),
-                  hasActiveFilters ? styles.clear : styles.clearDisabled
-                ]}
+          <View
+            style={styles.sheet}
+            onStartShouldSetResponder={() => true}
+            onTouchEnd={(event) => event.stopPropagation()}
+          >
+            {/* v1.3.0 (design batch 2): handle, title and «پاک کردن همه» as in
+                the approved mockup; the backdrop and Android back still close. */}
+            <View style={styles.handle} />
+            <View style={styles.header}>
+              <Text style={[theme.typography('titleMd'), styles.title]}>{title}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="پاک کردن همه"
+                accessibilityState={{ disabled: !hasActiveFilters }}
+                onPress={onClear}
+                disabled={!hasActiveFilters}
+                hitSlop={theme.spacing.space2}
               >
-                پاک کردن همه
-              </Text>
-            </Pressable>
+                <Text
+                  style={[
+                    theme.typography('labelMd'),
+                    hasActiveFilters ? styles.clear : styles.clearDisabled
+                  ]}
+                >
+                  پاک کردن همه
+                </Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
+              {children}
+            </ScrollView>
+            <View style={styles.actions}>
+              <Button label={applyLabel} onPress={onApply} style={styles.action} />
+            </View>
           </View>
-          <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-            {children}
-          </ScrollView>
-          <View style={styles.actions}>
-            <Button label={applyLabel} onPress={onApply} style={styles.action} />
-          </View>
-        </View>
-      </Pressable>
+        </Pressable>
+      </KeyboardLift>
     </Modal>
   )
 }

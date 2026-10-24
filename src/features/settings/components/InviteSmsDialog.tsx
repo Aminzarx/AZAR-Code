@@ -6,6 +6,7 @@ import { Button, TextInput } from '@shared/components'
 import { AuthenticationFailureError, ValidationFailureError } from '@core/auth/errors'
 import { canonicalizeIranPhoneNumber } from '@shared/utils/iranPhoneNumber'
 import { toEnglishDigits } from '@shared/utils/persianText'
+import { KeyboardLift } from '@shared/components/KeyboardAwareScroll'
 
 type Props = {
   visible: boolean
@@ -55,7 +56,8 @@ export function InviteSmsDialog({ visible, onClose }: Props): React.JSX.Element 
     try {
       const invite = await createInvite(canonical)
       // Amin #4625: the server holds the exact text, so it can change without a new app
-      const body = invite.message ?? `سلام، لینک دانلود اپلیکیشن دفترکار همراه مشاوران املاک:\n${invite.url}`
+      const body =
+        invite.message ?? `سلام، لینک دانلود اپلیکیشن دفترکار همراه مشاوران املاک:\n${invite.url}`
       const local = `0${canonical.slice(3)}`
       await Linking.openURL(`sms:${local}?body=${encodeURIComponent(body)}`)
       close()
@@ -68,31 +70,44 @@ export function InviteSmsDialog({ visible, onClose }: Props): React.JSX.Element 
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityRole="button" accessibilityLabel="بستن">
-        <Pressable style={styles.card} onPress={(event) => event.stopPropagation()}>
-          <Text style={[theme.typography('titleMd'), styles.title]}>دعوت با پیامک</Text>
-          <Text style={[theme.typography('bodySm'), styles.lead]}>
-            شمارهٔ همکارتان را بنویسید؛ پیامک دعوت با پیوند دریافت برنامه از گوشی خودتان فرستاده می‌شود.
-          </Text>
-          <TextInput
-            label="شمارهٔ موبایل همکار"
-            value={phone}
-            onChangeText={(text) => {
-              setPhone(text)
-              setError(null)
-            }}
-            placeholder="۰۹۱۲۱۲۳۴۵۶۷"
-            keyboardType="phone-pad"
-            maxLength={14}
-            errorMessage={error ?? undefined}
-            autoFocus
-          />
-          <View style={styles.actions}>
-            <Button label="ساخت پیامک دعوت" onPress={handleSend} loading={isSending} disabled={phone.trim().length < 10} />
-            <Button label="انصراف" variant="text" onPress={close} />
-          </View>
+      <KeyboardLift>
+        <Pressable
+          style={styles.backdrop}
+          onPress={close}
+          accessibilityRole="button"
+          accessibilityLabel="بستن"
+        >
+          <Pressable style={styles.card} onPress={(event) => event.stopPropagation()}>
+            <Text style={[theme.typography('titleMd'), styles.title]}>دعوت با پیامک</Text>
+            <Text style={[theme.typography('bodySm'), styles.lead]}>
+              شمارهٔ همکارتان را بنویسید؛ پیامک دعوت با پیوند دریافت برنامه از گوشی خودتان فرستاده
+              می‌شود.
+            </Text>
+            <TextInput
+              label="شمارهٔ موبایل همکار"
+              value={phone}
+              onChangeText={(text) => {
+                setPhone(text)
+                setError(null)
+              }}
+              placeholder="۰۹۱۲۱۲۳۴۵۶۷"
+              keyboardType="phone-pad"
+              maxLength={14}
+              errorMessage={error ?? undefined}
+              autoFocus
+            />
+            <View style={styles.actions}>
+              <Button
+                label="ساخت پیامک دعوت"
+                onPress={handleSend}
+                loading={isSending}
+                disabled={phone.trim().length < 10}
+              />
+              <Button label="انصراف" variant="text" onPress={close} />
+            </View>
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardLift>
     </Modal>
   )
 }
