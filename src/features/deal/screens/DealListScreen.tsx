@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { FlatList, StyleSheet, View } from 'react-native'
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -9,9 +9,9 @@ import {
   EmptyState,
   ErrorState,
   LoadingIndicator,
-  ScreenHeaderBar,
-  SegmentedControl
+  ScreenHeaderBar
 } from '@shared/components'
+import { toPersianDigits } from '@shared/utils/persianText'
 import type { ReminderRecord } from '@infrastructure/database/repositories/ReminderRepository'
 import { useUndoableDelete } from '@shared/hooks/useUndoableDelete'
 import { useDeals } from '../hooks/useDeals'
@@ -19,12 +19,20 @@ import { useDealService } from '../hooks/useDealService'
 import { useIncompleteReminders } from '../hooks/useIncompleteReminders'
 import { DealListItem } from '../components/DealListItem'
 import { dealFilterGroup, type DealFilterGroup } from '../dealPipeline'
+import type { DealStage } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'DealList'>
 
-const FILTER_OPTIONS: readonly { value: DealFilterGroup; label: string }[] = [
+function chipOf(stage: DealStage): Exclude<DealFilterGroup, 'all' | 'new'> {
+  const group = dealFilterGroup(stage)
+  return group === 'new' ? 'inProgress' : group
+}
+
+// v1.4.0 (approved «معاملات» design): four chips with counts; a brand-new
+// deal counts as «در جریان».
+type ChipFilter = Exclude<DealFilterGroup, 'new'>
+const FILTER_OPTIONS: readonly { value: ChipFilter; label: string }[] = [
   { value: 'all', label: 'همه' },
-  { value: 'new', label: 'جدید' },
   { value: 'inProgress', label: 'در جریان' },
   { value: 'won', label: 'موفق' },
   { value: 'lost', label: 'لغوشده' }
@@ -37,7 +45,7 @@ export function DealListScreen({ navigation }: Props): React.JSX.Element {
   const userId = session?.userId ?? ''
   const { deals, isLoading, error, refetch } = useDeals(userId)
   const { reminders } = useIncompleteReminders(userId)
-  const [filter, setFilter] = useState<DealFilterGroup>('all')
+  const [filter, setFilter] = useState<ChipFilter>('all')
   const dealService = useDealService()
   const del = useUndoableDelete({
     noun: 'معامله',
@@ -78,14 +86,45 @@ export function DealListScreen({ navigation }: Props): React.JSX.Element {
     if (filter === 'all') {
       return visible
     }
-    return visible.filter((deal) => dealFilterGroup(deal.currentStage) === filter)
+    return visible.filter((deal) => chipOf(deal.currentStage) === filter)
   }, [deals, filter, del.hidden])
+
+  const counts = useMemo(() => {
+    const result: Record<ChipFilter, number> = { all: 0, inProgress: 0, won: 0, lost: 0 }
+    for (const deal of deals ?? []) {
+      if (del.hidden.has(deal.id)) continue
+      result.all += 1
+      result[chipOf(deal.currentStage)] += 1
+    }
+    return result
+  }, [deals, del.hidden])
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScreenHeaderBar onBack={() => navigation.goBack()} title="معاملات" section="deal" />
       <View style={styles.content}>
-        <SegmentedControl options={FILTER_OPTIONS} value={filter} onChange={setFilter} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipsBar}>
+          {FILTER_OPTIONS.map((option) => {
+            const selected = option.value === filter
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
+                accessibilityState={{ selected }}
+                onPress={() => setFilter(option.value)}
+                style={[styles.chip, selected && styles.chipSelected]}
+              >
+                <Text style={[theme.typography('labelMd'), selected ? styles.chipTextSelected : styles.chipText]}>
+                  {option.label}
+                </Text>
+                <Text style={[theme.typography('labelMd'), selected ? styles.chipTextSelected : styles.chipCount]}>
+                  {toPersianDigits(String(counts[option.value]))}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
 
         {isLoading ? (
           <View style={styles.centeredSection}>
@@ -153,8 +192,26 @@ function createStyles(theme: Theme) {
       gap: theme.spacing.space4
     },
     list: {
-      gap: theme.spacing.space3
+      gap: theme.spacing.space3,
+      paddingBottom: theme.spacing.space6
     },
+    chipsBar: { flexGrow: 0 },
+    chips: { gap: theme.spacing.space2 },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space1,
+      paddingHorizontal: theme.spacing.space4,
+      paddingVertical: theme.spacing.space2,
+      borderRadius: theme.radius.full,
+      borderWidth: 1,
+      borderColor: theme.colors.outlineVariant,
+      backgroundColor: theme.colors.surfaceContainerLowest
+    },
+    chipSelected: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+    chipText: { color: theme.colors.onSurface },
+    chipCount: { color: theme.colors.onSurfaceVariant },
+    chipTextSelected: { color: theme.colors.onPrimary, fontWeight: '700' },
     centeredSection: {
       flex: 1,
       alignItems: 'center',

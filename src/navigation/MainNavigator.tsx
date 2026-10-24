@@ -41,7 +41,9 @@ export type MainStackParamList = {
   DealList: undefined
   DealDetail: { dealId: string }
   ReminderList: undefined
-  CreateReminder: { propertyId?: string; applicantId?: string; dealId?: string } | undefined
+  CreateReminder:
+    | { propertyId?: string; applicantId?: string; dealId?: string; title?: string; date?: string }
+    | undefined
   ReminderDetail: { reminderId: string }
   ContractList: undefined
   CreateContract: { propertyId: string; applicantId: string; dealId?: string }
@@ -59,7 +61,7 @@ const TAB_LABELS: Record<TabName, string> = {
   FilesTab: 'فایل‌ها',
   MatchingTab: 'تطبیق',
   ContractsTab: 'قراردادها',
-  ProfileTab: 'پروفایل'
+  ProfileTab: 'من'
 }
 
 const TAB_ICONS: Record<TabName, IconName> = {

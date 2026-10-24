@@ -115,71 +115,68 @@ describe('MatchingScreen', () => {
     mockedUseDealService.mockReturnValue({ createDeal: mockCreateDeal } as never)
   })
 
-  it('shows the picker list, then a property selection reveals its applicant matches', async () => {
-    const { findByText, queryByText } = await render(
+  it('shows each applicant with the files that fit, then opens one applicant in full', async () => {
+    const { findByText, findByLabelText, queryByText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByText('آپارتمان دو خوابه'))
+    expect(await findByText('فایل‌هایی که با خواستهٔ هر متقاضی جور است.')).toBeTruthy()
+    expect(await findByText('۲۵٪')).toBeTruthy()
+    fireEvent.press(await findByLabelText('علی رضایی'))
 
-    expect(await findByText('علی رضایی')).toBeTruthy()
     expect(await findByText('1 از 6 معیار منطبق')).toBeTruthy()
-    // The picker list step is gone once a record is selected.
-    expect(queryByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeNull()
+    expect(queryByText('فایل‌هایی که با خواستهٔ هر متقاضی جور است.')).toBeNull()
   })
 
-  it('passes the typed search query through to useProperties', async () => {
+  it('opens the property from an overview row', async () => {
     const { findByLabelText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.changeText(await findByLabelText('جستجو'), 'ولیعصر')
+    fireEvent.press(await findByLabelText('آپارتمان دو خوابه'))
 
-    await waitFor(() => expect(mockedUseProperties).toHaveBeenCalledWith('u1', 'ولیعصر'))
+    expect(mockNavigate).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
   })
 
-  it('clears the search query when switching between properties and applicants', async () => {
-    const { findByLabelText, findByText } = await render(
+  it('starts a deal with the best file from the overview', async () => {
+    mockCreateDeal.mockResolvedValue({ id: 'deal-1' })
+    const { findByLabelText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.changeText(await findByLabelText('جستجو'), 'ولیعصر')
-    fireEvent.press(await findByText('متقاضیان'))
+    fireEvent.press(await findByLabelText('شروع معامله'))
 
-    await waitFor(() => expect(mockedUseApplicants).toHaveBeenCalledWith('u1', ''))
+    await waitFor(() => expect(mockCreateDeal).toHaveBeenCalledWith('u1', 'prop-1', 'app-1'))
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith('DealDetail', { dealId: 'deal-1' })
+    )
   })
 
   it('navigates to ApplicantDetail when a match result is pressed', async () => {
-    const { findByText } = await render(
+    const { findByText, findByLabelText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByText('آپارتمان دو خوابه'))
+    fireEvent.press(await findByLabelText('برای فایل‌ها'))
+    await findByText('متقاضیانی که هر فایل به کارشان می‌آید.')
+    fireEvent.press(await findByLabelText('آپارتمان دو خوابه'))
+    await findByText('تغییر انتخاب')
     fireEvent.press(await findByText('علی رضایی'))
 
     expect(mockNavigate).toHaveBeenCalledWith('ApplicantDetail', { applicantId: 'app-1' })
   })
 
-  it('navigates to PropertyDetail when a match result is pressed after switching segments', async () => {
+  it('creates a deal and navigates to DealDetail when "ایجاد معامله" is pressed', async () => {
+    mockCreateDeal.mockResolvedValue({ id: 'deal-1' })
+
     const { findByText, findByLabelText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByLabelText('متقاضیان'))
-    fireEvent.press(await findByText('علی رضایی'))
-    fireEvent.press(await findByText('آپارتمان دو خوابه'))
-
-    expect(mockNavigate).toHaveBeenCalledWith('PropertyDetail', { propertyId: 'prop-1' })
-  })
-
-  it('creates a deal and navigates to DealDetail when "ایجاد معامله" is pressed', async () => {
-    mockCreateDeal.mockResolvedValue({ id: 'deal-1' })
-
-    const { findByText } = await render(
-      withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByText('آپارتمان دو خوابه'))
+    fireEvent.press(await findByLabelText('برای فایل‌ها'))
+    await findByText('متقاضیانی که هر فایل به کارشان می‌آید.')
+    fireEvent.press(await findByLabelText('آپارتمان دو خوابه'))
+    await findByText('تغییر انتخاب')
     fireEvent.press(await findByText('ایجاد معامله'))
 
     await waitFor(() => expect(mockCreateDeal).toHaveBeenCalledWith('u1', 'prop-1', 'app-1'))
@@ -188,15 +185,15 @@ describe('MatchingScreen', () => {
     )
   })
 
-  it('lets the user change selection back to the picker list', async () => {
-    const { findByText } = await render(
+  it('lets the user change selection back to the overview', async () => {
+    const { findByText, findByLabelText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByText('آپارتمان دو خوابه'))
+    fireEvent.press(await findByLabelText('علی رضایی'))
     fireEvent.press(await findByText('تغییر انتخاب'))
 
-    expect(await findByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeTruthy()
+    expect(await findByText('فایل‌هایی که با خواستهٔ هر متقاضی جور است.')).toBeTruthy()
   })
 
   it('shows the create-property empty state when there are no properties', async () => {
@@ -207,10 +204,11 @@ describe('MatchingScreen', () => {
       refetch: jest.fn()
     })
 
-    const { findByText } = await render(
+    const { findByText, findByLabelText } = await render(
       withTheme(<MatchingScreen navigation={navigationProp} route={routeProp} />)
     )
 
+    fireEvent.press(await findByLabelText('برای فایل‌ها'))
     expect(await findByText('هنوز فایلی ثبت نشده')).toBeTruthy()
   })
 
@@ -226,7 +224,7 @@ describe('MatchingScreen', () => {
     )
 
     expect(await findByText('علی رضایی')).toBeTruthy()
-    expect(queryByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeNull()
+    expect(queryByText('تطبیق')).toBeNull()
   })
 
   it('preselects the applicant on the "applicants" target when opened with an applicantId param', async () => {
@@ -241,6 +239,6 @@ describe('MatchingScreen', () => {
     )
 
     expect(await findByText('آپارتمان دو خوابه')).toBeTruthy()
-    expect(queryByText('برای دیدن پیشنهادهای تطبیق، یک فایل را انتخاب کنید')).toBeNull()
+    expect(queryByText('تطبیق')).toBeNull()
   })
 })

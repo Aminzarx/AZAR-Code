@@ -1,8 +1,11 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, EntityIconBadge, StatusBadge } from '@shared/components'
-import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONES } from '../statusPresentation'
+import { Card } from '@shared/components'
+import { toPersianDigits } from '@shared/utils/persianText'
+import { formatJalaliDate, gregorianIsoToJalali } from '@shared/utils/jalaliDate'
+import { moneyLine } from '@shared/utils/shortMoney'
+import { CONTRACT_STATUS_LABELS } from '../statusPresentation'
 import type { ContractWithDetails } from '../types'
 
 type Props = {
@@ -10,79 +13,134 @@ type Props = {
   onPress: () => void
   /** v1.4.0: long-press opens the row's action sheet (delete) */
   onLongPress?: () => void
+  /** v1.4.0: «یادآوری تمدید» on a contract that is near its end */
+  onRenewReminder?: () => void
 }
 
-export function ContractListItem({ contract, onPress, onLongPress }: Props): React.JSX.Element {
+/** a contract within this many days of its end is «رو به پایان» */
+export const ENDING_SOON_DAYS = 30
+
+/** whole days from today to the contract's end date (negative once past) */
+export function daysLeft(endDate: string, now: Date = new Date()): number | null {
+  const end = new Date(`${endDate.slice(0, 10)}T00:00:00`)
+  if (Number.isNaN(end.getTime())) {
+    return null
+  }
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.round((end.getTime() - today.getTime()) / 86_400_000)
+}
+
+export function isEndingSoon(contract: ContractWithDetails, now: Date = new Date()): boolean {
+  if (contract.status !== 'active') {
+    return false
+  }
+  const days = daysLeft(contract.endDate, now)
+  return days !== null && days <= ENDING_SOON_DAYS
+}
+
+function jalali(isoDate: string): string | null {
+  const date = gregorianIsoToJalali(isoDate.slice(0, 10))
+  return date ? toPersianDigits(formatJalaliDate(date)) : null
+}
+
+/**
+ * v1.4.0 (design batch 3, approved «قراردادها» mockup): the contract's
+ * kind and file, the two sides, the amount, a days-left (or status) tag,
+ * then the end date with «یادآوری تمدید» or «جزئیات».
+ */
+export function ContractListItem({ contract, onPress, onLongPress, onRenewReminder }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const label = `${contract.property?.title ?? 'ملک نامشخص'} - ${contract.applicant?.fullName ?? 'متقاضی نامشخص'}`
+  const property = contract.property
+  const title = [contract.type, property?.title ?? 'ملک نامشخص'].filter(Boolean).join(' ')
+  const sides = contract.applicant?.fullName ?? 'متقاضی نامشخص'
+  const terms =
+    contract.amount !== null && contract.amount > 0
+      ? moneyLine(contract.amount, null, null)
+      : property
+        ? moneyLine(null, property.depositAmount, property.rentAmount)
+        : null
+  const endingSoon = isEndingSoon(contract)
+  const days = daysLeft(contract.endDate)
+  const endText = jalali(contract.endDate)
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={350}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
       <Card>
-        <View style={styles.header}>
-          <EntityIconBadge icon="contract" tone="secondary" />
-          <View style={styles.identity}>
-            <Text
-              style={[theme.typography('titleSm'), styles.title]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {contract.property?.title ?? 'ملک نامشخص'}
-            </Text>
-            <Text
-              style={[theme.typography('bodySm'), styles.subtitle]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {contract.applicant?.fullName ?? 'متقاضی نامشخص'}
-            </Text>
-          </View>
-          <StatusBadge
-            label={CONTRACT_STATUS_LABELS[contract.status]}
-            tone={CONTRACT_STATUS_TONES[contract.status]}
-          />
+        <View style={styles.titleRow}>
+          <Text style={[theme.typography('titleSm'), styles.title]} numberOfLines={1}>
+            {title}
+          </Text>
+          {endingSoon && days !== null ? (
+            <View style={[styles.tag, styles.tagWarn]}>
+              <Text style={[theme.typography('labelSm'), styles.tagWarnText]}>
+                {days >= 0 ? `${toPersianDigits(String(days))} روز مانده` : 'سررسید گذشته'}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.tag, contract.status === 'active' ? styles.tagOk : styles.tagNeutral]}>
+              <Text style={[theme.typography('labelSm'), contract.status === 'active' ? styles.tagOkText : styles.tagNeutralText]}>
+                {CONTRACT_STATUS_LABELS[contract.status]}
+              </Text>
+            </View>
+          )}
         </View>
-        {contract.amount !== null ? (
-          <Text style={[theme.typography('labelMd'), styles.amount]}>
-            {contract.amount.toLocaleString('fa-IR')} تومان
+        <Text style={[theme.typography('bodySm'), styles.muted]} numberOfLines={1}>
+          {sides}
+        </Text>
+        {terms ? (
+          <Text style={[theme.typography('bodyMd'), styles.terms]} numberOfLines={1}>
+            {terms}
           </Text>
         ) : null}
+        <View style={styles.footer}>
+          <Text style={[theme.typography('labelSm'), styles.muted]}>{endText ? `پایان: ${endText}` : ''}</Text>
+          {endingSoon && onRenewReminder ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="یادآوری تمدید" onPress={onRenewReminder} hitSlop={8}>
+              <Text style={[theme.typography('labelMd'), styles.action]}>یادآوری تمدید</Text>
+            </Pressable>
+          ) : (
+            <Text style={[theme.typography('labelMd'), styles.action]}>جزئیات</Text>
+          )}
+        </View>
       </Card>
     </Pressable>
   )
 }
 
 function createStyles(theme: Theme) {
+  const start = theme.isRTL ? 'flex-start' : 'flex-end'
   return StyleSheet.create({
-    header: {
+    titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space3
+      justifyContent: 'space-between',
+      gap: theme.spacing.space2
     },
-    identity: {
-      flex: 1,
-      gap: theme.spacing.space1
+    title: { color: theme.colors.onSurface, flexShrink: 1 },
+    muted: { color: theme.colors.onSurfaceVariant, marginTop: theme.spacing.space1, alignSelf: start },
+    terms: { color: theme.colors.onSurface, marginTop: theme.spacing.space1, alignSelf: start },
+    tag: {
+      paddingHorizontal: theme.spacing.space3,
+      paddingVertical: 2,
+      borderRadius: theme.radius.full
     },
-    // design-system.md §10 — a short Text in a column container (here,
-    // `identity`) doesn't reliably stretch to full width, so alignSelf
-    // anchors the box to the correct edge.
-    title: {
-      color: theme.colors.onSurface,
-      flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+    tagWarn: { backgroundColor: theme.colors.warningContainer },
+    tagWarnText: { color: theme.colors.onWarningContainer },
+    tagOk: { backgroundColor: theme.colors.successContainer },
+    tagOkText: { color: theme.colors.onSuccessContainer },
+    tagNeutral: { backgroundColor: theme.colors.surfaceContainer },
+    tagNeutralText: { color: theme.colors.onSurfaceVariant },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: theme.spacing.space3,
+      paddingTop: theme.spacing.space3,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.outlineVariant
     },
-    subtitle: {
-      color: theme.colors.onSurfaceVariant,
-      flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    amount: {
-      color: theme.colors.primary,
-      marginTop: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    }
+    action: { color: theme.colors.primary, fontWeight: '700' }
   })
 }

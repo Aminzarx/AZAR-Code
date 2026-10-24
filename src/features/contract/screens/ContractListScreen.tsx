@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -9,27 +9,56 @@ import { useTheme, type Theme } from '@shared/theme'
 import {
   EmptyState,
   ErrorState,
+  FloatingActionButton,
+  Icon,
   LoadingIndicator,
-  SegmentedControl,
   TextInput
 } from '@shared/components'
+import { toPersianDigits } from '@shared/utils/persianText'
+import { formatJalaliDate, gregorianIsoToJalali } from '@shared/utils/jalaliDate'
 import { useUndoableDelete } from '@shared/hooks/useUndoableDelete'
 import { useContracts } from '../hooks/useContracts'
 import { useContractService } from '../hooks/useContractService'
-import { ContractListItem } from '../components/ContractListItem'
+import { ContractListItem, ENDING_SOON_DAYS, isEndingSoon } from '../components/ContractListItem'
 import { CONTRACT_STATUS_LABELS } from '../statusPresentation'
-import type { ContractStatus, ContractWithDetails } from '../types'
+import type { ContractWithDetails } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ContractList'>
 
-type StatusFilter = ContractStatus | 'all'
+// v1.4.0 (approved «قراردادها» design): فعال · رو به پایان · تمام‌شده,
+// each with its count; «همه» stays at the end for the full list.
+type StatusFilter = 'active' | 'endingSoon' | 'ended' | 'all'
 
 const STATUS_FILTER_OPTIONS: readonly { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'همه' },
   { value: 'active', label: CONTRACT_STATUS_LABELS.active },
-  { value: 'completed', label: CONTRACT_STATUS_LABELS.completed },
-  { value: 'cancelled', label: CONTRACT_STATUS_LABELS.cancelled }
+  { value: 'endingSoon', label: 'رو به پایان' },
+  { value: 'ended', label: 'تمام‌شده' },
+  { value: 'all', label: 'همه' }
 ]
+
+function inFilter(contract: ContractWithDetails, filter: StatusFilter): boolean {
+  switch (filter) {
+    case 'active':
+      return contract.status === 'active'
+    case 'endingSoon':
+      return isEndingSoon(contract)
+    case 'ended':
+      return contract.status !== 'active'
+    default:
+      return true
+  }
+}
+
+/** a renewal follow-up a month before the end (or today, if that has passed) */
+function renewalDate(endDate: string): string {
+  const end = new Date(`${endDate.slice(0, 10)}T00:00:00`)
+  const target = new Date(end.getTime() - ENDING_SOON_DAYS * 86_400_000)
+  const today = new Date()
+  const day = target.getTime() < today.getTime() ? today : target
+  const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+  const jalali = gregorianIsoToJalali(iso)
+  return jalali ? formatJalaliDate(jalali) : ''
+}
 
 function matchesSearch(contract: ContractWithDetails, query: string): boolean {
   const normalized = query.trim().toLowerCase()
@@ -66,7 +95,7 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
   // not a new server-side query (`useContracts` is unchanged).
   const [isSearchVisible, setIsSearchVisible] = useState(false)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
 
   const filteredContracts = useMemo(() => {
     if (!contracts) {
@@ -75,10 +104,19 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
     return contracts.filter(
       (contract) =>
         !del.hidden.has(contract.id) &&
-        (statusFilter === 'all' || contract.status === statusFilter) &&
+        inFilter(contract, statusFilter) &&
         matchesSearch(contract, search)
     )
   }, [contracts, statusFilter, search, del.hidden])
+
+  const counts = useMemo(() => {
+    const visible = (contracts ?? []).filter((contract) => !del.hidden.has(contract.id))
+    const result = {} as Record<StatusFilter, number>
+    for (const option of STATUS_FILTER_OPTIONS) {
+      result[option.value] = visible.filter((contract) => inFilter(contract, option.value)).length
+    }
+    return result
+  }, [contracts, del.hidden])
 
   function toggleSearch(): void {
     setIsSearchVisible((current) => {
@@ -92,14 +130,8 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.content}>
-        <View style={styles.toolbarRow}>
-          <View style={styles.segmentField}>
-            <SegmentedControl
-              options={STATUS_FILTER_OPTIONS}
-              value={statusFilter}
-              onChange={setStatusFilter}
-            />
-          </View>
+        <View style={styles.titleRow}>
+          <Text style={[theme.typography('headlineMd'), styles.pageTitle]}>قراردادها</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="جستجو در قراردادها"
@@ -107,16 +139,29 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
             onPress={toggleSearch}
             style={[styles.searchToggle, isSearchVisible && styles.searchToggleActive]}
           >
-            <Text
-              style={[
-                theme.typography('titleSm'),
-                isSearchVisible ? styles.searchGlyphActive : styles.searchGlyph
-              ]}
-            >
-              ⌕
-            </Text>
+            <Icon name="search" size="sm" color={isSearchVisible ? theme.colors.onPrimaryContainer : theme.colors.onSurface} />
           </Pressable>
         </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsBar} contentContainerStyle={styles.chips}>
+          {STATUS_FILTER_OPTIONS.map((option) => {
+            const selected = option.value === statusFilter
+            const count = counts[option.value]
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
+                accessibilityState={{ selected }}
+                onPress={() => setStatusFilter(option.value)}
+                style={[styles.chip, selected && styles.chipSelected]}
+              >
+                <Text style={[theme.typography('labelMd'), selected ? styles.chipTextSelected : styles.chipText]}>
+                  {count > 0 && option.value !== 'all' ? `${option.label} ${toPersianDigits(String(count))}` : option.label}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
 
         {isSearchVisible ? (
           <TextInput
@@ -170,6 +215,15 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
               <ContractListItem
                 contract={item}
                 onPress={() => navigation.navigate('ContractDetail', { contractId: item.id })}
+                onRenewReminder={() =>
+                  navigation.navigate('CreateReminder', {
+                    propertyId: item.propertyId,
+                    applicantId: item.applicantId,
+                    dealId: item.dealId ?? undefined,
+                    title: `تمدید قرارداد ${item.property?.title ?? ''}`.trim(),
+                    date: renewalDate(item.endDate)
+                  })
+                }
                 onLongPress={() =>
                   del.onLongPress(item.id, `${item.property?.title ?? 'ملک'} · ${item.applicant?.fullName ?? 'متقاضی'}`)
                 }
@@ -177,6 +231,11 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
             )}
           />
         )}
+        <FloatingActionButton
+          accessibilityLabel="قرارداد تازه"
+          label="قرارداد تازه"
+          onPress={() => navigation.navigate('DealList')}
+        />
       </View>
       {del.ui}
     </SafeAreaView>
@@ -194,14 +253,25 @@ function createStyles(theme: Theme) {
       padding: theme.spacing.space6,
       gap: theme.spacing.space4
     },
-    toolbarRow: {
+    titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space2
+      justifyContent: 'space-between'
     },
-    segmentField: {
-      flex: 1
+    pageTitle: { color: theme.colors.onSurface },
+    chipsBar: { flexGrow: 0 },
+    chips: { gap: theme.spacing.space2 },
+    chip: {
+      paddingHorizontal: theme.spacing.space4,
+      paddingVertical: theme.spacing.space2,
+      borderRadius: theme.radius.full,
+      borderWidth: 1,
+      borderColor: theme.colors.outlineVariant,
+      backgroundColor: theme.colors.surfaceContainerLowest
     },
+    chipSelected: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+    chipText: { color: theme.colors.onSurface },
+    chipTextSelected: { color: theme.colors.onPrimary, fontWeight: '700' },
     searchToggle: {
       width: theme.touchTargetMinimum,
       height: theme.touchTargetMinimum,
@@ -215,14 +285,9 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.primaryContainer,
       borderColor: theme.colors.primaryContainer
     },
-    searchGlyph: {
-      color: theme.colors.onSurface
-    },
-    searchGlyphActive: {
-      color: theme.colors.onPrimaryContainer
-    },
     list: {
-      gap: theme.spacing.space3
+      gap: theme.spacing.space3,
+      paddingBottom: 96
     },
     centeredSection: {
       flex: 1,

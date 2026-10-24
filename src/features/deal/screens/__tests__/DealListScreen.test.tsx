@@ -176,14 +176,14 @@ describe('DealListScreen', () => {
       refetch: jest.fn()
     })
 
-    const { findByText, queryByText } = await render(
+    const { findByText, findByLabelText, queryByText } = await render(
       withTheme(<DealListScreen navigation={navigationProp} route={routeProp} />)
     )
 
     expect(await findByText('آپارتمان دو خوابه')).toBeTruthy()
     expect(await findByText('آپارتمان برنده')).toBeTruthy()
 
-    fireEvent.press(await findByText('موفق'))
+    fireEvent.press(await findByLabelText('موفق'))
 
     await waitFor(() => expect(queryByText('آپارتمان دو خوابه')).toBeNull())
     expect(await findByText('آپارتمان برنده')).toBeTruthy()

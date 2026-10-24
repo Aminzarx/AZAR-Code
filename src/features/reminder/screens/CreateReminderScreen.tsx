@@ -25,8 +25,13 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
   const styles = createStyles(theme)
   const { session } = useAuth()
   const service = useReminderService()
-  const { propertyId, applicantId, dealId } = route.params ?? {}
-  const [values, setValues] = useState<ReminderFormValues>(EMPTY_VALUES)
+  const { propertyId, applicantId, dealId, title, date } = route.params ?? {}
+  // v1.4.0: «یادآوری تمدید» on a contract opens this form already filled in
+  const [values, setValues] = useState<ReminderFormValues>({
+    ...EMPTY_VALUES,
+    title: title ?? '',
+    date: date ?? ''
+  })
   const [errors, setErrors] = useState<ReminderFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)

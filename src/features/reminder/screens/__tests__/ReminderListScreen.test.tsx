@@ -144,7 +144,7 @@ describe('ReminderListScreen', () => {
 
   it('groups reminders under time-based section headers', async () => {
     mockedUseReminders.mockReturnValue({
-      reminders: [REMINDER],
+      reminders: [{ ...REMINDER, remindAt: '2099-09-01T14:30:00.000Z' }],
       isLoading: false,
       error: null,
       refetch: jest.fn()

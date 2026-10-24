@@ -72,7 +72,7 @@ describe('ContractListItem', () => {
       withTheme(<ContractListItem contract={CONTRACT} onPress={jest.fn()} />)
     )
 
-    expect(getByText('آپارتمان دو خوابه')).toBeTruthy()
+    expect(getByText(/آپارتمان دو خوابه/)).toBeTruthy()
     expect(getByText('علی رضایی')).toBeTruthy()
   })
 

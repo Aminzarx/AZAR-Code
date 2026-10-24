@@ -1,11 +1,13 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { Card, EntityIconBadge, StatusBadge } from '@shared/components'
+import { Card } from '@shared/components'
 import type { ReminderRecord } from '@infrastructure/database/repositories/ReminderRepository'
+import type { DealStage } from '@infrastructure/database/repositories/DealRepository'
 import { DEAL_STAGE_LABELS } from '@shared/data/dealStageLabels'
-import { formatDateTime } from '@shared/utils/formatDate'
-import { dealStageTone } from '../dealPipeline'
+import { isSameCalendarDay } from '@shared/utils/formatDate'
+import { moneyLine } from '@shared/utils/shortMoney'
+import { dealFilterGroup } from '../dealPipeline'
 import type { DealWithDetails } from '../types'
 
 type Props = {
@@ -15,12 +17,68 @@ type Props = {
   onPress: () => void
   /** v1.4.0: long-press opens the row's action sheet (delete) */
   onLongPress?: () => void
+  /** v1.4.0: «ثبت نتیجه» — defaults to opening the deal */
+  onRecordResult?: () => void
 }
 
-export function DealListItem({ deal, nextReminder, onPress, onLongPress }: Props): React.JSX.Element {
+/** v1.4.0 (approved «معاملات» design): the four steps every deal walks through. */
+const STEPS: readonly { label: string; stages: readonly DealStage[] }[] = [
+  { label: 'پیشنهاد', stages: ['new', 'contacted'] },
+  { label: 'بازدید', stages: ['interested', 'visit_scheduled', 'visited'] },
+  { label: 'مذاکره', stages: ['negotiation', 'offer'] },
+  { label: 'قرارداد', stages: ['contract'] }
+]
+
+function reachedSteps(stage: DealStage): number {
+  if (stage === 'won') {
+    return STEPS.length
+  }
+  if (stage === 'lost') {
+    return 0
+  }
+  return STEPS.findIndex((step) => step.stages.includes(stage)) + 1
+}
+
+function whenText(iso: string): string {
+  const now = new Date()
+  const time = new Date(iso).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+  if (isSameCalendarDay(iso, now)) {
+    return `امروز ${time}`
+  }
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  if (isSameCalendarDay(iso, tomorrow)) {
+    return 'فردا'
+  }
+  return new Date(iso).toLocaleDateString('fa-IR-u-ca-persian', { month: 'long', day: 'numeric' })
+}
+
+/**
+ * v1.4.0 (design batch 3, approved «معاملات» mockup): who → which file,
+ * deal type and price, the stage tag, a four-step progress bar, then the
+ * next follow-up and «ثبت نتیجه».
+ */
+export function DealListItem({
+  deal,
+  nextReminder,
+  onPress,
+  onLongPress,
+  onRecordResult
+}: Props): React.JSX.Element {
   const theme = useTheme()
   const isOverdue = Boolean(nextReminder) && new Date(nextReminder!.remindAt).getTime() < Date.now()
-  const styles = createStyles(theme, isOverdue)
+  const isToday = Boolean(nextReminder) && isSameCalendarDay(nextReminder!.remindAt, new Date())
+  const styles = createStyles(theme)
+  const group = dealFilterGroup(deal.currentStage)
+  const reached = reachedSteps(deal.currentStage)
+  const fillColor =
+    group === 'won' ? theme.colors.success : group === 'lost' ? theme.colors.outline : theme.colors.primary
+  const property = deal.property
+  const subtitle = [
+    property?.transactionType,
+    property ? moneyLine(property.price, property.depositAmount, property.rentAmount) : null
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <Pressable
@@ -31,71 +89,132 @@ export function DealListItem({ deal, nextReminder, onPress, onLongPress }: Props
       delayLongPress={350}
     >
       <Card>
-        <View style={styles.header}>
-          <EntityIconBadge icon="deal" tone="tertiary" />
-          <View style={styles.identity}>
-            <Text
-              style={[theme.typography('titleSm'), styles.title]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {deal.property?.title ?? 'ملک نامشخص'}
-            </Text>
-            <Text
-              style={[theme.typography('bodySm'), styles.subtitle]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
+        <View style={styles.titleRow}>
+          <View style={styles.who}>
+            <Text style={[theme.typography('titleSm'), styles.title]} numberOfLines={1}>
               {deal.applicant?.fullName ?? 'متقاضی نامشخص'}
             </Text>
+            <Text style={[theme.typography('titleSm'), styles.arrow]}>←</Text>
+            <Text style={[theme.typography('titleSm'), styles.title, styles.shrink]} numberOfLines={1}>
+              {deal.property?.title ?? 'ملک نامشخص'}
+            </Text>
           </View>
-          <StatusBadge
-            label={DEAL_STAGE_LABELS[deal.currentStage]}
-            tone={dealStageTone(deal.currentStage)}
-          />
+          <View style={[styles.tag, group === 'won' && styles.tagWon]}>
+            <Text style={[theme.typography('labelSm'), group === 'won' ? styles.tagWonText : styles.tagText]}>
+              {DEAL_STAGE_LABELS[deal.currentStage]}
+            </Text>
+          </View>
         </View>
-        {nextReminder ? (
-          <Text
-            style={[theme.typography('labelSm'), styles.hint]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {`پیگیری بعدی: ${nextReminder.title} • ${formatDateTime(nextReminder.remindAt)}`}
+        {subtitle ? (
+          <Text style={[theme.typography('bodySm'), styles.muted]} numberOfLines={1}>
+            {subtitle}
           </Text>
         ) : null}
+
+        <View style={styles.steps} testID="deal-steps">
+          {STEPS.map((step, index) => (
+            <View key={step.label} style={styles.step}>
+              <View style={[styles.bar, { backgroundColor: index < reached ? fillColor : theme.colors.surfaceContainerHigh }]} />
+              <Text style={[styles.stepLabel, index === reached - 1 && styles.stepLabelCurrent]}>{step.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.footer}>
+          {nextReminder ? (
+            <View style={[styles.pill, isToday || isOverdue ? styles.pillUrgent : styles.pillQuiet]}>
+              {isToday || isOverdue ? <View style={styles.dot} /> : null}
+              <Text
+                style={[theme.typography('labelSm'), isToday || isOverdue ? styles.pillUrgentText : styles.pillQuietText]}
+                numberOfLines={1}
+              >
+                {`${nextReminder.title} ${whenText(nextReminder.remindAt)}`}
+              </Text>
+            </View>
+          ) : (
+            <View />
+          )}
+          {group !== 'won' && group !== 'lost' ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="ثبت نتیجه" onPress={onRecordResult ?? onPress} hitSlop={8}>
+              <Text style={[theme.typography('labelMd'), styles.action]}>ثبت نتیجه</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </Card>
     </Pressable>
   )
 }
 
-function createStyles(theme: Theme, isOverdue: boolean) {
+function createStyles(theme: Theme) {
+  const start = theme.isRTL ? 'flex-start' : 'flex-end'
   return StyleSheet.create({
-    header: {
+    titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space3
+      justifyContent: 'space-between',
+      gap: theme.spacing.space2
     },
-    identity: {
-      flex: 1,
-      gap: theme.spacing.space1
+    who: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space1,
+      flexShrink: 1
     },
-    // design-system.md §10 — a short Text in a column container (here,
-    // `identity`) doesn't reliably stretch to full width, so alignSelf
-    // anchors the box to the correct edge.
-    title: {
-      color: theme.colors.onSurface,
-      flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+    title: { color: theme.colors.onSurface },
+    shrink: { flexShrink: 1 },
+    arrow: { color: theme.colors.onSurfaceVariant },
+    tag: {
+      paddingHorizontal: theme.spacing.space2,
+      paddingVertical: 2,
+      borderRadius: theme.radius.medium,
+      backgroundColor: theme.colors.surfaceContainer
     },
-    subtitle: {
+    tagText: { color: theme.colors.onSurfaceVariant },
+    tagWon: { backgroundColor: theme.colors.successContainer },
+    tagWonText: { color: theme.colors.onSuccessContainer },
+    muted: {
       color: theme.colors.onSurfaceVariant,
-      flexShrink: 1,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      marginTop: theme.spacing.space1,
+      alignSelf: start
     },
-    hint: {
-      color: isOverdue ? theme.colors.warning : theme.colors.outline,
-      marginTop: theme.spacing.space2,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    }
+    steps: {
+      flexDirection: 'row',
+      gap: theme.spacing.space2,
+      marginTop: theme.spacing.space3
+    },
+    step: { flex: 1, gap: 4 },
+    bar: { height: 4, borderRadius: 2 },
+    stepLabel: {
+      fontSize: 11,
+      fontFamily: theme.typography('labelSm').fontFamily,
+      color: theme.colors.outline,
+      textAlign: 'center'
+    },
+    stepLabelCurrent: { color: theme.colors.onSurface, fontWeight: '700' },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.spacing.space2,
+      marginTop: theme.spacing.space3,
+      paddingTop: theme.spacing.space3,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.outlineVariant
+    },
+    pill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space1,
+      paddingHorizontal: theme.spacing.space3,
+      paddingVertical: theme.spacing.space1,
+      borderRadius: theme.radius.full,
+      flexShrink: 1
+    },
+    pillUrgent: { backgroundColor: theme.colors.warningContainer },
+    pillUrgentText: { color: theme.colors.onWarningContainer },
+    pillQuiet: { backgroundColor: theme.colors.surfaceContainer },
+    pillQuietText: { color: theme.colors.onSurfaceVariant },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.warning },
+    action: { color: theme.colors.primary, fontWeight: '700' }
   })
 }

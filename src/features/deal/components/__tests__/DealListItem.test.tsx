@@ -82,11 +82,11 @@ const REMINDER: ReminderRecord = {
 
 describe('DealListItem', () => {
   it('renders the property title, applicant name, and stage badge', async () => {
-    const { getByText } = await render(withTheme(<DealListItem deal={DEAL} onPress={jest.fn()} />))
+    const { getByText, getAllByText } = await render(withTheme(<DealListItem deal={DEAL} onPress={jest.fn()} />))
 
     expect(getByText('آپارتمان دو خوابه')).toBeTruthy()
     expect(getByText('علی رضایی')).toBeTruthy()
-    expect(getByText('مذاکره')).toBeTruthy()
+    expect(getAllByText('مذاکره').length).toBeGreaterThan(0)
   })
 
   it('calls onPress when tapped', async () => {
@@ -104,7 +104,7 @@ describe('DealListItem', () => {
       withTheme(<DealListItem deal={DEAL} nextReminder={REMINDER} onPress={jest.fn()} />)
     )
 
-    expect(getByText(/پیگیری بعدی: تماس با متقاضی/)).toBeTruthy()
+    expect(getByText(/تماس با متقاضی/)).toBeTruthy()
   })
 
   it('does not show a next-action hint when no reminder is linked', async () => {
@@ -112,6 +112,6 @@ describe('DealListItem', () => {
       withTheme(<DealListItem deal={DEAL} onPress={jest.fn()} />)
     )
 
-    expect(queryByText(/پیگیری بعدی/)).toBeNull()
+    expect(queryByText(/تماس با متقاضی/)).toBeNull()
   })
 })
