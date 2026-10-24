@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon } from './Icon'
 import { BackButton } from './BackButton'
+import { SECTIONS, SectionMark, WhereAmILine, type SectionKey } from './SectionMark'
 
 /** How long the post-save "ذخیره شد" flash stays visible before the header reverts to its normal label. */
 const SAVED_FLASH_DURATION_MS = 1600
@@ -61,6 +62,8 @@ type Props = {
   subheader?: React.ReactNode
   /** v3.0.0 (Amin #4211): a fixed bottom action bar (the step's main button), outside the scroll. */
   footer?: React.ReactNode
+  /** v1.4.0 (Amin #4311): which part of the app this is — its icon, name and accent in the header, plus the «where am I» line. */
+  section?: SectionKey
 }
 
 /**
@@ -104,7 +107,8 @@ export function FormScreenContainer({
   isDirty = true,
   saveSucceeded = false,
   subheader,
-  footer
+  footer,
+  section
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const isDisabled = Boolean(isSaving) || !isDirty
@@ -121,11 +125,27 @@ export function FormScreenContainer({
   }, [saveSucceeded])
 
   const showHeader = Boolean(onBack) || Boolean(onSave)
+  const titleBlock = (standalone: boolean) =>
+    headerTitle ? (
+      <View style={[styles.titleBlock, standalone && styles.standaloneTitle]}>
+        <View style={styles.titleRow}>
+          {section ? <SectionMark section={section} /> : null}
+          <Text
+            style={[theme.typography('titleSm'), styles.headerTitle]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {headerTitle}
+          </Text>
+        </View>
+        {section ? <WhereAmILine theme={theme} /> : null}
+      </View>
+    ) : null
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {showHeader ? (
-        <View style={styles.header}>
+        <View style={[styles.header, section && { borderBottomColor: SECTIONS[section].accent, borderBottomWidth: 2 }]}>
           {onBack ? <BackButton onPress={onBack} /> : null}
           {onSave ? (
             <Pressable
@@ -144,17 +164,7 @@ export function FormScreenContainer({
               disabled={isDisabled}
               style={styles.saveRow}
             >
-              {headerTitle ? (
-                <Text
-                  style={[theme.typography('titleSm'), styles.headerTitle]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {headerTitle}
-                </Text>
-              ) : (
-                <Text />
-              )}
+              {titleBlock(false) ?? <Text />}
               {isSaving ? (
                 <ActivityIndicator color={theme.colors.onSecondaryContainer} size="small" />
               ) : showSavedFlash ? (
@@ -169,13 +179,7 @@ export function FormScreenContainer({
               )}
             </Pressable>
           ) : headerTitle ? (
-            <Text
-              style={[theme.typography('titleSm'), styles.headerTitle, styles.standaloneTitle]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {headerTitle}
-            </Text>
+            titleBlock(true)
           ) : (
             <View style={styles.flex} />
           )}
@@ -239,6 +243,14 @@ function createStyles(theme: Theme, isDisabled: boolean) {
     },
     standaloneTitle: {
       flex: 1
+    },
+    titleBlock: {
+      flexShrink: 1
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2
     },
     // design-system.md §7.2's disabled-field treatment (surfaceContainerLow
     // fill, outline text) reused here so "can't save yet" reads the same

@@ -13,7 +13,9 @@ import {
   SegmentedControl
 } from '@shared/components'
 import type { ReminderRecord } from '@infrastructure/database/repositories/ReminderRepository'
+import { useUndoableDelete } from '@shared/hooks/useUndoableDelete'
 import { useDeals } from '../hooks/useDeals'
+import { useDealService } from '../hooks/useDealService'
 import { useIncompleteReminders } from '../hooks/useIncompleteReminders'
 import { DealListItem } from '../components/DealListItem'
 import { dealFilterGroup, type DealFilterGroup } from '../dealPipeline'
@@ -36,6 +38,15 @@ export function DealListScreen({ navigation }: Props): React.JSX.Element {
   const { deals, isLoading, error, refetch } = useDeals(userId)
   const { reminders } = useIncompleteReminders(userId)
   const [filter, setFilter] = useState<DealFilterGroup>('all')
+  const dealService = useDealService()
+  const del = useUndoableDelete({
+    noun: 'معامله',
+    remove: async (id) => {
+      if (!dealService) throw new Error('not ready')
+      await dealService.deleteDeal(id)
+    },
+    onDeleted: refetch
+  })
 
   // Soonest not-done reminder per deal, computed once for the whole
   // screen (not per row) — see `useIncompleteReminders`'s doc comment.
@@ -63,15 +74,16 @@ export function DealListScreen({ navigation }: Props): React.JSX.Element {
     if (!deals) {
       return deals
     }
+    const visible = deals.filter((deal) => !del.hidden.has(deal.id))
     if (filter === 'all') {
-      return deals
+      return visible
     }
-    return deals.filter((deal) => dealFilterGroup(deal.currentStage) === filter)
-  }, [deals, filter])
+    return visible.filter((deal) => dealFilterGroup(deal.currentStage) === filter)
+  }, [deals, filter, del.hidden])
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScreenHeaderBar onBack={() => navigation.goBack()} title="معاملات" />
+      <ScreenHeaderBar onBack={() => navigation.goBack()} title="معاملات" section="deal" />
       <View style={styles.content}>
         <SegmentedControl options={FILTER_OPTIONS} value={filter} onChange={setFilter} />
 
@@ -116,11 +128,15 @@ export function DealListScreen({ navigation }: Props): React.JSX.Element {
                 deal={item}
                 nextReminder={nextReminderByDeal?.get(item.id)}
                 onPress={() => navigation.navigate('DealDetail', { dealId: item.id })}
+                onLongPress={() =>
+                  del.onLongPress(item.id, `${item.property?.title ?? 'ملک'} · ${item.applicant?.fullName ?? 'متقاضی'}`)
+                }
               />
             )}
           />
         )}
       </View>
+      {del.ui}
     </SafeAreaView>
   )
 }

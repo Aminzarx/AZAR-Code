@@ -10,6 +10,8 @@ import type { Applicant } from '../types'
 type Props = {
   applicant: Applicant
   onPress: () => void
+  /** v1.4.0: long-press opens the row's action sheet (delete) */
+  onLongPress?: () => void
   /** Suitable property files from the matching engine, computed once per screen. */
   matchCount?: number
 }
@@ -29,7 +31,7 @@ function areaRange(min: number | null, max: number | null): string | null {
  * button, what they want and where, size and rooms, the budget as a
  * broker says it, then suitable files and how long ago they were added.
  */
-export function ApplicantListItem({ applicant, onPress, matchCount }: Props): React.JSX.Element {
+export function ApplicantListItem({ applicant, onPress, matchCount, onLongPress }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createListCardStyles(theme)
   const own = createStyles(theme)
@@ -46,7 +48,9 @@ export function ApplicantListItem({ applicant, onPress, matchCount }: Props): Re
     moneyLine(null, applicant.depositAmount, applicant.rentAmount)
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={applicant.fullName} onPress={onPress}>
+    <Pressable accessibilityRole="button" accessibilityLabel={applicant.fullName} onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}>
       <Card>
         <View style={styles.titleRow}>
           <View style={own.identity}>

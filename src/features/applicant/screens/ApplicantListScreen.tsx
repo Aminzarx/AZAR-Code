@@ -22,7 +22,9 @@ import { APPLICANT_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEs
 import { toPersianDigits } from '@shared/utils/persianText'
 import { useProperties } from '@features/property/hooks/useProperties'
 import { findPropertyMatchesForApplicant } from '@features/matching/services/matchingService'
+import { useUndoableDelete } from '@shared/hooks/useUndoableDelete'
 import { useApplicants } from '../hooks/useApplicants'
+import { useApplicantService } from '../hooks/useApplicantService'
 import { ApplicantListItem } from '../components/ApplicantListItem'
 import type { Applicant, ApplicantStatus } from '../types'
 
@@ -111,6 +113,15 @@ export function ApplicantListScreen({
   const userId = session?.userId ?? ''
   const [search, setSearch] = useState('')
   const { applicants, isLoading, error, refetch } = useApplicants(userId, search)
+  const applicantService = useApplicantService()
+  const del = useUndoableDelete({
+    noun: 'متقاضی',
+    remove: async (id) => {
+      if (!applicantService) throw new Error('not ready')
+      await applicantService.deleteApplicant(id)
+    },
+    onDeleted: refetch
+  })
 
   useEffect(() => {
     if (refreshKey) {
@@ -140,8 +151,10 @@ export function ApplicantListScreen({
   }, [properties, applicants])
 
   const filteredApplicants = useMemo(
-    () => applicants?.filter((applicant) => matchesFilters(applicant, applied)) ?? applicants,
-    [applicants, applied]
+    () =>
+      applicants?.filter((applicant) => !del.hidden.has(applicant.id) && matchesFilters(applicant, applied)) ??
+      applicants,
+    [applicants, applied, del.hidden]
   )
   const draftCount = useMemo(
     () => applicants?.filter((applicant) => matchesFilters(applicant, draft)).length ?? 0,
@@ -183,7 +196,7 @@ export function ApplicantListScreen({
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      {!embedded ? <ScreenHeaderBar onBack={() => navigation.goBack()} title="متقاضیان" /> : null}
+      {!embedded ? <ScreenHeaderBar onBack={() => navigation.goBack()} title="متقاضیان" section="applicant" /> : null}
       <View style={styles.content}>
         <ListToolbar
           search={search}
@@ -249,6 +262,7 @@ export function ApplicantListScreen({
                 applicant={item}
                 matchCount={matchCounts?.get(item.id)}
                 onPress={() => navigation.navigate('ApplicantDetail', { applicantId: item.id })}
+                onLongPress={() => del.onLongPress(item.id, item.fullName)}
               />
             )}
           />
@@ -299,6 +313,7 @@ export function ApplicantListScreen({
           onChange={(status) => setDraft((current) => ({ ...current, status }))}
         />
       </FilterSheet>
+      {del.ui}
     </SafeAreaView>
   )
 }

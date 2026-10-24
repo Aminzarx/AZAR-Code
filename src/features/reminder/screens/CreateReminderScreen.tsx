@@ -57,7 +57,13 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
         applicantId,
         dealId
       })
-      navigation.replace('ReminderDetail', { reminderId: reminder.id })
+      // v1.4.0 (Amin #4311): after saving, go back to whatever opened the form
+      // (the list, a deal, a property…); the new record is there at the top.
+      if (navigation.canGoBack?.()) {
+        navigation.goBack()
+      } else {
+        navigation.replace('ReminderDetail', { reminderId: reminder.id })
+      }
     } catch (caughtError) {
       if (caughtError instanceof ReminderValidationError) {
         setErrors(caughtError.fieldErrors)
@@ -72,6 +78,7 @@ export function CreateReminderScreen({ navigation, route }: Props): React.JSX.El
 
   return (
     <FormScreenContainer
+      section="reminder"
       onBack={() => navigation.goBack()}
       headerTitle="افزودن یادآوری"
       onSave={handleSubmit}

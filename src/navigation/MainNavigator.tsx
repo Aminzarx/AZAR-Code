@@ -74,66 +74,52 @@ const TAB_ICONS: Record<TabName, IconName> = {
 }
 
 /**
- * design-system.md §16 — each screen is registered in exactly ONE tab's
- * stack (never duplicated across all five, as it used to be). This is
- * what makes `navigation.navigate('X')` called from any screen correctly
- * switch to the tab that owns 'X' — React Navigation's nested-navigator
- * bubbling finds it there — instead of pushing it onto whichever tab
- * happened to be active, which used to leave the tab bar pointing at the
- * wrong tab and made the back button retrace a full cross-tab journey.
+ * v1.4.0 (Amin #4311 «از هر مسیری که کاربر وارد اون بخش شده به بخش های
+ * قبل برگرده»): every record and form screen is registered in EVERY tab's
+ * stack, so opening a property from a deal, a deal from Home, a contract
+ * from a deal… pushes it onto the tab you are in. Back (the header button
+ * or Android's) then retraces exactly the way you came, and the tab bar
+ * never jumps. Each tab keeps its own root as the first screen; re-tapping
+ * the active tab pops it back to that root (native-stack's tabPress
+ * behaviour). Only the tab roots themselves switch tabs (see
+ * crossTabNavigate.ts).
  */
-function HomeStack(): React.JSX.Element {
-  return (
-    <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Home" component={DashboardScreen} />
-      <Stack.Screen name="ReminderList" component={ReminderListScreen} />
-      <Stack.Screen name="CreateReminder" component={CreateReminderScreen} />
-      <Stack.Screen name="ReminderDetail" component={ReminderDetailScreen} />
-    </Stack.Navigator>
-  )
+const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
+  ['PropertyList', PropertyListScreen],
+  ['CreateProperty', CreatePropertyScreen],
+  ['PropertyDetail', PropertyDetailScreen],
+  ['ApplicantList', ApplicantListScreen],
+  ['CreateApplicant', CreateApplicantScreen],
+  ['ApplicantDetail', ApplicantDetailScreen],
+  ['Matching', MatchingScreen],
+  ['DealList', DealListScreen],
+  ['DealDetail', DealDetailScreen],
+  ['ReminderList', ReminderListScreen],
+  ['CreateReminder', CreateReminderScreen],
+  ['ReminderDetail', ReminderDetailScreen],
+  ['ContractList', ContractListScreen],
+  ['CreateContract', CreateContractScreen],
+  ['ContractDetail', ContractDetailScreen]
+]
+
+function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
+  return function TabStack(): React.JSX.Element {
+    return (
+      <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false }}>
+        <Stack.Screen name={root} component={RootScreen} />
+        {SHARED_SCREENS.filter(([name]) => name !== root).map(([name, component]) => (
+          <Stack.Screen key={name} name={name} component={component} />
+        ))}
+      </Stack.Navigator>
+    )
+  }
 }
 
-function FilesStack(): React.JSX.Element {
-  return (
-    <Stack.Navigator initialRouteName="Files" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Files" component={FilesScreen} />
-      <Stack.Screen name="PropertyList" component={PropertyListScreen} />
-      <Stack.Screen name="CreateProperty" component={CreatePropertyScreen} />
-      <Stack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
-      <Stack.Screen name="ApplicantList" component={ApplicantListScreen} />
-      <Stack.Screen name="CreateApplicant" component={CreateApplicantScreen} />
-      <Stack.Screen name="ApplicantDetail" component={ApplicantDetailScreen} />
-    </Stack.Navigator>
-  )
-}
-
-function MatchingStack(): React.JSX.Element {
-  return (
-    <Stack.Navigator initialRouteName="Matching" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Matching" component={MatchingScreen} />
-      <Stack.Screen name="DealList" component={DealListScreen} />
-      <Stack.Screen name="DealDetail" component={DealDetailScreen} />
-    </Stack.Navigator>
-  )
-}
-
-function ContractsStack(): React.JSX.Element {
-  return (
-    <Stack.Navigator initialRouteName="ContractList" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ContractList" component={ContractListScreen} />
-      <Stack.Screen name="CreateContract" component={CreateContractScreen} />
-      <Stack.Screen name="ContractDetail" component={ContractDetailScreen} />
-    </Stack.Navigator>
-  )
-}
-
-function ProfileStack(): React.JSX.Element {
-  return (
-    <Stack.Navigator initialRouteName="Settings" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-    </Stack.Navigator>
-  )
-}
+const HomeStack = makeStack('Home', DashboardScreen)
+const FilesStack = makeStack('Files', FilesScreen)
+const MatchingStack = makeStack('Matching', MatchingScreen)
+const ContractsStack = makeStack('ContractList', ContractListScreen)
+const ProfileStack = makeStack('Settings', SettingsScreen)
 
 /**
  * design-system.md §7.5 (v2.7.2) — a compact pill behind just the icon
@@ -189,11 +175,8 @@ export function MainNavigator(): React.JSX.Element {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        // §16 — all 5 tab stacks are registered from app start, not
-        // lazily on first visit: `navigation.navigate('ScreenOwnedByAnotherTab')`
-        // relies on React Navigation finding that screen already present
-        // in a sibling tab's nested navigator state, which lazy mounting
-        // would leave empty until that tab is first visited.
+        // §16 — all 5 tab stacks are registered from app start, so a
+        // switch to a tab root (crossTabNavigate) always finds its stack.
         lazy: false,
         // design-system.md §7.5 (v2.7.2) — the icon's own active-indicator
         // pill (makeTabIcon) now carries the active fill; the tab bar's

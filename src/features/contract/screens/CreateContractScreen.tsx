@@ -75,7 +75,13 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
         // contract (setEndDateReminder itself swallows calendar errors).
         await service.setEndDateReminder(contract.id, offsetMonths)
       }
-      navigation.replace('ContractDetail', { contractId: contract.id })
+      // v1.4.0 (Amin #4311): after saving, go back to whatever opened the form
+      // (the list, a deal, a property…); the new record is there at the top.
+      if (navigation.canGoBack?.()) {
+        navigation.goBack()
+      } else {
+        navigation.replace('ContractDetail', { contractId: contract.id })
+      }
     } catch (caughtError) {
       if (caughtError instanceof ContractValidationError) {
         setErrors(caughtError.fieldErrors)
@@ -90,6 +96,7 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
 
   return (
     <FormScreenContainer
+      section="contract"
       onBack={() => navigation.goBack()}
       headerTitle="افزودن قرارداد"
       onSave={handleSubmit}

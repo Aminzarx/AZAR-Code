@@ -8,15 +8,19 @@ import type { ContractWithDetails } from '../types'
 type Props = {
   contract: ContractWithDetails
   onPress: () => void
+  /** v1.4.0: long-press opens the row's action sheet (delete) */
+  onLongPress?: () => void
 }
 
-export function ContractListItem({ contract, onPress }: Props): React.JSX.Element {
+export function ContractListItem({ contract, onPress, onLongPress }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const label = `${contract.property?.title ?? 'ملک نامشخص'} - ${contract.applicant?.fullName ?? 'متقاضی نامشخص'}`
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}>
       <Card>
         <View style={styles.header}>
           <EntityIconBadge icon="contract" tone="secondary" />

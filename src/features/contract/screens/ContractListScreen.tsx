@@ -13,7 +13,9 @@ import {
   SegmentedControl,
   TextInput
 } from '@shared/components'
+import { useUndoableDelete } from '@shared/hooks/useUndoableDelete'
 import { useContracts } from '../hooks/useContracts'
+import { useContractService } from '../hooks/useContractService'
 import { ContractListItem } from '../components/ContractListItem'
 import { CONTRACT_STATUS_LABELS } from '../statusPresentation'
 import type { ContractStatus, ContractWithDetails } from '../types'
@@ -47,6 +49,15 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
   const { session } = useAuth()
   const userId = session?.userId ?? ''
   const { contracts, isLoading, error, refetch } = useContracts(userId)
+  const contractService = useContractService()
+  const del = useUndoableDelete({
+    noun: 'قرارداد',
+    remove: async (id) => {
+      if (!contractService) throw new Error('not ready')
+      await contractService.deleteContract(id)
+    },
+    onDeleted: refetch
+  })
 
   // §16/§20 of the brief — search was removed from the current spec but
   // the affordance stays ready to add back without a redesign: the icon
@@ -63,10 +74,11 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
     }
     return contracts.filter(
       (contract) =>
+        !del.hidden.has(contract.id) &&
         (statusFilter === 'all' || contract.status === statusFilter) &&
         matchesSearch(contract, search)
     )
-  }, [contracts, statusFilter, search])
+  }, [contracts, statusFilter, search, del.hidden])
 
   function toggleSearch(): void {
     setIsSearchVisible((current) => {
@@ -158,11 +170,15 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
               <ContractListItem
                 contract={item}
                 onPress={() => navigation.navigate('ContractDetail', { contractId: item.id })}
+                onLongPress={() =>
+                  del.onLongPress(item.id, `${item.property?.title ?? 'ملک'} · ${item.applicant?.fullName ?? 'متقاضی'}`)
+                }
               />
             )}
           />
         )}
       </View>
+      {del.ui}
     </SafeAreaView>
   )
 }

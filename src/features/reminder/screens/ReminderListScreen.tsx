@@ -12,6 +12,7 @@ import {
   LoadingIndicator,
   ScreenHeaderBar
 } from '@shared/components'
+import { useUndoableDelete } from '@shared/hooks/useUndoableDelete'
 import { useReminders } from '../hooks/useReminders'
 import { useReminderService } from '../hooks/useReminderService'
 import { useReminderContexts } from '../hooks/useReminderContexts'
@@ -30,6 +31,14 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
   const { reminders, isLoading, error, refetch } = useReminders(userId)
   const service = useReminderService()
   const { resolve: resolveContext } = useReminderContexts(userId)
+  const del = useUndoableDelete({
+    noun: 'یادآوری',
+    remove: async (id) => {
+      if (!service) throw new Error('not ready')
+      await service.deleteReminder(id)
+    },
+    onDeleted: refetch
+  })
 
   async function handleToggleDone(id: string, isDone: boolean): Promise<void> {
     if (!service) {
@@ -39,15 +48,16 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
     refetch()
   }
 
-  const attention = countReminderAttention(reminders ?? [])
-  const sections = groupRemindersByTime(reminders ?? []).map((group) => ({
+  const visibleReminders = (reminders ?? []).filter((reminder) => !del.hidden.has(reminder.id))
+  const attention = countReminderAttention(visibleReminders)
+  const sections = groupRemindersByTime(visibleReminders).map((group) => ({
     title: group.label,
     data: group.reminders
   }))
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScreenHeaderBar onBack={() => navigation.goBack()} title="یادآوری‌ها" />
+      <ScreenHeaderBar onBack={() => navigation.goBack()} title="یادآوری‌ها" section="reminder" />
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.centeredSection}>
@@ -93,6 +103,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
                 reminder={item}
                 context={resolveContext(item)}
                 onPress={() => navigation.navigate('ReminderDetail', { reminderId: item.id })}
+                onLongPress={() => del.onLongPress(item.id, item.title)}
                 onToggleDone={() => handleToggleDone(item.id, item.isDone)}
               />
             )}
@@ -106,6 +117,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
           />
         ) : null}
       </View>
+      {del.ui}
     </SafeAreaView>
   )
 }

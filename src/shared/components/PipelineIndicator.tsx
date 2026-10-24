@@ -2,6 +2,7 @@ import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import type { DealStage } from '@infrastructure/database/repositories/DealRepository'
+import { DEAL_STAGE_LABELS } from '@features/deal/dealStageLabels'
 import { StatusBadge } from './StatusBadge'
 
 /**
@@ -41,6 +42,19 @@ const GROUP_ORDER: ('contact' | 'visit' | 'negotiation' | 'contract')[] = [
   'contract'
 ]
 
+/**
+ * v1.4.0 (Amin #4315): the real sub-stages of each group, in order. The
+ * connector after the current group fills part of the way per sub-stage
+ * (new → ⅓, contacted → ⅔ …) so moving a deal one step always moves the
+ * indicator, and the exact stage name shows under the current group.
+ */
+const GROUP_STAGES: Record<'contact' | 'visit' | 'negotiation' | 'contract', DealStage[]> = {
+  contact: ['new', 'contacted'],
+  visit: ['interested', 'visit_scheduled', 'visited'],
+  negotiation: ['negotiation', 'offer'],
+  contract: ['contract']
+}
+
 type Props = {
   stage: DealStage
 }
@@ -60,19 +74,32 @@ export function PipelineIndicator({ stage }: Props): React.JSX.Element {
   }
 
   const currentIndex = GROUP_ORDER.indexOf(group)
+  const subStages = GROUP_STAGES[group]
+  // share of the way from the current group to the next one
+  const currentFill = (subStages.indexOf(stage) + 1) / (subStages.length + 1)
+  const exactLabel = DEAL_STAGE_LABELS[stage]
 
   return (
     <View style={styles.row}>
       {GROUP_ORDER.map((groupKey, index) => {
         const isCurrent = index === currentIndex
         const isPast = index < currentIndex
+        // connector before this step = progress out of the previous group
+        const fill = index - 1 < currentIndex ? 1 : index - 1 === currentIndex ? currentFill : 0
         return (
           <React.Fragment key={groupKey}>
             {index > 0 ? (
-              <View style={[styles.connector, (isPast || isCurrent) && styles.connectorActive]} />
+              <View style={styles.connector}>
+                <View
+                  testID={`pipeline-fill-${groupKey}`}
+                  style={[styles.connectorFill, { width: `${Math.round(fill * 100)}%` }]}
+                />
+              </View>
             ) : null}
             <View style={styles.step}>
-              <View style={[styles.dot, (isPast || isCurrent) && styles.dotActive]} />
+              <View
+                style={[styles.dot, (isPast || isCurrent) && styles.dotActive, isCurrent && styles.dotCurrent]}
+              />
               <Text
                 style={[
                   theme.typography('labelSm'),
@@ -83,6 +110,11 @@ export function PipelineIndicator({ stage }: Props): React.JSX.Element {
               >
                 {GROUP_LABEL[groupKey]}
               </Text>
+              {isCurrent && exactLabel !== GROUP_LABEL[groupKey] ? (
+                <Text style={[theme.typography('labelSm'), styles.exact]} numberOfLines={1}>
+                  {exactLabel}
+                </Text>
+              ) : null}
             </View>
           </React.Fragment>
         )
@@ -104,11 +136,15 @@ function createStyles(theme: Theme) {
     },
     connector: {
       flex: 1,
-      height: 1,
+      height: 3,
+      borderRadius: 2,
       backgroundColor: theme.colors.outlineVariant,
-      marginTop: 5
+      marginTop: 4,
+      overflow: 'hidden'
     },
-    connectorActive: {
+    connectorFill: {
+      height: 3,
+      alignSelf: 'flex-start',
       backgroundColor: theme.colors.secondary
     },
     dot: {
@@ -120,11 +156,23 @@ function createStyles(theme: Theme) {
     dotActive: {
       backgroundColor: theme.colors.secondary
     },
+    dotCurrent: {
+      width: 12,
+      height: 12,
+      marginTop: -1,
+      borderWidth: 2,
+      borderColor: theme.colors.secondaryContainer
+    },
     label: {
       color: theme.colors.outline
     },
     labelCurrent: {
-      color: theme.colors.onSurface
+      color: theme.colors.onSurface,
+      fontWeight: '700'
+    },
+    exact: {
+      color: theme.colors.secondary,
+      fontSize: 10
     }
   })
 }

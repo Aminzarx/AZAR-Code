@@ -13,9 +13,11 @@ type Props = {
   /** Soonest not-done reminder linked to this deal, if one exists — computed once for the whole list, not per row (see `useIncompleteReminders`). */
   nextReminder?: ReminderRecord
   onPress: () => void
+  /** v1.4.0: long-press opens the row's action sheet (delete) */
+  onLongPress?: () => void
 }
 
-export function DealListItem({ deal, nextReminder, onPress }: Props): React.JSX.Element {
+export function DealListItem({ deal, nextReminder, onPress, onLongPress }: Props): React.JSX.Element {
   const theme = useTheme()
   const isOverdue = Boolean(nextReminder) && new Date(nextReminder!.remindAt).getTime() < Date.now()
   const styles = createStyles(theme, isOverdue)
@@ -25,6 +27,8 @@ export function DealListItem({ deal, nextReminder, onPress }: Props): React.JSX.
       accessibilityRole="button"
       accessibilityLabel={`${deal.property?.title ?? 'ملک نامشخص'} - ${deal.applicant?.fullName ?? 'متقاضی نامشخص'}`}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
     >
       <Card>
         <View style={styles.header}>

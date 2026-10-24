@@ -172,6 +172,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
 
   return (
     <FormScreenContainer
+      section="applicant"
       onBack={() => navigation.goBack()}
       headerTitle={isEditing ? 'ویرایش متقاضی' : 'جزئیات متقاضی'}
       onSave={isEditing ? handleSubmit : undefined}

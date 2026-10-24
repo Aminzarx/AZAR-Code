@@ -150,6 +150,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
 
   return (
     <FormScreenContainer
+      section="contract"
       onBack={() => navigation.goBack()}
       headerTitle={isEditing ? 'ویرایش قرارداد' : 'جزئیات قرارداد'}
       onSave={isEditing ? handleSubmit : undefined}

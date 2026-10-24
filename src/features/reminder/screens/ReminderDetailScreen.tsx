@@ -164,6 +164,7 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
 
   return (
     <FormScreenContainer
+      section="reminder"
       onBack={() => navigation.goBack()}
       headerTitle={isEditing ? 'ویرایش یادآوری' : 'جزئیات یادآوری'}
       onSave={isEditing ? handleSubmit : undefined}

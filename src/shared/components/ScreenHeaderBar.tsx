@@ -2,6 +2,7 @@ import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { BackButton } from './BackButton'
+import { SECTIONS, SectionMark, WhereAmILine, type SectionKey } from './SectionMark'
 
 type Props = {
   onBack: () => void
@@ -12,6 +13,8 @@ type Props = {
    * own header already uses) gives it a clear anchor.
    */
   title?: string
+  /** v1.4.0 (Amin #4311): the section's mark and the «where am I» line */
+  section?: SectionKey
 }
 
 /**
@@ -25,20 +28,26 @@ type Props = {
  * real header, not a stray icon. Render this as the first child of
  * `SafeAreaView`, OUTSIDE any padded content wrapper.
  */
-export function ScreenHeaderBar({ onBack, title }: Props): React.JSX.Element {
+export function ScreenHeaderBar({ onBack, title, section }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, section && { borderBottomColor: SECTIONS[section].accent, borderBottomWidth: 2 }]}>
       <BackButton onPress={onBack} />
       {title ? (
-        <Text
-          style={[theme.typography('titleSm'), styles.title]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {title}
-        </Text>
+        <View style={styles.titleBlock}>
+          <View style={styles.titleRow}>
+            {section ? <SectionMark section={section} /> : null}
+            <Text
+              style={[theme.typography('titleSm'), styles.title]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {title}
+            </Text>
+          </View>
+          {section ? <WhereAmILine theme={theme} /> : null}
+        </View>
       ) : null}
     </View>
   )
@@ -59,6 +68,14 @@ function createStyles(theme: Theme) {
     title: {
       color: theme.colors.onSurface,
       flexShrink: 1
+    },
+    titleBlock: {
+      flex: 1
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2
     }
   })
 }

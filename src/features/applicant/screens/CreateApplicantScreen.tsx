@@ -68,7 +68,13 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
       const applicant = await service.createApplicant(session.userId, values)
       setIsDirty(false)
       markSaved()
-      navigation.replace('ApplicantDetail', { applicantId: applicant.id })
+      // v1.4.0 (Amin #4311): after saving, go back to whatever opened the form
+      // (the list, a deal, a property…); the new record is there at the top.
+      if (navigation.canGoBack?.()) {
+        navigation.goBack()
+      } else {
+        navigation.replace('ApplicantDetail', { applicantId: applicant.id })
+      }
     } catch (caughtError) {
       if (caughtError instanceof ApplicantValidationError) {
         setErrors(caughtError.fieldErrors)
@@ -83,6 +89,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
 
   return (
     <FormScreenContainer
+      section="applicant"
       onBack={() => navigation.goBack()}
       headerTitle="افزودن متقاضی"
       onSave={handleSubmit}

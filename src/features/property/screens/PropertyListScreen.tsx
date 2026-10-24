@@ -22,7 +22,9 @@ import { PROPERTY_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEst
 import { toPersianDigits } from '@shared/utils/persianText'
 import { useApplicants } from '@features/applicant/hooks/useApplicants'
 import { findApplicantMatchesForProperty } from '@features/matching/services/matchingService'
+import { useUndoableDelete } from '@shared/hooks/useUndoableDelete'
 import { useProperties } from '../hooks/useProperties'
+import { usePropertyService } from '../hooks/usePropertyService'
 import { PropertyListItem } from '../components/PropertyListItem'
 import type { Property, PropertyStatus } from '../types'
 
@@ -112,6 +114,15 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
   const ownerId = session?.userId ?? ''
   const [search, setSearch] = useState('')
   const { properties, isLoading, error, refetch } = useProperties(ownerId, search)
+  const propertyService = usePropertyService()
+  const del = useUndoableDelete({
+    noun: 'فایل ملک',
+    remove: async (id) => {
+      if (!propertyService) throw new Error('not ready')
+      await propertyService.deleteProperty(id)
+    },
+    onDeleted: refetch
+  })
 
   useEffect(() => {
     if (refreshKey) {
@@ -143,8 +154,10 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
   }, [properties, applicants])
 
   const filteredProperties = useMemo(
-    () => properties?.filter((property) => matchesFilters(property, applied)) ?? properties,
-    [properties, applied]
+    () =>
+      properties?.filter((property) => !del.hidden.has(property.id) && matchesFilters(property, applied)) ??
+      properties,
+    [properties, applied, del.hidden]
   )
   const draftCount = useMemo(
     () => properties?.filter((property) => matchesFilters(property, draft)).length ?? 0,
@@ -187,7 +200,7 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {!embedded ? (
-        <ScreenHeaderBar onBack={() => navigation.goBack()} title="فایل‌های ملکی" />
+        <ScreenHeaderBar onBack={() => navigation.goBack()} title="فایل‌های ملکی" section="property" />
       ) : null}
       <View style={styles.content}>
         <ListToolbar
@@ -254,6 +267,7 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
                 property={item}
                 matchCount={matchCounts?.get(item.id)}
                 onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.id })}
+                onLongPress={() => del.onLongPress(item.id, item.title)}
               />
             )}
           />
@@ -304,6 +318,7 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
           onChange={(status) => setDraft((current) => ({ ...current, status }))}
         />
       </FilterSheet>
+      {del.ui}
     </SafeAreaView>
   )
 }

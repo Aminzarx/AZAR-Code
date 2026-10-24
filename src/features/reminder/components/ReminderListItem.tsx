@@ -9,6 +9,8 @@ import type { ReminderContext } from '../hooks/useReminderContexts'
 type Props = {
   reminder: Reminder
   onPress: () => void
+  /** v1.4.0: long-press opens the row's action sheet (delete) */
+  onLongPress?: () => void
   onToggleDone: () => void
   /** Linked property/applicant/deal name, when the reminder is tied to one — omit for a bare reminder. */
   context?: ReminderContext | null
@@ -18,8 +20,7 @@ export function ReminderListItem({
   reminder,
   onPress,
   onToggleDone,
-  context
-}: Props): React.JSX.Element {
+  context, onLongPress }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const contextText = context
@@ -34,6 +35,8 @@ export function ReminderListItem({
           accessibilityRole="button"
           accessibilityLabel={reminder.title}
           onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
           style={styles.content}
         >
           {contextText ? (

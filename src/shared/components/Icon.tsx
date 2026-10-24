@@ -32,6 +32,10 @@ export type IconName =
   | 'search'
   | 'bell'
   | 'time'
+  | 'trash'
+  | 'building'
+  | 'people'
+  | 'sms'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -133,5 +137,13 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'notifications-outline'
     case 'time':
       return 'time-outline'
+    case 'trash':
+      return 'trash-outline'
+    case 'building':
+      return 'business-outline'
+    case 'people':
+      return 'people-outline'
+    case 'sms':
+      return 'chatbubble-ellipses-outline'
   }
 }

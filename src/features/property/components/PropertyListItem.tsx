@@ -9,6 +9,8 @@ import type { Property } from '../types'
 type Props = {
   property: Property
   onPress: () => void
+  /** v1.4.0: long-press opens the row's action sheet (delete) */
+  onLongPress?: () => void
   /**
    * Count of applicants the matching engine considers suitable for this
    * property, computed once at screen level (no per-row query) and
@@ -22,7 +24,7 @@ type Props = {
  * type tag, area and rooms, the price as a broker says it, then a footer
  * with the suitable-applicant count and how long ago the file was added.
  */
-export function PropertyListItem({ property, onPress, matchCount }: Props): React.JSX.Element {
+export function PropertyListItem({ property, onPress, matchCount, onLongPress }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const price = moneyLine(property.price, property.depositAmount, property.rentAmount)
@@ -34,7 +36,9 @@ export function PropertyListItem({ property, onPress, matchCount }: Props): Reac
   ].filter((part): part is string => Boolean(part))
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={property.title} onPress={onPress}>
+    <Pressable accessibilityRole="button" accessibilityLabel={property.title} onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}>
       <Card>
         <View style={styles.titleRow}>
           <Text
