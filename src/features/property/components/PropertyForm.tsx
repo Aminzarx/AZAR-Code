@@ -24,13 +24,13 @@ type Props = {
   onChange: <K extends keyof PropertyFormValues>(field: K, value: PropertyFormValues[K]) => void
   /**
    * v3.0.0 (Amin #4180/#4211): the new-file screen shows one step at a time
-   * (1 type and place, 2 details and price, 3 title and notes); edit mode
+   * (1 type and place, 2 details and price, 3 owner (Amin #5066), 4 title and notes); edit mode
    * leaves it unset and shows every step on one page.
    */
   step?: PropertyFormStep
 }
 
-export type PropertyFormStep = 1 | 2 | 3
+export type PropertyFormStep = 1 | 2 | 3 | 4
 
 /** Which step each field lives on — the new-file screen jumps to the first step with an error. */
 export const PROPERTY_FIELD_STEP: Record<keyof PropertyFormValues, PropertyFormStep> = {
@@ -46,8 +46,11 @@ export const PROPERTY_FIELD_STEP: Record<keyof PropertyFormValues, PropertyFormS
   barterOtherDescription: 2,
   area: 2,
   rooms: 2,
-  title: 3,
-  description: 3
+  ownerName: 3,
+  ownerPhone: 3,
+  ownerNotes: 3,
+  title: 4,
+  description: 4
 }
 
 /**
@@ -199,6 +202,34 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
       ) : null}
       {show(3) ? (
         <>
+          {/* Amin #5066: the owner on a step of their own; optional, kept as a contact with the «مالک» role */}
+          <TextInput
+            label="نام مالک"
+            value={values.ownerName ?? ''}
+            onChangeText={(value) => onChange('ownerName', value)}
+            placeholder="مثلاً حسین محمدی"
+            helperText="اختیاری؛ فقط خودتان می‌بینید"
+            errorMessage={errors.ownerName}
+          />
+          <TextInput
+            label="شماره موبایل مالک"
+            value={values.ownerPhone ?? ''}
+            onChangeText={(value) => onChange('ownerPhone', value)}
+            placeholder="09121234567"
+            keyboardType="phone-pad"
+            errorMessage={errors.ownerPhone}
+          />
+          <TextInput
+            label="یادداشت دربارهٔ مالک"
+            value={values.ownerNotes ?? ''}
+            onChangeText={(value) => onChange('ownerNotes', value)}
+            placeholder="مثلاً عصرها تماس بگیرید، کلید نزد سرایدار"
+            errorMessage={errors.ownerNotes}
+          />
+        </>
+      ) : null}
+      {show(4) ? (
+        <>
           <TextInput
             label="عنوان فایل"
             required
@@ -206,7 +237,7 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
             onChangeText={(value) => onChange('title', value)}
             placeholder="مثلاً آپارتمان دو خوابه ولیعصر"
             // Amin #5064: one short line even on a small phone
-            helperText={step === 3 ? 'پیشنهاد از نوع ملک، اتاق‌ها و آدرس؛ قابل ویرایش' : undefined}
+            helperText={step === 4 ? 'پیشنهاد از نوع ملک، اتاق‌ها و آدرس؛ قابل ویرایش' : undefined}
             errorMessage={errors.title}
           />
           <TextInput

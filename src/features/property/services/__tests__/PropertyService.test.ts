@@ -89,4 +89,63 @@ describe('PropertyService', () => {
     await service.deleteProperty(created.id)
     expect(await service.getProperty(created.id)).toBeNull()
   })
+
+  describe('owner (Amin #5066)', () => {
+    const OWNER = { ownerName: 'حسین محمدی', ownerPhone: '09121234567', ownerNotes: 'عصرها' }
+
+    async function contactCount(): Promise<number> {
+      return Number((await db.execute('SELECT COUNT(*) AS n FROM contacts')).rows[0]?.n)
+    }
+
+    it('keeps the owner as a contact with the «مالک» role, linked to the file', async () => {
+      const created = await service.createProperty(OWNER_ID, { ...VALID_VALUES, ...OWNER })
+      const read = await service.getProperty(created.id)
+      expect(read?.owner).toEqual({
+        contactId: created.owner?.contactId,
+        fullName: 'حسین محمدی',
+        phoneNumber: '+989121234567',
+        notes: 'عصرها'
+      })
+      const roles = await db.execute('SELECT role FROM contact_roles WHERE contact_id = ?', [
+        created.owner?.contactId ?? null
+      ])
+      expect(roles.rows.map((r) => r.role)).toEqual(['owner'])
+      expect((await service.listProperties(OWNER_ID, 'محمدی')).map((p) => p.id)).toEqual([created.id])
+    })
+
+    it('a second file with the same owner phone reuses the same contact', async () => {
+      const a = await service.createProperty(OWNER_ID, { ...VALID_VALUES, ...OWNER })
+      const b = await service.createProperty(OWNER_ID, {
+        ...VALID_VALUES,
+        ...OWNER,
+        ownerNotes: ''
+      })
+      expect(b.owner?.contactId).toBe(a.owner?.contactId)
+      expect(await contactCount()).toBe(1)
+      // notes typed earlier are not wiped by a file that left them empty
+      expect((await service.getProperty(a.id))?.owner?.notes).toBe('عصرها')
+    })
+
+    it('no owner = none linked; editing can add, change and remove it', async () => {
+      const created = await service.createProperty(OWNER_ID, VALID_VALUES)
+      expect(created.owner).toBeNull()
+      expect(await contactCount()).toBe(0)
+
+      await service.updateProperty(created.id, { ...VALID_VALUES, ...OWNER }, 'active')
+      const first = (await service.getProperty(created.id))?.owner
+      expect(first?.fullName).toBe('حسین محمدی')
+
+      await service.updateProperty(
+        created.id,
+        { ...VALID_VALUES, ...OWNER, ownerName: 'حسین محمدی‌نیا', ownerNotes: '' },
+        'active'
+      )
+      const renamed = (await service.getProperty(created.id))?.owner
+      expect(renamed).toEqual({ ...first, fullName: 'حسین محمدی‌نیا', notes: null })
+
+      await service.updateProperty(created.id, VALID_VALUES, 'active')
+      expect((await service.getProperty(created.id))?.owner).toBeNull()
+      expect(await contactCount()).toBe(1)
+    })
+  })
 })

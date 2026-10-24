@@ -17,6 +17,7 @@ import {
   StatusBadge
 } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
+import { formatIranPhoneNumberForDisplay } from '@shared/utils/iranPhoneNumber'
 import { moneyLine } from '@shared/utils/shortMoney'
 import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
@@ -47,7 +48,10 @@ function toFormValues(property: Property): PropertyFormValues {
     isConvertible: property.isConvertible,
     barterItems: property.barterItems,
     barterOtherDescription: property.barterOtherDescription ?? '',
-    description: property.description ?? ''
+    description: property.description ?? '',
+    ownerName: property.owner?.fullName ?? '',
+    ownerPhone: property.owner ? formatIranPhoneNumberForDisplay(property.owner.phoneNumber) : '',
+    ownerNotes: property.owner?.notes ?? ''
   }
 }
 
@@ -297,6 +301,25 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
               />
             ) : null}
 
+            {/* Amin #5066: the owner given on the new-file wizard's owner step */}
+            {property.owner ? (
+              <DetailRow
+                label="مالک"
+                value={`${property.owner.fullName} · ${toPersianDigits(
+                  formatIranPhoneNumberForDisplay(property.owner.phoneNumber)
+                )}`}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
+            {property.owner?.notes ? (
+              <DetailRow
+                label="یادداشت مالک"
+                value={property.owner.notes}
+                theme={theme}
+                styles={styles}
+              />
+            ) : null}
             {canEdit ? (
               <>
                 <View style={styles.actions}>

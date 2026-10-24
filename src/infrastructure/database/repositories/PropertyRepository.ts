@@ -1,6 +1,29 @@
 import type { DB } from '@op-engineering/op-sqlite'
+import { ContactRepository } from './ContactRepository'
 
 export type PropertyStatus = 'active' | 'archived'
+
+/** Amin #5066: the file's owner — a contact (role «مالک») linked through properties.owner_contact_id. */
+export type PropertyOwner = {
+  contactId: string
+  fullName: string
+  /** canonical +98… */
+  phoneNumber: string
+  notes: string | null
+}
+
+/** What the form gives for the owner; `newId` is used only when no contact with that phone exists yet. */
+export type PropertyOwnerWrite = {
+  newId: string
+  fullName: string
+  phoneNumber: string
+  notes: string | null
+}
+
+/** The properties row plus its owner contact's fields (aliased so they never clash with the property's own). */
+const SELECT_WITH_OWNER = `SELECT p.*, c.full_name AS owner_full_name, c.phone_number AS owner_phone_number,
+    c.notes AS owner_notes
+  FROM properties p LEFT JOIN contacts c ON c.id = p.owner_contact_id`
 
 export type PropertyRecord = {
   id: string
@@ -21,6 +44,8 @@ export type PropertyRecord = {
   /** Only meaningful when barterItems includes "سایر" — free-text description of that custom item. */
   barterOtherDescription: string | null
   description: string | null
+  /** Amin #5066; null = no owner given (absent on records built outside the repository) */
+  owner?: PropertyOwner | null
   status: PropertyStatus
   createdAt: string
   updatedAt: string
@@ -43,6 +68,7 @@ export type CreatePropertyRecord = {
   barterItems: string[]
   barterOtherDescription: string | null
   description: string | null
+  owner?: PropertyOwnerWrite | null
 }
 
 export type UpdatePropertyRecord = {
@@ -60,6 +86,8 @@ export type UpdatePropertyRecord = {
   barterItems: string[]
   barterOtherDescription: string | null
   description: string | null
+  /** undefined = leave the owner as it is; null = unlink it (the contact itself stays) */
+  owner?: PropertyOwnerWrite | null
   status: PropertyStatus
 }
 
@@ -95,6 +123,15 @@ function toProperty(row: Record<string, unknown>): PropertyRecord {
     barterItems: parseBarterItems(row.barter_items),
     barterOtherDescription: row.barter_other_description as string | null,
     description: row.description as string | null,
+    owner:
+      row.owner_contact_id && typeof row.owner_full_name === 'string'
+        ? {
+            contactId: row.owner_contact_id as string,
+            fullName: row.owner_full_name,
+            phoneNumber: row.owner_phone_number as string,
+            notes: (row.owner_notes as string | null) ?? null
+          }
+        : null,
     status: row.status as PropertyStatus,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string
@@ -104,14 +141,56 @@ function toProperty(row: Record<string, unknown>): PropertyRecord {
 export class PropertyRepository {
   constructor(private readonly db: DB) {}
 
+  /**
+   * Amin #5066: the owner is kept as a contact with the «مالک» role. The file's current owner contact is updated when
+   * the phone stays the same; otherwise an existing contact with that phone is reused (no duplicate person), or a new
+   * one is made. Returns the contact id to link.
+   */
+  private async saveOwner(
+    userId: string,
+    owner: PropertyOwnerWrite,
+    currentContactId: string | null
+  ): Promise<string> {
+    const contacts = new ContactRepository(this.db)
+    const current = currentContactId ? await contacts.getById(currentContactId) : null
+    const existing =
+      current && current.phoneNumber === owner.phoneNumber
+        ? current
+        : await contacts.findByPhoneNumber(userId, owner.phoneNumber)
+    if (!existing) {
+      await contacts.create({
+        id: owner.newId,
+        userId,
+        fullName: owner.fullName,
+        phoneNumber: owner.phoneNumber,
+        email: null,
+        notes: owner.notes,
+        roles: ['owner']
+      })
+      return owner.newId
+    }
+    await contacts.update(existing.id, {
+      fullName: owner.fullName,
+      phoneNumber: owner.phoneNumber,
+      email: existing.email,
+      // the file's own owner keeps what the form shows; a contact found by phone keeps its notes unless new ones are typed
+      notes: existing.id === current?.id ? owner.notes : (owner.notes ?? existing.notes),
+      roles: existing.roles.includes('owner') ? existing.roles : [...existing.roles, 'owner']
+    })
+    return existing.id
+  }
+
   async create(property: CreatePropertyRecord): Promise<PropertyRecord> {
     const now = new Date().toISOString()
+    const ownerContactId = property.owner
+      ? await this.saveOwner(property.ownerId, property.owner, null)
+      : null
     await this.db.execute(
       `INSERT INTO properties
         (id, owner_id, title, property_type, transaction_type, city, address, price, area, rooms,
          deposit_amount, rent_amount, is_convertible, barter_items, barter_other_description,
-         description, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+         description, owner_contact_id, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
       [
         property.id,
         property.ownerId,
@@ -129,12 +208,23 @@ export class PropertyRepository {
         property.barterItems.length > 0 ? JSON.stringify(property.barterItems) : null,
         property.barterOtherDescription,
         property.description,
+        ownerContactId,
         now,
         now
       ]
     )
+    const { owner, ...rest } = property
     return {
-      ...property,
+      ...rest,
+      owner:
+        owner && ownerContactId
+          ? {
+              contactId: ownerContactId,
+              fullName: owner.fullName,
+              phoneNumber: owner.phoneNumber,
+              notes: owner.notes
+            }
+          : null,
       status: 'active',
       createdAt: now,
       updatedAt: now
@@ -142,7 +232,7 @@ export class PropertyRepository {
   }
 
   async findById(id: string): Promise<PropertyRecord | null> {
-    const result = await this.db.execute('SELECT * FROM properties WHERE id = ?', [id])
+    const result = await this.db.execute(`${SELECT_WITH_OWNER} WHERE p.id = ?`, [id])
     const row = result.rows[0]
     return row ? toProperty(row) : null
   }
@@ -158,19 +248,20 @@ export class PropertyRepository {
     if (search && search.trim().length > 0) {
       const pattern = `%${search.trim()}%`
       const result = await this.db.execute(
-        `SELECT * FROM properties
-         WHERE owner_id = ? AND (
-           title LIKE ? OR city LIKE ? OR address LIKE ? OR CAST(price AS TEXT) LIKE ?
-           OR barter_items LIKE ? OR barter_other_description LIKE ?
+        `${SELECT_WITH_OWNER}
+         WHERE p.owner_id = ? AND (
+           p.title LIKE ? OR p.city LIKE ? OR p.address LIKE ? OR CAST(p.price AS TEXT) LIKE ?
+           OR p.barter_items LIKE ? OR p.barter_other_description LIKE ?
+           OR c.full_name LIKE ?
          )
-         ORDER BY created_at DESC, rowid DESC`,
-        [ownerId, pattern, pattern, pattern, pattern, pattern, pattern]
+         ORDER BY p.created_at DESC, p.rowid DESC`,
+        [ownerId, pattern, pattern, pattern, pattern, pattern, pattern, pattern]
       )
       return result.rows.map(toProperty)
     }
 
     const result = await this.db.execute(
-      'SELECT * FROM properties WHERE owner_id = ? ORDER BY created_at DESC, rowid DESC',
+      `${SELECT_WITH_OWNER} WHERE p.owner_id = ? ORDER BY p.created_at DESC, p.rowid DESC`,
       [ownerId]
     )
     return result.rows.map(toProperty)
@@ -186,6 +277,24 @@ export class PropertyRepository {
 
   async update(id: string, property: UpdatePropertyRecord): Promise<PropertyRecord> {
     const now = new Date().toISOString()
+    if (property.owner !== undefined) {
+      const row = (
+        await this.db.execute('SELECT owner_id, owner_contact_id FROM properties WHERE id = ?', [id])
+      ).rows[0]
+      if (row) {
+        const contactId = property.owner
+          ? await this.saveOwner(
+              row.owner_id as string,
+              property.owner,
+              (row.owner_contact_id as string | null) ?? null
+            )
+          : null
+        await this.db.execute('UPDATE properties SET owner_contact_id = ? WHERE id = ?', [
+          contactId,
+          id
+        ])
+      }
+    }
     await this.db.execute(
       `UPDATE properties
        SET title = ?, property_type = ?, transaction_type = ?, city = ?, address = ?,

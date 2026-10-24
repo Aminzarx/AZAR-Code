@@ -36,7 +36,8 @@ describe('validatePropertyForm', () => {
       isConvertible: false,
       barterItems: [],
       barterOtherDescription: null,
-      description: null
+      description: null,
+      owner: null
     })
   })
 
@@ -65,5 +66,41 @@ describe('validatePropertyForm', () => {
 
     const negative = validatePropertyForm({ ...VALID_VALUES, area: '-5' })
     expect(negative.errors?.area).toBeTruthy()
+  })
+})
+
+describe('validatePropertyForm owner (Amin #5066)', () => {
+  const base = {
+    title: 'ت',
+    propertyType: '',
+    transactionType: '',
+    city: 'تهران',
+    address: 'آ',
+    price: '',
+    area: '',
+    rooms: '',
+    depositAmount: '',
+    rentAmount: '',
+    isConvertible: false,
+    barterItems: [],
+    barterOtherDescription: '',
+    description: ''
+  }
+
+  it('no owner typed = no owner', () => {
+    expect(validatePropertyForm({ ...base, ownerName: ' ', ownerPhone: '' }).input?.owner).toBeNull()
+  })
+
+  it('a typed owner needs a name and a valid mobile', () => {
+    expect(validatePropertyForm({ ...base, ownerNotes: 'کلید نزد سرایدار' }).errors).toEqual({
+      ownerName: 'نام مالک را وارد کنید.',
+      ownerPhone: 'شماره موبایل معتبر وارد کنید (مثلاً 09121234567).'
+    })
+  })
+
+  it('Persian digits are accepted and the phone is kept canonical', () => {
+    expect(
+      validatePropertyForm({ ...base, ownerName: ' حسین ', ownerPhone: '۰۹۱۲۱۲۳۴۵۶۷' }).input?.owner
+    ).toEqual({ fullName: 'حسین', phoneNumber: '+989121234567', notes: null })
   })
 })

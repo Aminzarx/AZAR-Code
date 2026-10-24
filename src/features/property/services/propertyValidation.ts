@@ -1,4 +1,14 @@
+import { canonicalizeIranPhoneNumber } from '@shared/utils/iranPhoneNumber'
+import { toEnglishDigits } from '@shared/utils/persianText'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
+
+/** Amin #5066: the file's owner (kept as a contact with the «مالک» role). */
+export type PropertyOwnerInput = {
+  fullName: string
+  /** canonical +98… */
+  phoneNumber: string
+  notes: string | null
+}
 
 export type ValidatedPropertyInput = {
   title: string
@@ -15,6 +25,8 @@ export type ValidatedPropertyInput = {
   barterItems: string[]
   barterOtherDescription: string | null
   description: string | null
+  /** null = no owner given */
+  owner: PropertyOwnerInput | null
 }
 
 function parsePositiveNumber(
@@ -89,6 +101,16 @@ export function validatePropertyForm(
     errors.barterOtherDescription = 'برای گزینه «سایر» توضیح مورد تهاتر را وارد کنید.'
   }
 
+  const ownerName = (values.ownerName ?? '').trim()
+  const ownerPhoneRaw = toEnglishDigits(values.ownerPhone ?? '').trim()
+  const ownerNotes = (values.ownerNotes ?? '').trim()
+  const ownerPhone = canonicalizeIranPhoneNumber(ownerPhoneRaw)
+  const hasOwner = ownerName.length > 0 || ownerPhoneRaw.length > 0 || ownerNotes.length > 0
+  if (hasOwner) {
+    if (ownerName.length === 0) errors.ownerName = 'نام مالک را وارد کنید.'
+    if (!ownerPhone) errors.ownerPhone = 'شماره موبایل معتبر وارد کنید (مثلاً 09121234567).'
+  }
+
   if (Object.keys(errors).length > 0) {
     return { input: null, errors }
   }
@@ -110,7 +132,10 @@ export function validatePropertyForm(
       barterOtherDescription: values.barterItems.includes('سایر')
         ? values.barterOtherDescription.trim() || null
         : null,
-      description: values.description.trim() || null
+      description: values.description.trim() || null,
+      owner: hasOwner
+        ? { fullName: ownerName, phoneNumber: ownerPhone as string, notes: ownerNotes || null }
+        : null
     },
     errors: null
   }

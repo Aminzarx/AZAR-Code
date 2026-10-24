@@ -14,6 +14,7 @@ import {
   type PropertyFormStep
 } from '../components/PropertyForm'
 import { PropertyValidationError } from '../services/PropertyValidationError'
+import { validatePropertyForm } from '../services/propertyValidation'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateProperty'>
@@ -32,14 +33,19 @@ const EMPTY_VALUES: PropertyFormValues = {
   isConvertible: false,
   barterItems: [],
   barterOtherDescription: '',
-  description: ''
+  description: '',
+  ownerName: '',
+  ownerPhone: '',
+  ownerNotes: ''
 }
 
 const STEP_NAMES: Record<PropertyFormStep, string> = {
   1: 'نوع و مکان',
   2: 'مشخصات و قیمت',
-  3: 'عنوان و توضیحات'
+  3: 'مشخصات مالک',
+  4: 'عنوان و توضیحات'
 }
+const LAST_STEP: PropertyFormStep = 4
 const REQUIRED = 'این مورد لازم است.'
 
 /** v3.0.0: a starting title from what the broker already chose («آپارتمان ۲ خوابه ۹۵ متری، تهران»). */
@@ -108,11 +114,24 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       setStep(2)
       return
     }
-    setErrors({})
+    if (step === 2) {
+      setErrors({})
+      setStep(3)
+      return
+    }
+    // Amin #5066: the owner step may be left empty; once anything is typed, a name and a valid mobile are needed
+    const ownerErrors = validatePropertyForm(values).errors
+    const stepErrors: PropertyFormErrors = {}
+    if (ownerErrors?.ownerName) stepErrors.ownerName = ownerErrors.ownerName
+    if (ownerErrors?.ownerPhone) stepErrors.ownerPhone = ownerErrors.ownerPhone
+    setErrors(stepErrors)
+    if (Object.keys(stepErrors).length > 0) {
+      return
+    }
     if (!values.title.trim()) {
       setValues((current) => ({ ...current, title: suggestTitle(current) }))
     }
-    setStep(3)
+    setStep(4)
   }
 
   function handleBack(): void {
@@ -155,7 +174,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       if (caughtError instanceof PropertyValidationError) {
         setErrors(caughtError.fieldErrors)
         const fields = Object.keys(caughtError.fieldErrors) as Array<keyof PropertyFormValues>
-        const first = Math.min(3, ...fields.map((f) => PROPERTY_FIELD_STEP[f]))
+        const first = Math.min(LAST_STEP, ...fields.map((f) => PROPERTY_FIELD_STEP[f]))
         setStep(first as PropertyFormStep)
       } else {
         setSubmitError('ثبت فایل با مشکل مواجه شد. دوباره تلاش کنید.')
@@ -174,18 +193,18 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       subheader={
         <View style={styles.progress}>
           <View style={styles.bars}>
-            {([1, 2, 3] as const).map((n) => (
+            {([1, 2, 3, 4] as const).map((n) => (
               <View key={n} style={[styles.bar, n <= step && styles.barOn]} />
             ))}
           </View>
           <Text style={[theme.typography('bodySm'), styles.stepText]}>
-            {`مرحلهٔ ${toPersianDigits(String(step))} از ۳ · `}
+            {`مرحلهٔ ${toPersianDigits(String(step))} از ۴ · `}
             <Text style={[theme.typography('labelMd'), styles.stepName]}>{STEP_NAMES[step]}</Text>
           </Text>
         </View>
       }
       footer={
-        step < 3 ? (
+        step < LAST_STEP ? (
           <Button
             label={`ادامه: ${STEP_NAMES[(step + 1) as PropertyFormStep]}`}
             onPress={handleNext}

@@ -46,7 +46,8 @@ const navigationProp = {
 const routeProp = { key: 'CreateProperty', name: 'CreateProperty' as const, params: undefined }
 
 const NEXT_1 = 'ادامه: مشخصات و قیمت'
-const NEXT_2 = 'ادامه: عنوان و توضیحات'
+const NEXT_2 = 'ادامه: مشخصات مالک'
+const NEXT_3 = 'ادامه: عنوان و توضیحات'
 const SAVE = 'ذخیرهٔ فایل'
 
 describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
@@ -91,6 +92,7 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
     await waitFor(() => fireEvent.press(getByLabelText('یکی بیشتر تعداد اتاق')))
     await waitFor(() => fireEvent.press(getByLabelText('یکی بیشتر تعداد اتاق')))
     await waitFor(() => fireEvent.press(getByText(NEXT_2)))
+    await waitFor(() => fireEvent.press(getByText(NEXT_3)))
 
     await waitFor(() =>
       expect(getByLabelText('عنوان فایل').props.value).toBe('آپارتمان ۲ خوابه، تهران')
@@ -130,10 +132,42 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
     await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
     await waitFor(() => fireEvent.press(getByText(NEXT_1)))
     await waitFor(() => fireEvent.press(getByText(NEXT_2)))
+    await waitFor(() => fireEvent.press(getByText(NEXT_3)))
     await waitFor(() => fireEvent.press(getByText(SAVE)))
 
     expect(await findByText('شهر الزامی است.')).toBeTruthy()
     expect(getByText(NEXT_1)).toBeTruthy()
+  })
+
+  it('Amin #5066: owner step is optional, but a typed owner needs a name and a valid mobile', async () => {
+    mockCreateProperty.mockResolvedValue({ id: 'prop-2' })
+    const { getByLabelText, getByText, findByText, queryByLabelText } = await render(
+      withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
+    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
+    await waitFor(() => fireEvent.press(getByText(NEXT_2)))
+    await waitFor(() => fireEvent.changeText(getByLabelText('نام مالک'), 'حسین محمدی'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('شماره موبایل مالک'), '0912'))
+    await waitFor(() => fireEvent.press(getByText(NEXT_3)))
+
+    expect(await findByText('شماره موبایل معتبر وارد کنید (مثلاً 09121234567).')).toBeTruthy()
+    expect(queryByLabelText('عنوان فایل')).toBeNull()
+
+    await waitFor(() =>
+      fireEvent.changeText(getByLabelText('شماره موبایل مالک'), '۰۹۱۲۱۲۳۴۵۶۷')
+    )
+    await waitFor(() => fireEvent.press(getByText(NEXT_3)))
+    await waitFor(() => fireEvent.press(getByText(SAVE)))
+
+    await waitFor(() =>
+      expect(mockCreateProperty).toHaveBeenCalledWith(
+        'u1',
+        expect.objectContaining({ ownerName: 'حسین محمدی', ownerPhone: '۰۹۱۲۱۲۳۴۵۶۷' })
+      )
+    )
   })
 
   it('starts the city as the city of the last file', async () => {

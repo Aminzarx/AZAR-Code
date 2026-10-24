@@ -18,6 +18,13 @@ export type PropertyFormValues = {
   barterItems: string[]
   barterOtherDescription: string
   description: string
+  /**
+   * Amin #5066: the owner, on a step of their own. All optional: nothing typed = no owner. Once anything is typed the
+   * name and a mobile number are needed (the owner is kept as a contact with the «مالک» role, linked to the file).
+   */
+  ownerName?: string
+  ownerPhone?: string
+  ownerNotes?: string
 }
 
 export type PropertyFormErrors = Partial<Record<keyof PropertyFormValues, string>>

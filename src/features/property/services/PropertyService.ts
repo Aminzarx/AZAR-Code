@@ -15,7 +15,13 @@ export class PropertyService {
     if (!input) {
       throw new PropertyValidationError(errors)
     }
-    return this.repository.create({ id: this.generateId(), ownerId, ...input })
+    const { owner, ...rest } = input
+    return this.repository.create({
+      id: this.generateId(),
+      ownerId,
+      ...rest,
+      owner: owner ? { newId: this.generateId(), ...owner } : null
+    })
   }
 
   async updateProperty(
@@ -27,7 +33,12 @@ export class PropertyService {
     if (!input) {
       throw new PropertyValidationError(errors)
     }
-    return this.repository.update(id, { ...input, status })
+    const { owner, ...rest } = input
+    return this.repository.update(id, {
+      ...rest,
+      owner: owner ? { newId: this.generateId(), ...owner } : null,
+      status
+    })
   }
 
   async listProperties(ownerId: string, search?: string): Promise<Property[]> {
