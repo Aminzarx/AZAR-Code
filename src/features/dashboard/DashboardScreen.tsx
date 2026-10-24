@@ -1,6 +1,7 @@
 import React from 'react'
 import { useLicence } from '@shared/licence/LicenceContext'
 import { LicenceBanner } from '@features/licence/LicenceBanner'
+import { OfflineFilesNotice } from '@features/auth/components/OfflineFilesNotice'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -97,6 +98,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           />
         </View>
 
+        <OfflineFilesNotice />
         <LicenceBanner onOpen={() => navigateAcrossTabs(navigation, 'Settings', undefined)} />
 
         {isLoading && !data ? (

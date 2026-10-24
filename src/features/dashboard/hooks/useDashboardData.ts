@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
+import { useFilesVersion } from '@shared/hooks/useFilesVersion'
 import { fetchDashboardData } from '../services/dashboardDataService'
 import type { DashboardData } from '../types'
 
@@ -14,8 +15,11 @@ export function useDashboardData(ownerId: string): DashboardDataState {
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  // option A (Amin #4826): re-read when the account's files arrive from the server while Home is open
+  const filesVersion = useFilesVersion()
 
   const load = useCallback(() => {
+    void filesVersion // a new version of the files means a new read
     let cancelled = false
     setIsLoading(true)
     setError(null)
@@ -37,7 +41,7 @@ export function useDashboardData(ownerId: string): DashboardDataState {
     return () => {
       cancelled = true
     }
-  }, [ownerId])
+  }, [ownerId, filesVersion])
 
   // Dashboard is a bottom-tab screen, so it stays mounted (not
   // unmounted/remounted) when the user switches to another tab and back

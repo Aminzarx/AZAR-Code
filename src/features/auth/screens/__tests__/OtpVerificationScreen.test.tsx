@@ -48,7 +48,7 @@ describe('OtpVerificationScreen', () => {
       createInvite: jest.fn(),
       changePhone: jest.fn(),
       getSupportContacts: jest.fn(),
-      sync: { state: 'idle', pending: 0, usage: null },
+      sync: { state: 'idle', pending: 0, usage: null, loaded: true, settled: true },
       syncNow: jest.fn()
     })
   })

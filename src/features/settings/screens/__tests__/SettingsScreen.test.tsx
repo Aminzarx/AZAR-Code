@@ -14,7 +14,7 @@ const mockUseProfile = jest.fn()
 const mockNavigate = jest.fn()
 const mockGetSupportContacts = jest.fn()
 const mockSyncNow = jest.fn()
-let mockSync = { state: 'idle', pending: 0, usage: null as null | { bytes: number; quotaBytes: number; tokens: number } }
+let mockSync = { state: 'idle', pending: 0, usage: null as null | { bytes: number; quotaBytes: number; tokens: number }, loaded: true, settled: true }
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -101,7 +101,7 @@ describe('SettingsScreen', () => {
     mockGetSupportContacts.mockReset()
     mockSyncNow.mockReset()
     mockSyncNow.mockResolvedValue(0)
-    mockSync = { state: 'idle', pending: 0, usage: null }
+    mockSync = { state: 'idle', pending: 0, usage: null, loaded: true, settled: true }
     mockGetSupportContacts.mockResolvedValue({
       prefix: 'پشتیبانی اپلیکیشن ایوان',
       whatsapp: '989120000000',
@@ -239,7 +239,7 @@ describe('SettingsScreen', () => {
   // v1.5.0 (Amin #4632): support in the messenger the user picks, labelled for IRIS
   // AZAR-SYNC-001 (Amin #4797): the account's files live on the server; no backup files any more
   it('shows the server\'s token count and that every file is saved, with no backup row', async () => {
-    mockSync = { state: 'idle', pending: 0, usage: { bytes: 1_000_000, quotaBytes: 50_000_000, tokens: 127 } }
+    mockSync = { state: 'idle', pending: 0, usage: { bytes: 1_000_000, quotaBytes: 50_000_000, tokens: 127 }, loaded: true, settled: true }
     const { findByText, queryByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
@@ -249,7 +249,7 @@ describe('SettingsScreen', () => {
   })
 
   it('warns before signing out when changes have not reached the server', async () => {
-    mockSync = { state: 'offline', pending: 3, usage: null }
+    mockSync = { state: 'offline', pending: 3, usage: null, loaded: true, settled: true }
     mockSyncNow.mockResolvedValue(3)
     const { findByLabelText, findByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)

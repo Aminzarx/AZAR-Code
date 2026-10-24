@@ -1,9 +1,6 @@
 import type { DB } from '@op-engineering/op-sqlite'
-import {
-  SYNCED_ID_TABLES,
-  SYNCED_PAIR_TABLES,
-  SYNCED_SETTING_KEYS
-} from '../database/migrations/0019_server_sync'
+import { SYNCED_SETTING_KEYS } from '../database/migrations/0019_server_sync'
+import { applying, FILE_TABLE_ORDER, type DeviceStore, type QueuedChange } from '../database/deviceStore'
 import { type SyncApiClient, type SyncChange, type SyncUsage } from './syncApiClient'
 
 /** Where the profile photo is read from and written to (react-native-fs in the app, a fake in tests). */
@@ -18,39 +15,32 @@ const PHOTO_KEY = 'profile_photo'
 const BLOB_PREFIX = 'blob:'
 const BATCH = 200
 
-/** Parents first, so a restored row always finds the row it points at. */
-const RESTORE_ORDER: string[] = [
-  ...SYNCED_ID_TABLES.slice(0, 7),
-  'owner_file_amenities',
-  ...SYNCED_ID_TABLES.slice(7, 10),
-  'requirement_criterion_suppressions',
-  ...SYNCED_ID_TABLES.slice(10),
-  'application_settings'
-]
-
-/** Tables whose rows count as «the user has files on this phone». */
-const FILE_TABLES = ['properties', 'applicants', 'contacts', 'deals', 'contracts', 'reminders', 'owner_files', 'applicant_files']
-
 /**
- * AZAR-SYNC-001 (Amin #4142/#4147/#4192, GO #4797): the phone keeps an
- * encrypted working copy (SQLCipher) and the account's files live on the KSS
- * server.
- * - push: sends every change the triggers wrote to `sync_outbox` (the row as it
- *   is now, or null when deleted), then clears what was sent;
- * - restore: on sign-in on a phone with no files, brings everything back;
- * - wipe: on sign-out or when another phone takes the number, removes every
- *   file and the profile photo from this phone.
- * The first launch of this version sends the whole database once
- * (`initial_upload`), which moves existing users' files to the server.
+ * AZAR-SYNC-001 with option A (Amin #4826): the account's files live on the KSS server and the phone only shows
+ * them. The working database is in memory (connection.ts); the encrypted device store keeps nothing of the files
+ * but the changes not on the server yet.
+ * - restore: fills the working database from the server (sign-in, every launch, coming back online), with the
+ *   unsent changes on top;
+ * - push: sends the unsent changes; what the server has leaves the phone;
+ * - wipe: on sign-out, nothing of the account's files stays.
+ * `loaded` says whether the server's files are in the working database this run; until then the phone shows only
+ * what was made on it offline.
  */
 export class SyncService {
+  private isLoaded = false
   private columns = new Map<string, Set<string>>()
 
   constructor(
     private readonly db: DB,
+    private readonly store: DeviceStore,
     private readonly api: SyncApiClient,
     private readonly files: SyncFiles
   ) {}
+
+  /** whether the account's files came from the server in this run */
+  get loaded(): boolean {
+    return this.isLoaded
+  }
 
   async getState(key: string): Promise<string | null> {
     const result = await this.db.execute('SELECT value FROM sync_state WHERE key = ?', [key])
@@ -62,22 +52,13 @@ export class SyncService {
       'INSERT INTO sync_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       [key, value]
     )
+    await this.store.persistFrom(this.db)
   }
 
   /** Changes still waiting to reach the server (one per row, however often it was edited). */
   async pendingCount(): Promise<number> {
-    const result = await this.db.execute('SELECT COUNT(*) AS n FROM (SELECT DISTINCT tbl, row_key FROM sync_outbox)')
-    const queued = Number(result.rows[0]?.n ?? 0)
-    if (queued > 0) return queued
-    return (await this.getState('initial_upload')) === 'pending' && (await this.hasLocalFiles()) ? 1 : 0
-  }
-
-  async hasLocalFiles(): Promise<boolean> {
-    for (const table of FILE_TABLES) {
-      const result = await this.db.execute(`SELECT 1 AS x FROM ${table} LIMIT 1`)
-      if (result.rows.length > 0) return true
-    }
-    return false
+    await this.store.persistFrom(this.db)
+    return this.store.count((await this.store.owner()) ?? '')
   }
 
   /** The last storage use the server reported, if any. */
@@ -86,39 +67,38 @@ export class SyncService {
     return raw ? (JSON.parse(raw) as SyncUsage) : null
   }
 
-  /** The account this phone's files belong to (set at the first sync). */
+  /** The account this phone's files belong to. */
   owner(): Promise<string | null> {
-    return this.getState('owner')
+    return this.store.owner()
   }
 
   /**
-   * Sends everything waiting. Throws SessionRevokedError / StorageFullError /
-   * NetworkFailureError; what was not sent stays queued for the next try.
+   * Before the app opens for a number: another account's files leave the working database (that account's
+   * unsent changes stay queued for it, encrypted), and this account's unsent changes show at once, even offline.
+   */
+  async claim(userId: string): Promise<void> {
+    if ((await this.store.owner()) === userId) return
+    await this.clearFiles()
+    this.isLoaded = false
+    await this.store.setOwner(userId)
+    await this.store.replayInto(this.db, userId)
+  }
+
+  /**
+   * Sends everything waiting; what the server has leaves the phone. Throws SessionRevokedError /
+   * StorageFullError / NetworkFailureError; what was not sent stays queued for the next try.
    */
   async push(sessionToken: string, userId: string): Promise<void> {
-    if ((await this.getState('initial_upload')) === 'pending') {
-      await this.enqueueAll()
-      await this.setState('initial_upload', 'done')
-    }
-    if (!(await this.owner())) await this.setState('owner', userId)
-
-    const max = await this.db.execute('SELECT MAX(seq) AS m FROM sync_outbox')
-    const maxSeq = Number(max.rows[0]?.m ?? 0)
-    if (!maxSeq) return
-    const keys = await this.db.execute(
-      'SELECT tbl, row_key FROM sync_outbox WHERE seq <= ? GROUP BY tbl, row_key ORDER BY MIN(seq)',
-      [maxSeq]
-    )
-    const changes: SyncChange[] = []
-    for (const k of keys.rows) {
-      changes.push({ t: String(k.tbl), k: String(k.row_key), row: await this.readRow(String(k.tbl), String(k.row_key)) })
-    }
+    await this.store.persistFrom(this.db)
+    if (!(await this.store.owner())) await this.store.setOwner(userId)
+    const { changes, upTo } = await this.store.pending(userId)
+    if (!upTo) return
     await this.uploadPhoto(sessionToken, changes)
     let usage: SyncUsage | null = null
     for (let i = 0; i < changes.length; i += BATCH) {
       usage = (await this.api.push(sessionToken, changes.slice(i, i + BATCH))).usage
     }
-    await this.db.execute('DELETE FROM sync_outbox WHERE seq <= ?', [maxSeq])
+    await this.store.dropSent(userId, upTo)
     if (usage) await this.setState('usage', JSON.stringify(usage))
   }
 
@@ -129,7 +109,7 @@ export class SyncService {
     return usage
   }
 
-  /** Brings the account's files to this phone (sign-in on a phone without files). */
+  /** Fills the working database with the account's files from the server, the unsent changes on top. */
   async restore(sessionToken: string, userId: string): Promise<number> {
     const pulled = await this.api.pull(sessionToken)
     const byTable = new Map<string, SyncChange[]>()
@@ -142,11 +122,10 @@ export class SyncService {
     const photo = byTable.get('application_settings')?.find((c) => c.k === PHOTO_KEY)
     if (photo?.row) await this.downloadPhoto(sessionToken, photo.row)
 
-    await this.setState('applying', '1')
-    try {
-      await this.db.execute('PRAGMA foreign_keys = OFF')
-      await this.db.transaction(async (tx) => {
-        for (const table of RESTORE_ORDER) {
+    await this.store.persistFrom(this.db)
+    await applying(this.db, () =>
+      this.db.transaction(async (tx) => {
+        for (const table of FILE_TABLE_ORDER) {
           const cols = await this.columnsOf(table)
           for (const { row } of byTable.get(table) ?? []) {
             if (!row) continue
@@ -159,25 +138,42 @@ export class SyncService {
           }
         }
       })
-    } finally {
-      await this.db.execute('PRAGMA foreign_keys = ON')
-      await this.setState('applying', null)
-    }
-    // rows written here skipped the outbox; anything the user made meanwhile stays queued
-    await this.setState('initial_upload', 'done')
-    await this.setState('owner', userId)
+    )
+    // anything made on this phone and not on the server yet stays on top
+    await this.store.setOwner(userId)
+    await this.store.replayInto(this.db, userId)
     await this.setState('usage', JSON.stringify(pulled.usage))
+    this.isLoaded = true
     return pulled.rows.length
   }
 
-  /** Removes every file of the account from this phone (they stay on the server). */
+  /** Signing out: nothing of the account's files stays on this phone (they are on the server). */
   async wipe(): Promise<void> {
+    await this.clearFiles()
+    await this.store.clearQueue()
+    await this.store.setOwner(null)
+    await this.setState('usage', null)
+    await this.setState('photo_hash', null)
+    this.isLoaded = false
+  }
+
+  /**
+   * Another phone took the number: the files leave the working database; changes that never reached the server
+   * stay queued (encrypted) until the same number signs in again.
+   */
+  async forget(): Promise<void> {
+    await this.clearFiles()
+    this.isLoaded = false
+  }
+
+  // ------------------------------------------------------------------ internals
+
+  private async clearFiles(): Promise<void> {
+    await this.store.persistFrom(this.db)
     const photoPath = await this.settingValue(PHOTO_KEY)
-    await this.setState('applying', '1')
-    try {
-      await this.db.execute('PRAGMA foreign_keys = OFF')
-      await this.db.transaction(async (tx) => {
-        for (const table of [...RESTORE_ORDER].reverse()) {
+    await applying(this.db, () =>
+      this.db.transaction(async (tx) => {
+        for (const table of [...FILE_TABLE_ORDER].reverse()) {
           if (table === 'application_settings') {
             await tx.execute(
               `DELETE FROM application_settings WHERE key IN (${SYNCED_SETTING_KEYS.map(() => '?').join(', ')})`,
@@ -190,51 +186,13 @@ export class SyncService {
             await tx.execute(`DELETE FROM ${table}`)
           }
         }
-        // computed from the files above; rebuilt from the restored files on the next phone
+        // computed from the files above
         await tx.execute('DELETE FROM match_explanations')
         await tx.execute('DELETE FROM matches')
         await tx.execute('DELETE FROM sync_outbox')
       })
-    } finally {
-      await this.db.execute('PRAGMA foreign_keys = ON')
-      await this.setState('applying', null)
-    }
-    if (photoPath && !photoPath.startsWith(BLOB_PREFIX)) await this.files.remove(photoPath).catch(() => undefined)
-    await this.setState('initial_upload', 'done')
-    await this.setState('owner', null)
-    await this.setState('usage', null)
-    await this.setState('photo_hash', null)
-  }
-
-  // ------------------------------------------------------------------ internals
-
-  private async enqueueAll(): Promise<void> {
-    const at = new Date().toISOString()
-    for (const table of SYNCED_ID_TABLES) {
-      await this.db.execute(`INSERT INTO sync_outbox (tbl, row_key, at) SELECT ?, id, ? FROM ${table}`, [table, at])
-    }
-    for (const [table, [a, b]] of Object.entries(SYNCED_PAIR_TABLES)) {
-      await this.db.execute(`INSERT INTO sync_outbox (tbl, row_key, at) SELECT ?, ${a} || '|' || ${b}, ? FROM ${table}`, [table, at])
-    }
-    await this.db.execute(
-      `INSERT INTO sync_outbox (tbl, row_key, at) SELECT 'application_settings', key, ? FROM application_settings WHERE key IN (${SYNCED_SETTING_KEYS.map(() => '?').join(', ')})`,
-      [at, ...SYNCED_SETTING_KEYS]
     )
-  }
-
-  private async readRow(table: string, key: string): Promise<Record<string, unknown> | null> {
-    let result
-    if (table === 'application_settings') {
-      result = await this.db.execute('SELECT * FROM application_settings WHERE key = ?', [key])
-    } else if (table in SYNCED_PAIR_TABLES) {
-      const [a, b] = SYNCED_PAIR_TABLES[table as keyof typeof SYNCED_PAIR_TABLES]
-      const [va, vb] = key.split('|')
-      result = await this.db.execute(`SELECT * FROM ${table} WHERE ${a} = ? AND ${b} = ?`, [va ?? '', vb ?? ''])
-    } else {
-      result = await this.db.execute(`SELECT * FROM ${table} WHERE id = ?`, [key])
-    }
-    const row = result.rows[0]
-    return row ? { ...row } : null
+    if (photoPath && !photoPath.startsWith(BLOB_PREFIX)) await this.files.remove(photoPath).catch(() => undefined)
   }
 
   private async settingValue(key: string): Promise<string | null> {
@@ -243,7 +201,7 @@ export class SyncService {
   }
 
   /** The profile photo travels as a photo of its own; the setting row carries its hash instead of the phone's path. */
-  private async uploadPhoto(sessionToken: string, changes: SyncChange[]): Promise<void> {
+  private async uploadPhoto(sessionToken: string, changes: QueuedChange[]): Promise<void> {
     const change = changes.find((c) => c.t === 'application_settings' && c.k === PHOTO_KEY)
     if (!change) return
     const previous = await this.getState('photo_hash')

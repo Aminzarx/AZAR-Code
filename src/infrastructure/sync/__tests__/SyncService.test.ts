@@ -1,5 +1,6 @@
 import { open, type DB } from '@op-engineering/op-sqlite'
 import { runMigrations } from '../../database/migrationRunner'
+import { DeviceStore } from '../../database/deviceStore'
 import { SyncService, type SyncFiles } from '../SyncService'
 import {
   SessionRevokedError,
@@ -10,6 +11,7 @@ import {
 } from '../syncApiClient'
 
 const USER = 'user-1'
+const OTHER = 'user-2'
 const TOKEN = 'tok'
 
 /** The server side of AZAR-SYNC-001, kept in memory. */
@@ -17,6 +19,7 @@ class FakeServer {
   rows = new Map<string, SyncChange>()
   blobs = new Map<string, string>()
   revoked = false
+  offline = false
   pushes = 0
 
   private usage(): SyncUsage {
@@ -24,6 +27,7 @@ class FakeServer {
   }
 
   private check(): void {
+    if (this.offline) throw new Error('offline')
     if (this.revoked) throw new SessionRevokedError()
   }
 
@@ -73,7 +77,7 @@ function fakeFiles(): SyncFiles & { store: Map<string, string> } {
   }
 }
 
-async function freshDb(): Promise<DB> {
+async function workingDb(): Promise<DB> {
   const db = open({ name: `test-sync-${Math.random()}.db`, location: ':memory:' })
   db.executeSync('PRAGMA foreign_keys = ON')
   await runMigrations(db)
@@ -83,6 +87,19 @@ async function freshDb(): Promise<DB> {
     [USER]
   )
   return db
+}
+
+/**
+ * One launch of the app (connection.ts): a fresh in-memory working database, filled from the phone's encrypted
+ * store. Pass the store of an earlier launch to model closing and reopening the app.
+ */
+async function launch(server: FakeServer, files = fakeFiles(), storeDb?: DB) {
+  const disk = storeDb ?? open({ name: `test-store-${Math.random()}.db`, location: ':memory:' })
+  const store = new DeviceStore(disk)
+  await store.init()
+  const db = await workingDb()
+  await store.loadInto(db)
+  return { db, store, disk, files, sync: new SyncService(db, store, server.api(), files) }
 }
 
 async function addProperty(db: DB, id: string, title: string): Promise<void> {
@@ -106,55 +123,157 @@ async function count(db: DB, table: string): Promise<number> {
   return Number(r.rows[0]?.n ?? 0)
 }
 
-describe('SyncService (AZAR-SYNC-001)', () => {
-  let db: DB
+/** what is on the phone's disk of the files: the queue of the encrypted store */
+async function queuedOnDisk(disk: DB): Promise<number> {
+  return count(disk, 'queue')
+}
+
+describe('SyncService, option A (Amin #4826)', () => {
   let server: FakeServer
-  let files: ReturnType<typeof fakeFiles>
-  let sync: SyncService
 
-  beforeEach(async () => {
-    db = await freshDb()
+  beforeEach(() => {
     server = new FakeServer()
-    files = fakeFiles()
-    sync = new SyncService(db, server.api(), files)
   })
 
-  afterEach(() => {
-    db.close()
-  })
-
-  it('sends the files an existing user already had on the phone on the first sync', async () => {
-    await addProperty(db, 'p1', 'آپارتمان')
-    await addContact(db, 'c1', 'علی')
-    await db.execute('DELETE FROM sync_outbox') // as if they were made before this version
-    expect(await sync.pendingCount()).toBe(1)
-
-    await sync.push(TOKEN, USER)
-
-    expect(server.rows.get('properties/p1')?.row?.title).toBe('آپارتمان')
-    expect(server.rows.get('contacts/c1')?.row?.full_name).toBe('علی')
-    expect(await sync.pendingCount()).toBe(0)
-    expect(await sync.owner()).toBe(USER)
-  })
-
-  it('queues every edit and delete and sends each row once', async () => {
-    await sync.push(TOKEN, USER)
+  it('sends each edit and delete once, and a sent change leaves the phone', async () => {
+    const { db, disk, sync } = await launch(server)
+    await sync.claim(USER)
     await addProperty(db, 'p1', 'اول')
     await db.execute("UPDATE properties SET title = 'دوم' WHERE id = 'p1'")
     await addContact(db, 'c1', 'علی')
     expect(await sync.pendingCount()).toBe(2)
+    expect(await queuedOnDisk(disk)).toBeGreaterThan(0)
 
     await sync.push(TOKEN, USER)
     expect(server.rows.get('properties/p1')?.row?.title).toBe('دوم')
+    expect(await queuedOnDisk(disk)).toBe(0)
 
     await db.execute("DELETE FROM contacts WHERE id = 'c1'")
     await sync.push(TOKEN, USER)
     expect(server.rows.has('contacts/c1')).toBe(false)
     expect(await sync.pendingCount()).toBe(0)
+    expect(await queuedOnDisk(disk)).toBe(0)
   })
 
-  it('keeps changes queued while offline', async () => {
+  it('keeps nothing of the files on the phone between launches; they come from the server', async () => {
+    const first = await launch(server)
+    await first.sync.claim(USER)
+    await addProperty(first.db, 'p1', 'آپارتمان')
+    await first.sync.push(TOKEN, USER)
+    first.db.close()
+
+    const next = await launch(server, fakeFiles(), first.disk)
+    expect(await count(next.db, 'properties')).toBe(0) // nothing came from the disk
+    expect(next.sync.loaded).toBe(false)
+    await next.sync.restore(TOKEN, USER)
+    expect(next.sync.loaded).toBe(true)
+    expect(await count(next.db, 'properties')).toBe(1)
+    expect(await queuedOnDisk(next.disk)).toBe(0)
+  })
+
+  it('offline: only what was made offline shows; online it goes to the server and leaves the phone', async () => {
+    const first = await launch(server)
+    await first.sync.claim(USER)
+    await addProperty(first.db, 'p1', 'قبلی')
+    await first.sync.push(TOKEN, USER)
+    first.db.close()
+
+    server.offline = true
+    const offline = await launch(server, fakeFiles(), first.disk)
+    await expect(offline.sync.restore(TOKEN, USER)).rejects.toThrow('offline')
+    await addProperty(offline.db, 'p2', 'آفلاین')
+    expect(await offline.sync.pendingCount()).toBe(1)
+    offline.db.close() // the app is closed while still offline
+
+    const again = await launch(server, fakeFiles(), first.disk)
+    const titles = await again.db.execute('SELECT title FROM properties')
+    expect(titles.rows.map((r) => r.title)).toEqual(['آفلاین'])
+
+    server.offline = false
+    await again.sync.push(TOKEN, USER)
+    await again.sync.restore(TOKEN, USER)
+    expect(await count(again.db, 'properties')).toBe(2)
+    expect(await queuedOnDisk(again.disk)).toBe(0)
+    expect(server.rows.get('properties/p2')?.row?.title).toBe('آفلاین')
+  })
+
+  it("the phone's own rows stay between launches; the account's profile does not", async () => {
+    const first = await launch(server)
+    await first.db.execute(
+      "INSERT INTO application_settings (key, value, updated_at) VALUES ('theme', 'dark', '2026-10-24')"
+    )
+    await first.db.execute(
+      "INSERT INTO application_settings (key, value, updated_at) VALUES ('display_name', 'نوید', '2026-10-24')"
+    )
+    await first.store.persistFrom(first.db)
+    first.db.close()
+
+    const next = await launch(server, fakeFiles(), first.disk)
+    const rows = await next.db.execute("SELECT key FROM application_settings WHERE key IN ('theme', 'display_name')")
+    expect(rows.rows.map((r) => r.key)).toEqual(['theme'])
+  })
+
+  it('brings the files and the profile photo to a new phone', async () => {
+    const a = await launch(server)
+    await a.sync.claim(USER)
+    await addProperty(a.db, 'p1', 'آپارتمان')
+    await addContact(a.db, 'c1', 'علی')
+    a.files.store.set('/docs/profile/me.webp', 'UEhPVE8=')
+    await a.db.execute(
+      "INSERT INTO application_settings (key, value, updated_at) VALUES ('profile_photo', '/docs/profile/me.webp', '2026-10-24')"
+    )
+    await a.sync.push(TOKEN, USER)
+    expect(server.rows.get('application_settings/profile_photo')?.row?.value).toMatch(/^blob:/)
+
+    const b = await launch(server)
+    await b.sync.claim(USER)
+    await b.sync.restore(TOKEN, USER)
+    expect(await count(b.db, 'properties')).toBe(1)
+    expect(await count(b.db, 'contacts')).toBe(1)
+    const photo = await b.db.execute("SELECT value FROM application_settings WHERE key = 'profile_photo'")
+    const path = String(photo.rows[0]?.value)
+    expect(path.startsWith('/docs/profile/photo-')).toBe(true)
+    expect(b.files.store.get(path)).toBe('UEhPVE8=')
+    // what came from the server is not a change to send back
+    expect(await b.sync.pendingCount()).toBe(0)
+  })
+
+  it('sign-out leaves nothing of the files on the phone; they stay on the server', async () => {
+    const { db, disk, sync } = await launch(server)
+    await sync.claim(USER)
+    await addProperty(db, 'p1', 'آپارتمان')
     await sync.push(TOKEN, USER)
+    await addContact(db, 'c1', 'نفرستاده')
+    await sync.pendingCount()
+
+    await sync.wipe()
+
+    expect(await count(db, 'properties')).toBe(0)
+    expect(await count(db, 'contacts')).toBe(0)
+    expect(await queuedOnDisk(disk)).toBe(0)
+    expect(await sync.owner()).toBeNull()
+    expect(server.rows.has('properties/p1')).toBe(true)
+    expect(await count(db, 'lost_reasons')).toBeGreaterThan(0)
+  })
+
+  it("another number on the phone sees none of the first number's files; its unsent changes wait for it", async () => {
+    const { db, disk, sync } = await launch(server)
+    await sync.claim(USER)
+    server.offline = true
+    await addProperty(db, 'p1', 'نفرستاده')
+    await sync.pendingCount()
+
+    await sync.claim(OTHER)
+    expect(await count(db, 'properties')).toBe(0)
+    expect(await queuedOnDisk(disk)).toBe(1)
+
+    await sync.claim(USER)
+    expect(await count(db, 'properties')).toBe(1)
+  })
+
+  it('a revoked session keeps unsent changes queued', async () => {
+    const { db, sync } = await launch(server)
+    await sync.claim(USER)
     await addProperty(db, 'p1', 'آفلاین')
     server.revoked = true
     await expect(sync.push(TOKEN, USER)).rejects.toBeInstanceOf(SessionRevokedError)
@@ -164,47 +283,25 @@ describe('SyncService (AZAR-SYNC-001)', () => {
     expect(await sync.pendingCount()).toBe(0)
   })
 
-  it('brings everything back on a new phone, profile photo included', async () => {
-    await addProperty(db, 'p1', 'آپارتمان')
-    await addContact(db, 'c1', 'علی')
-    files.store.set('/docs/profile/me.webp', 'UEhPVE8=')
-    await db.execute(
-      "INSERT INTO application_settings (key, value, updated_at) VALUES ('profile_photo', '/docs/profile/me.webp', '2026-10-24')"
-    )
-    await db.execute(
-      "INSERT INTO application_settings (key, value, updated_at) VALUES ('display_name', 'نوید', '2026-10-24')"
-    )
+  it('the database of earlier versions moves to the server and is gone from the phone', async () => {
+    const legacy = await workingDb()
+    await addProperty(legacy, 'p1', 'قدیمی')
+    await addContact(legacy, 'c1', 'علی')
+    await legacy.execute("INSERT INTO application_settings (key, value, updated_at) VALUES ('theme', 'dark', '2026-10-24')")
+
+    const disk = open({ name: `test-store-${Math.random()}.db`, location: ':memory:' })
+    const store = new DeviceStore(disk)
+    await store.init()
+    await store.takeOver(legacy, USER)
+    legacy.close()
+
+    const { db, sync } = await launch(server, fakeFiles(), disk)
+    expect(await count(db, 'properties')).toBe(1) // shown at once, even before it is sent
+    const theme = await db.execute("SELECT value FROM application_settings WHERE key = 'theme'")
+    expect(theme.rows[0]?.value).toBe('dark')
     await sync.push(TOKEN, USER)
-    expect(server.rows.get('application_settings/profile_photo')?.row?.value).toMatch(/^blob:/)
-
-    const phone2 = await freshDb()
-    const files2 = fakeFiles()
-    const sync2 = new SyncService(phone2, server.api(), files2)
-    await sync2.restore(TOKEN, USER)
-
-    expect(await count(phone2, 'properties')).toBe(1)
-    expect(await count(phone2, 'contacts')).toBe(1)
-    const photo = await phone2.execute("SELECT value FROM application_settings WHERE key = 'profile_photo'")
-    const path = String(photo.rows[0]?.value)
-    expect(path.startsWith('/docs/profile/photo-')).toBe(true)
-    expect(files2.store.get(path)).toBe('UEhPVE8=')
-    // restoring is not a change to send back
-    expect(await sync2.pendingCount()).toBe(0)
-    phone2.close()
-  })
-
-  it('removes every file from the phone on sign-out, and they stay on the server', async () => {
-    await addProperty(db, 'p1', 'آپارتمان')
-    await addContact(db, 'c1', 'علی')
-    await sync.push(TOKEN, USER)
-
-    await sync.wipe()
-
-    expect(await count(db, 'properties')).toBe(0)
-    expect(await count(db, 'contacts')).toBe(0)
-    expect(await sync.pendingCount()).toBe(0)
-    expect(await sync.owner()).toBeNull()
-    expect(server.rows.has("properties/p1") && server.rows.has("contacts/c1")).toBe(true)
-    expect(await count(db, "lost_reasons")).toBeGreaterThan(0)
+    expect(server.rows.get('properties/p1')?.row?.title).toBe('قدیمی')
+    expect(server.rows.get('contacts/c1')?.row?.full_name).toBe('علی')
+    expect(await queuedOnDisk(disk)).toBe(0)
   })
 })

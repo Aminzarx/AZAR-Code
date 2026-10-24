@@ -1,42 +1,33 @@
 import { open, type DB } from '@op-engineering/op-sqlite'
 import { getOrCreateDatabaseKey } from '../security/databaseKey'
 import { keychainSecureStorage } from '../security/keychainSecureStorage'
-import { runMigrations } from './migrationRunner'
+import { getSchemaVersion, runMigrations } from './migrationRunner'
+import { DeviceStore, RAW_DB } from './deviceStore'
 
-// Under Jest, multiple test files call getDatabase() directly (connection,
-// dashboard, App tests) to exercise the real singleton/migration/encryption
-// path rather than an in-memory stand-in. Jest runs those files in separate
-// worker processes, and a shared 'azar.db' path in process.cwd() let two
-// workers race on the same file — one truncating or deleting it mid-open in
-// another, producing intermittent "file is not a database" failures. Jest
-// sets JEST_WORKER_ID per worker, so suffixing the filename with it keeps
-// each worker's tests on an isolated file without touching production
-// behavior (the env var is never set outside Jest).
-const DATABASE_NAME = process.env.JEST_WORKER_ID
-  ? `azar.test-${process.env.JEST_WORKER_ID}.db`
-  : 'azar.db'
+// Jest runs test files in separate workers; suffixing the file names with
+// JEST_WORKER_ID keeps each worker on its own files (never set outside Jest).
+const SUFFIX = process.env.JEST_WORKER_ID ? `.test-${process.env.JEST_WORKER_ID}` : ''
+/** the encrypted on-disk store: device rows + unsent changes only (deviceStore.ts) */
+const STORE_NAME = `azar-store${SUFFIX}.db`
+/** where versions before option A kept every file on disk; taken over and deleted on the first launch */
+const LEGACY_NAME = `azar${SUFFIX}.db`
 
 let instance: DB | null = null
+let deviceStore: DeviceStore | null = null
 let wasFreshlyCreated = false
 let openPromise: Promise<DB> | null = null
 
 /**
- * Opens (or returns the already-open) database connection, encrypted via
- * SQLCipher (op-sqlite's `sqlcipher: true` build, package.json). The key
- * is generated on first launch and held exclusively in platform secure
- * storage (`getOrCreateDatabaseKey`) — never written to disk in plain
- * form. Foreign key enforcement is turned on immediately after opening,
- * per docs/local-data/local-data-architecture.md's integrity requirement
- * (SQLite has it off by default per connection). Migrations run here too
- * — this is the one place every caller goes through before touching the
- * database, so it is the only place that can guarantee the schema is
- * up to date before any repository query runs against it.
+ * Opens (or returns the already-open) working database.
  *
- * Several call sites (app startup housekeeping, auth/session loading)
- * call this concurrently on launch. Without an in-flight guard, each
- * would see a null `instance` and independently open + migrate the same
- * file. Caching the in-progress promise (not just the resolved instance)
- * makes concurrent callers await the same open.
+ * Amin #4826 (option A): the files are never kept on the phone. The working database every repository reads is
+ * an in-memory SQLite database, filled from the server at sign-in (SyncService.restore) and gone when the app
+ * closes. The only thing on disk is the small SQLCipher store (key held exclusively in platform secure storage,
+ * `getOrCreateDatabaseKey`): this phone's own rows (session, settings) and the changes not on the server yet.
+ * Every write through the returned connection is followed by `persistFrom`, so no repository has to know.
+ *
+ * Foreign keys are turned on and migrations run here, the one place every caller goes through. Concurrent
+ * callers on launch await the same open (the in-progress promise is cached, not just the instance).
  */
 export async function getDatabase(): Promise<DB> {
   if (instance) {
@@ -48,11 +39,18 @@ export async function getDatabase(): Promise<DB> {
 
   openPromise = (async () => {
     const encryptionKey = await getOrCreateDatabaseKey(keychainSecureStorage)
-    const db = open({ name: DATABASE_NAME, encryptionKey })
+    const store = new DeviceStore(open({ name: STORE_NAME, encryptionKey }))
+    const storeIsNew = await store.init()
+
+    const db = open({ name: 'azar-working', location: ':memory:' })
     db.executeSync('PRAGMA foreign_keys = ON')
-    const { from } = await runMigrations(db)
-    wasFreshlyCreated = from === 0
-    instance = db
+    await runMigrations(db)
+
+    const hadLegacy = await takeOverLegacyDatabase(encryptionKey, store)
+    await store.loadInto(db)
+    wasFreshlyCreated = storeIsNew && !hadLegacy
+    deviceStore = store
+    instance = persisting(db, store)
     return instance
   })()
 
@@ -60,6 +58,60 @@ export async function getDatabase(): Promise<DB> {
     return await openPromise
   } finally {
     openPromise = null
+  }
+}
+
+/** The encrypted on-disk store behind the working database (open after `getDatabase()`). */
+export async function getDeviceStore(): Promise<DeviceStore> {
+  await getDatabase()
+  return deviceStore as DeviceStore
+}
+
+/**
+ * The working database, with every write followed by moving what it noted to the encrypted store. Reads go
+ * straight through; nothing else about the connection changes.
+ */
+function persisting(db: DB, store: DeviceStore): DB {
+  return new Proxy(db, {
+    get(target, prop) {
+      if (prop === RAW_DB) return target
+      if (prop === 'execute') {
+        return async (query: string, params?: never[]) => {
+          const result = await target.execute(query, params)
+          if (!/^\s*(SELECT|PRAGMA)/i.test(query)) await store.persistFrom(target)
+          return result
+        }
+      }
+      if (prop === 'transaction') {
+        return async (work: Parameters<DB['transaction']>[0]) => {
+          const result = await target.transaction(work)
+          await store.persistFrom(target)
+          return result
+        }
+      }
+      const value = Reflect.get(target, prop, target)
+      return typeof value === 'function' ? value.bind(target) : value
+    }
+  })
+}
+
+/**
+ * Versions before option A kept the whole database on disk. If it is there, everything in it goes into the store
+ * (files as unsent changes, which reach the server with the next push and then leave the phone) and the file is
+ * deleted. Opening the name creates an empty file when there was none; that one is deleted as well.
+ */
+async function takeOverLegacyDatabase(encryptionKey: string, store: DeviceStore): Promise<boolean> {
+  const legacy = open({ name: LEGACY_NAME, encryptionKey })
+  try {
+    const found = (await getSchemaVersion(legacy)) > 0
+    if (found) {
+      await runMigrations(legacy)
+      // the signed-in account (SessionManager's keychain key) owns those files
+      await store.takeOver(legacy, await keychainSecureStorage.get('azar.session-token.user-id'))
+    }
+    return found
+  } finally {
+    legacy.delete()
   }
 }
 
@@ -82,4 +134,6 @@ export function wasDatabaseFreshlyCreated(): boolean {
 export function closeDatabase(): void {
   instance?.close()
   instance = null
+  deviceStore?.close()
+  deviceStore = null
 }

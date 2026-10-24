@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import RNFS from 'react-native-fs'
-import { getDatabase } from '@infrastructure/database/connection'
+import { getDatabase, getDeviceStore } from '@infrastructure/database/connection'
+import { bumpFilesVersion } from '@infrastructure/sync/filesVersion'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
 import { SessionRepository } from '@infrastructure/database/repositories/SessionRepository'
 import {
@@ -27,6 +28,10 @@ export type SyncStatus = {
   pending: number
   /** the account's space on the server, as the server last reported it */
   usage: SyncUsage | null
+  /** option A (Amin #4826): the account's files came from the server in this run (else only what was made offline) */
+  loaded: boolean
+  /** the first round after start or sign-in has finished (loaded, or found the phone offline) */
+  settled: boolean
 }
 
 const SYNC_EVERY_MS = 3000
@@ -100,7 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       setAuthApiClient(client)
       setUserRepository(new UserRepository(db))
       setSessionManager(manager)
-      setSyncService(new SyncService(db, new SyncApiClient(AUTH_API_BASE_URL), rnfsFiles))
+      const service = new SyncService(db, await getDeviceStore(), new SyncApiClient(AUTH_API_BASE_URL), rnfsFiles)
+      if (currentSession) await service.claim(currentSession.userId)
+      if (cancelled) {
+        return
+      }
+      setSyncService(service)
       setSession(currentSession)
       setIsInitializing(false)
     }
@@ -112,29 +122,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     }
   }, [])
 
-  /** One round: bring the account's files back if still owed, then send what is waiting. */
+  /**
+   * One round: send what is waiting (it then leaves the phone), and — while the account's files have not come
+   * from the server in this run (start, sign-in while offline) — bring them into the working database.
+   */
   const syncOnce = useCallback(
     (current: CurrentSession): Promise<number> =>
       exclusive(async () => {
         if (!syncService) return 0
         try {
-          if ((await syncService.getState('restore_needed')) === '1') {
-            setSync((s) => ({ ...s, state: 'syncing' }))
-            await syncService.restore(current.sessionToken, current.userId)
-            await syncService.setState('restore_needed', null)
-          }
           if ((await syncService.pendingCount()) > 0) {
             setSync((s) => ({ ...s, state: 'syncing' }))
             await syncService.push(current.sessionToken, current.userId)
           }
+          if (!syncService.loaded) {
+            setSync((s) => ({ ...s, state: 'syncing' }))
+            await syncService.restore(current.sessionToken, current.userId)
+            bumpFilesVersion()
+          }
           const pending = await syncService.pendingCount()
-          setSync({ state: 'idle', pending, usage: await syncService.lastUsage() })
+          setSync({ state: 'idle', pending, usage: await syncService.lastUsage(), loaded: true, settled: true })
           return pending
         } catch (error) {
           if (error instanceof SessionRevokedError) {
-            // another phone signed in with this number: this phone signs out. Files that never
-            // reached the server stay here until the same number signs in again.
+            // another phone signed in with this number: this phone signs out. Changes that never
+            // reached the server stay queued (encrypted) until the same number signs in again.
             if ((await syncService.pendingCount()) === 0) await syncService.wipe()
+            else await syncService.forget()
             await sessionManager?.logout()
             setSession(null)
             setSync(IDLE_SYNC)
@@ -144,7 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
           setSync({
             state: error instanceof StorageFullError ? 'full' : 'offline',
             pending,
-            usage: await syncService.lastUsage().catch(() => null)
+            usage: await syncService.lastUsage().catch(() => null),
+            loaded: syncService.loaded,
+            settled: true
           })
           return pending
         }
@@ -195,19 +211,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     }
 
     /**
-     * Before the app opens for a number: files of another account are removed (they are on the
-     * server already), and a phone with no files gets the account's files back from the server.
+     * Before the app opens for a number (Amin #4826): another account's files leave the working database, and
+     * this account's files come from the server. Offline, only what was made here offline shows; the sync
+     * round brings the rest as soon as the phone is online.
      */
     async function prepareFiles(result: CurrentSession): Promise<void> {
       if (!syncService) return
+      setSync({ ...IDLE_SYNC, settled: false })
       await exclusive(async () => {
-        const owner = await syncService.owner()
-        if (owner && owner !== result.userId) await syncService.wipe()
-        if (await syncService.hasLocalFiles()) return
+        await syncService.claim(result.userId)
         try {
           await syncService.restore(result.sessionToken, result.userId)
+          setSync({ ...IDLE_SYNC, loaded: true, settled: true, usage: await syncService.lastUsage() })
         } catch {
-          await syncService.setState('restore_needed', '1') // offline: the sync round tries again
+          setSync({ ...IDLE_SYNC, state: 'offline', settled: true }) // the sync round tries again
         }
       })
     }
@@ -274,7 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   )
 }
 
-const IDLE_SYNC: SyncStatus = { state: 'idle', pending: 0, usage: null }
+const IDLE_SYNC: SyncStatus = { state: 'idle', pending: 0, usage: null, loaded: false, settled: false }
 
 const placeholderValue: AuthContextValue = {
   isInitializing: true,

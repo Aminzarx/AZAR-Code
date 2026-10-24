@@ -48,6 +48,7 @@ export type IconName =
   | 'edit'
   | 'lock'
   | 'ribbon'
+  | 'cloud-offline'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -181,5 +182,7 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'lock-closed-outline'
     case 'ribbon':
       return 'ribbon-outline'
+    case 'cloud-offline':
+      return 'cloud-offline-outline'
   }
 }

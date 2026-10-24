@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import { OfflineFilesNotice } from '@features/auth/components/OfflineFilesNotice'
+import { useFilesVersion } from '@shared/hooks/useFilesVersion'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -29,6 +31,8 @@ export function FilesScreen({ navigation, route }: Props): React.JSX.Element {
   // reloaded after a file was saved on the create screen — the list kept
   // showing «هنوز فایلی ثبت نشده». Reload on every return to this tab.
   const [refreshKey, setRefreshKey] = useState(0)
+  // option A (Amin #4826): and when the account's files arrive from the server while the list is open
+  const filesVersion = useFilesVersion()
   useEffect(() => {
     if (typeof navigation.addListener !== 'function') {
       return undefined
@@ -46,6 +50,7 @@ export function FilesScreen({ navigation, route }: Props): React.JSX.Element {
       <View style={styles.top}>
         <Text style={[theme.typography('headlineLgMobile'), styles.title]}>فایل‌ها</Text>
         <SegmentedControl options={options} value={kind} onChange={setKind} />
+        <OfflineFilesNotice />
       </View>
       <View style={styles.body}>
         {kind === 'properties' ? (
@@ -53,14 +58,14 @@ export function FilesScreen({ navigation, route }: Props): React.JSX.Element {
             navigation={navigation as never}
             route={route as never}
             embedded
-            refreshKey={refreshKey}
+            refreshKey={refreshKey + filesVersion}
           />
         ) : (
           <ApplicantListScreen
             navigation={navigation as never}
             route={route as never}
             embedded
-            refreshKey={refreshKey}
+            refreshKey={refreshKey + filesVersion}
           />
         )}
       </View>
