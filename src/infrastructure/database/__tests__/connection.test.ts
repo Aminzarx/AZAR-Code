@@ -7,15 +7,19 @@ import { runMigrations } from '../migrationRunner'
 const LEGACY_FILE = path.join(process.cwd(), `azar.test-${process.env.JEST_WORKER_ID}.db`)
 const STORE_FILE = path.join(process.cwd(), `azar-store.test-${process.env.JEST_WORKER_ID}.db`)
 
-describe('connection', () => {
-  afterEach(() => {
-    closeDatabase()
-    for (const file of [LEGACY_FILE, STORE_FILE]) {
-      if (fs.existsSync(file)) {
-        fs.unlinkSync(file)
-      }
+function removeFiles(): void {
+  closeDatabase()
+  for (const file of [LEGACY_FILE, STORE_FILE]) {
+    if (fs.existsSync(file)) {
+      fs.unlinkSync(file)
     }
-  })
+  }
+}
+
+describe('connection', () => {
+  // other test files on the same Jest worker share these file names
+  beforeEach(removeFiles)
+  afterEach(removeFiles)
 
   it('returns the same connection instance on repeated calls (singleton)', async () => {
     const first = await getDatabase()

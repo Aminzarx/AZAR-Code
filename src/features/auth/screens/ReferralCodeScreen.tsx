@@ -7,8 +7,6 @@ import { useTheme, type Theme } from '@shared/theme'
 import { Button, Icon, QrCodeScanner, TextInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
 import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
-import { getDatabase } from '@infrastructure/database/connection'
-import { ApplicationSettingsRepository } from '@infrastructure/database/repositories/ApplicationSettingsRepository'
 
 /** a referral code as minted (8) or the mother code (6) — no 0/O/1/I/L */
 const CODE_SHAPE = /^[A-HJ-NP-Z2-9]{6,8}$/
@@ -60,16 +58,14 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
     setError(null)
     setIsSubmitting(true)
     try {
-      // the name and agency are this phone's own settings (see useDisplayName)
-      if (fullName.trim() || agency.trim()) {
-        const settings = new ApplicationSettingsRepository(await getDatabase())
-        if (fullName.trim()) await settings.set('display_name', fullName.trim())
-        if (agency.trim()) await settings.set('agency_name', agency.trim())
-      }
       // No explicit navigation on success: RootNavigator swaps from
       // AuthNavigator to MainNavigator as soon as useAuth().session is
       // set (register() below sets it) — see navigation/RootNavigator.tsx.
-      await register(phoneNumber, referralCode.toUpperCase())
+      // the name and agency are saved by register() once the phone holds this account's files
+      await register(phoneNumber, referralCode.toUpperCase(), {
+        displayName: fullName.trim() || undefined,
+        agencyName: agency.trim() || undefined
+      })
     } catch (caughtError) {
       if (caughtError instanceof ValidationFailureError) {
         setError(caughtError.message)
@@ -90,7 +86,12 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
         </Text>
       </View>
       <View style={styles.form}>
-        <TextInput label="نام و نام خانوادگی *" value={fullName} onChangeText={setFullName} placeholder="مثلاً علی رضایی" />
+        <TextInput
+          label="نام و نام خانوادگی *"
+          value={fullName}
+          onChangeText={setFullName}
+          placeholder="مثلاً علی رضایی"
+        />
         <TextInput
           label="نام مشاور املاک (اختیاری)"
           value={agency}
@@ -112,7 +113,9 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
           کد را از کسی که شما را دعوت کرده بگیرید یا بارکد او را اسکن کنید.
         </Text>
         {fromInvite ? (
-          <Text style={[theme.typography('bodySm'), styles.inviteHint]}>کد معرف از پیوند دعوت برداشته شد.</Text>
+          <Text style={[theme.typography('bodySm'), styles.inviteHint]}>
+            کد معرف از پیوند دعوت برداشته شد.
+          </Text>
         ) : null}
         <Pressable
           accessibilityRole="button"

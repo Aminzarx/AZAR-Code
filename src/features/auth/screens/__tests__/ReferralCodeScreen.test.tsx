@@ -62,7 +62,12 @@ describe('ReferralCodeScreen', () => {
     await fireEvent.changeText(getByLabelText('کد معرف'), 'abcd1234')
     await fireEvent.press(getByText('ورود به برنامه'))
 
-    await waitFor(() => expect(mockRegister).toHaveBeenCalledWith('+989121234567', 'ABCD1234'))
+    await waitFor(() =>
+      expect(mockRegister).toHaveBeenCalledWith('+989121234567', 'ABCD1234', {
+        displayName: 'علی رضایی',
+        agencyName: undefined
+      })
+    )
   })
 
   it('enables the submit button for the 6-character AMINZX mother code', async () => {
@@ -75,7 +80,9 @@ describe('ReferralCodeScreen', () => {
     await fireEvent.changeText(getByLabelText('کد معرف'), 'AMINZX')
     await fireEvent.press(getByText('ورود به برنامه'))
 
-    await waitFor(() => expect(mockRegister).toHaveBeenCalledWith('+989121234567', 'AMINZX'))
+    await waitFor(() =>
+      expect(mockRegister).toHaveBeenCalledWith('+989121234567', 'AMINZX', expect.anything())
+    )
   })
 
   it('keeps the submit button disabled below 6 characters', async () => {

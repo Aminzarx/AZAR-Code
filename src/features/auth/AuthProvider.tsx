@@ -3,6 +3,7 @@ import RNFS from 'react-native-fs'
 import { getDatabase, getDeviceStore } from '@infrastructure/database/connection'
 import { bumpFilesVersion } from '@infrastructure/sync/filesVersion'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
+import { ApplicationSettingsRepository } from '@infrastructure/database/repositories/ApplicationSettingsRepository'
 import { SessionRepository } from '@infrastructure/database/repositories/SessionRepository'
 import {
   HttpAuthApiClient,
@@ -51,7 +52,12 @@ type AuthContextValue = {
   session: CurrentSession | null
   sendOtp: (phoneNumber: string) => Promise<void>
   verifyOtp: (phoneNumber: string, code: string) => Promise<void>
-  register: (phoneNumber: string, referralCode: string) => Promise<CurrentSession>
+  /** `profile`: the name and agency typed at sign-up; kept once this phone holds the account's files */
+  register: (
+    phoneNumber: string,
+    referralCode: string,
+    profile?: SignUpProfile
+  ) => Promise<CurrentSession>
   login: (phoneNumber: string) => Promise<CurrentSession>
   logout: () => Promise<void>
   deleteAccount: (phoneNumber: string) => Promise<void>
@@ -66,6 +72,8 @@ type AuthContextValue = {
   /** sends what is waiting now; returns how many changes are still not on the server */
   syncNow: () => Promise<number>
 }
+
+export type SignUpProfile = { displayName?: string; agencyName?: string }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
@@ -245,11 +253,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       syncNow: () => (session ? syncOnce(session) : Promise.resolve(0)),
       sendOtp: (phoneNumber) => authApiClient.sendOtp(phoneNumber),
       verifyOtp: (phoneNumber, code) => authApiClient.verifyOtp(phoneNumber, code),
-      register: async (phoneNumber, referralCode) => {
+      register: async (phoneNumber, referralCode, profile) => {
         const result = await sessionManager.register(phoneNumber, referralCode, (resolved) =>
           cacheUserLocally(phoneNumber, resolved)
         )
         await prepareFiles(result)
+        // after prepareFiles: switching the phone to this account clears the previous account's profile
+        const settings = new ApplicationSettingsRepository(await getDatabase())
+        if (profile?.displayName) await settings.set('display_name', profile.displayName)
+        if (profile?.agencyName) await settings.set('agency_name', profile.agencyName)
         setSession(result)
         return result
       },
