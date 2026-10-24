@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button } from './Button'
+import { Icon } from './Icon'
 import { KeyboardLift } from './KeyboardAwareScroll'
 
 type Props = {
@@ -63,33 +64,39 @@ export function FilterSheet({
             onStartShouldSetResponder={() => true}
             onTouchEnd={(event) => event.stopPropagation()}
           >
-            {/* v1.3.0 (design batch 2): handle, title and «پاک کردن همه» as in
-                the approved mockup; the backdrop and Android back still close. */}
+            {/* v1.3.0 (design batch 2): handle and title; the backdrop and Android back still close.
+                Amin #5067: a close ×, a hairline under the header, each filter group in its own band, and the
+                reset beside the apply button at the bottom (where the thumb already is). */}
             <View style={styles.handle} />
             <View style={styles.header}>
               <Text style={[theme.typography('titleMd'), styles.title]}>{title}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="پاک کردن همه"
-                accessibilityState={{ disabled: !hasActiveFilters }}
-                onPress={onClear}
-                disabled={!hasActiveFilters}
+                accessibilityLabel="بستن فیلترها"
+                onPress={onClose}
                 hitSlop={theme.spacing.space2}
+                style={styles.close}
               >
-                <Text
-                  style={[
-                    theme.typography('labelMd'),
-                    hasActiveFilters ? styles.clear : styles.clearDisabled
-                  ]}
-                >
-                  پاک کردن همه
-                </Text>
+                <Icon name="close" size="sm" color={theme.colors.onSurfaceVariant} />
               </Pressable>
             </View>
             <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-              {children}
+              {React.Children.toArray(children)
+                .filter(Boolean)
+                .map((child, index) => (
+                  <View key={index} style={[styles.group, index > 0 && styles.groupDivided]}>
+                    {child}
+                  </View>
+                ))}
             </ScrollView>
             <View style={styles.actions}>
+              <Button
+                label="پاک کردن همه"
+                variant="secondary"
+                onPress={onClear}
+                disabled={!hasActiveFilters}
+                style={styles.clearAction}
+              />
               <Button label={applyLabel} onPress={onApply} style={styles.action} />
             </View>
           </View>
@@ -125,7 +132,24 @@ function createStyles(theme: Theme, bottomInset: number) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: theme.spacing.space4
+      paddingBottom: theme.spacing.space3,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.outlineVariant
+    },
+    close: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surfaceContainer
+    },
+    group: {
+      paddingVertical: theme.spacing.space4
+    },
+    groupDivided: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.outlineVariant
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
@@ -142,24 +166,23 @@ function createStyles(theme: Theme, bottomInset: number) {
       alignSelf: 'center',
       marginBottom: theme.spacing.space4
     },
-    clear: {
-      color: theme.colors.onSurfaceVariant
-    },
-    clearDisabled: {
-      color: theme.colors.placeholder
-    },
     body: {
       flex: 1
     },
     bodyContent: {
-      gap: theme.spacing.space4
+      paddingBottom: theme.spacing.space2
     },
     actions: {
       flexDirection: 'row',
       gap: theme.spacing.space3,
-      marginTop: theme.spacing.space4
+      paddingTop: theme.spacing.space4,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.outlineVariant
     },
     action: {
+      flex: 2
+    },
+    clearAction: {
       flex: 1
     }
   })

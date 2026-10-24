@@ -16,7 +16,8 @@ import {
   RangeFilter,
   ScreenHeaderBar,
   parseRangeValue,
-  type ActiveFilterChip
+  type ActiveFilterChip,
+  type QuickFilterChip
 } from '@shared/components'
 import { APPLICANT_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
 import { toPersianDigits } from '@shared/utils/persianText'
@@ -171,12 +172,19 @@ export function ApplicantListScreen({
     setIsFilterVisible(false)
   }
 
+  // Amin #5067: the deal type is one tap away under the search (filled while on), so it is not repeated below
+  const quickFilters: QuickFilterChip[] = TRANSACTION_OPTIONS.map((option) => ({
+    key: option.value,
+    label: option.label,
+    selected: applied.transaction === option.value,
+    onPress: () =>
+      setApplied((current) => ({
+        ...current,
+        transaction: current.transaction === option.value ? null : option.value
+      }))
+  }))
+
   const chips = [
-    applied.transaction && {
-      key: 'transaction',
-      label: applied.transaction,
-      onRemove: () => setApplied((current) => ({ ...current, transaction: null }))
-    },
     applied.propertyType && {
       key: 'propertyType',
       label: applied.propertyType,
@@ -206,6 +214,8 @@ export function ApplicantListScreen({
           onOpenFilters={openFilterSheet}
           filterLabel="فیلتر متقاضیان"
           chips={chips}
+          quickFilters={quickFilters}
+          onClearAll={() => setApplied(NO_FILTERS)}
         />
 
         {isLoading ? (
