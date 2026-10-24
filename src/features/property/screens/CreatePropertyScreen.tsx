@@ -15,6 +15,9 @@ import {
 } from '../components/PropertyForm'
 import { PropertyValidationError } from '../services/PropertyValidationError'
 import { validatePropertyForm } from '../services/propertyValidation'
+import { PhotoEditor } from '@features/photos/components/PhotoEditor'
+import { usePhotoRepository } from '@features/photos/hooks/usePhotoRepository'
+import type { EditorPhoto } from '@features/photos/photoList'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateProperty'>
@@ -43,9 +46,10 @@ const STEP_NAMES: Record<PropertyFormStep, string> = {
   1: 'نوع و مکان',
   2: 'مشخصات و قیمت',
   3: 'مشخصات مالک',
-  4: 'عنوان و توضیحات'
+  4: 'عکس‌ها',
+  5: 'عنوان و توضیحات'
 }
-const LAST_STEP: PropertyFormStep = 4
+const LAST_STEP: PropertyFormStep = 5
 const REQUIRED = 'این مورد لازم است.'
 
 /** v3.0.0: a starting title from what the broker already chose («آپارتمان ۲ خوابه ۹۵ متری، تهران»). */
@@ -74,6 +78,8 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
   const [step, setStep] = useState<PropertyFormStep>(1)
+  const [photos, setPhotos] = useState<EditorPhoto[]>([])
+  const photoRepository = usePhotoRepository()
   // A guard beyond `isSubmitting`/the Save button's own disabled state —
   // both are React state, so two presses landing in the same tick (a fast
   // double-tap) can both read `isSubmitting === false` before either
@@ -119,6 +125,14 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       setStep(3)
       return
     }
+    if (step === 4) {
+      setErrors({})
+      if (!values.title.trim()) {
+        setValues((current) => ({ ...current, title: suggestTitle(current) }))
+      }
+      setStep(5)
+      return
+    }
     // Amin #5066: the owner step may be left empty; once anything is typed, a name and a valid mobile are needed
     const ownerErrors = validatePropertyForm(values).errors
     const stepErrors: PropertyFormErrors = {}
@@ -127,9 +141,6 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
     setErrors(stepErrors)
     if (Object.keys(stepErrors).length > 0) {
       return
-    }
-    if (!values.title.trim()) {
-      setValues((current) => ({ ...current, title: suggestTitle(current) }))
     }
     setStep(4)
   }
@@ -161,6 +172,10 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
     setIsSubmitting(true)
     try {
       const property = await service.createProperty(session.userId, values)
+      // Amin #5062: the photos of the «عکس‌ها» step, in their order
+      if (photos.length > 0) {
+        await photoRepository?.replaceFor(session.userId, 'property', property.id, photos)
+      }
       setIsDirty(false)
       markSaved()
       // v1.4.0 (Amin #4311): after saving, go back to whatever opened the form
@@ -193,12 +208,12 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       subheader={
         <View style={styles.progress}>
           <View style={styles.bars}>
-            {([1, 2, 3, 4] as const).map((n) => (
+            {([1, 2, 3, 4, 5] as const).map((n) => (
               <View key={n} style={[styles.bar, n <= step && styles.barOn]} />
             ))}
           </View>
           <Text style={[theme.typography('bodySm'), styles.stepText]}>
-            {`مرحلهٔ ${toPersianDigits(String(step))} از ۴ · `}
+            {`مرحلهٔ ${toPersianDigits(String(step))} از ۵ · `}
             <Text style={[theme.typography('labelMd'), styles.stepName]}>{STEP_NAMES[step]}</Text>
           </Text>
         </View>
@@ -217,7 +232,18 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
-      <PropertyForm values={values} errors={errors} onChange={handleChange} step={step} />
+      {step === 4 ? (
+        <PhotoEditor
+          photos={photos}
+          noun="فایل"
+          onChange={(next) => {
+            setPhotos(next)
+            setIsDirty(true)
+          }}
+        />
+      ) : (
+        <PropertyForm values={values} errors={errors} onChange={handleChange} step={step} />
+      )}
       <ConfirmDialog {...unsavedChangesDialogProps} />
     </FormScreenContainer>
   )

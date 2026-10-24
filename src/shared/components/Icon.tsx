@@ -50,6 +50,7 @@ export type IconName =
   | 'ribbon'
   | 'cloud-offline'
   | 'moon'
+  | 'image'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -187,5 +188,7 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'cloud-offline-outline'
     case 'moon':
       return 'moon-outline'
+    case 'image':
+      return 'images-outline'
   }
 }

@@ -24,13 +24,14 @@ type Props = {
   onChange: <K extends keyof PropertyFormValues>(field: K, value: PropertyFormValues[K]) => void
   /**
    * v3.0.0 (Amin #4180/#4211): the new-file screen shows one step at a time
-   * (1 type and place, 2 details and price, 3 owner (Amin #5066), 4 title and notes); edit mode
+   * (1 type and place, 2 details and price, 3 owner (Amin #5066), 4 photos (Amin #5062, drawn by the screen),
+   * 5 title and notes); edit mode
    * leaves it unset and shows every step on one page.
    */
   step?: PropertyFormStep
 }
 
-export type PropertyFormStep = 1 | 2 | 3 | 4
+export type PropertyFormStep = 1 | 2 | 3 | 4 | 5
 
 /** Which step each field lives on — the new-file screen jumps to the first step with an error. */
 export const PROPERTY_FIELD_STEP: Record<keyof PropertyFormValues, PropertyFormStep> = {
@@ -49,8 +50,8 @@ export const PROPERTY_FIELD_STEP: Record<keyof PropertyFormValues, PropertyFormS
   ownerName: 3,
   ownerPhone: 3,
   ownerNotes: 3,
-  title: 4,
-  description: 4
+  title: 5,
+  description: 5
 }
 
 /**
@@ -228,7 +229,7 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
           />
         </>
       ) : null}
-      {show(4) ? (
+      {show(5) ? (
         <>
           <TextInput
             label="عنوان فایل"
@@ -237,7 +238,7 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
             onChangeText={(value) => onChange('title', value)}
             placeholder="مثلاً آپارتمان دو خوابه ولیعصر"
             // Amin #5064: one short line even on a small phone
-            helperText={step === 4 ? 'پیشنهاد از نوع ملک، اتاق‌ها و آدرس؛ قابل ویرایش' : undefined}
+            helperText={step === 5 ? 'پیشنهاد از نوع ملک، اتاق‌ها و آدرس؛ قابل ویرایش' : undefined}
             errorMessage={errors.title}
           />
           <TextInput

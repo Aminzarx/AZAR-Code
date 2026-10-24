@@ -1,6 +1,7 @@
 import type { DB } from '@op-engineering/op-sqlite'
 import { SYNCED_SETTING_KEYS } from '../database/migrations/0019_server_sync'
 import { applying, FILE_TABLE_ORDER, type DeviceStore, type QueuedChange } from '../database/deviceStore'
+import { BLOB_TRASH_KEY } from '../database/repositories/PhotoRepository'
 import { type SyncApiClient, type SyncChange, type SyncUsage } from './syncApiClient'
 
 /** Where the profile photo is read from and written to (react-native-fs in the app, a fake in tests). */
@@ -29,6 +30,8 @@ const BATCH = 200
 export class SyncService {
   private isLoaded = false
   private columns = new Map<string, Set<string>>()
+  /** Amin #5062: photos already fetched in this run, by hash (memory only, gone with the app) */
+  private photoCache = new Map<string, string>()
 
   constructor(
     private readonly db: DB,
@@ -95,12 +98,32 @@ export class SyncService {
     const { changes, upTo } = await this.store.pending(userId)
     if (!upTo) return
     await this.uploadPhoto(sessionToken, changes)
+    await this.uploadListingPhotos(sessionToken, changes)
     let usage: SyncUsage | null = null
     for (let i = 0; i < changes.length; i += BATCH) {
       usage = (await this.api.push(sessionToken, changes.slice(i, i + BATCH))).usage
     }
     await this.store.dropSent(userId, upTo)
+    usage = (await this.emptyBlobTrash(sessionToken)) ?? usage
     if (usage) await this.setState('usage', JSON.stringify(usage))
+  }
+
+  /**
+   * Amin #5062: a file or contract photo for showing — its bytes while they are still on the phone, else fetched
+   * from the server (kept in memory for this run only). null when it cannot be had now (offline).
+   */
+  async loadPhoto(sessionToken: string, photo: { data: string | null; blobHash: string | null }): Promise<string | null> {
+    if (photo.data) return photo.data
+    if (!photo.blobHash) return null
+    const cached = this.photoCache.get(photo.blobHash)
+    if (cached) return cached
+    try {
+      const { data } = await this.api.getBlob(sessionToken, photo.blobHash)
+      this.photoCache.set(photo.blobHash, data)
+      return data
+    } catch {
+      return null
+    }
   }
 
   /** Asks the server how much space the account uses (for the tokens card). */
@@ -157,6 +180,8 @@ export class SyncService {
     await this.store.setOwner(null)
     await this.setState('usage', null)
     await this.setState('photo_hash', null)
+    await this.setState(BLOB_TRASH_KEY, null)
+    this.photoCache.clear()
     this.isLoaded = false
   }
 
@@ -219,6 +244,41 @@ export class SyncService {
     }
     if (previous && previous !== hash) await this.api.deleteBlob(sessionToken, previous).catch(() => undefined)
     await this.setState('photo_hash', hash)
+  }
+
+  /**
+   * Amin #5062: each queued file/contract photo goes up as a blob first (the server counts it by its exact WebP
+   * size); the row then carries only the hash, and the working database lets go of the bytes.
+   */
+  private async uploadListingPhotos(sessionToken: string, changes: QueuedChange[]): Promise<void> {
+    for (const change of changes) {
+      if (change.t !== 'photos' || !change.row || typeof change.row.data !== 'string' || !change.row.data) continue
+      const data = change.row.data
+      const { hash } = await this.api.putBlob(sessionToken, data)
+      this.photoCache.set(hash, data)
+      change.row = { ...change.row, data: null, blob_hash: hash }
+      await applying(this.db, async () => {
+        await this.db.execute('UPDATE photos SET data = NULL, blob_hash = ? WHERE id = ? AND data IS NOT NULL', [
+          hash,
+          change.k
+        ])
+      })
+    }
+  }
+
+  /** Amin #5062: removed photos give their tokens back — their server copies go, unless another photo still uses them. */
+  private async emptyBlobTrash(sessionToken: string): Promise<SyncUsage | null> {
+    const raw = await this.getState(BLOB_TRASH_KEY)
+    if (!raw) return null
+    let usage: SyncUsage | null = null
+    for (const hash of JSON.parse(raw) as string[]) {
+      const used = await this.db.execute('SELECT 1 FROM photos WHERE blob_hash = ? LIMIT 1', [hash])
+      if (used.rows.length > 0) continue
+      usage = (await this.api.deleteBlob(sessionToken, hash)).usage
+      this.photoCache.delete(hash)
+    }
+    await this.setState(BLOB_TRASH_KEY, null)
+    return usage
   }
 
   private async downloadPhoto(sessionToken: string, row: Record<string, unknown>): Promise<void> {

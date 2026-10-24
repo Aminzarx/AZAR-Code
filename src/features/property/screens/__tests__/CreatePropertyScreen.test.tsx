@@ -14,6 +14,7 @@ jest.mock('@features/auth/AuthProvider', () => ({
 }))
 
 jest.mock('../../hooks/usePropertyService')
+jest.mock('@features/photos/hooks/usePhotoRepository', () => ({ usePhotoRepository: () => null }))
 
 const mockedUsePropertyService = usePropertyService as jest.MockedFunction<
   typeof usePropertyService
@@ -47,7 +48,8 @@ const routeProp = { key: 'CreateProperty', name: 'CreateProperty' as const, para
 
 const NEXT_1 = 'ادامه: مشخصات و قیمت'
 const NEXT_2 = 'ادامه: مشخصات مالک'
-const NEXT_3 = 'ادامه: عنوان و توضیحات'
+const NEXT_3 = 'ادامه: عکس‌ها'
+const NEXT_4 = 'ادامه: عنوان و توضیحات'
 const SAVE = 'ذخیرهٔ فایل'
 
 describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
@@ -93,6 +95,7 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
     await waitFor(() => fireEvent.press(getByLabelText('یکی بیشتر تعداد اتاق')))
     await waitFor(() => fireEvent.press(getByText(NEXT_2)))
     await waitFor(() => fireEvent.press(getByText(NEXT_3)))
+    await waitFor(() => fireEvent.press(getByText(NEXT_4)))
 
     await waitFor(() =>
       expect(getByLabelText('عنوان فایل').props.value).toBe('آپارتمان ۲ خوابه، تهران')
@@ -133,6 +136,7 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
     await waitFor(() => fireEvent.press(getByText(NEXT_1)))
     await waitFor(() => fireEvent.press(getByText(NEXT_2)))
     await waitFor(() => fireEvent.press(getByText(NEXT_3)))
+    await waitFor(() => fireEvent.press(getByText(NEXT_4)))
     await waitFor(() => fireEvent.press(getByText(SAVE)))
 
     expect(await findByText('شهر الزامی است.')).toBeTruthy()
@@ -160,6 +164,7 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
       fireEvent.changeText(getByLabelText('شماره موبایل مالک'), '۰۹۱۲۱۲۳۴۵۶۷')
     )
     await waitFor(() => fireEvent.press(getByText(NEXT_3)))
+    await waitFor(() => fireEvent.press(getByText(NEXT_4)))
     await waitFor(() => fireEvent.press(getByText(SAVE)))
 
     await waitFor(() =>

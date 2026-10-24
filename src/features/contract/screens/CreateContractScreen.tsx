@@ -4,10 +4,15 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { ChipGroup, FormScreenContainer } from '@shared/components'
+import { Button, ChipGroup, FormScreenContainer } from '@shared/components'
+import { toPersianDigits } from '@shared/utils/persianText'
+import { PhotoEditor } from '@features/photos/components/PhotoEditor'
+import { usePhotoRepository } from '@features/photos/hooks/usePhotoRepository'
+import type { EditorPhoto } from '@features/photos/photoList'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
 import { ContractValidationError } from '../validation/ContractValidationError'
+import { validateContractForm } from '../validation/contractValidation'
 import type { ContractFormErrors, ContractFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateContract'>
@@ -30,6 +35,10 @@ const REMINDER_OFFSET_OPTIONS: readonly { value: ReminderOffset; label: string }
   { value: '3', label: '۳ ماه قبل' }
 ]
 
+/** Amin #5062: a new contract in two steps, the second one its photos */
+type ContractStep = 1 | 2
+const STEP_NAMES: Record<ContractStep, string> = { 1: 'مشخصات قرارداد', 2: 'عکس‌ها' }
+
 export function CreateContractScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -41,6 +50,9 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   const [reminderOffset, setReminderOffset] = useState<ReminderOffset>('0')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [step, setStep] = useState<ContractStep>(1)
+  const [photos, setPhotos] = useState<EditorPhoto[]>([])
+  const photoRepository = usePhotoRepository()
   // A guard beyond `isSubmitting`/the Save button's own disabled state —
   // both are React state, so two presses landing in the same tick (a
   // fast double-tap) can both read `isSubmitting === false` before either
@@ -52,6 +64,21 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
     value: ContractFormValues[K]
   ): void {
     setValues((current) => ({ ...current, [field]: value }))
+  }
+
+  function handleNext(): void {
+    const checked = validateContractForm(values)
+    setErrors(checked.errors ?? {})
+    if (checked.errors) return
+    setStep(2)
+  }
+
+  function handleBack(): void {
+    if (step === 2) {
+      setStep(1)
+      return
+    }
+    navigation.goBack()
   }
 
   async function handleSubmit(): Promise<void> {
@@ -68,6 +95,10 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
         { propertyId, applicantId, dealId },
         values
       )
+      // Amin #5062: the photos of the «عکس‌ها» step, in their order (their size counts in the contract's tokens)
+      if (photos.length > 0) {
+        await photoRepository?.replaceFor(session.userId, 'contract', contract.id, photos)
+      }
       const offsetMonths = Number(reminderOffset)
       if (offsetMonths > 0) {
         // Best-effort — createContract already succeeded, a calendar
@@ -85,6 +116,7 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
     } catch (caughtError) {
       if (caughtError instanceof ContractValidationError) {
         setErrors(caughtError.fieldErrors)
+        setStep(1)
       } else {
         setSubmitError('ثبت قرارداد با مشکل مواجه شد. دوباره تلاش کنید.')
       }
@@ -97,23 +129,47 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   return (
     <FormScreenContainer
       section="contract"
-      onBack={() => navigation.goBack()}
+      onBack={handleBack}
       headerTitle="افزودن قرارداد"
-      onSave={handleSubmit}
-      isSaving={isSubmitting}
+      subheader={
+        <View style={styles.progress}>
+          <View style={styles.bars}>
+            {([1, 2] as const).map((n) => (
+              <View key={n} style={[styles.bar, n <= step && styles.barOn]} />
+            ))}
+          </View>
+          <Text style={[theme.typography('bodySm'), styles.stepText]}>
+            {`مرحلهٔ ${toPersianDigits(String(step))} از ۲ · `}
+            <Text style={[theme.typography('labelMd'), styles.stepName]}>{STEP_NAMES[step]}</Text>
+          </Text>
+        </View>
+      }
+      footer={
+        step === 1 ? (
+          <Button label={`ادامه: ${STEP_NAMES[2]}`} onPress={handleNext} />
+        ) : (
+          <Button label="ذخیرهٔ قرارداد" onPress={handleSubmit} loading={isSubmitting} />
+        )
+      }
     >
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
-      <ContractForm values={values} errors={errors} onChange={handleChange} />
-      <View style={styles.reminderSection}>
-        <ChipGroup
-          label="یادآور پایان قرارداد در تقویم گوشی"
-          options={REMINDER_OFFSET_OPTIONS}
-          value={reminderOffset}
-          onChange={(value) => setReminderOffset(value ?? '0')}
-        />
-      </View>
+      {step === 1 ? (
+        <>
+          <ContractForm values={values} errors={errors} onChange={handleChange} />
+          <View style={styles.reminderSection}>
+            <ChipGroup
+              label="یادآور پایان قرارداد در تقویم گوشی"
+              options={REMINDER_OFFSET_OPTIONS}
+              value={reminderOffset}
+              onChange={(value) => setReminderOffset(value ?? '0')}
+            />
+          </View>
+        </>
+      ) : (
+        <PhotoEditor photos={photos} noun="قرارداد" onChange={setPhotos} />
+      )}
     </FormScreenContainer>
   )
 }
@@ -129,6 +185,18 @@ function createStyles(theme: Theme) {
     },
     reminderSection: {
       marginTop: theme.spacing.space5
-    }
+    },
+    // same progress bar as the new-file wizard (CreatePropertyScreen)
+    progress: {
+      paddingHorizontal: theme.layout.screenPaddingX,
+      paddingTop: theme.spacing.space4,
+      gap: theme.spacing.space2,
+      backgroundColor: theme.colors.background
+    },
+    bars: { flexDirection: 'row', gap: theme.spacing.space2 },
+    bar: { flex: 1, height: 5, borderRadius: 3, backgroundColor: theme.colors.outlineVariant },
+    barOn: { backgroundColor: theme.colors.primary },
+    stepText: { color: theme.colors.onSurfaceVariant, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' },
+    stepName: { color: theme.colors.onSurface }
   })
 }

@@ -16,6 +16,7 @@ import {
   MarqueeText
 } from '@shared/components'
 import { formatJalaliDate, gregorianIsoToJalali } from '@shared/utils/jalaliDate'
+import { PhotoStrip } from '@features/photos/components/PhotoStrip'
 import { useContractDetail } from '../hooks/useContractDetail'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
@@ -195,6 +196,9 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
               tone={CONTRACT_STATUS_TONES[contract.status]}
             />
           </View>
+
+          {/* Amin #5062: the contract's photos */}
+          <PhotoStrip subjectType="contract" subjectId={contract.id} />
 
           <LinkRow
             label="ملک"

@@ -71,6 +71,8 @@ type AuthContextValue = {
   sync: SyncStatus
   /** sends what is waiting now; returns how many changes are still not on the server */
   syncNow: () => Promise<number>
+  /** Amin #5062: a file/contract photo's bytes (base64) for showing; null while it cannot be fetched (offline) */
+  loadPhoto: (photo: { data: string | null; blobHash: string | null }) => Promise<string | null>
 }
 
 export type SignUpProfile = { displayName?: string; agencyName?: string }
@@ -251,6 +253,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       session,
       sync,
       syncNow: () => (session ? syncOnce(session) : Promise.resolve(0)),
+      loadPhoto: (photo) =>
+        photo.data
+          ? Promise.resolve(photo.data)
+          : session && syncService
+            ? syncService.loadPhoto(session.sessionToken, photo)
+            : Promise.resolve(null),
       sendOtp: (phoneNumber) => authApiClient.sendOtp(phoneNumber),
       verifyOtp: (phoneNumber, code) => authApiClient.verifyOtp(phoneNumber, code),
       register: async (phoneNumber, referralCode, profile) => {
@@ -310,6 +318,7 @@ const placeholderValue: AuthContextValue = {
   session: null,
   sync: IDLE_SYNC,
   syncNow: () => Promise.resolve(0),
+  loadPhoto: (photo) => Promise.resolve(photo.data),
   sendOtp: () => Promise.reject(new Error('Auth is still initializing.')),
   verifyOtp: () => Promise.reject(new Error('Auth is still initializing.')),
   register: () => Promise.reject(new Error('Auth is still initializing.')),

@@ -19,6 +19,7 @@ import { migration0017ContractCalendarEvent } from './0017_contract_calendar_eve
 import { migration0018PropertyBarterItems } from './0018_property_barter_items'
 import { migration0019ServerSync } from './0019_server_sync'
 import { migration0020DeviceStore } from './0020_device_store'
+import { migration0021Photos } from './0021_photos'
 
 /**
  * Ordered by version, ascending — docs/architecture/migration-strategy.md
@@ -44,5 +45,6 @@ export const migrations: readonly Migration[] = [
   migration0017ContractCalendarEvent,
   migration0018PropertyBarterItems,
   migration0019ServerSync,
-  migration0020DeviceStore
+  migration0020DeviceStore,
+  migration0021Photos
 ]

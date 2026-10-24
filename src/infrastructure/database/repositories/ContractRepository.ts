@@ -1,4 +1,5 @@
 import type { DB } from '@op-engineering/op-sqlite'
+import { PhotoRepository } from './PhotoRepository'
 
 export type ContractStatus = 'active' | 'completed' | 'cancelled'
 
@@ -165,6 +166,8 @@ export class ContractRepository {
   }
 
   async delete(id: string): Promise<void> {
+    // Amin #5062: its photos go with it (their server copies are deleted on the next push, giving the tokens back)
+    await new PhotoRepository(this.db, () => '').deleteFor('contract', id)
     await this.db.execute('DELETE FROM contracts WHERE id = ?', [id])
   }
 }

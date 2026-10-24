@@ -1,0 +1,234 @@
+import React, { useEffect, useState } from 'react'
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { useAuth } from '@features/auth/AuthProvider'
+import { Button, Icon } from '@shared/components'
+import { useTheme, type Theme } from '@shared/theme'
+import { toPersianDigits } from '@shared/utils/persianText'
+import {
+  CameraPermissionError,
+  MAX_PHOTOS,
+  photoDataUri,
+  pickPhotos,
+  takePhoto,
+  type ConvertedPhoto
+} from '@infrastructure/images/listingPhotos'
+import { movePhoto, photosTokens, type EditorPhoto } from '../photoList'
+
+type Props = {
+  photos: readonly EditorPhoto[]
+  onChange: (photos: EditorPhoto[]) => void
+  /** what the photos are of, for the hint («فایل» / «قرارداد») */
+  noun: string
+}
+
+let nextKey = 0
+function asEditorPhoto(photo: ConvertedPhoto): EditorPhoto {
+  nextKey += 1
+  return {
+    key: `new-${Date.now()}-${nextKey}`,
+    data: photo.base64,
+    bytes: photo.bytes,
+    width: photo.width,
+    height: photo.height
+  }
+}
+
+/**
+ * Amin #5062: the «عکس‌ها» step of a new property file or contract. Photos come from the camera or the gallery,
+ * are made WebP (long side 1600, quality 80, no location data) in memory, and can be reordered (the first is the
+ * main photo) or removed. The line on top says how many there are and what they cost in storage tokens.
+ */
+export function PhotoEditor({ photos, onChange, noun }: Props): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const room = MAX_PHOTOS - photos.length
+
+  async function add(source: 'camera' | 'gallery'): Promise<void> {
+    if (busy || room <= 0) return
+    setError(null)
+    setBusy(true)
+    try {
+      const added =
+        source === 'camera'
+          ? [await takePhoto()].filter((p): p is ConvertedPhoto => p !== null)
+          : await pickPhotos(room)
+      if (added.length > 0) onChange([...photos, ...added.map(asEditorPhoto)])
+    } catch (caught) {
+      setError(
+        caught instanceof CameraPermissionError
+          ? 'برای عکس گرفتن، اجازهٔ دوربین را بدهید.'
+          : 'افزودن عکس انجام نشد. دوباره تلاش کنید.'
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <View style={styles.wrapper}>
+      <Text style={[theme.typography('bodySm'), styles.summary]}>
+        {photos.length === 0
+          ? `عکس‌های ${noun} را اضافه کنید (اختیاری، تا ${toPersianDigits(String(MAX_PHOTOS))} عکس)`
+          : `${toPersianDigits(String(photos.length))} از ${toPersianDigits(String(MAX_PHOTOS))} عکس · حدود ${toPersianDigits(
+              String(photosTokens(photos))
+            ).replace('.', '٫')} توکن`}
+      </Text>
+      <View style={styles.buttons}>
+        <Button
+          label="دوربین"
+          variant="secondary"
+          onPress={() => add('camera')}
+          disabled={busy || room <= 0}
+          style={styles.button}
+        />
+        <Button
+          label="گالری"
+          variant="secondary"
+          onPress={() => add('gallery')}
+          disabled={busy || room <= 0}
+          style={styles.button}
+        />
+      </View>
+      {busy ? <ActivityIndicator color={theme.colors.primary} /> : null}
+      {error ? <Text style={[theme.typography('bodySm'), styles.error]}>{error}</Text> : null}
+
+      <View style={styles.grid}>
+        {photos.map((photo, index) => (
+          <View key={photo.key} style={styles.cell}>
+            <PhotoThumb photo={photo} style={styles.thumb} />
+            {index === 0 ? (
+              <View style={styles.mainBadge}>
+                <Text style={[theme.typography('labelSm'), styles.mainText]}>عکس اصلی</Text>
+              </View>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`حذف عکس ${toPersianDigits(String(index + 1))}`}
+              onPress={() => onChange(photos.filter((p) => p.key !== photo.key))}
+              hitSlop={6}
+              style={styles.remove}
+            >
+              <Icon name="close" size="xs" color={theme.colors.onError} />
+            </Pressable>
+            <View style={styles.moves}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`عکس ${toPersianDigits(String(index + 1))} یکی جلوتر`}
+                accessibilityState={{ disabled: index === 0 }}
+                disabled={index === 0}
+                onPress={() => onChange(movePhoto(photos, index, -1))}
+                style={[styles.move, index === 0 && styles.moveOff]}
+              >
+                <Icon name="chevron" size="xs" color={theme.colors.onSurface} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`عکس ${toPersianDigits(String(index + 1))} یکی عقب‌تر`}
+                accessibilityState={{ disabled: index === photos.length - 1 }}
+                disabled={index === photos.length - 1}
+                onPress={() => onChange(movePhoto(photos, index, 1))}
+                style={[styles.move, styles.moveLater, index === photos.length - 1 && styles.moveOff]}
+              >
+                <Icon name="chevron" size="xs" color={theme.colors.onSurface} />
+              </Pressable>
+            </View>
+          </View>
+        ))}
+      </View>
+      <Text style={[theme.typography('bodySm'), styles.hint]}>
+        عکس‌ها بدون مکان و مشخصات گوشی ذخیره می‌شوند؛ اولین عکس، عکس اصلی است.
+      </Text>
+    </View>
+  )
+}
+
+/** A photo's picture: its bytes while on the phone, else fetched from the server; a quiet box until then. */
+export function PhotoThumb({
+  photo,
+  style,
+  fit = 'cover'
+}: {
+  photo: { data?: string | null; blobHash?: string | null }
+  style: object
+  fit?: 'cover' | 'contain'
+}): React.JSX.Element {
+  const theme = useTheme()
+  const { loadPhoto } = useAuth()
+  const [data, setData] = useState<string | null>(photo.data ?? null)
+  useEffect(() => {
+    let cancelled = false
+    if (photo.data) {
+      setData(photo.data)
+      return
+    }
+    loadPhoto({ data: null, blobHash: photo.blobHash ?? null })
+      .then((loaded) => {
+        if (!cancelled) setData(loaded)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [photo.data, photo.blobHash, loadPhoto])
+  return data ? (
+    <Image source={{ uri: photoDataUri(data) }} style={style} resizeMode={fit} />
+  ) : (
+    <View style={[style, { backgroundColor: theme.colors.surfaceContainerHigh }]} />
+  )
+}
+
+function createStyles(theme: Theme) {
+  return StyleSheet.create({
+    wrapper: { gap: theme.spacing.space4 },
+    summary: { color: theme.colors.onSurfaceVariant, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' },
+    buttons: { flexDirection: 'row', gap: theme.spacing.space3 },
+    button: { flex: 1 },
+    error: { color: theme.colors.error, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.space3 },
+    cell: { width: '30%', aspectRatio: 1 },
+    thumb: { width: '100%', height: '100%', borderRadius: theme.radius.medium },
+    mainBadge: {
+      position: 'absolute',
+      bottom: 6,
+      start: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.primary
+    },
+    mainText: { color: theme.colors.onPrimary },
+    remove: {
+      position: 'absolute',
+      top: 6,
+      end: 6,
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.error
+    },
+    moves: {
+      position: 'absolute',
+      top: 6,
+      start: 6,
+      flexDirection: 'row',
+      gap: 4
+    },
+    move: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surfaceContainerLowest,
+      // «جلوتر» = toward the start of the list: in RTL that is to the right, as the chevron draws by default
+      transform: [{ scaleX: theme.isRTL ? -1 : 1 }]
+    },
+    moveLater: { transform: [{ scaleX: theme.isRTL ? 1 : -1 }] },
+    moveOff: { opacity: 0.35 },
+    hint: { color: theme.colors.onSurfaceVariant, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' }
+  })
+}

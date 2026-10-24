@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- v1.2.0: only the folder the in-app updater downloads into (AzarInstallerModule). -->
+<!-- v1.2.0: only the folder the in-app updater downloads into (AzarInstallerModule).
+     Amin #5062: and the cache folder the camera writes a shot into (AzarImageModule.takePhoto), deleted once converted. -->
 <paths>
     <files-path name="updates" path="updates/" />
+    <cache-path name="camera" path="camera/" />
 </paths>

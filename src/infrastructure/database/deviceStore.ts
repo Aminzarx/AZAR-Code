@@ -1,6 +1,7 @@
 import type { DB } from '@op-engineering/op-sqlite'
 import { DEVICE_TABLES } from './migrations/0020_device_store'
 import { SYNCED_ID_TABLES, SYNCED_PAIR_TABLES, SYNCED_SETTING_KEYS } from './migrations/0019_server_sync'
+import { PHOTO_TABLES } from './migrations/0021_photos'
 
 /**
  * Amin #5040: the profile name and agency stay on the phone (encrypted, for the signed-in account), so they show
@@ -19,6 +20,7 @@ export const FILE_TABLE_ORDER: string[] = [
   ...SYNCED_ID_TABLES.slice(7, 10),
   'requirement_criterion_suppressions',
   ...SYNCED_ID_TABLES.slice(10),
+  ...PHOTO_TABLES,
   'application_settings'
 ]
 

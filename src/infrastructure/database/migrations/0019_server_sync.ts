@@ -42,7 +42,7 @@ export const SYNCED_SETTING_KEYS = ['display_name', 'agency_name', 'profile_phot
 
 const NOT_APPLYING = `(SELECT value FROM sync_state WHERE key = 'applying') IS NOT '1'`
 
-function triggersFor(table: string, key: (row: 'NEW' | 'OLD') => string, extraWhen = (_row: 'NEW' | 'OLD') => ''): string[] {
+export function triggersFor(table: string, key: (row: 'NEW' | 'OLD') => string, extraWhen = (_row: 'NEW' | 'OLD') => ''): string[] {
   const events: Array<['ai' | 'au' | 'ad', string, 'NEW' | 'OLD']> = [
     ['ai', 'INSERT', 'NEW'],
     ['au', 'UPDATE', 'NEW'],

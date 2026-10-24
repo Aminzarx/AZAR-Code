@@ -1,4 +1,5 @@
 import type { DB } from '@op-engineering/op-sqlite'
+import { PhotoRepository } from './PhotoRepository'
 import { ContactRepository } from './ContactRepository'
 
 export type PropertyStatus = 'active' | 'archived'
@@ -330,6 +331,8 @@ export class PropertyRepository {
   }
 
   async delete(id: string): Promise<void> {
+    // Amin #5062: its photos go with it (their server copies are deleted on the next push, giving the tokens back)
+    await new PhotoRepository(this.db, () => '').deleteFor('property', id)
     await this.db.execute('DELETE FROM properties WHERE id = ?', [id])
   }
 }

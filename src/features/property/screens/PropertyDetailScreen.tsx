@@ -21,6 +21,7 @@ import { formatIranPhoneNumberForDisplay } from '@shared/utils/iranPhoneNumber'
 import { moneyLine } from '@shared/utils/shortMoney'
 import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
+import { PhotoStrip } from '@features/photos/components/PhotoStrip'
 import { usePropertyDetail } from '../hooks/usePropertyDetail'
 import { usePropertyService } from '../hooks/usePropertyService'
 import { usePropertyActivity } from '../hooks/usePropertyActivity'
@@ -220,6 +221,8 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
             <Text style={[theme.typography('bodyMd'), styles.location]}>
               {[property.city, property.address].filter(Boolean).join('، ')}
             </Text>
+            {/* Amin #5062: the file's photos (the main one first) */}
+            <PhotoStrip subjectType="property" subjectId={property.id} />
 
             {headlinePrice ? (
               <View style={styles.headlineStats}>

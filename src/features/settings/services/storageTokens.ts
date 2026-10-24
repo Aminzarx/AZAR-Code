@@ -55,6 +55,23 @@ export type StorageUsage = {
   share: number
 }
 
+/**
+ * Amin #5062: a photo costs its WebP size (as on the server, where its bytes are a blob) plus its small row — not
+ * the longer base64 text it is carried in while waiting to be sent.
+ */
+export async function photoBytes(db: DB): Promise<number> {
+  try {
+    const result = await db.execute('SELECT * FROM photos')
+    let bytes = 0
+    for (const row of result.rows ?? []) {
+      bytes += Number(row.bytes ?? 0) + utf8Length(JSON.stringify({ ...row, data: null }))
+    }
+    return bytes
+  } catch {
+    return 0
+  }
+}
+
 /** Sums the stored size of the user's own data plus any extra files (the profile photo). */
 export async function measureStorageUsage(db: DB, extraBytes = 0): Promise<StorageUsage> {
   let bytes = extraBytes
@@ -68,6 +85,7 @@ export async function measureStorageUsage(db: DB, extraBytes = 0): Promise<Stora
       // a table an older database does not have yet holds nothing
     }
   }
+  bytes += await photoBytes(db)
   const tokens = bytesToTokens(bytes)
   return {
     bytes,

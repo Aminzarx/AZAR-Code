@@ -15,6 +15,10 @@ jest.mock('@features/auth/AuthProvider', () => ({
 }))
 
 jest.mock('../../hooks/useContractService')
+jest.mock('@features/photos/hooks/usePhotoRepository', () => ({ usePhotoRepository: () => null }))
+
+const NEXT = 'ادامه: عکس‌ها'
+const SAVE = 'ذخیرهٔ قرارداد'
 
 const mockedUseContractService = useContractService as jest.MockedFunction<
   typeof useContractService
@@ -34,16 +38,35 @@ describe('CreateContractScreen', () => {
     mockedUseContractService.mockReturnValue({ createContract: mockCreateContract } as never)
   })
 
-  it('shows the field errors the service reports when required fields are invalid', async () => {
+  it('does not leave the first step while the dates are not valid', async () => {
+    const { getByText, findByText, queryByText } = await render(
+      withTheme(<CreateContractScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    await waitFor(() => fireEvent.press(getByText(NEXT)))
+
+    expect(
+      await findByText('تاریخ شروع را به‌صورت ۱۴۰۵/۰۵/۱۲ (سال/ماه/روز شمسی) وارد کنید.')
+    ).toBeTruthy()
+    expect(queryByText('دوربین')).toBeNull()
+    expect(mockCreateContract).not.toHaveBeenCalled()
+  })
+
+  it('Amin #5062: step 2 is the photos; the service errors bring the form back', async () => {
     mockCreateContract.mockRejectedValue(
       new ContractValidationError({ startDate: 'تاریخ شروع را وارد کنید.' })
     )
 
-    const { getByText, findByText } = await render(
+    const { getByLabelText, getByText, findByText } = await render(
       withTheme(<CreateContractScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.press(getByText('ذخیره')))
+    await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ شروع'), '1405/06/10'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ پایان'), '1406/06/10'))
+    await waitFor(() => fireEvent.press(getByText(NEXT)))
+    expect(getByText('دوربین')).toBeTruthy()
+    expect(getByText('گالری')).toBeTruthy()
+    await waitFor(() => fireEvent.press(getByText(SAVE)))
 
     expect(await findByText('تاریخ شروع را وارد کنید.')).toBeTruthy()
     expect(mockReplace).not.toHaveBeenCalled()
@@ -56,15 +79,16 @@ describe('CreateContractScreen', () => {
       withTheme(<CreateContractScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ شروع'), '2026-09-01'))
-    await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ پایان'), '2027-09-01'))
-    await waitFor(() => fireEvent.press(getByText('ذخیره')))
+    await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ شروع'), '1405/06/10'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ پایان'), '1406/06/10'))
+    await waitFor(() => fireEvent.press(getByText(NEXT)))
+    await waitFor(() => fireEvent.press(getByText(SAVE)))
 
     await waitFor(() =>
       expect(mockCreateContract).toHaveBeenCalledWith(
         'u1',
         { propertyId: 'prop-1', applicantId: 'app-1', dealId: 'deal-1' },
-        expect.objectContaining({ startDate: '2026-09-01', endDate: '2027-09-01' })
+        expect.objectContaining({ startDate: '1405/06/10', endDate: '1406/06/10' })
       )
     )
     await waitFor(() =>

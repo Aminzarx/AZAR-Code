@@ -49,7 +49,9 @@ class FakeServer {
       },
       usage: async () => ({ usage: this.usage() }),
       putBlob: async (_t: string, data: string) => {
-        const hash = 'h'.repeat(52) + String(this.blobs.size).padStart(12, '0')
+        this.check()
+        // like the server: named by its content, so the same photo sent twice is stored once
+        const hash = [...data].map((ch) => ch.charCodeAt(0).toString(16)).join('').padEnd(64, '0').slice(0, 64)
         this.blobs.set(hash, data)
         return { hash, usage: this.usage() }
       },
@@ -357,5 +359,86 @@ describe('SyncService, option A (Amin #4826)', () => {
     expect(server.rows.get('properties/p1')?.row?.title).toBe('قدیمی')
     expect(server.rows.get('contacts/c1')?.row?.full_name).toBe('علی')
     expect(await queuedOnDisk(disk)).toBe(0)
+  })
+})
+
+describe('file and contract photos (Amin #5062)', () => {
+  const { PhotoRepository } = require('../../database/repositories/PhotoRepository') as typeof import('../../database/repositories/PhotoRepository')
+  let n = 0
+  const ids = (): string => `photo-${++n}`
+
+  it('a queued photo goes up as a blob first; the row carries only the hash and the phone lets go of the bytes', async () => {
+    const server = new FakeServer()
+    const app = await launch(server)
+    await app.sync.claim(USER)
+    await addProperty(app.db, 'p1', 'آپارتمان')
+    const photos = new PhotoRepository(app.db, ids)
+    await photos.replaceFor(USER, 'property', 'p1', [
+      { data: 'AAAA', bytes: 3, width: 4, height: 3 },
+      { data: 'BBBB', bytes: 3, width: 4, height: 3 }
+    ])
+
+    await app.sync.push(TOKEN, USER)
+
+    expect([...server.blobs.values()].sort()).toEqual(['AAAA', 'BBBB'])
+    const sent = [...server.rows.values()].filter((c) => c.t === 'photos')
+    expect(sent).toHaveLength(2)
+    for (const c of sent) {
+      expect(c.row?.data).toBeNull()
+      expect(server.blobs.has(String(c.row?.blob_hash))).toBe(true)
+    }
+    const local = await photos.listFor('property', 'p1')
+    expect(local.map((p) => p.data)).toEqual([null, null])
+    expect(local.every((p) => p.blobHash)).toBe(true)
+    // still shown from the server (and kept in memory for this run)
+    expect(await app.sync.loadPhoto(TOKEN, local[0]!)).toBe('AAAA')
+    expect(await app.sync.pendingCount()).toBe(0)
+  })
+
+  it('a photo made offline waits, encrypted, in the queue and survives a restart until it is sent', async () => {
+    const server = new FakeServer()
+    server.offline = true
+    const first = await launch(server)
+    await first.sync.claim(USER)
+    await addProperty(first.db, 'p1', 'آپارتمان')
+    await new PhotoRepository(first.db, ids).replaceFor(USER, 'property', 'p1', [
+      { data: 'CCCC', bytes: 3, width: 4, height: 3 }
+    ])
+    await expect(first.sync.push(TOKEN, USER)).rejects.toThrow()
+
+    const again = await launch(server, first.files, first.disk)
+    const waiting = await new PhotoRepository(again.db, ids).listFor('property', 'p1')
+    expect(waiting.map((p) => p.data)).toEqual(['CCCC'])
+
+    server.offline = false
+    await again.sync.push(TOKEN, USER)
+    expect([...server.blobs.values()]).toEqual(['CCCC'])
+  })
+
+  it('removing a photo, or deleting its file, gives its server copy (and tokens) back on the next push', async () => {
+    const server = new FakeServer()
+    const app = await launch(server)
+    await app.sync.claim(USER)
+    await addProperty(app.db, 'p1', 'آپارتمان')
+    const photos = new PhotoRepository(app.db, ids)
+    await photos.replaceFor(USER, 'property', 'p1', [
+      { data: 'AAAA', bytes: 3, width: 4, height: 3 },
+      { data: 'BBBB', bytes: 3, width: 4, height: 3 }
+    ])
+    await app.sync.push(TOKEN, USER)
+    const [first, second] = await photos.listFor('property', 'p1')
+
+    // keep only the second, now first
+    await photos.replaceFor(USER, 'property', 'p1', [{ id: second!.id, bytes: second!.bytes }])
+    await app.sync.push(TOKEN, USER)
+    expect([...server.blobs.values()]).toEqual(['BBBB'])
+    expect((await photos.listFor('property', 'p1')).map((p) => [p.id, p.position])).toEqual([[second!.id, 0]])
+    expect(server.rows.has(`photos/${first!.id}`)).toBe(false)
+
+    const { PropertyRepository } = require('../../database/repositories/PropertyRepository') as typeof import('../../database/repositories/PropertyRepository')
+    await new PropertyRepository(app.db).delete('p1')
+    await app.sync.push(TOKEN, USER)
+    expect(server.blobs.size).toBe(0)
+    expect([...server.rows.keys()].filter((k) => k.startsWith('photos/'))).toEqual([])
   })
 })
