@@ -26,7 +26,10 @@ const VALIDATION_CODES = new Set([
   'invalid_referral_code',
   'self_referral',
   'phone_moved',
-  'same_phone_number'
+  'same_phone_number',
+  // Amin #5052: a number change costs tokens; off while its cost is empty in «اپلیکیشن‌ها», refused on a short balance
+  'phone_change_off',
+  'tokens_short'
 ])
 
 /**

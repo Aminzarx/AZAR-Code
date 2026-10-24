@@ -31,6 +31,8 @@ export class ValidationFailureError extends Error {
       | 'self_referral'
       | 'phone_moved'
       | 'same_phone_number'
+      | 'phone_change_off'
+      | 'tokens_short'
   ) {
     super(message)
     this.name = 'ValidationFailureError'
