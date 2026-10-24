@@ -4,6 +4,8 @@
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <!-- Amin #4936: the logo shows from the very first moment, then the JS splash takes over in the same place -->
+        <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 
 </resources>

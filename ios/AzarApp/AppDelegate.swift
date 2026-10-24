@@ -29,7 +29,35 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
+    // Amin #4946: the files never show in a screen recording, mirroring or the app switcher
+    let center = NotificationCenter.default
+    center.addObserver(self, selector: #selector(updatePrivacyCover), name: UIScreen.capturedDidChangeNotification, object: nil)
+    center.addObserver(self, selector: #selector(coverForSwitcher), name: UIApplication.willResignActiveNotification, object: nil)
+    center.addObserver(self, selector: #selector(updatePrivacyCover), name: UIApplication.didBecomeActiveNotification, object: nil)
+    updatePrivacyCover()
+
     return true
+  }
+
+  private var privacyCover: UIView?
+
+  @objc private func coverForSwitcher() { showPrivacyCover(true) }
+
+  @objc private func updatePrivacyCover() { showPrivacyCover(UIScreen.main.isCaptured) }
+
+  private func showPrivacyCover(_ show: Bool) {
+    guard let window = window else { return }
+    if show {
+      if privacyCover != nil { return }
+      let cover = UIView(frame: window.bounds)
+      cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+      cover.backgroundColor = UIColor(red: 0xF8 / 255.0, green: 0xFA / 255.0, blue: 0xFC / 255.0, alpha: 1)
+      window.addSubview(cover)
+      privacyCover = cover
+    } else {
+      privacyCover?.removeFromSuperview()
+      privacyCover = nil
+    }
   }
 }
 

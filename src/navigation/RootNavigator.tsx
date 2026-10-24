@@ -1,9 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme } from '@shared/theme'
-import { LoadingIndicator } from '@shared/components'
+import { SplashScreen, useSplash } from '../app/SplashScreen'
 import { AuthNavigator } from './AuthNavigator'
 import { MainNavigator } from './MainNavigator'
 
@@ -17,24 +17,24 @@ import { MainNavigator } from './MainNavigator'
 export function RootNavigator(): React.JSX.Element {
   const { isInitializing, session } = useAuth()
   const theme = useTheme()
-
-  if (isInitializing) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <LoadingIndicator size="large" />
-      </View>
-    )
-  }
+  // Amin #4936: the splash stays at least 3 s and until the first screen is really there, then fades over it
+  const [navReady, setNavReady] = useState(false)
+  const splash = useSplash(!isInitializing && navReady)
 
   return (
-    <NavigationContainer>{session ? <MainNavigator /> : <AuthNavigator />}</NavigationContainer>
+    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
+      {isInitializing ? null : (
+        <NavigationContainer onReady={() => setNavReady(true)}>
+          {session ? <MainNavigator /> : <AuthNavigator />}
+        </NavigationContainer>
+      )}
+      {splash.visible ? <SplashScreen done={splash.done} onHidden={splash.hide} /> : null}
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center'
+  root: {
+    flex: 1
   }
 })

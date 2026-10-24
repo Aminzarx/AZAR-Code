@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Amin #4937: solid tile behind the launcher logo -->
+    <color name="icon_tile">#F7F7F7</color>
+    <!-- Amin #4936: splash = the app background with the logo -->
+    <color name="splash_background">#F8FAFC</color>
+</resources>
