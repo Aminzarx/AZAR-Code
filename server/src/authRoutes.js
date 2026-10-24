@@ -26,6 +26,8 @@ const FIXED_OTP_CODE = /^\d{6}$/.test(process.env.AZAR_FIXED_OTP_CODE || '') ? p
 // 6 characters, two shorter than every generated code (8).
 const MASTER_REFERRAL_CODE = 'AMINZX'
 
+const { deleteAccountData } = require('./syncRoutes')
+
 const router = express.Router()
 
 /**
@@ -263,6 +265,9 @@ router.post('/login', registerLimiter, (req, res) => {
 
   const sessionToken = generateSessionToken()
   db.transaction(() => {
+    // AZAR-SYNC-001 (Amin #4142 R5): the phone that signs in now is the account's only active phone;
+    // the previous one is signed out and wipes its copy the next time it reaches the server
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
     db.prepare('INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)').run(
       sessionToken,
       user.id,
@@ -308,6 +313,7 @@ router.post('/delete-account', registerLimiter, (req, res) => {
     db.prepare('DELETE FROM phone_changes WHERE user_id = ?').run(user.id)
     db.prepare('DELETE FROM users WHERE id = ?').run(user.id)
     db.prepare('DELETE FROM otp_requests WHERE phone_number = ?').run(phoneNumber)
+    deleteAccountData(user.id)
   })()
 
   res.status(204).end()

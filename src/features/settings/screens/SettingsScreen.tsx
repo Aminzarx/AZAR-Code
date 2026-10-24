@@ -7,36 +7,16 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import {
-  Button,
   ConfirmDialog,
   Icon,
-  InfoDialog,
   MarqueeText,
-  OtpPromptDialog,
-  PasswordPromptDialog
+  OtpPromptDialog
 } from '@shared/components'
 import { getDatabase } from '@infrastructure/database/connection'
 import {
   SessionRepository,
   type SessionRecord
 } from '@infrastructure/database/repositories/SessionRepository'
-import {
-  createBackupFile,
-  restoreBackupFile,
-  RestoreSchemaTooNewError
-} from '@infrastructure/backup/BackupService'
-import {
-  BackupAuthenticationError,
-  BackupTooNewError,
-  BackupTooOldError,
-  BackupFormatError
-} from '@infrastructure/backup/backupFile'
-import { SnapshotFormatError } from '@infrastructure/backup/databaseSnapshot'
-import {
-  pickBackupFileBytes,
-  saveBackupFileToDevice,
-  shareBackupFile
-} from '@infrastructure/backup/backupFileTransfer'
 import { useNetworkStatus } from '@shared/hooks/useNetworkStatus'
 import { formatDateTime } from '@shared/utils/formatDate'
 import { toPersianDigits } from '@shared/utils/persianText'
@@ -62,30 +42,7 @@ function persianNumber(value: number): string {
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>
 
-/**
- * migration-strategy.md's restore checklist requires the *specific,
- * most-actionable* reason to reach the user, not a generic failure —
- * wrong password, corrupted file, and unsupported version are genuinely
- * different situations to be in.
- */
-function importErrorMessage(error: Error): string {
-  if (error instanceof BackupAuthenticationError) {
-    return 'رمز عبور اشتباه است یا فایل نسخه پشتیبان خراب شده است.'
-  }
-  if (error instanceof BackupTooNewError || error instanceof RestoreSchemaTooNewError) {
-    return 'این نسخه پشتیبان توسط نسخه جدیدتری از اپلیکیشن ساخته شده و با این نسخه سازگار نیست.'
-  }
-  if (error instanceof BackupTooOldError) {
-    return 'این نسخه پشتیبان مربوط به نسخه‌ای بسیار قدیمی از اپلیکیشن است و قابل بازیابی نیست.'
-  }
-  if (error instanceof BackupFormatError || error instanceof SnapshotFormatError) {
-    return 'این فایل یک نسخه پشتیبان معتبر ایوان نیست.'
-  }
-  return 'بازیابی نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.'
-}
-
 type DeleteAccountStep = 'closed' | 'confirm' | 'otp'
-type ImportStep = 'closed' | 'password' | 'success'
 
 /**
  * The referral code used to live on the very first screen after
@@ -96,12 +53,11 @@ type ImportStep = 'closed' | 'password' | 'success'
 export function SettingsScreen(props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts } = useAuth()
+  const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts, sync, syncNow } = useAuth()
   const { profile, storage } = useProfile({ withStorage: true })
   const displayName = profile.displayName
   const phoneNumber = profile.phoneNumber
   const isOnline = useNetworkStatus()
-  const [isBackupSheetVisible, setIsBackupSheetVisible] = useState(false)
   const [isSupportSheetVisible, setIsSupportSheetVisible] = useState(false)
   const [support, setSupport] = useState<SupportContacts | null>(null)
   const [supportError, setSupportError] = useState<string | null>(null)
@@ -110,21 +66,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
   const [isInviteVisible, setIsInviteVisible] = useState(false)
   const [isQrVisible, setIsQrVisible] = useState(false)
   const [isLogoutConfirmVisible, setIsLogoutConfirmVisible] = useState(false)
-  const [isBackupDialogVisible, setIsBackupDialogVisible] = useState(false)
-  const [isCreatingBackup, setIsCreatingBackup] = useState(false)
-  const [backupError, setBackupError] = useState<string | null>(null)
-  const [pendingBackup, setPendingBackup] = useState<{ path: string; fileName: string } | null>(
-    null
-  )
-  const [isSavingBackup, setIsSavingBackup] = useState(false)
-  const [isSharingBackup, setIsSharingBackup] = useState(false)
-  const [backupActionError, setBackupActionError] = useState<string | null>(null)
-  const [isImportWarningVisible, setIsImportWarningVisible] = useState(false)
-  const [isPickingImportFile, setIsPickingImportFile] = useState(false)
-  const [importStep, setImportStep] = useState<ImportStep>('closed')
-  const [pendingImportBytes, setPendingImportBytes] = useState<Uint8Array | null>(null)
-  const [isImporting, setIsImporting] = useState(false)
-  const [importError, setImportError] = useState<string | null>(null)
+  const [unsentAtLogout, setUnsentAtLogout] = useState(0)
   const [deleteStep, setDeleteStep] = useState<DeleteAccountStep>('closed')
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -222,110 +164,21 @@ export function SettingsScreen(props: Props): React.JSX.Element {
     logout()
   }
 
-  async function handleCreateBackup(password: string): Promise<void> {
-    setBackupError(null)
-    setIsCreatingBackup(true)
-    try {
-      const db = await getDatabase()
-      const path = await createBackupFile(db, password)
-      setIsBackupDialogVisible(false)
-      setBackupActionError(null)
-      // The file only lands in the app's private cache at this point —
-      // the two buttons below let the user actually choose where it ends
-      // up (a real folder via SAF, or another app like Telegram).
-      setPendingBackup({ path, fileName: path.split('/').pop() ?? 'azar-backup.azarbackup' })
-    } catch {
-      setBackupError('تهیه نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.')
-    } finally {
-      setIsCreatingBackup(false)
-    }
+  /** AZAR-SYNC-001: sends what is waiting first, so signing out loses nothing when online. */
+  async function handleAskLogout(): Promise<void> {
+    setUnsentAtLogout(await syncNow().catch(() => sync.pending))
+    setIsLogoutConfirmVisible(true)
   }
 
-  async function handleSaveBackupToDevice(): Promise<void> {
-    if (!pendingBackup) {
-      return
+  /** AZAR-SYNC-001 (Amin #4797): where the account's files stand against the server */
+  function syncSummary(): string {
+    if (sync.state === 'full') return 'توکن‌ها تمام شده؛ تغییرهای تازه فعلاً فقط روی این گوشی است'
+    if (sync.pending > 0) {
+      return sync.state === 'offline'
+        ? `${persianNumber(sync.pending)} تغییر منتظر اینترنت است`
+        : `در حال ذخیرهٔ ${persianNumber(sync.pending)} تغییر`
     }
-    setBackupActionError(null)
-    setIsSavingBackup(true)
-    try {
-      const saved = await saveBackupFileToDevice(pendingBackup.path, pendingBackup.fileName)
-      if (saved) {
-        setPendingBackup(null)
-      }
-    } catch {
-      setBackupActionError('ذخیره نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.')
-    } finally {
-      setIsSavingBackup(false)
-    }
-  }
-
-  async function handleShareBackup(): Promise<void> {
-    if (!pendingBackup) {
-      return
-    }
-    setBackupActionError(null)
-    setIsSharingBackup(true)
-    try {
-      const shared = await shareBackupFile(pendingBackup.path, pendingBackup.fileName)
-      if (shared) {
-        setPendingBackup(null)
-      }
-    } catch {
-      setBackupActionError('اشتراک‌گذاری نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.')
-    } finally {
-      setIsSharingBackup(false)
-    }
-  }
-
-  async function handleConfirmImportWarning(): Promise<void> {
-    setIsImportWarningVisible(false)
-    setIsPickingImportFile(true)
-    try {
-      const bytes = await pickBackupFileBytes()
-      if (bytes) {
-        setPendingImportBytes(bytes)
-        setImportError(null)
-        setImportStep('password')
-      }
-    } catch {
-      setImportError('باز کردن فایل نسخه پشتیبان با مشکل مواجه شد.')
-      setImportStep('password')
-    } finally {
-      setIsPickingImportFile(false)
-    }
-  }
-
-  async function handleConfirmImportPassword(password: string): Promise<void> {
-    if (!pendingImportBytes) {
-      return
-    }
-    setImportError(null)
-    setIsImporting(true)
-    try {
-      const db = await getDatabase()
-      await restoreBackupFile(db, password, pendingImportBytes)
-      setPendingImportBytes(null)
-      // The live database was just fully replaced out from under the
-      // current session row and every screen's in-memory state — signing
-      // out (handleFinishRestore) forces every screen to re-mount and
-      // re-read from the database once the user logs back in, instead of
-      // continuing to show whatever it happened to have in memory before
-      // the restore.
-      setImportStep('success')
-    } catch (caughtError) {
-      setImportError(
-        caughtError instanceof Error
-          ? importErrorMessage(caughtError)
-          : 'بازیابی نسخه پشتیبان با مشکل مواجه شد.'
-      )
-    } finally {
-      setIsImporting(false)
-    }
-  }
-
-  async function handleFinishRestore(): Promise<void> {
-    setImportStep('closed')
-    await logout()
+    return 'همهٔ پرونده‌ها روی حساب شما ذخیره شده است'
   }
 
   async function handleStartAccountDeletion(): Promise<void> {
@@ -369,6 +222,10 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       setIsDeleting(false)
     }
   }
+
+  // the server's count once it has answered; until then this phone's own estimate
+  const usedTokens = sync.usage ? sync.usage.tokens : (storage?.tokens ?? 0)
+  const usedShare = sync.usage ? sync.usage.bytes / sync.usage.quotaBytes : (storage?.share ?? 0)
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -475,19 +332,21 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             <Text style={[theme.typography('titleSm'), styles.tokenTitle]}>توکن‌های فضای ذخیره‌سازی</Text>
           </View>
           <Text style={[theme.typography('bodyMd'), styles.tokenValue]}>
-            {`${persianNumber(roundTokens(storage?.tokens ?? 0))} از ${persianNumber(STORAGE_TOKEN_ALLOWANCE)} توکن مصرف شده`}
+            {`${persianNumber(roundTokens(usedTokens))} از ${persianNumber(STORAGE_TOKEN_ALLOWANCE)} توکن مصرف شده`}
           </Text>
           <View style={styles.tokenTrack}>
-            <View style={[styles.tokenFill, { width: `${Math.max(storage && storage.tokens > 0 ? 1.5 : 0, (storage?.share ?? 0) * 100)}%` }]} />
+            <View style={[styles.tokenFill, { width: `${Math.max(usedTokens > 0 ? 1.5 : 0, usedShare * 100)}%` }]} />
           </View>
         </View>
 
         <View style={styles.list}>
           <SettingsRow
             icon="cloud"
-            label="نسخه پشتیبان"
-            value="تهیه یا بازیابی اطلاعات این گوشی"
-            onPress={() => setIsBackupSheetVisible(true)}
+            label="ذخیره روی سرور"
+            value={syncSummary()}
+            onPress={() => {
+              syncNow().catch(() => undefined)
+            }}
           />
           <SettingsRow
             icon="bell"
@@ -514,7 +373,9 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             icon="logout"
             label="خروج از حساب"
             destructive
-            onPress={() => setIsLogoutConfirmVisible(true)}
+            onPress={() => {
+              handleAskLogout().catch(() => undefined)
+            }}
             last
           />
         </View>
@@ -555,34 +416,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       />
 
       <OptionsSheet
-        visible={isBackupSheetVisible}
-        title="نسخه پشتیبان"
-        lead="اطلاعات شما فعلاً فقط روی همین گوشی است؛ با نسخه پشتیبان، اگر گوشی گم یا عوض شود، اطلاعات از دست نمی‌رود."
-        onClose={() => setIsBackupSheetVisible(false)}
-        options={[
-          {
-            icon: 'cloud',
-            label: 'تهیه نسخه پشتیبان',
-            description: 'یک فایل رمزدار از همهٔ اطلاعات',
-            onPress: () => {
-              setIsBackupSheetVisible(false)
-              setIsBackupDialogVisible(true)
-            }
-          },
-          {
-            icon: 'download',
-            label: 'بازیابی از نسخه پشتیبان',
-            description: 'برگرداندن اطلاعات از فایل پشتیبان',
-            onPress: () => {
-              setIsBackupSheetVisible(false)
-              setImportError(null)
-              setIsImportWarningVisible(true)
-            }
-          }
-        ]}
-      />
-
-      <OptionsSheet
         visible={isSupportSheetVisible}
         title="راهنما و پشتیبانی"
         lead={supportError ?? 'پیام‌رسان دلخواهتان را انتخاب کنید تا با پشتیبانی ایوان گفت‌وگو کنید.'}
@@ -593,8 +426,12 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       <ConfirmDialog
         visible={isLogoutConfirmVisible}
         title="خروج از حساب"
-        description="آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟"
-        confirmLabel="خروج"
+        description={
+          unsentAtLogout > 0
+            ? `${persianNumber(unsentAtLogout)} تغییر هنوز به سرور نرسیده و با خروج از این گوشی پاک می‌شود. برای نگه داشتن آن‌ها، اول به اینترنت وصل شوید.`
+            : 'پرونده‌هایتان روی حساب شما می‌ماند و از این گوشی پاک می‌شود؛ با ورود دوباره، همه برمی‌گردد.'
+        }
+        confirmLabel={unsentAtLogout > 0 ? 'خروج و پاک کردن' : 'خروج'}
         destructive
         onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutConfirmVisible(false)}
@@ -622,99 +459,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
         onCancel={() => setDeleteStep('closed')}
       />
 
-      <PasswordPromptDialog
-        visible={isBackupDialogVisible}
-        title="تهیه نسخه پشتیبان"
-        description="یک رمز عبور برای این نسخه پشتیبان انتخاب کنید (حداقل ۸ نویسه). این رمز برای بازیابی اطلاعات لازم است، پس آن را جایی امن یادداشت کنید."
-        confirmLabel="ایجاد نسخه پشتیبان"
-        isSubmitting={isCreatingBackup}
-        errorMessage={backupError ?? undefined}
-        onConfirm={handleCreateBackup}
-        onCancel={() => {
-          setBackupError(null)
-          setIsBackupDialogVisible(false)
-        }}
-      />
-
-      {/* Deliberately not a Modal-based dialog like the others — this one
-          offers a choice between two real native pickers (SAF "save as"
-          and the OS share sheet) that need to launch on top of it, so it
-          stays a plain overlay rather than another `Modal`-in-`Modal`. */}
-      {pendingBackup ? (
-        <View style={styles.backupReadyBackdrop}>
-          <View style={styles.backupReadyCard}>
-            <Text style={[theme.typography('titleMd'), styles.dialogTitle]}>
-              نسخه پشتیبان آماده است
-            </Text>
-            <Text style={[theme.typography('bodyMd'), styles.dialogDescription]}>
-              می‌خواهید این فایل را کجا نگه دارید؟
-            </Text>
-            {backupActionError ? (
-              <Text style={[theme.typography('bodySm'), styles.dialogError]}>
-                {backupActionError}
-              </Text>
-            ) : null}
-            <Button
-              label="ذخیره در دستگاه"
-              onPress={handleSaveBackupToDevice}
-              loading={isSavingBackup}
-              disabled={isSharingBackup}
-              style={styles.backupReadyAction}
-            />
-            <Button
-              label="اشتراک‌گذاری (تلگرام و...)"
-              variant="secondary"
-              onPress={handleShareBackup}
-              loading={isSharingBackup}
-              disabled={isSavingBackup}
-              style={styles.backupReadyAction}
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="بستن"
-              onPress={() => setPendingBackup(null)}
-              hitSlop={theme.spacing.space2}
-              style={styles.backupReadyClose}
-            >
-              <Text style={[theme.typography('labelMd'), styles.editLabel]}>بستن</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
-      <ConfirmDialog
-        visible={isImportWarningVisible}
-        title="بازیابی نسخه پشتیبان"
-        description="این کار تمام اطلاعات موجود در این دستگاه را با اطلاعات فایل انتخابی جایگزین می‌کند و غیرقابل بازگشت است. پیش از ادامه، در صورت نیاز از اطلاعات فعلی نسخه پشتیبان تهیه کنید."
-        confirmLabel="انتخاب فایل"
-        destructive
-        isConfirming={isPickingImportFile}
-        onConfirm={handleConfirmImportWarning}
-        onCancel={() => setIsImportWarningVisible(false)}
-      />
-
-      <PasswordPromptDialog
-        visible={importStep === 'password'}
-        title="بازیابی نسخه پشتیبان"
-        description="رمز عبور این نسخه پشتیبان را وارد کنید."
-        confirmLabel="بازیابی اطلاعات"
-        isSubmitting={isImporting}
-        errorMessage={importError ?? undefined}
-        onConfirm={handleConfirmImportPassword}
-        onCancel={() => {
-          setImportError(null)
-          setPendingImportBytes(null)
-          setImportStep('closed')
-        }}
-      />
-
-      <InfoDialog
-        visible={importStep === 'success'}
-        title="بازیابی با موفقیت انجام شد"
-        description="اطلاعات این دستگاه با نسخه پشتیبان جایگزین شد. برای مشاهده اطلاعات جدید، دوباره وارد حساب کاربری خود شوید."
-        confirmLabel="ورود مجدد"
-        onDismiss={handleFinishRestore}
-      />
     </SafeAreaView>
   )
 }
@@ -822,7 +566,7 @@ function createStyles(theme: Theme) {
     },
     deleteAccount: { alignSelf: 'center', paddingVertical: theme.spacing.space2 },
     deleteAccountText: { color: theme.colors.error },
-    version: { color: theme.colors.outline, textAlign: 'center' },
+    version: { color: theme.colors.outline, textAlign: 'center' }, // rtl-allow: centred page footer
     madeBy: {
       alignItems: 'center',
       gap: theme.spacing.space1,
@@ -831,7 +575,7 @@ function createStyles(theme: Theme) {
     },
     madeByText: {
       color: theme.colors.onSurfaceVariant,
-      textAlign: 'center'
+      textAlign: 'center' // rtl-allow: centred page footer
     },
     madeByLink: {
       color: theme.colors.primary,
@@ -991,65 +735,6 @@ function createStyles(theme: Theme) {
     },
     statusDotInactive: {
       backgroundColor: theme.colors.outline
-    },
-    backupButtonRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.space3,
-      marginTop: theme.spacing.space3
-    },
-    backupButtonFlex: {
-      flex: 1,
-      marginTop: 0
-    },
-    backupButton: {
-      minHeight: theme.touchTargetMinimum,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: theme.component.textField.radius,
-      borderWidth: 1,
-      borderColor: theme.colors.outlineVariant
-    },
-    backupButtonLabel: {
-      color: theme.colors.primary
-    },
-    backupReadyBackdrop: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: 'rgba(30, 30, 32, 0.45)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: theme.layout.screenPaddingX
-    },
-    backupReadyCard: {
-      width: '100%',
-      maxWidth: 480,
-      borderRadius: theme.radius.extraLarge,
-      padding: theme.spacing.space6,
-      gap: theme.spacing.space3,
-      backgroundColor: theme.colors.surfaceContainerLowest,
-      borderWidth: 1,
-      borderColor: theme.colors.outlineVariant,
-      ...theme.elevation.level4
-    },
-    dialogTitle: {
-      color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    dialogDescription: {
-      color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    dialogError: {
-      color: theme.colors.error,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    backupReadyAction: {
-      marginTop: theme.spacing.space1
-    },
-    backupReadyClose: {
-      alignSelf: 'center',
-      marginTop: theme.spacing.space1,
-      minHeight: theme.touchTargetMinimum,
-      justifyContent: 'center'
     }
   })
 }

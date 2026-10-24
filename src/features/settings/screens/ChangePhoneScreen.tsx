@@ -186,8 +186,8 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.surfaceContainerLow
     },
     codeBlock: { gap: theme.spacing.space4, alignItems: 'stretch' },
-    lead: { color: theme.colors.onSurfaceVariant, textAlign: 'center' },
-    error: { color: theme.colors.error, textAlign: 'center' },
+    lead: { color: theme.colors.onSurfaceVariant, textAlign: 'center' }, // rtl-allow: lead line above the centred code boxes
+    error: { color: theme.colors.error, textAlign: 'center' }, // rtl-allow: error under the centred code boxes
     doneBlock: { alignItems: 'center', gap: theme.spacing.space3, paddingTop: theme.spacing.space8 },
     doneIcon: {
       width: 64,
@@ -197,6 +197,6 @@ function createStyles(theme: Theme) {
       alignItems: 'center',
       justifyContent: 'center'
     },
-    doneTitle: { color: theme.colors.onSurface, textAlign: 'center' }
+    doneTitle: { color: theme.colors.onSurface, textAlign: 'center' } // rtl-allow: centred success block
   })
 }

@@ -118,7 +118,7 @@ function createStyles(theme: Theme) {
       flex: 1,
       color: theme.colors.onSurface,
       paddingVertical: 0,
-      textAlign: theme.isRTL ? 'right' : 'left'
+      textAlign: theme.isRTL ? 'right' : 'left' // rtl-allow: TextInput: Android does not swap, so right is physical right
     },
     filterButton: {
       width: 52,

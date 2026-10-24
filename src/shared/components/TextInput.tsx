@@ -80,7 +80,7 @@ export function TextInput({
         autoFocus={autoFocus}
         editable={!disabled}
         secureTextEntry={secureTextEntry}
-        textAlign={theme.isRTL ? 'right' : 'left'}
+        textAlign={theme.isRTL ? 'right' : 'left'} // rtl-allow: TextInput: Android does not swap, so right is physical right
       />
       {hasError ? (
         <Text style={[theme.typography('bodySm'), styles.errorText]}>{errorMessage}</Text>

@@ -186,7 +186,7 @@ function createStyles(theme: Theme) {
       fontSize: 11,
       fontFamily: theme.typography('labelSm').fontFamily,
       color: theme.colors.outline,
-      textAlign: 'center'
+      textAlign: 'center' // rtl-allow: step label centred under its dot
     },
     stepLabelCurrent: { color: theme.colors.onSurface, fontWeight: '700' },
     footer: {

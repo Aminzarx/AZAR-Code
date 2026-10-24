@@ -56,11 +56,11 @@ function createStyles(theme: Theme) {
     },
     title: {
       color: theme.colors.onSurface,
-      textAlign: 'center'
+      textAlign: 'center' // rtl-allow: centred error state
     },
     description: {
       color: theme.colors.onSurfaceVariant,
-      textAlign: 'center'
+      textAlign: 'center' // rtl-allow: centred error state
     },
     actionSpacing: {
       marginTop: theme.spacing.space3

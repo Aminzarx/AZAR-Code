@@ -3,7 +3,6 @@ import { Clipboard, Linking } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
 import { SettingsScreen } from '../SettingsScreen'
-import { BackupAuthenticationError } from '@infrastructure/backup/backupFile'
 
 const mockLogout = jest.fn()
 const mockSendOtp = jest.fn()
@@ -11,14 +10,11 @@ const mockVerifyOtp = jest.fn()
 const mockDeleteAccount = jest.fn()
 const mockFindById = jest.fn()
 const mockSessionFindById = jest.fn()
-const mockCreateBackupFile = jest.fn()
-const mockRestoreBackupFile = jest.fn()
-const mockPickBackupFileBytes = jest.fn()
-const mockSaveBackupFileToDevice = jest.fn()
-const mockShareBackupFile = jest.fn()
 const mockUseProfile = jest.fn()
 const mockNavigate = jest.fn()
 const mockGetSupportContacts = jest.fn()
+const mockSyncNow = jest.fn()
+let mockSync = { state: 'idle', pending: 0, usage: null as null | { bytes: number; quotaBytes: number; tokens: number } }
 
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -27,7 +23,9 @@ jest.mock('@features/auth/AuthProvider', () => ({
     sendOtp: mockSendOtp,
     verifyOtp: mockVerifyOtp,
     deleteAccount: mockDeleteAccount,
-    getSupportContacts: mockGetSupportContacts
+    getSupportContacts: mockGetSupportContacts,
+    sync: mockSync,
+    syncNow: mockSyncNow
   })
 }))
 
@@ -45,21 +43,6 @@ jest.mock('@infrastructure/database/repositories/SessionRepository', () => ({
   SessionRepository: jest.fn().mockImplementation(() => ({
     findById: (...args: unknown[]) => mockSessionFindById(...args)
   }))
-}))
-
-jest.mock('@infrastructure/backup/BackupService', () => {
-  const actual = jest.requireActual('@infrastructure/backup/BackupService')
-  return {
-    RestoreSchemaTooNewError: actual.RestoreSchemaTooNewError,
-    createBackupFile: (...args: unknown[]) => mockCreateBackupFile(...args),
-    restoreBackupFile: (...args: unknown[]) => mockRestoreBackupFile(...args)
-  }
-})
-
-jest.mock('@infrastructure/backup/backupFileTransfer', () => ({
-  pickBackupFileBytes: (...args: unknown[]) => mockPickBackupFileBytes(...args),
-  saveBackupFileToDevice: (...args: unknown[]) => mockSaveBackupFileToDevice(...args),
-  shareBackupFile: (...args: unknown[]) => mockShareBackupFile(...args)
 }))
 
 jest.mock('../../hooks/useProfile', () => ({
@@ -112,15 +95,13 @@ describe('SettingsScreen', () => {
       revokedAt: null
     })
     jest.spyOn(Clipboard, 'setString').mockImplementation(() => undefined)
-    mockCreateBackupFile.mockReset()
-    mockRestoreBackupFile.mockReset()
-    mockPickBackupFileBytes.mockReset()
-    mockSaveBackupFileToDevice.mockReset()
-    mockShareBackupFile.mockReset()
     mockUseProfile.mockReset()
     mockUseProfile.mockReturnValue(profileWith())
     mockNavigate.mockReset()
     mockGetSupportContacts.mockReset()
+    mockSyncNow.mockReset()
+    mockSyncNow.mockResolvedValue(0)
+    mockSync = { state: 'idle', pending: 0, usage: null }
     mockGetSupportContacts.mockResolvedValue({
       prefix: 'پشتیبانی اپلیکیشن ایوان',
       whatsapp: '989120000000',
@@ -186,12 +167,12 @@ describe('SettingsScreen', () => {
     await openMenu(findByLabelText)
     fireEvent.press(await findByLabelText('خروج از حساب'))
     expect(
-      await findByText('آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟')
+      await findByText('پرونده‌هایتان روی حساب شما می‌ماند و از این گوشی پاک می‌شود؛ با ورود دوباره، همه برمی‌گردد.')
     ).toBeTruthy()
 
     fireEvent.press(await findByText('انصراف'))
     await waitFor(() =>
-      expect(queryByText('آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟')).toBeNull()
+      expect(queryByText('پرونده‌هایتان روی حساب شما می‌ماند و از این گوشی پاک می‌شود؛ با ورود دوباره، همه برمی‌گردد.')).toBeNull()
     )
     expect(mockLogout).not.toHaveBeenCalled()
   })
@@ -233,71 +214,6 @@ describe('SettingsScreen', () => {
     await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith('+989121234567'))
   })
 
-  it('creates a backup and then saves it to the device via SAF', async () => {
-    mockCreateBackupFile.mockResolvedValue('/mock/caches/azar-backup-20260810-120000.azarbackup')
-    mockSaveBackupFileToDevice.mockResolvedValue(true)
-    const { findByLabelText, findByText, queryByText } = await render(
-      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
-    fireEvent.press(await findByLabelText('تهیه نسخه پشتیبان'))
-    fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
-    fireEvent.press(await findByText('ایجاد نسخه پشتیبان'))
-
-    await waitFor(() => expect(mockCreateBackupFile).toHaveBeenCalledWith({}, 'a strong password'))
-    expect(await findByText('نسخه پشتیبان آماده است')).toBeTruthy()
-
-    fireEvent.press(await findByText('ذخیره در دستگاه'))
-
-    await waitFor(() =>
-      expect(mockSaveBackupFileToDevice).toHaveBeenCalledWith(
-        '/mock/caches/azar-backup-20260810-120000.azarbackup',
-        'azar-backup-20260810-120000.azarbackup'
-      )
-    )
-    await waitFor(() => expect(queryByText('نسخه پشتیبان آماده است')).toBeNull())
-  })
-
-  it('creates a backup and then shares it (e.g. to Telegram) via react-native-share', async () => {
-    mockCreateBackupFile.mockResolvedValue('/mock/caches/azar-backup-20260810-120000.azarbackup')
-    mockShareBackupFile.mockResolvedValue(true)
-    const { findByLabelText, findByText } = await render(
-      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
-    fireEvent.press(await findByLabelText('تهیه نسخه پشتیبان'))
-    fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
-    fireEvent.press(await findByText('ایجاد نسخه پشتیبان'))
-
-    expect(await findByText('نسخه پشتیبان آماده است')).toBeTruthy()
-    fireEvent.press(await findByText('اشتراک‌گذاری (تلگرام و...)'))
-
-    await waitFor(() =>
-      expect(mockShareBackupFile).toHaveBeenCalledWith(
-        '/mock/caches/azar-backup-20260810-120000.azarbackup',
-        'azar-backup-20260810-120000.azarbackup'
-      )
-    )
-  })
-
-  it('shows an error and keeps the dialog open when backup creation fails', async () => {
-    mockCreateBackupFile.mockRejectedValue(new Error('disk full'))
-    const { findByLabelText, findByText } = await render(
-      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
-    fireEvent.press(await findByLabelText('تهیه نسخه پشتیبان'))
-    fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
-    fireEvent.press(await findByText('ایجاد نسخه پشتیبان'))
-
-    expect(await findByText('تهیه نسخه پشتیبان با مشکل مواجه شد. دوباره تلاش کنید.')).toBeTruthy()
-    expect(mockSaveBackupFileToDevice).not.toHaveBeenCalled()
-    expect(mockShareBackupFile).not.toHaveBeenCalled()
-  })
-
   // v1.5.0 (Amin #4632): «ویرایش» opens the profile page
   it('shows the name and opens the profile page from «ویرایش»', async () => {
     mockUseProfile.mockReturnValue(profileWith({ displayName: 'محمد رضایی' }))
@@ -321,6 +237,30 @@ describe('SettingsScreen', () => {
   })
 
   // v1.5.0 (Amin #4632): support in the messenger the user picks, labelled for IRIS
+  // AZAR-SYNC-001 (Amin #4797): the account's files live on the server; no backup files any more
+  it('shows the server\'s token count and that every file is saved, with no backup row', async () => {
+    mockSync = { state: 'idle', pending: 0, usage: { bytes: 1_000_000, quotaBytes: 50_000_000, tokens: 127 } }
+    const { findByText, queryByText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+    expect(await findByText('۱۲۷ از ۶٬۳۵۰ توکن مصرف شده')).toBeTruthy()
+    expect(await findByText('همهٔ پرونده‌ها روی حساب شما ذخیره شده است')).toBeTruthy()
+    expect(queryByText('نسخه پشتیبان')).toBeNull()
+  })
+
+  it('warns before signing out when changes have not reached the server', async () => {
+    mockSync = { state: 'offline', pending: 3, usage: null }
+    mockSyncNow.mockResolvedValue(3)
+    const { findByLabelText, findByText } = await render(
+      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
+    )
+    expect(await findByText('۳ تغییر منتظر اینترنت است')).toBeTruthy()
+    fireEvent.press(await findByLabelText('خروج از حساب'))
+    expect(await findByText(/۳ تغییر هنوز به سرور نرسیده/)).toBeTruthy()
+    fireEvent.press(await findByText('خروج و پاک کردن'))
+    await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1))
+  })
+
   it('opens support in WhatsApp with the support line first; unset messengers wait', async () => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
     const { findByLabelText, findAllByText } = await render(
@@ -336,68 +276,4 @@ describe('SettingsScreen', () => {
     expect(decodeURIComponent(url.split('text=')[1] ?? '').split(String.fromCharCode(10))[0]).toBe('پشتیبانی اپلیکیشن ایوان')
   })
 
-  it('warns before importing, then picks a file, enters a password, and logs out on success', async () => {
-    mockPickBackupFileBytes.mockResolvedValue(new Uint8Array([1, 2, 3]))
-    mockRestoreBackupFile.mockResolvedValue(undefined)
-    const { findByLabelText, findByText } = await render(
-      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
-    fireEvent.press(await findByLabelText('بازیابی از نسخه پشتیبان'))
-    expect(
-      await findByText(
-        'این کار تمام اطلاعات موجود در این دستگاه را با اطلاعات فایل انتخابی جایگزین می‌کند و غیرقابل بازگشت است. پیش از ادامه، در صورت نیاز از اطلاعات فعلی نسخه پشتیبان تهیه کنید.'
-      )
-    ).toBeTruthy()
-
-    fireEvent.press(await findByText('انتخاب فایل'))
-    await waitFor(() => expect(mockPickBackupFileBytes).toHaveBeenCalledTimes(1))
-
-    fireEvent.changeText(await findByLabelText('رمز عبور'), 'a strong password')
-    fireEvent.press(await findByText('بازیابی اطلاعات'))
-
-    await waitFor(() =>
-      expect(mockRestoreBackupFile).toHaveBeenCalledWith(
-        {},
-        'a strong password',
-        expect.any(Uint8Array)
-      )
-    )
-    expect(await findByText('بازیابی با موفقیت انجام شد')).toBeTruthy()
-
-    fireEvent.press(await findByText('ورود مجدد'))
-    await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1))
-  })
-
-  it('does not open the password prompt if the user cancels the file picker', async () => {
-    mockPickBackupFileBytes.mockResolvedValue(null)
-    const { findByLabelText, findByText, queryByLabelText } = await render(
-      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
-    fireEvent.press(await findByLabelText('بازیابی از نسخه پشتیبان'))
-    fireEvent.press(await findByText('انتخاب فایل'))
-
-    await waitFor(() => expect(mockPickBackupFileBytes).toHaveBeenCalledTimes(1))
-    expect(queryByLabelText('رمز عبور')).toBeNull()
-  })
-
-  it('shows a specific message and does not log out when the import password is wrong', async () => {
-    mockPickBackupFileBytes.mockResolvedValue(new Uint8Array([1, 2, 3]))
-    mockRestoreBackupFile.mockRejectedValue(new BackupAuthenticationError())
-    const { findByLabelText, findByText } = await render(
-      withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
-    )
-
-    fireEvent.press(await findByLabelText('نسخه پشتیبان'))
-    fireEvent.press(await findByLabelText('بازیابی از نسخه پشتیبان'))
-    fireEvent.press(await findByText('انتخاب فایل'))
-    fireEvent.changeText(await findByLabelText('رمز عبور'), 'wrong password')
-    fireEvent.press(await findByText('بازیابی اطلاعات'))
-
-    expect(await findByText('رمز عبور اشتباه است یا فایل نسخه پشتیبان خراب شده است.')).toBeTruthy()
-    expect(mockLogout).not.toHaveBeenCalled()
-  })
 })

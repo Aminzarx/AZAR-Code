@@ -189,7 +189,7 @@ export function OtpInput({
           autoComplete={index === 0 ? 'sms-otp' : 'off'}
           textContentType={index === 0 ? 'oneTimeCode' : 'none'}
           editable={!disabled}
-          textAlign="center"
+          textAlign="center" // rtl-allow: one digit centred in its box
           selectionColor={theme.colors.primary}
           selectTextOnFocus
         />

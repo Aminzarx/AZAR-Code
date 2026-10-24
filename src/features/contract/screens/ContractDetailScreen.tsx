@@ -432,7 +432,7 @@ function createStyles(theme: Theme) {
     value: {
       color: theme.colors.onSurface,
       flexShrink: 1,
-      textAlign: theme.isRTL ? 'left' : 'right'
+      textAlign: 'left'
     },
     statusFlash: {
       flexDirection: 'row',

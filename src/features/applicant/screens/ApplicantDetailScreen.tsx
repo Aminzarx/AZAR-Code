@@ -454,7 +454,7 @@ function createStyles(theme: Theme) {
     value: {
       color: theme.colors.onSurface,
       flexShrink: 1,
-      textAlign: theme.isRTL ? 'left' : 'right'
+      textAlign: 'left'
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;

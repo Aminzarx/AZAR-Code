@@ -73,7 +73,7 @@ function createStyles(theme: Theme, compact: boolean) {
     },
     description: {
       color: theme.colors.onSurfaceVariant,
-      textAlign: 'center'
+      textAlign: 'center' // rtl-allow: centred empty state
     },
     actionSpacing: {
       marginTop: theme.spacing.space3

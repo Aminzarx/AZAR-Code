@@ -70,7 +70,7 @@ function createStyles(theme: Theme) {
       borderColor: theme.colors.outlineVariant,
       backgroundColor: theme.colors.surfaceContainerLowest,
       color: theme.colors.onSurface,
-      textAlign: theme.isRTL ? 'right' : 'left'
+      textAlign: theme.isRTL ? 'right' : 'left' // rtl-allow: TextInput: Android does not swap, so right is physical right
     },
     to: { color: theme.colors.onSurfaceVariant }
   })

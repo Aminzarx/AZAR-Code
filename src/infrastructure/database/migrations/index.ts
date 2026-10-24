@@ -17,6 +17,7 @@ import { migration0015ContractTrackingCode } from './0015_contract_tracking_code
 import { migration0016ReminderType } from './0016_reminder_type'
 import { migration0017ContractCalendarEvent } from './0017_contract_calendar_event'
 import { migration0018PropertyBarterItems } from './0018_property_barter_items'
+import { migration0019ServerSync } from './0019_server_sync'
 
 /**
  * Ordered by version, ascending — docs/architecture/migration-strategy.md
@@ -40,5 +41,6 @@ export const migrations: readonly Migration[] = [
   migration0015ContractTrackingCode,
   migration0016ReminderType,
   migration0017ContractCalendarEvent,
-  migration0018PropertyBarterItems
+  migration0018PropertyBarterItems,
+  migration0019ServerSync
 ]
