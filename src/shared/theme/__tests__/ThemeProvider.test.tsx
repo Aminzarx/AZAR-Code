@@ -34,7 +34,8 @@ describe('ThemeProvider / useTheme', () => {
   it('resolves typography with RTL alignment/direction and RTL line-heights when isRTL is true', async () => {
     const { result } = await renderHook(() => useTheme(), { wrapper: wrapper(true) })
     const bodyMd = result.current.typography('bodyMd')
-    expect(bodyMd.textAlign).toBe('right')
+    // 'left' is the start edge for <Text> under RTL on Android (right side in Persian)
+    expect(bodyMd.textAlign).toBe('left')
     expect(bodyMd.writingDirection).toBe('rtl')
     expect(bodyMd.lineHeight).toBe(typographyRtl.bodyMd.lineHeight)
   })

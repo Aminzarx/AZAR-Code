@@ -35,7 +35,7 @@ export type Theme = {
     fontWeight: '400' | '500' | '600' | '700'
     lineHeight: number
     fontFamily?: string
-    textAlign: 'left' | 'right'
+    textAlign: 'left'
     writingDirection: 'ltr' | 'rtl'
   }
   /** Resolves one of the 5 status tones (design-system.md §7 Status System) to real theme colors. */
@@ -62,7 +62,10 @@ function buildTheme(isRTL: boolean): Theme {
       fontFamily: isRTL
         ? (HEADING_VARIANTS.has(variant) ? rtlHeadingFontFamilyByWeight : rtlFontFamilyByWeight)[table[variant].fontWeight]
         : undefined,
-      textAlign: isRTL ? 'right' : 'left',
+      // v1.5.0 (Amin #4796): React Native on Android swaps textAlign left/right for <Text> under RTL,
+      // so 'left' is the START edge: the right side in Persian. 'right' used to send every wrapped
+      // line to the left edge. <TextInput> does not swap; inputs set their own physical alignment.
+      textAlign: 'left',
       writingDirection: isRTL ? 'rtl' : 'ltr'
     }),
     status: (tone) => {

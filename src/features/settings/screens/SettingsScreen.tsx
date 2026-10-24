@@ -480,9 +480,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           <View style={styles.tokenTrack}>
             <View style={[styles.tokenFill, { width: `${Math.max(storage && storage.tokens > 0 ? 1.5 : 0, (storage?.share ?? 0) * 100)}%` }]} />
           </View>
-          <Text style={[theme.typography('bodySm'), styles.tokenHint]}>
-            {`${persianNumber(Math.max(0, Math.floor((STORAGE_TOKEN_ALLOWANCE - (storage?.tokens ?? 0)) * 10) / 10))} توکن باقی مانده · هر فایل به اندازهٔ اطلاعات و عکس‌هایش توکن می‌گیرد و با حذفش برمی‌گردد.`}
-          </Text>
         </View>
 
         <View style={styles.list}>
@@ -774,7 +771,6 @@ function createStyles(theme: Theme) {
       flexDirection: 'row'
     },
     tokenFill: { height: 8, borderRadius: 4, backgroundColor: theme.colors.primary },
-    tokenHint: { color: theme.colors.onSurfaceVariant, alignSelf: start },
     phone: { color: theme.colors.onSurfaceVariant },
     inviteCard: {
       backgroundColor: theme.colors.primary,
