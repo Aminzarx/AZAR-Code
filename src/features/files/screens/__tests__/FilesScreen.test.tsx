@@ -49,7 +49,7 @@ describe('FilesScreen', () => {
       withTheme(<FilesScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByLabelText('متقاضیان ۰'))
+    fireEvent.press(await findByLabelText('متقاضیان'))
     expect(await findByText('هنوز متقاضی‌ای ثبت نشده')).toBeTruthy()
   })
 })

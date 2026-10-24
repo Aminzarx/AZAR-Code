@@ -2,11 +2,12 @@
 
 The entire online surface of AZAR CRM (ADR-009): phone number, OTP-request
 state, referral validation/relationships, and sessions. No business data —
-properties/applicants/deals/etc. all stay on-device (ADR-002).
+properties/applicants/deals/etc. are kept per account under `/sync` (AZAR-SYNC-001, encrypted with `AZAR_SYNC_KEY`).
 
 **Sign-in codes.** `/auth/send-otp` sends a one-time code by SMS through KSS's
 Kavenegar account (verify/lookup API, `KAVENEGAR_API_KEY` + `KAVENEGAR_OTP_TEMPLATE`
-in the service's environment file); the code lasts 3 minutes, 5 wrong tries void it.
+in the service's environment file; since Amin #4915 the template is «Verification», id 1548159 kept
+as `KAVENEGAR_OTP_TEMPLATE_ID` for reference — the API takes the name); the code lasts 3 minutes, 5 wrong tries void it.
 Until the app's final approval (Amin #4277) the environment file also sets
 `AZAR_FIXED_OTP_CODE=123456`: then no SMS is sent and every code is that one
 (expiry and wrong-try limit unchanged). Remove the line and restart to switch SMS back on.
