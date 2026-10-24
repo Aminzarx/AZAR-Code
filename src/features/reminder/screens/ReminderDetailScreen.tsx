@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useLicence } from '@shared/licence/LicenceContext'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -38,6 +39,8 @@ function toFormValues(reminder: Reminder): ReminderFormValues {
 
 export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
+  // Amin #4906: after the licence ends the file stays readable; its edit actions are hidden
+  const { canEdit } = useLicence()
   const styles = createStyles(theme)
   const { reminderId } = route.params
   const { reminder, isLoading, error, refetch } = useReminderDetail(reminderId)
@@ -220,27 +223,33 @@ export function ReminderDetailScreen({ navigation, route }: Props): React.JSX.El
           {submitError ? (
             <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
           ) : null}
-          <Button
-            label={
-              reminder.isDone ? 'علامت‌گذاری به‌عنوان انجام‌نشده' : 'علامت‌گذاری به‌عنوان انجام‌شده'
-            }
-            onPress={handleToggleDone}
-            variant="secondary"
-            style={styles.actionButton}
-          />
-          <Button
-            label="ویرایش"
-            onPress={startEditing}
-            variant="secondary"
-            style={styles.actionButton}
-          />
-          <Button
-            label="حذف یادآوری"
-            onPress={() => setIsDeleteConfirmVisible(true)}
-            variant="destructive"
-            loading={isDeleting}
-            style={styles.actionButton}
-          />
+          {canEdit ? (
+            <>
+              <Button
+                label={
+                  reminder.isDone
+                    ? 'علامت‌گذاری به‌عنوان انجام‌نشده'
+                    : 'علامت‌گذاری به‌عنوان انجام‌شده'
+                }
+                onPress={handleToggleDone}
+                variant="secondary"
+                style={styles.actionButton}
+              />
+              <Button
+                label="ویرایش"
+                onPress={startEditing}
+                variant="secondary"
+                style={styles.actionButton}
+              />
+              <Button
+                label="حذف یادآوری"
+                onPress={() => setIsDeleteConfirmVisible(true)}
+                variant="destructive"
+                loading={isDeleting}
+                style={styles.actionButton}
+              />
+            </>
+          ) : null}
         </Card>
       )}
 

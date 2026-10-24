@@ -7,6 +7,8 @@ type Props = {
   notes: string | null
   isSaving: boolean
   onSave: (notes: string) => void
+  /** Amin #4906: after the licence ends the notes are only read */
+  readOnly?: boolean
 }
 
 /**
@@ -18,7 +20,12 @@ type Props = {
  * purpose-built `Modal`, same "glass" presentation language as
  * `ConfirmDialog`/`FilterSheet`.
  */
-export function DealNotesSection({ notes, isSaving, onSave }: Props): React.JSX.Element {
+export function DealNotesSection({
+  notes,
+  isSaving,
+  onSave,
+  readOnly = false
+}: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const [isEditing, setIsEditing] = useState(false)
@@ -41,21 +48,23 @@ export function DealNotesSection({ notes, isSaving, onSave }: Props): React.JSX.
       {notes ? (
         <Card>
           <Text style={[theme.typography('bodyMd'), styles.noteText]}>{notes}</Text>
-          <Button
-            label="ویرایش یادداشت"
-            variant="text"
-            onPress={openEditor}
-            fullWidth={false}
-            style={styles.editButton}
-          />
+          {readOnly ? null : (
+            <Button
+              label="ویرایش یادداشت"
+              variant="text"
+              onPress={openEditor}
+              fullWidth={false}
+              style={styles.editButton}
+            />
+          )}
         </Card>
       ) : (
         <EmptyState
           compact
           title="هنوز یادداشتی ثبت نشده"
           description="یادداشت‌های این معامله اینجا نمایش داده می‌شود."
-          actionLabel="افزودن یادداشت"
-          onAction={openEditor}
+          actionLabel={readOnly ? undefined : 'افزودن یادداشت'}
+          onAction={readOnly ? undefined : openEditor}
         />
       )}
 

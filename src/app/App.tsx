@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@shared/theme'
 import { AuthProvider } from '@features/auth/AuthProvider'
+import { LicenceProvider } from '@features/licence/LicenceProvider'
 import { RootNavigator } from '@navigation/RootNavigator'
 import { runStartupTasks } from './startup'
 import { UpdateChecker } from './UpdateChecker'
@@ -26,7 +27,9 @@ export function App(): React.JSX.Element {
         <ThemeProvider>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
-              <RootNavigator />
+              <LicenceProvider>
+                <RootNavigator />
+              </LicenceProvider>
             </AuthProvider>
             <UpdateChecker />
           </QueryClientProvider>

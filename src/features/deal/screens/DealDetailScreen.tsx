@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useLicence } from '@shared/licence/LicenceContext'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -34,6 +35,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'DealDetail'>
 
 export function DealDetailScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
+  // Amin #4906: after the licence ends the file stays readable; its edit actions are hidden
+  const { canEdit } = useLicence()
   const styles = createStyles(theme)
   const { dealId } = route.params
   const { session } = useAuth()
@@ -142,7 +145,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
               <PipelineIndicator stage={deal.currentStage} />
             </View>
 
-            {!isTerminal ? (
+            {!isTerminal && canEdit ? (
               // v2.9.1: reordered/re-styled for clearer visual hierarchy
               // per explicit feedback that the three actions competed for
               // attention. "پیشرفت" (advance to the next real pipeline
@@ -224,6 +227,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
             />
 
             <DealNotesSection
+              readOnly={!canEdit}
               notes={deal.notes}
               isSaving={isSavingNotes}
               onSave={handleSaveNotes}
@@ -233,29 +237,31 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
               <Text style={[theme.typography('bodySm'), styles.actionError]}>{actionError}</Text>
             ) : null}
 
-            <View style={styles.actions}>
-              <Button
-                label="ایجاد قرارداد"
-                onPress={() =>
-                  navigateAcrossTabs(navigation, 'CreateContract', {
-                    dealId: deal.id,
-                    propertyId: deal.propertyId,
-                    applicantId: deal.applicantId
-                  })
-                }
-              />
-              <Button
-                label="افزودن پیگیری"
-                variant="secondary"
-                onPress={() =>
-                  navigateAcrossTabs(navigation, 'CreateReminder', {
-                    dealId: deal.id,
-                    propertyId: deal.propertyId,
-                    applicantId: deal.applicantId
-                  })
-                }
-              />
-            </View>
+            {canEdit ? (
+              <View style={styles.actions}>
+                <Button
+                  label="ایجاد قرارداد"
+                  onPress={() =>
+                    navigateAcrossTabs(navigation, 'CreateContract', {
+                      dealId: deal.id,
+                      propertyId: deal.propertyId,
+                      applicantId: deal.applicantId
+                    })
+                  }
+                />
+                <Button
+                  label="افزودن پیگیری"
+                  variant="secondary"
+                  onPress={() =>
+                    navigateAcrossTabs(navigation, 'CreateReminder', {
+                      dealId: deal.id,
+                      propertyId: deal.propertyId,
+                      applicantId: deal.applicantId
+                    })
+                  }
+                />
+              </View>
+            ) : null}
 
             <LostReasonDialog
               visible={isLostDialogVisible}
@@ -289,13 +295,9 @@ function SummaryBlock({
 }: SummaryBlockProps): React.JSX.Element {
   const content = (
     <Card style={styles.summaryCard}>
-      <MarqueeText
-        style={[theme.typography('titleSm'), styles.summaryTitle]}>
-        {title}
-      </MarqueeText>
+      <MarqueeText style={[theme.typography('titleSm'), styles.summaryTitle]}>{title}</MarqueeText>
       {detail ? (
-        <MarqueeText
-          style={[theme.typography('bodySm'), styles.summaryDetail]}>
+        <MarqueeText style={[theme.typography('bodySm'), styles.summaryDetail]}>
           {detail}
         </MarqueeText>
       ) : null}

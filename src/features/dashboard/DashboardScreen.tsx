@@ -1,4 +1,6 @@
 import React from 'react'
+import { useLicence } from '@shared/licence/LicenceContext'
+import { LicenceBanner } from '@features/licence/LicenceBanner'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -35,6 +37,8 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const { session } = useAuth()
   const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
   const { displayName } = useDisplayName()
+  // Amin #4906: after the licence ends Home keeps the follow-ups and the summary; adding and matching wait
+  const { canEdit } = useLicence()
 
   const count = (id: DashboardStat['id']) => data?.stats.find((stat) => stat.id === id)?.value ?? 0
   const hasProperty = count('properties') > 0
@@ -93,6 +97,8 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           />
         </View>
 
+        <LicenceBanner onOpen={() => navigateAcrossTabs(navigation, 'Settings', undefined)} />
+
         {isLoading && !data ? (
           <View style={styles.centeredSection}>
             <LoadingIndicator size="large" />
@@ -108,7 +114,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           </View>
         ) : data ? (
           <>
-            {!hasProperty || !hasApplicant ? (
+            {canEdit && (!hasProperty || !hasApplicant) ? (
               <FirstStepsCard
                 hasProperty={hasProperty}
                 hasApplicant={hasApplicant}
@@ -117,9 +123,9 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
               />
             ) : null}
 
-            <HomeAddButtons onAddProperty={addProperty} onAddApplicant={addApplicant} />
+            {canEdit ? <HomeAddButtons onAddProperty={addProperty} onAddApplicant={addApplicant} /> : null}
 
-            {data.matches.matchCount > 0 ? (
+            {canEdit && data.matches.matchCount > 0 ? (
               <MatchBanner
                 matches={data.matches}
                 onPress={() => navigateAcrossTabs(navigation, 'Matching', undefined)}

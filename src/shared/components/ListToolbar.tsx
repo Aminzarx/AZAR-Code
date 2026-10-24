@@ -1,5 +1,6 @@
 import React from 'react'
 import { Pressable, TextInput as RNTextInput, StyleSheet, Text, View } from 'react-native'
+import { useLicence } from '../licence/LicenceContext'
 import { useTheme, type Theme } from '@shared/theme'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { Icon } from './Icon'
@@ -34,9 +35,13 @@ export function ListToolbar({
   onOpenFilters,
   filterLabel,
   chips
-}: Props): React.JSX.Element {
+}: Props): React.JSX.Element | null {
   const theme = useTheme()
   const styles = createStyles(theme)
+  // Amin #4906: search and filters are closed while the licence has ended; the plain list stays readable
+  if (!useLicence().canEdit) {
+    return null
+  }
   return (
     <View style={styles.wrapper}>
       <View style={styles.row}>

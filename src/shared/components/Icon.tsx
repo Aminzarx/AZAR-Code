@@ -46,6 +46,8 @@ export type IconName =
   | 'chat'
   | 'token'
   | 'edit'
+  | 'lock'
+  | 'ribbon'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -175,5 +177,9 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'server-outline'
     case 'edit':
       return 'create-outline'
+    case 'lock':
+      return 'lock-closed-outline'
+    case 'ribbon':
+      return 'ribbon-outline'
   }
 }

@@ -51,7 +51,7 @@ const ROUTE_LABEL: Record<string, string> = {
   ReminderList: 'یادآوری‌ها',
   ReminderDetail: 'یادآوری',
   CreateReminder: 'یادآوری تازه',
-  Settings: 'من'
+  Settings: 'تنظیمات'
 }
 
 /**

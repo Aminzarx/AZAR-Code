@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react'
+import { useLicence } from '@shared/licence/LicenceContext'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
@@ -53,6 +54,8 @@ function toFormValues(applicant: Applicant): ApplicantFormValues {
 
 export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
+  // Amin #4906: after the licence ends the file stays readable; its edit actions are hidden
+  const { canEdit } = useLicence()
   const styles = createStyles(theme)
   const { applicantId } = route.params
   const { applicant, isLoading, error, refetch } = useApplicantDetail(applicantId)
@@ -214,7 +217,9 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
                 <StatusBadge label={derivedStatus.label} tone={derivedStatus.tone} />
               </View>
             ) : null}
-            <MarqueeText style={[theme.typography('headlineLgMobile'), styles.title]}>{applicant.fullName}</MarqueeText>
+            <MarqueeText style={[theme.typography('headlineLgMobile'), styles.title]}>
+              {applicant.fullName}
+            </MarqueeText>
             {wantsLine ? (
               <Text style={[theme.typography('bodyMd'), styles.location]}>{wantsLine}</Text>
             ) : null}
@@ -311,35 +316,43 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
               />
             ) : null}
 
-            <View style={styles.actions}>
-              <Button label="ویرایش" onPress={startEditing} style={styles.actionButton} />
-              <Button
-                label={applicant.status === 'archived' ? 'خروج از بایگانی' : 'بایگانی'}
-                onPress={handleToggleArchive}
-                variant="secondary"
-                loading={isTogglingArchive}
-                style={styles.actionButton}
-              />
-            </View>
-            <Button
-              label="حذف متقاضی"
-              onPress={() => setIsDeleteConfirmVisible(true)}
-              variant="destructiveText"
-              loading={isDeleting}
-            />
+            {canEdit ? (
+              <>
+                <View style={styles.actions}>
+                  <Button label="ویرایش" onPress={startEditing} style={styles.actionButton} />
+                  <Button
+                    label={applicant.status === 'archived' ? 'خروج از بایگانی' : 'بایگانی'}
+                    onPress={handleToggleArchive}
+                    variant="secondary"
+                    loading={isTogglingArchive}
+                    style={styles.actionButton}
+                  />
+                </View>
+                <Button
+                  label="حذف متقاضی"
+                  onPress={() => setIsDeleteConfirmVisible(true)}
+                  variant="destructiveText"
+                  loading={isDeleting}
+                />
+              </>
+            ) : null}
             {submitError ? (
               <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
             ) : null}
           </Card>
 
-          <SuggestedPropertiesSection
-            applicant={applicant}
-            onSelectProperty={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
-            onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
-            onViewAll={() =>
-              navigateAcrossTabs(navigation, 'Matching', { applicantId: applicant.id })
-            }
-          />
+          {canEdit ? (
+            <SuggestedPropertiesSection
+              applicant={applicant}
+              onSelectProperty={(propertyId) =>
+                navigation.navigate('PropertyDetail', { propertyId })
+              }
+              onDealCreated={(dealId) => navigateAcrossTabs(navigation, 'DealDetail', { dealId })}
+              onViewAll={() =>
+                navigateAcrossTabs(navigation, 'Matching', { applicantId: applicant.id })
+              }
+            />
+          ) : null}
 
           <ApplicantActivitySection
             deals={activity.deals}

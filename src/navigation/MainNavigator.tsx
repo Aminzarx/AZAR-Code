@@ -26,6 +26,7 @@ import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
 import { TabBarButton } from './TabBarButton'
+import { withLicence } from '@features/licence/LicenceLocked'
 
 export type MainStackParamList = {
   Home: undefined
@@ -65,7 +66,8 @@ const TAB_LABELS: Record<TabName, string> = {
   FilesTab: 'فایل‌ها',
   MatchingTab: 'تطبیق',
   ContractsTab: 'قراردادها',
-  ProfileTab: 'من'
+  // Amin #4906: «من» became «تنظیمات» (the subscription lives there)
+  ProfileTab: 'تنظیمات'
 }
 
 const TAB_ICONS: Record<TabName, IconName> = {
@@ -73,10 +75,8 @@ const TAB_ICONS: Record<TabName, IconName> = {
   FilesTab: 'files',
   MatchingTab: 'matching',
   ContractsTab: 'contract',
-  // Was 'settings' (a bare circle+dot that reads as neither a gear nor a
-  // person) — the Profile tab needs to look like an account, and the icon
-  // set already has a proper minimal person glyph, just wasn't wired here.
-  ProfileTab: 'person'
+  // Amin #4906: the tab is «تنظیمات» now, with the gear
+  ProfileTab: 'settings'
 }
 
 /**
@@ -90,24 +90,34 @@ const TAB_ICONS: Record<TabName, IconName> = {
  * behaviour). Only the tab roots themselves switch tabs (see
  * crossTabNavigate.ts).
  */
+// Amin #4906: after the licence ends, adding files, matching and the whole contract section are closed; every
+// other screen stays open for reading (their edit actions follow useLicence()).
+const LockedCreateProperty = withLicence(CreatePropertyScreen, 'ثبت فایل تازه')
+const LockedCreateApplicant = withLicence(CreateApplicantScreen, 'ثبت متقاضی تازه')
+const LockedMatching = withLicence(MatchingScreen, 'تطبیق')
+const LockedCreateReminder = withLicence(CreateReminderScreen, 'یادآوری تازه')
+const LockedContractList = withLicence(ContractListScreen, 'بخش قراردادها')
+const LockedCreateContract = withLicence(CreateContractScreen, 'بخش قراردادها')
+const LockedContractDetail = withLicence(ContractDetailScreen, 'بخش قراردادها')
+
 const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['PropertyList', PropertyListScreen],
-  ['CreateProperty', CreatePropertyScreen],
+  ['CreateProperty', LockedCreateProperty],
   ['PropertyDetail', PropertyDetailScreen],
   ['ApplicantList', ApplicantListScreen],
-  ['CreateApplicant', CreateApplicantScreen],
+  ['CreateApplicant', LockedCreateApplicant],
   ['ApplicantDetail', ApplicantDetailScreen],
-  ['Matching', MatchingScreen],
+  ['Matching', LockedMatching],
   ['DealList', DealListScreen],
   ['DealDetail', DealDetailScreen],
   ['ReminderList', ReminderListScreen],
   ['Profile', ProfileScreen],
   ['ChangePhone', ChangePhoneScreen],
-  ['CreateReminder', CreateReminderScreen],
+  ['CreateReminder', LockedCreateReminder],
   ['ReminderDetail', ReminderDetailScreen],
-  ['ContractList', ContractListScreen],
-  ['CreateContract', CreateContractScreen],
-  ['ContractDetail', ContractDetailScreen]
+  ['ContractList', LockedContractList],
+  ['CreateContract', LockedCreateContract],
+  ['ContractDetail', LockedContractDetail]
 ]
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
@@ -125,8 +135,8 @@ function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentTy
 
 const HomeStack = makeStack('Home', DashboardScreen)
 const FilesStack = makeStack('Files', FilesScreen)
-const MatchingStack = makeStack('Matching', MatchingScreen)
-const ContractsStack = makeStack('ContractList', ContractListScreen)
+const MatchingStack = makeStack('Matching', LockedMatching)
+const ContractsStack = makeStack('ContractList', LockedContractList)
 const ProfileStack = makeStack('Settings', SettingsScreen)
 
 /**

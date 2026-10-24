@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { SubscriptionCard } from '@features/licence/SubscriptionCard'
 import { Clipboard, Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import QRCode from 'react-native-qrcode-svg'
@@ -229,7 +230,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content} accessibilityLabel="من">
+      <ScrollView contentContainerStyle={styles.content} accessibilityLabel="تنظیمات">
         {/* v1.4.0 (approved «من» design): who you are, the invite card, then one list */}
         <View style={styles.profileRow}>
           {photoUri(profile.photoPath) ? (
@@ -266,6 +267,9 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             <Text style={[theme.typography('labelMd'), styles.editLabel]}>ویرایش</Text>
           </Pressable>
         </View>
+
+        {/* Amin #4906: the subscription first, right under who you are */}
+        <SubscriptionCard />
 
         {session?.referralCode ? (
           <View style={styles.inviteCard}>

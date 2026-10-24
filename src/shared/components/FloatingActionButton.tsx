@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import { Pressable, StyleSheet, Text } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from './Icon'
+import { useLicence } from '../licence/LicenceContext'
 
 type Props = {
   accessibilityLabel: string
@@ -24,9 +25,10 @@ export function FloatingActionButton({
   onPress,
   icon = 'plus',
   label
-}: Props): React.JSX.Element {
+}: Props): React.JSX.Element | null {
   const theme = useTheme()
   const styles = createStyles(theme)
+  const { canEdit } = useLicence()
   // A fast double-tap can otherwise push the destination create screen
   // twice onto the stack before the first navigation finishes — this
   // ref-based cooldown (a plain, synchronous write, unlike React state)
@@ -40,6 +42,11 @@ export function FloatingActionButton({
     }
     lastPressAt.current = now
     onPress()
+  }
+
+  // Amin #4906: nothing new is added while the licence has ended
+  if (!canEdit) {
+    return null
   }
 
   return (
