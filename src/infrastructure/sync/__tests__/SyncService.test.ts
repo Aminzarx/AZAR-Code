@@ -197,7 +197,7 @@ describe('SyncService, option A (Amin #4826)', () => {
     expect(server.rows.get('properties/p2')?.row?.title).toBe('آفلاین')
   })
 
-  it("the phone's own rows stay between launches; the account's profile does not", async () => {
+  it("the phone's own rows stay between launches; the account's files do not", async () => {
     const first = await launch(server)
     await first.db.execute(
       "INSERT INTO application_settings (key, value, updated_at) VALUES ('theme', 'dark', '2026-10-24')"
@@ -211,6 +211,60 @@ describe('SyncService, option A (Amin #4826)', () => {
     const next = await launch(server, fakeFiles(), first.disk)
     const rows = await next.db.execute("SELECT key FROM application_settings WHERE key IN ('theme', 'display_name')")
     expect(rows.rows.map((r) => r.key)).toEqual(['theme'])
+  })
+
+  it('Amin #5040: the profile name and agency stay on the phone for the account, so they show offline', async () => {
+    const setting = (db: DB, key: string, value: string) =>
+      db.execute(
+        "INSERT OR REPLACE INTO application_settings (key, value, updated_at) VALUES (?, ?, '2026-10-24')",
+        [key, value]
+      )
+    const name = async (db: DB) =>
+      (await db.execute("SELECT value FROM application_settings WHERE key = 'display_name'")).rows[0]?.value ?? null
+
+    const first = await launch(server)
+    await first.sync.claim(USER)
+    await setting(first.db, 'display_name', 'نوید')
+    await setting(first.db, 'agency_name', 'املاک خیام')
+    first.files.store.set('/docs/profile/me.webp', 'UEhPVE8=')
+    await setting(first.db, 'profile_photo', '/docs/profile/me.webp')
+    await first.sync.push(TOKEN, USER)
+    first.db.close()
+
+    server.offline = true
+    const offline = await launch(server, fakeFiles(), first.disk)
+    await expect(offline.sync.restore(TOKEN, USER)).rejects.toThrow('offline')
+    expect(await name(offline.db)).toBe('نوید')
+    const kept = await offline.db.execute(
+      "SELECT key FROM application_settings WHERE key IN ('display_name', 'agency_name', 'profile_photo') ORDER BY key"
+    )
+    expect(kept.rows.map((r) => r.key)).toEqual(['agency_name', 'display_name']) // the photo is not kept
+    expect(await offline.sync.pendingCount()).toBe(0) // the kept name is not a new change
+
+    // a name changed on another phone comes with the next restore and is kept from then on
+    server.offline = false
+    server.rows.set('application_settings/display_name', {
+      t: 'application_settings',
+      k: 'display_name',
+      row: { key: 'display_name', value: 'نوید بیاتی', updated_at: '2026-10-25' }
+    } as never)
+    await offline.sync.restore(TOKEN, USER)
+    offline.db.close()
+    server.offline = true
+    const later = await launch(server, fakeFiles(), first.disk)
+    expect(await name(later.db)).toBe('نوید بیاتی')
+
+    // another number never sees it; back to the first number, it shows again
+    await later.sync.claim(OTHER)
+    expect(await name(later.db)).toBeNull()
+    await later.sync.claim(USER)
+    expect(await name(later.db)).toBe('نوید بیاتی')
+
+    // sign-out takes it off the phone
+    await later.sync.wipe()
+    later.db.close()
+    const afterSignOut = await launch(server, fakeFiles(), first.disk)
+    expect(await name(afterSignOut.db)).toBeNull()
   })
 
   it('brings the files and the profile photo to a new phone', async () => {

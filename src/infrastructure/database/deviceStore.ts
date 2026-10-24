@@ -2,6 +2,13 @@ import type { DB } from '@op-engineering/op-sqlite'
 import { DEVICE_TABLES } from './migrations/0020_device_store'
 import { SYNCED_ID_TABLES, SYNCED_PAIR_TABLES, SYNCED_SETTING_KEYS } from './migrations/0019_server_sync'
 
+/**
+ * Amin #5040: the profile name and agency stay on the phone (encrypted, for the signed-in account), so they show
+ * offline too. The photo is not kept.
+ */
+export const KEPT_PROFILE_KEYS = ['display_name', 'agency_name'] as const
+const PROFILE_META = 'profile'
+
 /** A file row as it is now, or null when it was deleted. */
 export type QueuedChange = { t: string; k: string; row: Record<string, unknown> | null }
 
@@ -103,8 +110,34 @@ export class DeviceStore {
         const result = await this.store.execute('SELECT row_json FROM device_rows WHERE tbl = ?', [table])
         for (const r of result.rows) await this.writeRow(db, table, JSON.parse(String(r.row_json)))
       }
+      if (owner) await this.writeProfile(db, owner)
       if (owner) await this.writeQueued(db, owner)
     })
+  }
+
+  /** Keeps the account's name and agency as they are now in the working database (after a restore, an edit). */
+  async rememberProfile(working: DB): Promise<void> {
+    const db = unwrap(working)
+    const owner = await this.owner()
+    if (!owner) return
+    const profile: Record<string, string> = {}
+    for (const key of KEPT_PROFILE_KEYS) {
+      const result = await db.execute('SELECT value FROM application_settings WHERE key = ?', [key])
+      const value = result.rows[0]?.value
+      if (typeof value === 'string' && value) profile[key] = value
+    }
+    await this.setMeta(PROFILE_META, JSON.stringify({ owner, profile }))
+  }
+
+  /** Shows the account's kept name and agency again (when this phone opens for the account). */
+  async profileInto(working: DB, owner: string): Promise<void> {
+    const db = unwrap(working)
+    await applying(db, () => this.writeProfile(db, owner))
+  }
+
+  /** Sign-out: the name leaves the phone with the files. */
+  async forgetProfile(): Promise<void> {
+    await this.setMeta(PROFILE_META, null)
   }
 
   /** Puts this account's unsent changes on top of the files in the working database. */
@@ -236,9 +269,13 @@ export class DeviceStore {
         [filesUpTo]
       )
       const at = new Date().toISOString()
+      let profileChanged = false
       for (const k of keys.rows) {
         const table = String(k.tbl)
         const key = String(k.row_key)
+        if (table === 'application_settings' && (KEPT_PROFILE_KEYS as readonly string[]).includes(key)) {
+          profileChanged = true
+        }
         const row = await readFileRow(db, table, key)
         await this.store.execute('INSERT INTO queue (owner, tbl, row_key, row_json, at) VALUES (?, ?, ?, ?, ?)', [
           owner,
@@ -249,6 +286,21 @@ export class DeviceStore {
         ])
       }
       await db.execute('DELETE FROM sync_outbox WHERE seq <= ?', [filesUpTo])
+      if (profileChanged) await this.rememberProfile(db)
+    }
+  }
+
+  private async writeProfile(db: DB, owner: string): Promise<void> {
+    const saved = await this.getMeta(PROFILE_META)
+    if (!saved) return
+    const { owner: of, profile } = JSON.parse(saved) as { owner: string; profile: Record<string, string> }
+    if (of !== owner) return // another account's name never shows
+    for (const [key, value] of Object.entries(profile)) {
+      await db.execute('INSERT OR REPLACE INTO application_settings (key, value, updated_at) VALUES (?, ?, ?)', [
+        key,
+        value,
+        new Date().toISOString()
+      ])
     }
   }
 

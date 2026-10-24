@@ -81,6 +81,7 @@ export class SyncService {
     await this.clearFiles()
     this.isLoaded = false
     await this.store.setOwner(userId)
+    await this.store.profileInto(this.db, userId)
     await this.store.replayInto(this.db, userId)
   }
 
@@ -142,6 +143,7 @@ export class SyncService {
     // anything made on this phone and not on the server yet stays on top
     await this.store.setOwner(userId)
     await this.store.replayInto(this.db, userId)
+    await this.store.rememberProfile(this.db)
     await this.setState('usage', JSON.stringify(pulled.usage))
     this.isLoaded = true
     return pulled.rows.length
@@ -151,6 +153,7 @@ export class SyncService {
   async wipe(): Promise<void> {
     await this.clearFiles()
     await this.store.clearQueue()
+    await this.store.forgetProfile()
     await this.store.setOwner(null)
     await this.setState('usage', null)
     await this.setState('photo_hash', null)
