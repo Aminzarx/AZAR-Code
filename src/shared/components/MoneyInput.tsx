@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { TextInput } from './TextInput'
 import { amountInWords } from '@shared/utils/amountInWords'
+import { toEnglishDigits, toPersianDigits } from '@shared/utils/persianText'
 
 type Props = {
   label: string
@@ -26,7 +27,8 @@ function formatWithSeparators(rawDigits: string): string {
   if (!rawDigits) {
     return ''
   }
-  return rawDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  // v1.4.0 (Amin): shown in Persian digits with the Persian thousands mark
+  return toPersianDigits(rawDigits.replace(/\B(?=(\d{3})+(?!\d))/g, '٬'))
 }
 
 /** Screen-reader label only — the visible chip shows the comma-grouped zero string itself, not a word. */
@@ -58,7 +60,7 @@ export function MoneyInput({
   const styles = createStyles(theme)
 
   function handleChangeText(text: string): void {
-    const rawDigits = text.replace(/\D/g, '')
+    const rawDigits = toEnglishDigits(text).replace(/\D/g, '')
     onChangeValue(rawDigits)
   }
 

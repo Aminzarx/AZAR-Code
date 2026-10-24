@@ -1,156 +1,214 @@
 import React from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { AutocompleteInput, Checkbox, FormRow, MoneyInput, TextInput } from '@shared/components'
+import {
+  AutocompleteInput,
+  Checkbox,
+  ChoiceChips,
+  FormRow,
+  MoneyInput,
+  NumberStepper,
+  TextInput
+} from '@shared/components'
 import { IRANIAN_CITIES } from '@shared/data/iranianCities'
 import { APPLICANT_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
 import { isRentOrMortgageTransaction } from '@shared/utils/rentStatus'
+import { shortTomanRange } from '@shared/utils/shortMoney'
 import type { ApplicantFormErrors, ApplicantFormValues } from '../types'
 
 type Props = {
   values: ApplicantFormValues
   errors: ApplicantFormErrors
   onChange: <K extends keyof ApplicantFormValues>(field: K, value: ApplicantFormValues[K]) => void
+  /**
+   * v1.4.0 (design batch 3, like the new file): the new-applicant screen
+   * shows one step at a time (1 who, 2 what they want, 3 size and notes);
+   * edit mode leaves it unset and shows every step on one page.
+   */
+  step?: ApplicantFormStep
+}
+
+export type ApplicantFormStep = 1 | 2 | 3
+
+/** Which step each field lives on — the new-applicant screen jumps to the first step with an error. */
+export const APPLICANT_FIELD_STEP: Record<keyof ApplicantFormValues, ApplicantFormStep> = {
+  fullName: 1,
+  phoneNumber: 1,
+  city: 1,
+  preferredTransactionType: 2,
+  preferredPropertyType: 2,
+  minBudget: 2,
+  maxBudget: 2,
+  depositAmount: 2,
+  rentAmount: 2,
+  isConvertible: 2,
+  rooms: 3,
+  minArea: 3,
+  maxArea: 3,
+  description: 3
+}
+
+function amount(raw: string): number | null {
+  const n = Number(raw)
+  return raw && Number.isFinite(n) && n > 0 ? n : null
 }
 
 /**
- * Shared by CreateApplicantScreen and ApplicantDetailScreen's edit
- * mode — same fields, same validation. Submitting happens via
- * FormScreenContainer's persistent header save action (screen-level,
- * not rendered here) — no duplicate bottom submit button.
+ * Shared by CreateApplicantScreen and ApplicantDetailScreen's edit mode —
+ * same fields, same validation.
  */
-export function ApplicantForm({ values, errors, onChange }: Props): React.JSX.Element {
+export function ApplicantForm({ values, errors, onChange, step }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const showRentFields = isRentOrMortgageTransaction(values.preferredTransactionType)
+  const show = (s: ApplicantFormStep): boolean => step === undefined || step === s
+  const budgetWords = shortTomanRange(amount(values.minBudget), amount(values.maxBudget))
 
   return (
     <View style={styles.form}>
-      <FormRow>
-        <TextInput
-          label="نام و نام خانوادگی"
-          required
-          value={values.fullName}
-          onChangeText={(value) => onChange('fullName', value)}
-          placeholder="مثلاً علی رضایی"
-          errorMessage={errors.fullName}
-        />
-        <TextInput
-          label="شماره تماس"
-          required
-          value={values.phoneNumber}
-          onChangeText={(value) => onChange('phoneNumber', value)}
-          placeholder="09121234567"
-          keyboardType="phone-pad"
-          errorMessage={errors.phoneNumber}
-        />
-      </FormRow>
-      <FormRow>
-        <AutocompleteInput
-          label="نوع معامله مدنظر"
-          value={values.preferredTransactionType}
-          onChangeValue={(value) => onChange('preferredTransactionType', value)}
-          suggestions={APPLICANT_TRANSACTION_TYPES}
-          placeholder="خرید، اجاره..."
-          errorMessage={errors.preferredTransactionType}
-        />
-        <AutocompleteInput
-          label="نوع ملک مدنظر"
-          value={values.preferredPropertyType}
-          onChangeValue={(value) => onChange('preferredPropertyType', value)}
-          suggestions={PROPERTY_TYPES}
-          placeholder="آپارتمان، ویلا..."
-          errorMessage={errors.preferredPropertyType}
-        />
-      </FormRow>
-      <FormRow>
-        <AutocompleteInput
-          label="شهر"
-          required
-          value={values.city}
-          onChangeValue={(value) => onChange('city', value)}
-          suggestions={IRANIAN_CITIES}
-          placeholder="تهران"
-          errorMessage={errors.city}
-        />
-        <TextInput
-          label="تعداد اتاق"
-          value={values.rooms}
-          onChangeText={(value) => onChange('rooms', value)}
-          keyboardType="number-pad"
-          errorMessage={errors.rooms}
-        />
-      </FormRow>
-      {showRentFields ? (
+      {show(1) ? (
         <>
-          <FormRow>
-            <MoneyInput
-              label="میزان رهن موردنظر (تومان)"
-              value={values.depositAmount}
-              onChangeValue={(value) => onChange('depositAmount', value)}
-              errorMessage={errors.depositAmount}
-            />
-            <MoneyInput
-              label="میزان اجاره موردنظر (تومان)"
-              value={values.rentAmount}
-              onChangeValue={(value) => onChange('rentAmount', value)}
-              errorMessage={errors.rentAmount}
-            />
-          </FormRow>
-          <Checkbox
-            label="رهن و اجاره قابل تبدیل هم مدنظر است"
-            value={values.isConvertible}
-            onChange={(value) => onChange('isConvertible', value)}
+          <TextInput
+            label="نام و نام خانوادگی"
+            required
+            value={values.fullName}
+            onChangeText={(value) => onChange('fullName', value)}
+            placeholder="مثلاً علی رضایی"
+            errorMessage={errors.fullName}
+          />
+          <TextInput
+            label="شماره تماس"
+            required
+            value={values.phoneNumber}
+            onChangeText={(value) => onChange('phoneNumber', value)}
+            placeholder="09121234567"
+            keyboardType="phone-pad"
+            errorMessage={errors.phoneNumber}
+          />
+          <AutocompleteInput
+            label="شهر"
+            required
+            value={values.city}
+            onChangeValue={(value) => onChange('city', value)}
+            suggestions={IRANIAN_CITIES}
+            placeholder="تهران"
+            errorMessage={errors.city}
           />
         </>
       ) : null}
-      <FormRow>
-        <MoneyInput
-          label="حداقل بودجه (تومان)"
-          value={values.minBudget}
-          onChangeValue={(value) => onChange('minBudget', value)}
-          errorMessage={errors.minBudget}
-          helperText="این محدوده در پیشنهاد خودکار فایل‌های مناسب استفاده می‌شود."
-        />
-        <MoneyInput
-          label="حداکثر بودجه (تومان)"
-          value={values.maxBudget}
-          onChangeValue={(value) => onChange('maxBudget', value)}
-          errorMessage={errors.maxBudget}
-        />
-      </FormRow>
-      <FormRow>
-        <TextInput
-          label="حداقل متراژ"
-          value={values.minArea}
-          onChangeText={(value) => onChange('minArea', value)}
-          keyboardType="number-pad"
-          errorMessage={errors.minArea}
-          helperText="این محدوده در پیشنهاد خودکار فایل‌های مناسب استفاده می‌شود."
-        />
-        <TextInput
-          label="حداکثر متراژ"
-          value={values.maxArea}
-          onChangeText={(value) => onChange('maxArea', value)}
-          keyboardType="number-pad"
-          errorMessage={errors.maxArea}
-        />
-      </FormRow>
-      <TextInput
-        label="توضیحات"
-        value={values.description}
-        onChangeText={(value) => onChange('description', value)}
-        placeholder="توضیحات تکمیلی (اختیاری)"
-        errorMessage={errors.description}
-      />
+
+      {show(2) ? (
+        <>
+          <ChoiceChips
+            label="نوع معامله"
+            options={APPLICANT_TRANSACTION_TYPES}
+            value={values.preferredTransactionType}
+            onChange={(value) => onChange('preferredTransactionType', value)}
+            errorMessage={errors.preferredTransactionType}
+          />
+          <ChoiceChips
+            label="نوع ملک"
+            options={PROPERTY_TYPES}
+            value={values.preferredPropertyType}
+            onChange={(value) => onChange('preferredPropertyType', value)}
+            errorMessage={errors.preferredPropertyType}
+            allowOther
+          />
+          {showRentFields ? (
+            <>
+              <FormRow>
+                <MoneyInput
+                  label="رهن موردنظر (تومان)"
+                  value={values.depositAmount}
+                  onChangeValue={(value) => onChange('depositAmount', value)}
+                  errorMessage={errors.depositAmount}
+                />
+                <MoneyInput
+                  label="اجارهٔ موردنظر (تومان)"
+                  value={values.rentAmount}
+                  onChangeValue={(value) => onChange('rentAmount', value)}
+                  errorMessage={errors.rentAmount}
+                />
+              </FormRow>
+              <Checkbox
+                label="رهن و اجارهٔ قابل تبدیل هم مدنظر است"
+                value={values.isConvertible}
+                onChange={(value) => onChange('isConvertible', value)}
+              />
+            </>
+          ) : null}
+          <View style={styles.group}>
+            <FormRow>
+              <MoneyInput
+                label="بودجه از (تومان)"
+                value={values.minBudget}
+                onChangeValue={(value) => onChange('minBudget', value)}
+                errorMessage={errors.minBudget}
+              />
+              <MoneyInput
+                label="تا (تومان)"
+                value={values.maxBudget}
+                onChangeValue={(value) => onChange('maxBudget', value)}
+                errorMessage={errors.maxBudget}
+              />
+            </FormRow>
+            {budgetWords ? (
+              <Text style={[theme.typography('bodySm'), styles.words]}>{budgetWords}</Text>
+            ) : null}
+            <Text style={[theme.typography('bodySm'), styles.hint]}>
+              فایل‌های مناسب همین بازه‌ها خودکار پیشنهاد می‌شوند.
+            </Text>
+          </View>
+        </>
+      ) : null}
+
+      {show(3) ? (
+        <>
+          <FormRow>
+            <TextInput
+              label="متراژ از"
+              value={values.minArea}
+              onChangeText={(value) => onChange('minArea', value)}
+              keyboardType="number-pad"
+              errorMessage={errors.minArea}
+            />
+            <TextInput
+              label="تا (متر)"
+              value={values.maxArea}
+              onChangeText={(value) => onChange('maxArea', value)}
+              keyboardType="number-pad"
+              errorMessage={errors.maxArea}
+            />
+          </FormRow>
+          <NumberStepper
+            label="تعداد اتاق"
+            value={values.rooms}
+            onChange={(value) => onChange('rooms', value)}
+            min={0}
+            max={10}
+            errorMessage={errors.rooms}
+          />
+          <TextInput
+            label="توضیحات"
+            value={values.description}
+            onChangeText={(value) => onChange('description', value)}
+            placeholder="مثلاً محله‌های دلخواه، طبقه، پارکینگ"
+            errorMessage={errors.description}
+          />
+        </>
+      ) : null}
     </View>
   )
 }
 
 function createStyles(theme: Theme) {
+  const start = theme.isRTL ? 'flex-start' : 'flex-end'
   return StyleSheet.create({
     form: {
       gap: theme.spacing.space5
-    }
+    },
+    group: { gap: theme.spacing.space2 },
+    words: { color: theme.colors.success, alignSelf: start },
+    hint: { color: theme.colors.onSurfaceVariant, alignSelf: start }
   })
 }

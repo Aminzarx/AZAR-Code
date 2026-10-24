@@ -1,17 +1,26 @@
 import React, { useRef, useState } from 'react'
-import { StyleSheet, Text } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { ConfirmDialog, FormScreenContainer } from '@shared/components'
+import { Button, ConfirmDialog, FormScreenContainer } from '@shared/components'
+import { toPersianDigits } from '@shared/utils/persianText'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { useApplicantService } from '../hooks/useApplicantService'
-import { ApplicantForm } from '../components/ApplicantForm'
+import { APPLICANT_FIELD_STEP, ApplicantForm, type ApplicantFormStep } from '../components/ApplicantForm'
 import { ApplicantValidationError } from '../validation/ApplicantValidationError'
 import type { ApplicantFormErrors, ApplicantFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateApplicant'>
+
+// v1.4.0 (design batch 3): a new applicant in three short steps, like a new file
+const STEP_NAMES: Record<ApplicantFormStep, string> = {
+  1: 'مشخصات و تماس',
+  2: 'چه می‌خواهد',
+  3: 'متراژ و توضیحات'
+}
+const REQUIRED = 'این مورد لازم است.'
 
 const EMPTY_VALUES: ApplicantFormValues = {
   fullName: '',
@@ -40,6 +49,7 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
+  const [step, setStep] = useState<ApplicantFormStep>(1)
   // See CreatePropertyScreen's identical guard — `isSubmitting` is React
   // state, so two presses in the same tick (a fast double-tap) can both
   // read it as `false` before either commits. This ref is checked and
@@ -54,6 +64,31 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   ): void {
     setValues((current) => ({ ...current, [field]: value }))
     setIsDirty(true)
+  }
+
+  function handleNext(): void {
+    if (step === 1) {
+      const stepErrors: ApplicantFormErrors = {}
+      if (!values.fullName.trim()) stepErrors.fullName = REQUIRED
+      if (!values.phoneNumber.trim()) stepErrors.phoneNumber = REQUIRED
+      if (!values.city.trim()) stepErrors.city = REQUIRED
+      setErrors(stepErrors)
+      if (Object.keys(stepErrors).length > 0) {
+        return
+      }
+    } else {
+      setErrors({})
+    }
+    setStep((step + 1) as ApplicantFormStep)
+  }
+
+  function handleBack(): void {
+    if (step > 1) {
+      setErrors({})
+      setStep((step - 1) as ApplicantFormStep)
+      return
+    }
+    navigation.goBack()
   }
 
   async function handleSubmit(): Promise<void> {
@@ -78,6 +113,8 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
     } catch (caughtError) {
       if (caughtError instanceof ApplicantValidationError) {
         setErrors(caughtError.fieldErrors)
+        const fields = Object.keys(caughtError.fieldErrors) as Array<keyof ApplicantFormValues>
+        setStep(Math.min(3, ...fields.map((f) => APPLICANT_FIELD_STEP[f])) as ApplicantFormStep)
       } else {
         setSubmitError('ثبت متقاضی با مشکل مواجه شد. دوباره تلاش کنید.')
       }
@@ -90,15 +127,33 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
   return (
     <FormScreenContainer
       section="applicant"
-      onBack={() => navigation.goBack()}
-      headerTitle="افزودن متقاضی"
-      onSave={handleSubmit}
-      isSaving={isSubmitting}
+      onBack={handleBack}
+      headerTitle="متقاضی تازه"
+      subheader={
+        <View style={styles.progress}>
+          <View style={styles.bars}>
+            {([1, 2, 3] as const).map((n) => (
+              <View key={n} style={[styles.bar, n <= step && styles.barOn]} />
+            ))}
+          </View>
+          <Text style={[theme.typography('bodySm'), styles.stepText]}>
+            {`مرحلهٔ ${toPersianDigits(String(step))} از ۳ · `}
+            <Text style={[theme.typography('labelMd'), styles.stepName]}>{STEP_NAMES[step]}</Text>
+          </Text>
+        </View>
+      }
+      footer={
+        step < 3 ? (
+          <Button label={`ادامه: ${STEP_NAMES[(step + 1) as ApplicantFormStep]}`} onPress={handleNext} />
+        ) : (
+          <Button label="ذخیرهٔ متقاضی" onPress={handleSubmit} loading={isSubmitting} />
+        )
+      }
     >
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
-      <ApplicantForm values={values} errors={errors} onChange={handleChange} />
+      <ApplicantForm values={values} errors={errors} onChange={handleChange} step={step} />
       <ConfirmDialog {...unsavedChangesDialogProps} />
     </FormScreenContainer>
   )
@@ -109,6 +164,17 @@ function createStyles(theme: Theme) {
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;
     // alignSelf explicitly anchors it to the correct edge.
+    progress: {
+      paddingHorizontal: theme.layout.screenPaddingX,
+      paddingTop: theme.spacing.space4,
+      gap: theme.spacing.space2,
+      backgroundColor: theme.colors.background
+    },
+    bars: { flexDirection: 'row', gap: theme.spacing.space2 },
+    bar: { flex: 1, height: 5, borderRadius: 3, backgroundColor: theme.colors.outlineVariant },
+    barOn: { backgroundColor: theme.colors.primary },
+    stepText: { color: theme.colors.onSurfaceVariant, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' },
+    stepName: { color: theme.colors.onSurface },
     submitError: {
       color: theme.colors.error,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'

@@ -80,7 +80,7 @@ describe('MainNavigator', () => {
     expect(await findByText('فایل‌ها')).toBeTruthy()
     expect(await findByText('تطبیق')).toBeTruthy()
     expect(await findByText('قراردادها')).toBeTruthy()
-    expect(await findByText('پروفایل')).toBeTruthy()
+    expect(await findByText('من')).toBeTruthy()
   })
 
   it('switches to the Files tab root when pressed', async () => {
@@ -91,7 +91,7 @@ describe('MainNavigator', () => {
 
   it('switches to the Profile tab root (Settings) when pressed', async () => {
     const { findByText } = await renderMainNavigator()
-    fireEvent.press(await findByText('پروفایل'))
+    fireEvent.press(await findByText('من'))
     expect(await findByText('صفحه پروفایل')).toBeTruthy()
   })
 

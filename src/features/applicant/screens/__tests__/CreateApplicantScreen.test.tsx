@@ -53,13 +53,15 @@ describe('CreateApplicantScreen', () => {
     const { errors } = validateApplicantForm(EMPTY_VALUES)
     mockCreateApplicant.mockRejectedValue(new ApplicantValidationError(errors ?? {}))
 
-    const { getByText, findByText } = await render(
+    const { getByText, findAllByText } = await render(
       withTheme(<CreateApplicantScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.press(getByText('ذخیره')))
+    // step 1 asks for the name, number and city before going on
+    await waitFor(() => fireEvent.press(getByText('ادامه: چه می‌خواهد')))
 
-    expect(await findByText('نام الزامی است.')).toBeTruthy()
+    expect((await findAllByText('این مورد لازم است.')).length).toBe(3)
+    expect(mockCreateApplicant).not.toHaveBeenCalled()
     expect(mockReplace).not.toHaveBeenCalled()
   })
 
@@ -73,7 +75,9 @@ describe('CreateApplicantScreen', () => {
     await waitFor(() => fireEvent.changeText(getByLabelText('نام و نام خانوادگی'), 'علی رضایی'))
     await waitFor(() => fireEvent.changeText(getByLabelText('شماره تماس'), '09121234567'))
     await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
-    await waitFor(() => fireEvent.press(getByText('ذخیره')))
+    await waitFor(() => fireEvent.press(getByText('ادامه: چه می‌خواهد')))
+    await waitFor(() => fireEvent.press(getByText('ادامه: متراژ و توضیحات')))
+    await waitFor(() => fireEvent.press(getByText('ذخیرهٔ متقاضی')))
 
     await waitFor(() =>
       expect(mockCreateApplicant).toHaveBeenCalledWith(

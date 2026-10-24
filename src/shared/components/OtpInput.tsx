@@ -8,6 +8,7 @@ import {
   type TextInputKeyPressEventData
 } from 'react-native'
 import { useTheme, type Theme } from '../theme'
+import { toPersianDigits } from '../utils/persianText'
 
 const LENGTH = 6
 
@@ -177,7 +178,8 @@ export function OtpInput({
           }}
           accessibilityLabel={`رقم ${index + 1} کد تأیید`}
           style={[theme.typography('headlineMd'), styles.digitText]}
-          value={digit}
+          // v1.4.0 (Amin): the boxes show Persian digits; the code itself stays Latin
+          value={toPersianDigits(digit)}
           onChangeText={(text) => handleChangeText(index, text)}
           onKeyPress={(event) => handleKeyPress(index, event)}
           onFocus={() => handleFocus(index)}

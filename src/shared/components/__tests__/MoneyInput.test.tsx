@@ -8,7 +8,7 @@ describe('MoneyInput', () => {
     const { getByLabelText } = await render(
       withTheme(<MoneyInput label="قیمت" value="1000000000" onChangeValue={jest.fn()} />)
     )
-    expect(getByLabelText('قیمت').props.value).toBe('1,000,000,000')
+    expect(getByLabelText('قیمت').props.value).toBe('۱٬۰۰۰٬۰۰۰٬۰۰۰')
   })
 
   it('reports a plain numeric string when the user types, stripping separators', async () => {
