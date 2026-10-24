@@ -5,6 +5,8 @@ import {
   ValidationFailureError
 } from '../../core/auth/errors'
 
+export type InviteResult = { code: string; url: string; referralCode: string }
+
 type ErrorBody = { error?: { code?: string; message?: string } }
 
 const VALIDATION_CODES = new Set([
@@ -50,6 +52,15 @@ export class HttpAuthApiClient implements AuthApiClient {
 
   async deleteAccount(phoneNumber: string): Promise<void> {
     await this.post('/auth/delete-account', { phoneNumber })
+  }
+
+  /**
+   * v1.4.0 (Amin #4311, «دعوت با پیامک»): records that this user invites
+   * `phoneNumber` and returns the personal link to send. When that mobile
+   * signs in for the first time the server applies the invite itself.
+   */
+  async createInvite(sessionToken: string, phoneNumber: string): Promise<InviteResult> {
+    return this.post('/auth/invite', { sessionToken, phoneNumber })
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {

@@ -57,6 +57,18 @@ for (const [name, type] of [
   if (!otpColumns.includes(name)) db.exec(`ALTER TABLE otp_requests ADD COLUMN ${name} ${type}`)
 }
 
+// KSS (Amin #4311): «دعوت با پیامک» — who invited which mobile (see inviteRoutes.js)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS invites (
+    code TEXT PRIMARY KEY,
+    referrer_user_id TEXT NOT NULL REFERENCES users(id),
+    phone_number TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    used_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS invites_phone ON invites(phone_number);
+`)
+
 // Registration requires a valid referral code with no bypass (ADR-009), so a
 // brand-new server has no user to be a referrer for the very first real
 // registration. Mirrors the client's own former bootstrap-seed migration

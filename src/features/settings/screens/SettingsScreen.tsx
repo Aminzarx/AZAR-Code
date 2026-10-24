@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Clipboard, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Clipboard, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -8,7 +8,6 @@ import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import {
   Button,
-  Card,
   ConfirmDialog,
   Icon,
   InfoDialog,
@@ -42,6 +41,13 @@ import {
 import { useDisplayName } from '@shared/hooks/useDisplayName'
 import { useNetworkStatus } from '@shared/hooks/useNetworkStatus'
 import { formatDateTime } from '@shared/utils/formatDate'
+import { toPersianDigits } from '@shared/utils/persianText'
+import { formatIranPhoneNumberForDisplay } from '@shared/utils/iranPhoneNumber'
+import { APP_VERSION } from '@shared/appVersion'
+import { InviteSmsDialog } from '../components/InviteSmsDialog'
+import { SettingsRow } from '../components/SettingsRow'
+
+const APP_DOWNLOAD_URL = 'https://api.zarandix.ir/app/'
 import { ValidationFailureError } from '@core/auth/errors'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>
@@ -77,7 +83,7 @@ type ImportStep = 'closed' | 'password' | 'success'
  * header — visible every time the app opened. Moved here so it's still
  * always reachable, just not forced on the user by default.
  */
-export function SettingsScreen(_props: Props): React.JSX.Element {
+export function SettingsScreen(props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session, logout, sendOtp, verifyOtp, deleteAccount } = useAuth()
@@ -88,7 +94,8 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const [sessionRecord, setSessionRecord] = useState<SessionRecord | null>(null)
   const [copied, setCopied] = useState(false)
-  const [isMenuVisible, setIsMenuVisible] = useState(false)
+  const [isInviteVisible, setIsInviteVisible] = useState(false)
+  const [isQrVisible, setIsQrVisible] = useState(false)
   const [isLogoutConfirmVisible, setIsLogoutConfirmVisible] = useState(false)
   const [isBackupDialogVisible, setIsBackupDialogVisible] = useState(false)
   const [isCreatingBackup, setIsCreatingBackup] = useState(false)
@@ -154,6 +161,15 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
     }
     Clipboard.setString(session.referralCode)
     setCopied(true)
+  }
+
+  function handleShareReferralCode(): void {
+    if (!session?.referralCode) {
+      return
+    }
+    Share.share({
+      message: `ایوان، دفتر کار همراه مشاوران املاک. برنامه را از ${APP_DOWNLOAD_URL} بگیرید و هنگام ثبت‌نام این کد معرف را بزنید: ${session.referralCode}`
+    }).catch(() => undefined)
   }
 
   function handleConfirmLogout(): void {
@@ -311,202 +327,159 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content} accessibilityLabel="تنظیمات">
-        <View style={styles.header}>
-          <Text style={[theme.typography('headlineLgMobile'), styles.title]}>تنظیمات</Text>
-          <View>
+      <ScrollView contentContainerStyle={styles.content} accessibilityLabel="من">
+        {/* v1.4.0 (approved «من» design): who you are, the invite card, then one list */}
+        <View style={styles.profileRow}>
+          <View style={styles.avatar}>
+            <Text style={[theme.typography('titleMd'), styles.avatarText]}>
+              {(displayName || 'ا').trim().charAt(0)}
+            </Text>
+          </View>
+          <View style={styles.profileText}>
+            {isEditingName ? (
+              <TextInput
+                label="نام"
+                value={nameInput}
+                onChangeText={setNameInput}
+                onBlur={handleNameBlur}
+                placeholder="نام خود را وارد کنید"
+                autoFocus
+              />
+            ) : (
+              <Text style={[theme.typography('titleMd'), styles.value]} numberOfLines={1}>
+                {displayName || 'نام ثبت نشده'}
+              </Text>
+            )}
+            <Text style={[theme.typography('bodySm'), styles.phone]}>
+              {phoneNumber ? toPersianDigits(formatIranPhoneNumberForDisplay(phoneNumber)) : '-'}
+            </Text>
+          </View>
+          {!isEditingName ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="گزینه‌های حساب"
-              onPress={() => setIsMenuVisible((current) => !current)}
-              style={styles.menuButton}
+              accessibilityLabel="ویرایش نام"
+              onPress={() => setIsEditingName(true)}
               hitSlop={theme.spacing.space2}
             >
-              <Icon name="moreVertical" size="sm" color={theme.colors.onSurface} />
+              <Text style={[theme.typography('labelMd'), styles.editLabel]}>ویرایش</Text>
             </Pressable>
-            {isMenuVisible ? (
-              <>
-                <Pressable
-                  style={styles.menuBackdrop}
-                  onPress={() => setIsMenuVisible(false)}
-                  accessibilityRole="button"
-                  accessibilityLabel="بستن منو"
-                />
-                <View style={styles.menu}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="خروج از حساب"
-                    onPress={() => {
-                      setIsMenuVisible(false)
-                      setIsLogoutConfirmVisible(true)
-                    }}
-                    style={styles.menuItem}
-                  >
-                    <Text style={[theme.typography('bodyMd'), styles.menuItemLabel]}>
-                      خروج از حساب
-                    </Text>
-                  </Pressable>
-                  <View style={styles.menuDivider} />
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="حذف حساب"
-                    onPress={() => {
-                      setIsMenuVisible(false)
-                      setDeleteError(null)
-                      setDeleteStep('confirm')
-                    }}
-                    style={styles.menuItem}
-                  >
-                    <Text style={[theme.typography('bodyMd'), styles.menuItemLabelDestructive]}>
-                      حذف حساب
-                    </Text>
-                  </Pressable>
-                </View>
-              </>
-            ) : null}
-          </View>
+          ) : null}
         </View>
 
-        {/* design-system.md §0.2's card-stack ban — one Card, sectioned by
-            hairlines, instead of a separate Card per field (the pattern
-            already established in ContractDetailScreen). */}
-        <Card variant="detail">
-          <View style={styles.nameRow}>
-            <View style={styles.nameLabelGroup}>
-              <Text style={[theme.typography('bodySm'), styles.cardLabel]}>نام</Text>
-              {isEditingName ? (
-                <TextInput
-                  label="نام"
-                  value={nameInput}
-                  onChangeText={setNameInput}
-                  onBlur={handleNameBlur}
-                  placeholder="نام خود را وارد کنید"
-                  autoFocus
-                />
-              ) : (
-                <Text style={[theme.typography('bodyLg'), styles.value]}>
-                  {displayName || 'ثبت نشده'}
-                </Text>
-              )}
-            </View>
-            {!isEditingName ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="ویرایش نام"
-                onPress={() => setIsEditingName(true)}
-                hitSlop={theme.spacing.space2}
-              >
-                <Text style={[theme.typography('labelMd'), styles.editLabel]}>ویرایش</Text>
-              </Pressable>
-            ) : null}
-          </View>
-
-          <View style={styles.divider} />
-
-          <Text style={[theme.typography('bodySm'), styles.cardLabel]}>شماره موبایل</Text>
-          <Text style={[theme.typography('bodyLg'), styles.value]}>{phoneNumber ?? '-'}</Text>
-
-          <View style={styles.divider} />
-
-          <Text style={[theme.typography('bodySm'), styles.cardLabel]}>کد معرف شما</Text>
-          <Text style={[theme.typography('bodySm'), styles.hint]}>
-            {copied
-              ? 'کد معرف کپی شد.'
-              : 'این کد را برای دعوت افراد جدید به ایوان به اشتراک بگذارید.'}
-          </Text>
-
-          {session?.referralCode ? (
-            <View style={styles.qrSection}>
-              <View style={styles.qrFrame}>
-                <QRCode
-                  value={session.referralCode}
-                  size={140}
-                  color={theme.colors.primary}
-                  backgroundColor={theme.colors.surfaceContainerLowest}
-                />
-              </View>
-              <View style={styles.codeRow}>
-                <Text
-                  accessibilityLabel="کد معرف شما"
-                  style={[theme.typography('bodyLg'), styles.qrCode]}
-                >
+        {session?.referralCode ? (
+          <View style={styles.inviteCard}>
+            <Text style={[theme.typography('titleSm'), styles.inviteTitle]}>همکارانتان را دعوت کنید</Text>
+            <Text style={[theme.typography('bodySm'), styles.inviteLead]}>
+              {copied ? 'کد معرف کپی شد.' : 'کد شما برای ثبت‌نام همکاران'}
+            </Text>
+            <View style={styles.inviteRow}>
+              <View style={styles.inviteCode}>
+                <Text accessibilityLabel="کد معرف شما" style={[theme.typography('titleMd'), styles.inviteCodeText]}>
                   {session.referralCode}
                 </Text>
                 <Pressable
                   onPress={handleCopyReferralCode}
                   accessibilityRole="button"
                   accessibilityLabel="کپی کد معرف"
-                  style={styles.copyButton}
                   hitSlop={theme.spacing.space2}
                 >
-                  <Icon name="copy" size="sm" color={theme.colors.primary} />
+                  <Icon name="copy" size="sm" color={theme.colors.onPrimary} />
                 </Pressable>
               </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="اشتراک کد معرف"
+                onPress={handleShareReferralCode}
+                style={styles.inviteShare}
+              >
+                <Text style={[theme.typography('labelMd'), styles.inviteShareText]}>اشتراک</Text>
+              </Pressable>
             </View>
-          ) : null}
-
-          <View style={styles.divider} />
-
-          <View style={styles.statusRow}>
-            <Text style={[theme.typography('bodySm'), styles.cardLabel]}>وضعیت نشست</Text>
-            <View style={styles.statusValue}>
-              <View
-                style={[
-                  styles.statusDot,
-                  !sessionRecord || sessionRecord.revokedAt ? styles.statusDotInactive : null
-                ]}
-              />
-              <Text style={[theme.typography('bodySm'), styles.statusText]}>
-                {sessionRecord && !sessionRecord.revokedAt
-                  ? `فعال از ${formatDateTime(sessionRecord.createdAt)}`
-                  : 'نامشخص'}
-              </Text>
+            <View style={styles.inviteActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="دعوت با پیامک"
+                onPress={() => setIsInviteVisible(true)}
+                style={[styles.inviteAction, styles.inviteActionWide]}
+              >
+                <Icon name="sms" size="sm" color={theme.colors.onPrimary} />
+                <Text style={[theme.typography('labelMd'), styles.inviteActionText]}>دعوت با پیامک</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={isQrVisible ? 'بستن بارکد' : 'نمایش بارکد'}
+                onPress={() => setIsQrVisible((current) => !current)}
+                style={styles.inviteAction}
+              >
+                <Icon name="qr" size="sm" color={theme.colors.onPrimary} />
+              </Pressable>
             </View>
+            {isQrVisible ? (
+              <View style={styles.qrFrame}>
+                <QRCode value={session.referralCode} size={140} color={theme.colors.primary} backgroundColor="#FFFFFF" />
+              </View>
+            ) : null}
           </View>
+        ) : null}
 
-          <View style={[styles.statusRow, styles.statusRowSecondary]}>
-            <Text style={[theme.typography('bodySm'), styles.cardLabel]}>اتصال اینترنت</Text>
-            <View style={styles.statusValue}>
-              <View style={[styles.statusDot, isOnline ? null : styles.statusDotInactive]} />
-              <Text style={[theme.typography('bodySm'), styles.statusText]}>
-                {isOnline === null ? 'در حال بررسی...' : isOnline ? 'آنلاین' : 'آفلاین'}
-              </Text>
-            </View>
-          </View>
+        <View style={styles.list}>
+          <SettingsRow
+            icon="cloud"
+            label="تهیه نسخه پشتیبان"
+            value="ذخیرهٔ امن اطلاعات"
+            onPress={() => setIsBackupDialogVisible(true)}
+          />
+          <SettingsRow
+            icon="download"
+            label="بازیابی از نسخه پشتیبان"
+            onPress={() => {
+              setImportError(null)
+              setIsImportWarningVisible(true)
+            }}
+          />
+          <SettingsRow
+            icon="bell"
+            label="یادآوری‌ها و اعلان‌ها"
+            onPress={() => props.navigation.navigate('ReminderList')}
+          />
+          <SettingsRow
+            icon="mobile"
+            label="این گوشی"
+            value={
+              sessionRecord && !sessionRecord.revokedAt
+                ? `فعال از ${formatDateTime(sessionRecord.createdAt)}`
+                : 'نامشخص'
+            }
+            badge={isOnline === null ? undefined : isOnline ? 'آنلاین' : 'آفلاین'}
+          />
+          <SettingsRow
+            icon="help"
+            label="راهنما و پشتیبانی"
+            onPress={() => {
+              Linking.openURL(COMPANY_SITE_URL).catch(() => undefined)
+            }}
+          />
+          <SettingsRow
+            icon="logout"
+            label="خروج از حساب"
+            destructive
+            onPress={() => setIsLogoutConfirmVisible(true)}
+            last
+          />
+        </View>
 
-          <View style={styles.divider} />
-
-          <Text style={[theme.typography('bodySm'), styles.cardLabel]}>پشتیبان‌گیری</Text>
-          <Text style={[theme.typography('bodySm'), styles.hint]}>
-            یک نسخه پشتیبان رمزگذاری‌شده از اطلاعات این دستگاه تهیه کنید تا در جای امنی نگه‌داری یا
-            به دستگاه دیگری منتقل کنید.
-          </Text>
-          <View style={styles.backupButtonRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="تهیه نسخه پشتیبان"
-              onPress={() => setIsBackupDialogVisible(true)}
-              style={[styles.backupButton, styles.backupButtonFlex]}
-            >
-              <Text style={[theme.typography('labelMd'), styles.backupButtonLabel]}>
-                تهیه نسخه پشتیبان
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="بازیابی از نسخه پشتیبان"
-              onPress={() => {
-                setImportError(null)
-                setIsImportWarningVisible(true)
-              }}
-              style={[styles.backupButton, styles.backupButtonFlex]}
-            >
-              <Text style={[theme.typography('labelMd'), styles.backupButtonLabel]}>
-                بازیابی نسخه پشتیبان
-              </Text>
-            </Pressable>
-          </View>
-        </Card>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="حذف حساب"
+          onPress={() => {
+            setDeleteError(null)
+            setDeleteStep('confirm')
+          }}
+          style={styles.deleteAccount}
+          hitSlop={theme.spacing.space2}
+        >
+          <Text style={[theme.typography('labelSm'), styles.deleteAccountText]}>حذف حساب کاربری</Text>
+        </Pressable>
 
         {/* v1.4.0 (Amin #4324): whose app this is, linked to the company site */}
         <Pressable
@@ -520,7 +493,16 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
           <Text style={[theme.typography('bodySm'), styles.madeByText]}>ایوان، برنامه‌ای از خیام صنعت شریف</Text>
           <Text style={[theme.typography('labelMd'), styles.madeByLink]}>kssx.ir</Text>
         </Pressable>
+        <Text style={[theme.typography('labelSm'), styles.version]}>
+          {`ایوان · نسخهٔ ${toPersianDigits(APP_VERSION)}`}
+        </Text>
       </ScrollView>
+
+      <InviteSmsDialog
+        visible={isInviteVisible}
+        onClose={() => setIsInviteVisible(false)}
+        senderName={displayName}
+      />
 
       <ConfirmDialog
         visible={isLogoutConfirmVisible}
@@ -654,7 +636,71 @@ export function SettingsScreen(_props: Props): React.JSX.Element {
 const COMPANY_SITE_URL = 'https://kssx.ir'
 
 function createStyles(theme: Theme) {
+  const start = theme.isRTL ? 'flex-start' : 'flex-end'
   return StyleSheet.create({
+    profileRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.space3 },
+    avatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.primary
+    },
+    avatarText: { color: theme.colors.onPrimary },
+    profileText: { flex: 1, gap: 2, alignItems: start },
+    phone: { color: theme.colors.onSurfaceVariant },
+    inviteCard: {
+      backgroundColor: theme.colors.primary,
+      borderRadius: theme.radius.large,
+      padding: theme.spacing.space5,
+      gap: theme.spacing.space2
+    },
+    inviteTitle: { color: theme.colors.onPrimary, alignSelf: start },
+    inviteLead: { color: 'rgba(255,255,255,0.75)', alignSelf: start },
+    inviteRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.space2, marginTop: theme.spacing.space2 },
+    inviteCode: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.spacing.space4,
+      paddingVertical: theme.spacing.space3,
+      borderRadius: theme.radius.medium,
+      backgroundColor: 'rgba(255,255,255,0.12)'
+    },
+    inviteCodeText: { color: theme.colors.onPrimary, letterSpacing: 3 },
+    inviteShare: {
+      paddingHorizontal: theme.spacing.space4,
+      paddingVertical: theme.spacing.space3,
+      borderRadius: theme.radius.medium,
+      backgroundColor: '#FFFFFF'
+    },
+    inviteShareText: { color: theme.colors.primary, fontWeight: '700' },
+    inviteActions: { flexDirection: 'row', gap: theme.spacing.space2 },
+    inviteAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.space2,
+      minHeight: 44,
+      paddingHorizontal: theme.spacing.space4,
+      borderRadius: theme.radius.medium,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.3)'
+    },
+    inviteActionWide: { flex: 1 },
+    inviteActionText: { color: theme.colors.onPrimary, fontWeight: '700' },
+    list: {
+      backgroundColor: theme.colors.surfaceContainerLowest,
+      borderRadius: theme.radius.large,
+      borderWidth: 1,
+      borderColor: theme.colors.outlineVariant,
+      overflow: 'hidden'
+    },
+    deleteAccount: { alignSelf: 'center', paddingVertical: theme.spacing.space2 },
+    deleteAccountText: { color: theme.colors.error },
+    version: { color: theme.colors.outline, textAlign: 'center' },
     madeBy: {
       alignItems: 'center',
       gap: theme.spacing.space1,

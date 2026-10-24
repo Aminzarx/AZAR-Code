@@ -67,9 +67,8 @@ jest.mock('@shared/hooks/useDisplayName', () => ({
 const navigationProp = {} as never
 const routeProp = { key: 'Settings', name: 'Settings' as const, params: undefined }
 
-async function openMenu(findByLabelText: (label: string) => Promise<any>): Promise<void> {
-  fireEvent.press(await findByLabelText('گزینه‌های حساب'))
-}
+// v1.4.0: «خروج» and «حذف حساب» sit on the page itself now (no ⋮ menu)
+async function openMenu(_findByLabelText: (label: string) => Promise<any>): Promise<void> {}
 
 describe('SettingsScreen', () => {
   beforeEach(() => {
@@ -125,7 +124,7 @@ describe('SettingsScreen', () => {
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    expect(await findByText('+989121234567')).toBeTruthy()
+    expect(await findByText('۰۹۱۲۱۲۳۴۵۶۷')).toBeTruthy()
   })
 
   // v1.4.0 (Amin #4324)

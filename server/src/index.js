@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const authRoutes = require('./authRoutes')
+const invites = require('./inviteRoutes')
 
 const PORT = Number(process.env.PORT) || 8787
 // Explicit, not left to Node's default — nginx on the VPS host proxies to
@@ -20,6 +21,8 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/auth', authRoutes)
+app.use('/auth', invites.api)
+app.use(invites.page)
 
 app.use((_req, res) => {
   res.status(404).json({ error: { code: 'not_found', message: 'Not found.' } })

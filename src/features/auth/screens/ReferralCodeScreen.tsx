@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { Clipboard, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '@navigation/AuthNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
@@ -7,6 +7,11 @@ import { useTheme, type Theme } from '@shared/theme'
 import { Button, Icon, QrCodeScanner, TextInput } from '@shared/components'
 import { ValidationFailureError } from '@core/auth/errors'
 import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
+import { getDatabase } from '@infrastructure/database/connection'
+import { ApplicationSettingsRepository } from '@infrastructure/database/repositories/ApplicationSettingsRepository'
+
+/** a referral code as minted (8) or the mother code (6) — no 0/O/1/I/L */
+const CODE_SHAPE = /^[A-HJ-NP-Z2-9]{6,8}$/
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ReferralCode'>
 
@@ -19,6 +24,28 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isScannerVisible, setIsScannerVisible] = useState(false)
+  const [fullName, setFullName] = useState('')
+  const [agency, setAgency] = useState('')
+  const [fromInvite, setFromInvite] = useState(false)
+
+  // v1.4.0 (Amin #4311): the invite page copies the inviter's code; if it
+  // is on the clipboard, it is filled in here so nothing has to be typed.
+  useEffect(() => {
+    let cancelled = false
+    Promise.resolve()
+      .then(() => Clipboard.getString())
+      .then((text) => {
+        const candidate = typeof text === 'string' ? text.trim().toUpperCase() : ''
+        if (!cancelled && CODE_SHAPE.test(candidate)) {
+          setReferralCode((current) => (current ? current : candidate))
+          setFromInvite(true)
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Auto-fills the field from the QR — the real check against the
   // database happens exactly where it already did for manual entry, in
@@ -33,6 +60,12 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
     setError(null)
     setIsSubmitting(true)
     try {
+      // the name and agency are this phone's own settings (see useDisplayName)
+      if (fullName.trim() || agency.trim()) {
+        const settings = new ApplicationSettingsRepository(await getDatabase())
+        if (fullName.trim()) await settings.set('display_name', fullName.trim())
+        if (agency.trim()) await settings.set('agency_name', agency.trim())
+      }
       // No explicit navigation on success: RootNavigator swaps from
       // AuthNavigator to MainNavigator as soon as useAuth().session is
       // set (register() below sets it) — see navigation/RootNavigator.tsx.
@@ -51,21 +84,36 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
   return (
     <AuthScreenContainer>
       <View style={styles.header}>
-        <Text style={[theme.typography('titleMd'), styles.headerTitle]}>کد معرف</Text>
+        <Text style={[theme.typography('titleMd'), styles.headerTitle]}>تکمیل ثبت‌نام</Text>
         <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>
-          برای تکمیل ثبت‌نام، کد معرفِ فرد دعوت‌کننده را وارد کنید.
+          فقط یک بار؛ بعد مستقیم وارد برنامه می‌شوید.
         </Text>
       </View>
       <View style={styles.form}>
+        <TextInput label="نام و نام خانوادگی *" value={fullName} onChangeText={setFullName} placeholder="مثلاً علی رضایی" />
+        <TextInput
+          label="نام مشاور املاک (اختیاری)"
+          value={agency}
+          onChangeText={setAgency}
+          placeholder="مثلاً املاک پارسه"
+        />
         <TextInput
           label="کد معرف"
           value={referralCode}
-          onChangeText={setReferralCode}
+          onChangeText={(text) => {
+            setReferralCode(text)
+            setFromInvite(false)
+          }}
           placeholder="ABCD1234"
           maxLength={8}
           errorMessage={error ?? undefined}
-          autoFocus
         />
+        <Text style={[theme.typography('bodySm'), styles.codeHint]}>
+          کد را از کسی که شما را دعوت کرده بگیرید یا بارکد او را اسکن کنید.
+        </Text>
+        {fromInvite ? (
+          <Text style={[theme.typography('bodySm'), styles.inviteHint]}>کد معرف از پیوند دعوت برداشته شد.</Text>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="اسکن بارکد کد معرف"
@@ -76,13 +124,13 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
           <Text style={[theme.typography('labelMd'), styles.scanButtonLabel]}>اسکن بارکد</Text>
         </Pressable>
         <Button
-          label="تکمیل ثبت‌نام"
+          label="ورود به برنامه"
           onPress={handleSubmit}
           loading={isSubmitting}
           // The normal generated code is 8 characters, but the mother
           // referral code (AMINZX) is only 6 — this only guards against an
           // obviously-incomplete entry, not a fixed length.
-          disabled={referralCode.length < 6}
+          disabled={referralCode.length < 6 || fullName.trim().length < 2}
         />
       </View>
 
@@ -114,7 +162,16 @@ function createStyles(theme: Theme) {
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     form: {
-      gap: theme.spacing.space6
+      gap: theme.spacing.space5
+    },
+    codeHint: {
+      color: theme.colors.onSurfaceVariant,
+      marginTop: -theme.spacing.space3
+    },
+    inviteHint: {
+      color: theme.colors.success,
+      marginTop: -theme.spacing.space3,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     scanButton: {
       flexDirection: 'row',

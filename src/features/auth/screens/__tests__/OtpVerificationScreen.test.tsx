@@ -44,7 +44,8 @@ describe('OtpVerificationScreen', () => {
       register: jest.fn(),
       login: mockLogin,
       logout: jest.fn(),
-      deleteAccount: jest.fn()
+      deleteAccount: jest.fn(),
+      createInvite: jest.fn()
     })
   })
 

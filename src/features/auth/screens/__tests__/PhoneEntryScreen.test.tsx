@@ -23,7 +23,8 @@ describe('PhoneEntryScreen (v3.0.0 one-page sign-in, Amin #4205)', () => {
       register: jest.fn(),
       login: jest.fn(),
       logout: jest.fn(),
-      deleteAccount: jest.fn()
+      deleteAccount: jest.fn(),
+      createInvite: jest.fn()
     })
   })
 

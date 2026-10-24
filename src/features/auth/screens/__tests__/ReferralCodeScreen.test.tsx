@@ -27,7 +27,8 @@ describe('ReferralCodeScreen', () => {
       register: mockRegister,
       login: jest.fn(),
       logout: jest.fn(),
-      deleteAccount: jest.fn()
+      deleteAccount: jest.fn(),
+      createInvite: jest.fn()
     })
   })
 
@@ -53,8 +54,9 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
+    await fireEvent.changeText(getByLabelText('نام و نام خانوادگی *'), 'علی رضایی')
     await fireEvent.changeText(getByLabelText('کد معرف'), 'abcd1234')
-    await fireEvent.press(getByText('تکمیل ثبت‌نام'))
+    await fireEvent.press(getByText('ورود به برنامه'))
 
     await waitFor(() => expect(mockRegister).toHaveBeenCalledWith('+989121234567', 'ABCD1234'))
   })
@@ -65,8 +67,9 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
+    await fireEvent.changeText(getByLabelText('نام و نام خانوادگی *'), 'علی رضایی')
     await fireEvent.changeText(getByLabelText('کد معرف'), 'AMINZX')
-    await fireEvent.press(getByText('تکمیل ثبت‌نام'))
+    await fireEvent.press(getByText('ورود به برنامه'))
 
     await waitFor(() => expect(mockRegister).toHaveBeenCalledWith('+989121234567', 'AMINZX'))
   })
@@ -77,8 +80,9 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
+    await fireEvent.changeText(getByLabelText('نام و نام خانوادگی *'), 'علی رضایی')
     await fireEvent.changeText(getByLabelText('کد معرف'), 'AMIN')
-    await fireEvent.press(getByText('تکمیل ثبت‌نام'))
+    await fireEvent.press(getByText('ورود به برنامه'))
 
     expect(mockRegister).not.toHaveBeenCalled()
   })

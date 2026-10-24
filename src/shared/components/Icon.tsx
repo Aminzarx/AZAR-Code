@@ -36,6 +36,10 @@ export type IconName =
   | 'building'
   | 'people'
   | 'sms'
+  | 'cloud'
+  | 'help'
+  | 'mobile'
+  | 'qr'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -145,5 +149,13 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'people-outline'
     case 'sms':
       return 'chatbubble-ellipses-outline'
+    case 'cloud':
+      return 'cloud-outline'
+    case 'help':
+      return 'help-circle-outline'
+    case 'mobile':
+      return 'phone-portrait-outline'
+    case 'qr':
+      return 'qr-code-outline'
   }
 }

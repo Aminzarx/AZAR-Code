@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { getDatabase } from '@infrastructure/database/connection'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
 import { SessionRepository } from '@infrastructure/database/repositories/SessionRepository'
-import { HttpAuthApiClient } from '@infrastructure/auth/httpAuthApiClient'
+import { HttpAuthApiClient, type InviteResult } from '@infrastructure/auth/httpAuthApiClient'
 import { AUTH_API_BASE_URL } from '@infrastructure/auth/config'
 import { generateId } from '@infrastructure/auth/idGenerators'
 import { keychainSecureStorage } from '@infrastructure/security/keychainSecureStorage'
@@ -17,6 +17,8 @@ type AuthContextValue = {
   login: (phoneNumber: string) => Promise<CurrentSession>
   logout: () => Promise<void>
   deleteAccount: (phoneNumber: string) => Promise<void>
+  /** v1.4.0: invite a colleague's mobile; returns the link to send by SMS */
+  createInvite: (phoneNumber: string) => Promise<InviteResult>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -114,6 +116,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         await authApiClient.deleteAccount(phoneNumber)
         await sessionManager.logout()
         setSession(null)
+      },
+      createInvite: async (phoneNumber) => {
+        if (!session) {
+          throw new Error('Not signed in.')
+        }
+        return authApiClient.createInvite(session.sessionToken, phoneNumber)
       }
     }
   }, [authApiClient, sessionManager, session, isInitializing, userRepository])
@@ -133,7 +141,8 @@ const placeholderValue: AuthContextValue = {
   register: () => Promise.reject(new Error('Auth is still initializing.')),
   login: () => Promise.reject(new Error('Auth is still initializing.')),
   logout: () => Promise.reject(new Error('Auth is still initializing.')),
-  deleteAccount: () => Promise.reject(new Error('Auth is still initializing.'))
+  deleteAccount: () => Promise.reject(new Error('Auth is still initializing.')),
+  createInvite: () => Promise.reject(new Error('Auth is still initializing.'))
 }
 
 export function useAuth(): AuthContextValue {

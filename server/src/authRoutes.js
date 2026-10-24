@@ -2,6 +2,7 @@ const express = require('express')
 const rateLimit = require('express-rate-limit')
 const db = require('./db')
 const { generateId, generateReferralCode, generateSessionToken } = require('./ids')
+const { findOpenInvite } = require('./inviteRoutes')
 
 const PHONE_NUMBER_PATTERN = /^\+?[1-9]\d{7,14}$/
 
@@ -25,6 +26,31 @@ const FIXED_OTP_CODE = /^\d{6}$/.test(process.env.AZAR_FIXED_OTP_CODE || '') ? p
 const MASTER_REFERRAL_CODE = 'AMINZX'
 
 const router = express.Router()
+
+/**
+ * KSS (Amin #4311): a new account made from an SMS invite at sign-in —
+ * the same rows /register writes (user + referral relationship), and the
+ * invite marked used. Returns the new user row.
+ */
+function createUser(phoneNumber, referrer, usedReferralCode, inviteCode) {
+  const user = {
+    id: generateId(),
+    phone_number: phoneNumber,
+    referral_code: uniqueReferralCode(),
+    used_referral_code: usedReferralCode,
+    created_at: new Date().toISOString()
+  }
+  db.transaction(() => {
+    db.prepare(
+      'INSERT INTO users (id, phone_number, referral_code, used_referral_code, created_at) VALUES (?, ?, ?, ?, ?)'
+    ).run(user.id, user.phone_number, user.referral_code, user.used_referral_code, user.created_at)
+    db.prepare(
+      'INSERT INTO referral_relationships (id, referrer_user_id, referred_user_id, created_at) VALUES (?, ?, ?, ?)'
+    ).run(generateId(), referrer.id, user.id, new Date().toISOString())
+    db.prepare('UPDATE invites SET used_at = ? WHERE code = ?').run(new Date().toISOString(), inviteCode)
+  })()
+  return user
+}
 
 // Per-route limits, not global — matches ADR-009's "every one of these five
 // operations must be individually rate-limited" instruction.
@@ -216,9 +242,15 @@ router.post('/login', registerLimiter, (req, res) => {
     return fail(res, 401, 'authentication_required', 'Verify your phone number before logging in.')
   }
 
-  const user = findUserByPhone(phoneNumber)
+  let user = findUserByPhone(phoneNumber)
   if (!user) {
-    return fail(res, 422, 'invalid_phone_number', 'No account found for this number.')
+    // KSS (Amin #4311): a mobile someone invited by SMS signs up right here,
+    // with the inviter as its referrer, instead of being asked for a code.
+    const open = findOpenInvite(phoneNumber)
+    if (!open) {
+      return fail(res, 422, 'invalid_phone_number', 'No account found for this number.')
+    }
+    user = createUser(phoneNumber, open.referrer, open.referrer.referral_code, open.invite.code)
   }
 
   const sessionToken = generateSessionToken()
@@ -264,6 +296,7 @@ router.post('/delete-account', registerLimiter, (req, res) => {
       'DELETE FROM referral_relationships WHERE referrer_user_id = ? OR referred_user_id = ?'
     ).run(user.id, user.id)
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
+    db.prepare('DELETE FROM invites WHERE referrer_user_id = ?').run(user.id)
     db.prepare('DELETE FROM users WHERE id = ?').run(user.id)
     db.prepare('DELETE FROM otp_requests WHERE phone_number = ?').run(phoneNumber)
   })()
