@@ -18,12 +18,13 @@ export function validateContractForm(
 
   const parsedStartDate = parseJalaliDate(values.startDate)
   if (!parsedStartDate) {
-    errors.startDate = 'تاریخ شروع را به‌صورت ۱۴۰۵/۰۵/۱۲ (سال/ماه/روز شمسی) وارد کنید.'
+    // short: the two dates sit side by side, a long line wrapped into four (emulator test 2026-10-24)
+    errors.startDate = 'مثل ۱۴۰۵/۰۵/۱۲ وارد کنید.'
   }
 
   const parsedEndDate = parseJalaliDate(values.endDate)
   if (!parsedEndDate) {
-    errors.endDate = 'تاریخ پایان را به‌صورت ۱۴۰۵/۰۵/۱۲ (سال/ماه/روز شمسی) وارد کنید.'
+    errors.endDate = 'مثل ۱۴۰۵/۰۵/۱۲ وارد کنید.'
   }
 
   const startDate = parsedStartDate ? jalaliToGregorianIso(parsedStartDate) : ''

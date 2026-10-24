@@ -57,7 +57,8 @@ export function ContractForm({ values, errors, onChange }: Props): React.JSX.Ele
         label="کد رهگیری"
         value={values.trackingCode}
         onChangeText={(value) => onChange('trackingCode', value)}
-        placeholder="کد رهگیری ثبت‌شده در سامانه ثبت معاملات املاک (اختیاری)"
+        placeholder="اختیاری"
+        helperText="کد ثبت‌شده در سامانهٔ ثبت معاملات املاک"
         errorMessage={errors.trackingCode}
       />
       <TextInput

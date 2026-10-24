@@ -39,15 +39,14 @@ describe('CreateContractScreen', () => {
   })
 
   it('does not leave the first step while the dates are not valid', async () => {
-    const { getByText, findByText, queryByText } = await render(
+    const { getByText, findAllByText, queryByText } = await render(
       withTheme(<CreateContractScreen navigation={navigationProp} route={routeProp} />)
     )
 
     await waitFor(() => fireEvent.press(getByText(NEXT)))
 
-    expect(
-      await findByText('تاریخ شروع را به‌صورت ۱۴۰۵/۰۵/۱۲ (سال/ماه/روز شمسی) وارد کنید.')
-    ).toBeTruthy()
+    // both dates empty: the short line under each
+    expect(await findAllByText('مثل ۱۴۰۵/۰۵/۱۲ وارد کنید.')).toHaveLength(2)
     expect(queryByText('دوربین')).toBeNull()
     expect(mockCreateContract).not.toHaveBeenCalled()
   })
