@@ -1,9 +1,12 @@
-import React, { createContext, useContext, useMemo } from 'react'
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { useColorScheme } from 'react-native'
+import { savedAppearanceMode, saveAppearanceMode, type AppearanceMode } from './appearance'
 import {
   componentTokens,
   elevation,
   iconSize,
   layoutTokens,
+  darkColors,
   lightColors,
   motion,
   radius,
@@ -15,13 +18,16 @@ import {
   rtlFontFamilyByWeight,
   rtlHeadingFontFamilyByWeight,
   HEADING_VARIANTS,
+  type Palette,
   type StatusTone,
   type TypographyVariant
 } from './tokens'
 
 export type Theme = {
   isRTL: boolean
-  colors: typeof lightColors
+  /** Amin #5055: night mode is on */
+  isDark: boolean
+  colors: Palette
   spacing: typeof spacing
   radius: typeof radius
   elevation: typeof elevation
@@ -42,11 +48,13 @@ export type Theme = {
   status: (tone: StatusTone) => { background: string; foreground: string }
 }
 
-function buildTheme(isRTL: boolean): Theme {
+function buildTheme(isRTL: boolean, isDark: boolean): Theme {
   const table = isRTL ? typographyRtl : typographyLtr
+  const colors = isDark ? darkColors : lightColors
   return {
     isRTL,
-    colors: lightColors, // color.dark is undefined in design-tokens.json — light is the only theme
+    isDark,
+    colors,
     spacing,
     radius,
     elevation,
@@ -71,14 +79,17 @@ function buildTheme(isRTL: boolean): Theme {
     status: (tone) => {
       const tokenPair = statusTones[tone]
       return {
-        background: lightColors[tokenPair.background],
-        foreground: lightColors[tokenPair.foreground]
+        background: colors[tokenPair.background],
+        foreground: colors[tokenPair.foreground]
       }
     }
   }
 }
 
 const ThemeContext = createContext<Theme | null>(null)
+const AppearanceContext = createContext<{ mode: AppearanceMode; setMode: (mode: AppearanceMode) => void } | null>(
+  null
+)
 
 type Props = {
   /**
@@ -87,12 +98,35 @@ type Props = {
    * locale, consistent with every screen built so far.
    */
   isRTL?: boolean
+  /** tests: a fixed mode instead of the one saved on the phone */
+  initialMode?: AppearanceMode
   children: React.ReactNode
 }
 
-export function ThemeProvider({ isRTL = true, children }: Props): React.JSX.Element {
-  const theme = useMemo(() => buildTheme(isRTL), [isRTL])
-  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
+export function ThemeProvider({ isRTL = true, initialMode, children }: Props): React.JSX.Element {
+  const [mode, setModeState] = useState<AppearanceMode>(() => initialMode ?? savedAppearanceMode())
+  const system = useColorScheme()
+  const isDark = mode === 'dark' || (mode === 'system' && system === 'dark')
+  const theme = useMemo(() => buildTheme(isRTL, isDark), [isRTL, isDark])
+  const setMode = useCallback((next: AppearanceMode) => {
+    saveAppearanceMode(next)
+    setModeState(next)
+  }, [])
+  const appearance = useMemo(() => ({ mode, setMode }), [mode, setMode])
+  return (
+    <AppearanceContext.Provider value={appearance}>
+      <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
+    </AppearanceContext.Provider>
+  )
+}
+
+/** Amin #5055: the light/dark choice and its setter (saved on the phone) */
+export function useAppearance(): { mode: AppearanceMode; setMode: (mode: AppearanceMode) => void } {
+  const appearance = useContext(AppearanceContext)
+  if (!appearance) {
+    throw new Error('useAppearance must be used within a ThemeProvider')
+  }
+  return appearance
 }
 
 export function useTheme(): Theme {

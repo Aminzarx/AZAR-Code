@@ -1,5 +1,6 @@
 package com.azarapp
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.WindowManager
 import com.facebook.react.ReactActivity
@@ -16,6 +17,12 @@ class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
     super.onCreate(null)
+  }
+
+  /** Amin #5055: «هماهنگ با گوشی» — the bars follow the phone when it switches between day and night */
+  override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    AzarAppearanceModule.colourBars(this, AzarAppearanceModule.savedMode(this))
   }
 
   /**

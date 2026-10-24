@@ -4,8 +4,8 @@ import { open } from '@op-engineering/op-sqlite'
 import { getDatabase, getDeviceStore, closeDatabase, wasDatabaseFreshlyCreated } from '../connection'
 import { runMigrations } from '../migrationRunner'
 
-const LEGACY_FILE = path.join(process.cwd(), `azar.test-${process.env.JEST_WORKER_ID}.db`)
-const STORE_FILE = path.join(process.cwd(), `azar-store.test-${process.env.JEST_WORKER_ID}.db`)
+const LEGACY_FILE = path.join(process.cwd(), `azar.test-${process.env.AZAR_TEST_DB_TAG}.db`)
+const STORE_FILE = path.join(process.cwd(), `azar-store.test-${process.env.AZAR_TEST_DB_TAG}.db`)
 
 function removeFiles(): void {
   closeDatabase()

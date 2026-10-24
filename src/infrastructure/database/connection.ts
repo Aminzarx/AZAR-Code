@@ -6,7 +6,11 @@ import { DeviceStore, RAW_DB } from './deviceStore'
 
 // Jest runs test files in separate workers; suffixing the file names with
 // JEST_WORKER_ID keeps each worker on its own files (never set outside Jest).
-const SUFFIX = process.env.JEST_WORKER_ID ? `.test-${process.env.JEST_WORKER_ID}` : ''
+const SUFFIX = process.env.AZAR_TEST_DB_TAG
+  ? `.test-${process.env.AZAR_TEST_DB_TAG}` // one per test file (jest.setup.js)
+  : process.env.JEST_WORKER_ID
+    ? `.test-${process.env.JEST_WORKER_ID}`
+    : ''
 /** the encrypted on-disk store: device rows + unsent changes only (deviceStore.ts) */
 const STORE_NAME = `azar-store${SUFFIX}.db`
 /** where versions before option A kept every file on disk; taken over and deleted on the first launch */

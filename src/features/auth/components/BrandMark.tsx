@@ -28,7 +28,7 @@ function createStyles(theme: Theme) {
       height: 64,
       paddingHorizontal: theme.spacing.space4,
       borderRadius: theme.radius.extraLarge,
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors.brand,
       alignItems: 'center',
       justifyContent: 'center',
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
@@ -38,7 +38,7 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.surfaceContainerLowest
     },
     text: {
-      color: theme.colors.onPrimary,
+      color: theme.colors.onBrand,
       letterSpacing: 1
     },
     textInverse: {

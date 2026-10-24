@@ -9,15 +9,18 @@ import {
   View,
   type LayoutChangeEvent
 } from 'react-native'
+import { useTheme } from '@shared/theme'
 
 /** Amin #4936: at least this long, and longer until the app is really ready */
 export const SPLASH_MIN_MS = 3000
-const BACKGROUND = '#F8FAFC' // = the native splash (android/.../colors.xml splash_background)
-const INK = '#21374F' // the colour of the «ایوان» letters
+// = the native splash (android/.../values(-night)/colors.xml splash_background) = the theme's background
+// Amin #5055: in night mode the letters (and the dots) are light, as in drawable-night/splash_logo
+const INK = { light: '#21374F', dark: '#E2E8F0' } // the colour of the «ایوان» letters
 const CYCLE_MS = 900 // one pass of the «train» over the three dots
 const DIM = 0.18
 
 const logo = require('../assets/eyvan-logo.png')
+const logoDark = require('../assets/eyvan-logo-dark.png')
 
 /**
  * Amin #4936: the small logo exactly where the native splash put it, with three tiny navy dots lighting one after
@@ -31,6 +34,8 @@ export function SplashScreen({
   done: boolean
   onHidden: () => void
 }): React.JSX.Element {
+  const theme = useTheme()
+  const ink = theme.isDark ? INK.dark : INK.light
   const run = useRef(new Animated.Value(0)).current
   const fade = useRef(new Animated.Value(1)).current
   // the native splash centres the logo on the whole screen; this view sits between the system bars, so it is moved
@@ -67,7 +72,7 @@ export function SplashScreen({
       style={[
         StyleSheet.absoluteFill,
         styles.root,
-        shift === null ? null : styles.filled,
+        shift === null ? null : { backgroundColor: theme.colors.background },
         { opacity: fade }
       ]}
       accessibilityLabel="ایوان"
@@ -79,14 +84,14 @@ export function SplashScreen({
           { opacity: shift === null ? 0 : 1, transform: [{ translateY: shift ?? 0 }] }
         ]}
       >
-        <Image source={logo} style={styles.logo} />
+        <Image source={theme.isDark ? logoDark : logo} style={styles.logo} />
         {/* the dots hang under the centred logo, so the logo stays exactly where the native splash drew it */}
         <View style={styles.dots}>
           {[0, 1, 2].map((i) => (
             // right to left: dot 0 is the rightmost (the row is laid out left to right on purpose)
             <Animated.View
               key={i}
-              style={[styles.dot, { opacity: run.interpolate(pulse(2 - i)) }]}
+              style={[styles.dot, { backgroundColor: ink, opacity: run.interpolate(pulse(2 - i)) }]}
             />
           ))}
         </View>
@@ -129,7 +134,6 @@ export function useSplash(ready: boolean): { visible: boolean; done: boolean; hi
 
 const styles = StyleSheet.create({
   root: { zIndex: 10 },
-  filled: { backgroundColor: BACKGROUND },
   centre: {
     position: 'absolute',
     top: 0,
@@ -148,5 +152,5 @@ const styles = StyleSheet.create({
     direction: 'ltr',
     gap: 7
   },
-  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: INK }
+  dot: { width: 5, height: 5, borderRadius: 2.5 }
 })

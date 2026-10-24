@@ -19,12 +19,15 @@ class MainApplication : Application(), ReactApplication {
           add(AzarRestartPackage())
           add(AzarInstallerPackage())
           add(AzarImagePackage())
+          add(AzarAppearancePackage())
         },
     )
   }
 
   override fun onCreate() {
     super.onCreate()
+    // Amin #5055: the saved light/dark choice before the first window draws
+    AzarAppearanceModule.apply(this, AzarAppearanceModule.savedMode(this))
     loadReactNative(this)
   }
 }

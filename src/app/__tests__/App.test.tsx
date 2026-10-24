@@ -12,7 +12,7 @@ jest.mock('@infrastructure/updates/updateService', () => ({
 }))
 
 // option A: the files are in memory; the encrypted store is the one file on disk
-const DB_FILE = path.join(process.cwd(), `azar-store.test-${process.env.JEST_WORKER_ID}.db`)
+const DB_FILE = path.join(process.cwd(), `azar-store.test-${process.env.AZAR_TEST_DB_TAG}.db`)
 
 describe('App', () => {
   afterEach(async () => {

@@ -74,8 +74,71 @@ export const lightColors = {
   inverseOnSurface: '#F1F5F9',
   outline: '#CBD5E1',
   outlineVariant: '#E2E8F0',
-  placeholder: '#94A3B8'
+  placeholder: '#94A3B8',
+  /** Amin #5055: the navy brand surfaces (invite card, welcome header, the mark) stay navy in both modes */
+  brand: '#21364F',
+  onBrand: '#FFFFFF'
 } as const
+
+/** every colour role; the light and dark palettes fill the same roles */
+export type Palette = { readonly [K in keyof typeof lightColors]: string }
+
+/**
+ * Amin #5055: night mode. The same roles on the site's dark slate (#0B1220 ink-black, the slate steps up for
+ * raised surfaces); the navy brand turns into its light tint so it reads on dark. Every text/background pair the
+ * screens use keeps WCAG AA (4.5:1; checked in __tests__/contrast.test.ts).
+ */
+export const darkColors: Palette = {
+  primary: '#AEBED4',
+  onPrimary: '#0B1220',
+  primaryContainer: '#1C2A3D',
+  onPrimaryContainer: '#DCE4EE',
+  inversePrimary: '#21364F',
+  secondary: '#9FB3CC',
+  onSecondary: '#0B1220',
+  secondaryContainer: '#22324A',
+  onSecondaryContainer: '#DCE4EE',
+  tertiary: '#94A3B8',
+  onTertiary: '#0B1220',
+  tertiaryContainer: '#1E293B',
+  onTertiaryContainer: '#CBD5E1',
+  error: '#F87171',
+  onError: '#0B1220',
+  errorContainer: '#3A1619',
+  onErrorContainer: '#FECACA',
+  success: '#4ADE80',
+  onSuccess: '#0B1220',
+  successContainer: '#0F2E1C',
+  onSuccessContainer: '#BBF7D0',
+  warning: '#FBBF24',
+  onWarning: '#0B1220',
+  warningContainer: '#33240A',
+  onWarningContainer: '#FDE68A',
+  info: '#60A5FA',
+  onInfo: '#0B1220',
+  infoContainer: '#0F2340',
+  onInfoContainer: '#BFDBFE',
+  background: '#0B1220',
+  onBackground: '#E2E8F0',
+  surface: '#0B1220',
+  surfaceDim: '#070C16',
+  surfaceBright: '#1E293B',
+  surfaceContainerLowest: '#111A2B',
+  surfaceContainerLow: '#152033',
+  surfaceContainer: '#18243A',
+  surfaceContainerHigh: '#1E2B42',
+  surfaceContainerHighest: '#2A3850',
+  surfaceVariant: '#1E2B42',
+  onSurface: '#E2E8F0',
+  onSurfaceVariant: '#9AA8BC',
+  inverseSurface: '#E2E8F0',
+  inverseOnSurface: '#0F172A',
+  outline: '#3A4A63',
+  outlineVariant: '#243149',
+  placeholder: '#6B7A90',
+  brand: '#21364F',
+  onBrand: '#FFFFFF'
+}
 
 export const spacing = {
   space0: 0,

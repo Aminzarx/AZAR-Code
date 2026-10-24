@@ -68,13 +68,13 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.surfaceContainerLowest
     },
     hero: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors.brand,
       paddingHorizontal: theme.spacing.space6,
       paddingTop: theme.spacing.space16,
       paddingBottom: theme.spacing.space8
     },
     heroTitle: {
-      color: theme.colors.onPrimary,
+      color: theme.colors.onBrand,
       alignSelf: start
     },
     body: {

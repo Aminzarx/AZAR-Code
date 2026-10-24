@@ -6,12 +6,13 @@ import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
-import { useTheme, type Theme } from '@shared/theme'
+import { useAppearance, useTheme, type AppearanceMode, type Theme } from '@shared/theme'
 import {
   ConfirmDialog,
   Icon,
   MarqueeText,
-  OtpPromptDialog
+  OtpPromptDialog,
+  SegmentedControl
 } from '@shared/components'
 import { getDatabase } from '@infrastructure/database/connection'
 import {
@@ -54,6 +55,7 @@ type DeleteAccountStep = 'closed' | 'confirm' | 'otp'
 export function SettingsScreen(props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
+  const appearance = useAppearance()
   const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts, sync, syncNow } = useAuth()
   const { profile, storage } = useProfile({ withStorage: true })
   const displayName = profile.displayName
@@ -288,7 +290,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
                   accessibilityLabel="کپی کد معرف"
                   hitSlop={theme.spacing.space2}
                 >
-                  <Icon name="copy" size="sm" color={theme.colors.onPrimary} />
+                  <Icon name="copy" size="sm" color={theme.colors.onBrand} />
                 </Pressable>
               </View>
               <Pressable
@@ -307,7 +309,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
                 onPress={() => setIsInviteVisible(true)}
                 style={[styles.inviteAction, styles.inviteActionWide]}
               >
-                <Icon name="sms" size="sm" color={theme.colors.onPrimary} />
+                <Icon name="sms" size="sm" color={theme.colors.onBrand} />
                 <Text style={[theme.typography('labelMd'), styles.inviteActionText]}>دعوت با پیامک</Text>
               </Pressable>
               <Pressable
@@ -316,12 +318,12 @@ export function SettingsScreen(props: Props): React.JSX.Element {
                 onPress={() => setIsQrVisible((current) => !current)}
                 style={styles.inviteAction}
               >
-                <Icon name="qr" size="sm" color={theme.colors.onPrimary} />
+                <Icon name="qr" size="sm" color={theme.colors.onBrand} />
               </Pressable>
             </View>
             {isQrVisible ? (
               <View style={styles.qrFrame}>
-                <QRCode value={session.referralCode} size={140} color={theme.colors.primary} backgroundColor="#FFFFFF" />
+                <QRCode value={session.referralCode} size={140} color={theme.colors.brand} backgroundColor="#FFFFFF" />
               </View>
             ) : null}
           </View>
@@ -341,6 +343,17 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           <View style={styles.tokenTrack}>
             <View style={[styles.tokenFill, { width: `${Math.max(usedTokens > 0 ? 1.5 : 0, usedShare * 100)}%` }]} />
           </View>
+        </View>
+
+        {/* Amin #5055: night mode; the phone's own setting is the default */}
+        <View style={styles.tokenCard} accessibilityLabel="حالت نمایش">
+          <View style={styles.tokenHead}>
+            <View style={styles.tokenIcon}>
+              <Icon name="moon" size="sm" color={theme.colors.primary} />
+            </View>
+            <Text style={[theme.typography('titleSm'), styles.tokenTitle]}>حالت نمایش</Text>
+          </View>
+          <SegmentedControl options={APPEARANCE_OPTIONS} value={appearance.mode} onChange={appearance.setMode} />
         </View>
 
         <View style={styles.list}>
@@ -469,6 +482,12 @@ export function SettingsScreen(props: Props): React.JSX.Element {
 
 const COMPANY_SITE_URL = 'https://kssx.ir'
 
+const APPEARANCE_OPTIONS: readonly { value: AppearanceMode; label: string }[] = [
+  { value: 'light', label: 'روشن' },
+  { value: 'dark', label: 'تیره' },
+  { value: 'system', label: 'هماهنگ با گوشی' }
+]
+
 function createStyles(theme: Theme) {
   const start = theme.isRTL ? 'flex-start' : 'flex-end'
   return StyleSheet.create({
@@ -521,12 +540,12 @@ function createStyles(theme: Theme) {
     tokenFill: { height: 8, borderRadius: 4, backgroundColor: theme.colors.primary },
     phone: { color: theme.colors.onSurfaceVariant },
     inviteCard: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors.brand,
       borderRadius: theme.radius.large,
       padding: theme.spacing.space5,
       gap: theme.spacing.space2
     },
-    inviteTitle: { color: theme.colors.onPrimary, alignSelf: start },
+    inviteTitle: { color: theme.colors.onBrand, alignSelf: start },
     inviteLead: { color: 'rgba(255,255,255,0.75)', alignSelf: start },
     inviteRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.space2, marginTop: theme.spacing.space2 },
     inviteCode: {
@@ -539,14 +558,14 @@ function createStyles(theme: Theme) {
       borderRadius: theme.radius.medium,
       backgroundColor: 'rgba(255,255,255,0.12)'
     },
-    inviteCodeText: { color: theme.colors.onPrimary, letterSpacing: 3 },
+    inviteCodeText: { color: theme.colors.onBrand, letterSpacing: 3 },
     inviteShare: {
       paddingHorizontal: theme.spacing.space4,
       paddingVertical: theme.spacing.space3,
       borderRadius: theme.radius.medium,
       backgroundColor: '#FFFFFF'
     },
-    inviteShareText: { color: theme.colors.primary, fontWeight: '700' },
+    inviteShareText: { color: theme.colors.brand, fontWeight: '700' },
     inviteActions: { flexDirection: 'row', gap: theme.spacing.space2 },
     inviteAction: {
       flexDirection: 'row',
@@ -560,7 +579,7 @@ function createStyles(theme: Theme) {
       borderColor: 'rgba(255,255,255,0.3)'
     },
     inviteActionWide: { flex: 1 },
-    inviteActionText: { color: theme.colors.onPrimary, fontWeight: '700' },
+    inviteActionText: { color: theme.colors.onBrand, fontWeight: '700' },
     list: {
       backgroundColor: theme.colors.surfaceContainerLowest,
       borderRadius: theme.radius.large,

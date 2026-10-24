@@ -9,7 +9,7 @@ import { ReminderRepository } from '@infrastructure/database/repositories/Remind
 import { fetchDashboardData } from '../dashboardDataService'
 
 // option A: the files are in memory; the encrypted store is the one file on disk
-const DB_FILE = path.join(process.cwd(), `azar-store.test-${process.env.JEST_WORKER_ID}.db`)
+const DB_FILE = path.join(process.cwd(), `azar-store.test-${process.env.AZAR_TEST_DB_TAG}.db`)
 const USER_ID = 'user-1'
 const OTHER_USER_ID = 'user-2'
 

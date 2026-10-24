@@ -4,4 +4,6 @@
     <color name="icon_tile">#F7F7F7</color>
     <!-- Amin #4936: splash = the app background with the logo -->
     <color name="splash_background">#F8FAFC</color>
+    <!-- Amin #5055: the status and navigation bars take the app's background, in light and in night mode -->
+    <color name="bar_background">#F8FAFC</color>
 </resources>

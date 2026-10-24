@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Amin #5055: dark icons on the light bars -->
+    <bool name="light_bars">true</bool>
+</resources>

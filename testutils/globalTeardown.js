@@ -14,7 +14,9 @@ const path = require('node:path')
 module.exports = async function globalTeardown() {
   const files = fs.readdirSync(process.cwd())
   for (const file of files) {
-    if (/^azar\.test-.*\.db(-wal|-shm)?$/.test(file)) {
+    // option A: the encrypted store is azar-store.test-*.db (the old pattern missed it, and a stale store with old rows
+    // made the next run's suites fail)
+    if (/^azar(-store)?\.test-.*\.db(-wal|-shm|-journal)?$/.test(file)) {
       fs.unlinkSync(path.join(process.cwd(), file))
     }
   }
