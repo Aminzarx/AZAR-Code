@@ -55,6 +55,10 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
     setError(null)
   }
 
+  // The normal generated code is 8 characters, but the mother referral code (AMINZX) is only 6 — this only guards
+  // against an obviously-incomplete entry, not a fixed length.
+  const canSubmit = referralCode.length >= 6 && fullName.trim().length >= 2
+
   async function handleSubmit(): Promise<void> {
     setError(null)
     setIsSubmitting(true)
@@ -109,6 +113,11 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
           placeholder="ABCD1234"
           maxLength={8}
           errorMessage={error ?? undefined}
+          returnKeyType="done"
+          onSubmitEditing={() => {
+            // the keyboard can cover the button on a small screen; its ✓ sends the form when it is complete
+            if (canSubmit && !isSubmitting) handleSubmit()
+          }}
         />
         <Text style={[theme.typography('bodySm'), styles.codeHint]}>
           کد را از کسی که شما را دعوت کرده بگیرید یا بارکد او را اسکن کنید.
@@ -131,10 +140,7 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
           label="ورود به برنامه"
           onPress={handleSubmit}
           loading={isSubmitting}
-          // The normal generated code is 8 characters, but the mother
-          // referral code (AMINZX) is only 6 — this only guards against an
-          // obviously-incomplete entry, not a fixed length.
-          disabled={referralCode.length < 6 || fullName.trim().length < 2}
+          disabled={!canSubmit}
         />
       </View>
 

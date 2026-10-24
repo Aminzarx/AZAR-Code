@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Modal, PermissionsAndroid, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Linking, Modal, PermissionsAndroid, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Camera } from 'react-native-camera-kit'
 import { useTheme, type Theme } from '@shared/theme'
@@ -57,7 +57,7 @@ export function QrCodeScanner({ visible, title, onScan, onClose }: Props): React
             onPress={onClose}
             hitSlop={theme.spacing.space2}
           >
-            <Icon name="close" size="sm" color={theme.colors.onSurface} />
+            <Icon name="close" size="sm" color={theme.colors.onPrimary} />
           </Pressable>
         </View>
 
@@ -67,10 +67,17 @@ export function QrCodeScanner({ visible, title, onScan, onClose }: Props): React
           </View>
         ) : permission === 'denied' ? (
           <View style={styles.centered}>
-            <ErrorState
-              title="دسترسی دوربین داده نشد"
-              description="برای اسکن بارکد، دسترسی دوربین را از تنظیمات دستگاه فعال کنید."
-            />
+            {/* on a light card: the modal is the dark brand colour, the state's text is for light surfaces */}
+            <View style={styles.panel}>
+              <ErrorState
+                title="دسترسی دوربین داده نشد"
+                description="برای اسکن بارکد، دسترسی دوربین را از تنظیمات دستگاه فعال کنید."
+                retryLabel="باز کردن تنظیمات"
+                onRetry={() => {
+                  Linking.openSettings().catch(() => undefined)
+                }}
+              />
+            </View>
           </View>
         ) : (
           <Camera
@@ -105,6 +112,11 @@ function createStyles(theme: Theme) {
     },
     camera: {
       flex: 1
+    },
+    panel: {
+      alignSelf: 'stretch',
+      borderRadius: theme.radius.large,
+      backgroundColor: theme.colors.surface
     },
     centered: {
       flex: 1,

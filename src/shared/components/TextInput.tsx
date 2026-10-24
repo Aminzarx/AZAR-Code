@@ -24,6 +24,9 @@ type Props = {
   required?: boolean
   onFocus?: () => void
   onBlur?: () => void
+  /** the keyboard's action key: «done» with onSubmitEditing lets the last field send the form (emulator test 2026-10-24) */
+  returnKeyType?: 'done' | 'next'
+  onSubmitEditing?: () => void
 }
 
 /** design-system.md §7.2 — label above field, focus/error/disabled states. */
@@ -41,7 +44,9 @@ export function TextInput({
   secureTextEntry,
   required,
   onFocus,
-  onBlur
+  onBlur,
+  returnKeyType,
+  onSubmitEditing
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const [isFocused, setIsFocused] = useState(false)
@@ -80,6 +85,8 @@ export function TextInput({
         autoFocus={autoFocus}
         editable={!disabled}
         secureTextEntry={secureTextEntry}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
         textAlign={theme.isRTL ? 'right' : 'left'} // rtl-allow: TextInput: Android does not swap, so right is physical right
       />
       {hasError ? (

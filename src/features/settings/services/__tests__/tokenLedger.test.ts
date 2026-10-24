@@ -11,10 +11,12 @@ describe('token ledger presentation (Amin #5052)', () => {
     expect(tokenReasonLabel('something_new')).toBe('تغییر توکن')
   })
 
-  it('amounts in Persian digits, one decimal, signed in the history', () => {
+  it('amounts in Persian digits, one decimal (two under one), sign on the left in the history', () => {
     expect(formatTokenAmount(6350)).toBe('۶٬۳۵۰')
-    expect(formatTokenAmount(-1.27, true)).toBe('−۱٫۳')
-    expect(formatTokenAmount(10, true)).toBe('+۱۰')
+    expect(formatTokenAmount(-1.27, true)).toBe('⁦−۱٫۳⁩')
+    expect(formatTokenAmount(10, true)).toBe('⁦+۱۰⁩')
+    // a small file: two decimals, not «۰»
+    expect(formatTokenAmount(-0.0127, true)).toBe('⁦−۰٫۰۱⁩')
     expect(formatTokenAmount(0, true)).toBe('۰')
   })
 })

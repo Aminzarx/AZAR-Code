@@ -30,10 +30,15 @@ export function tokenReasonLabel(reason: string): string {
   return TOKEN_REASON_LABELS[reason] ?? 'تغییر توکن'
 }
 
-/** «۱۲٫۴» with a sign for the history: +۶٬۳۵۰ / −۱٫۳ */
+/**
+ * «۱۲٫۴»; under one token two decimals, so a small file still shows what it cost (۰٫۰۱, not ۰). Signed for the history:
+ * the sign stays on the left of the number (LTR isolate), as everywhere in our Persian UI: +۶٬۳۵۰ / −۱٫۳
+ */
 export function formatTokenAmount(amount: number, signed = false): string {
-  const rounded = Math.round(Math.abs(amount) * 10) / 10
-  const text = rounded.toLocaleString('fa-IR', { maximumFractionDigits: 1 })
+  const abs = Math.abs(amount)
+  const digits = abs < 1 ? 2 : 1
+  const rounded = Math.round(abs * 10 ** digits) / 10 ** digits
+  const text = rounded.toLocaleString('fa-IR', { maximumFractionDigits: digits })
   if (!signed || rounded === 0) return text
-  return `${amount > 0 ? '+' : '−'}${text}`
+  return `⁦${amount > 0 ? '+' : '−'}${text}⁩`
 }
