@@ -11,6 +11,7 @@ import {
   ConfirmDialog,
   Icon,
   InfoDialog,
+  MarqueeText,
   OtpPromptDialog,
   PasswordPromptDialog
 } from '@shared/components'
@@ -389,9 +390,9 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             </View>
           )}
           <View style={styles.profileText}>
-            <Text style={[theme.typography('titleMd'), styles.value]} numberOfLines={1}>
+            <MarqueeText style={[theme.typography('titleMd'), styles.value]}>
               {displayName || 'نام ثبت نشده'}
-            </Text>
+            </MarqueeText>
             <Text style={[theme.typography('bodySm'), styles.phone]}>
               {phoneNumber ? toPersianDigits(formatIranPhoneNumberForDisplay(phoneNumber)) : '-'}
               {profile.agencyName ? ` · ${profile.agencyName}` : ''}

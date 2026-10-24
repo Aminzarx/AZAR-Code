@@ -112,10 +112,11 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
           <Button
             label={isPicking ? 'در حال آماده‌سازی…' : uri ? 'تغییر عکس' : 'انتخاب عکس'}
             variant="text"
+            fullWidth={false}
             onPress={handlePickPhoto}
             disabled={isPicking}
           />
-          {uri ? <Button label="حذف عکس" variant="text" onPress={() => setPhotoPath(null)} /> : null}
+          {uri ? <Button label="حذف عکس" variant="text" fullWidth={false} onPress={() => setPhotoPath(null)} /> : null}
         </View>
         <Text style={[theme.typography('bodySm'), styles.hint]}>
           عکس کوچک و سبک ذخیره می‌شود تا جای کمی بگیرد.

@@ -13,6 +13,7 @@ import {
   LoadingIndicator,
   Icon,
   SpecTiles,
+  MarqueeText,
   StatusBadge
 } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
@@ -213,13 +214,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
                 <StatusBadge label={derivedStatus.label} tone={derivedStatus.tone} />
               </View>
             ) : null}
-            <Text
-              style={[theme.typography('headlineLgMobile'), styles.title]}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {applicant.fullName}
-            </Text>
+            <MarqueeText style={[theme.typography('headlineLgMobile'), styles.title]}>{applicant.fullName}</MarqueeText>
             {wantsLine ? (
               <Text style={[theme.typography('bodyMd'), styles.location]}>{wantsLine}</Text>
             ) : null}
@@ -408,7 +403,7 @@ function createStyles(theme: Theme) {
     },
     title: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      alignSelf: 'stretch'
     },
     location: {
       color: theme.colors.onSurfaceVariant,

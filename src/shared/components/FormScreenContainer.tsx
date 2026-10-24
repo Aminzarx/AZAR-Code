@@ -11,6 +11,7 @@ import { Pressable, ScrollView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon } from './Icon'
+import { MarqueeText } from './MarqueeText'
 import { BackButton } from './BackButton'
 import { SECTIONS, SectionMark, WhereAmILine, type SectionKey } from './SectionMark'
 
@@ -130,13 +131,7 @@ export function FormScreenContainer({
       <View style={[styles.titleBlock, standalone && styles.standaloneTitle]}>
         <View style={styles.titleRow}>
           {section ? <SectionMark section={section} /> : null}
-          <Text
-            style={[theme.typography('titleSm'), styles.headerTitle]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {headerTitle}
-          </Text>
+          <MarqueeText style={[theme.typography('titleSm'), styles.headerTitle]}>{headerTitle}</MarqueeText>
         </View>
         {section ? <WhereAmILine theme={theme} /> : null}
       </View>

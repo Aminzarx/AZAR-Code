@@ -6,7 +6,7 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Avatar, ErrorState, LoadingIndicator } from '@shared/components'
+import { Avatar, ErrorState, LoadingIndicator, MarqueeText } from '@shared/components'
 import { useDisplayName } from '@shared/hooks/useDisplayName'
 import { getTimeBasedGreeting } from '@shared/utils/greeting'
 import { useDashboardData } from './hooks/useDashboardData'
@@ -74,14 +74,10 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           >
             <Avatar name={displayName ?? 'کاربر ایوان'} size="lg" />
             <View style={styles.headerText}>
-              <Text
-                style={[theme.typography('headlineLgMobile'), styles.greeting]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
+              <MarqueeText style={[theme.typography('headlineLgMobile'), styles.greeting]}>
                 {greeting}
                 {displayName ? `، ${displayName}` : ''}
-              </Text>
+              </MarqueeText>
               {isNewAccount ? (
                 <Text style={[theme.typography('bodySm'), styles.subGreeting]}>
                   سه قدم تا اولین تطبیق

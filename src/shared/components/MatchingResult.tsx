@@ -4,6 +4,7 @@ import { useTheme, type Theme } from '@shared/theme'
 import { Card } from './Card'
 import { StatusBadge } from './StatusBadge'
 import { Icon } from './Icon'
+import { MarqueeText } from './MarqueeText'
 import type { StatusTone } from '@shared/theme/tokens'
 
 export type MatchingCriterionState = {
@@ -56,13 +57,9 @@ export function MatchingResult({
     <Card>
       <View style={styles.header}>
         <View style={styles.identity}>
-          <Text style={[theme.typography('titleSm'), styles.title]} numberOfLines={1}>
-            {title}
-          </Text>
+          <MarqueeText style={[theme.typography('titleSm'), styles.title]}>{title}</MarqueeText>
           {subtitle ? (
-            <Text style={[theme.typography('bodySm'), styles.subtitle]} numberOfLines={1}>
-              {subtitle}
-            </Text>
+            <MarqueeText style={[theme.typography('bodySm'), styles.subtitle]}>{subtitle}</MarqueeText>
           ) : null}
         </View>
         <StatusBadge label={toneLabel} tone={tone} />

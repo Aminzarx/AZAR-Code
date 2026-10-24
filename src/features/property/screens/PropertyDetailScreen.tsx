@@ -12,6 +12,7 @@ import {
   FormScreenContainer,
   LoadingIndicator,
   SpecTiles,
+  MarqueeText,
   StatusBadge
 } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
@@ -206,13 +207,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
                 <StatusBadge label={derivedStatus.label} tone={derivedStatus.tone} />
               ) : null}
             </View>
-            <Text
-              style={[theme.typography('headlineLgMobile'), styles.title]}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {property.title}
-            </Text>
+            <MarqueeText style={[theme.typography('headlineLgMobile'), styles.title]}>{property.title}</MarqueeText>
             <Text style={[theme.typography('bodyMd'), styles.location]}>
               {[property.city, property.address].filter(Boolean).join('، ')}
             </Text>
@@ -403,7 +398,7 @@ function createStyles(theme: Theme) {
     },
     title: {
       color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+      alignSelf: 'stretch'
     },
     location: {
       color: theme.colors.onSurfaceVariant,

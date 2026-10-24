@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon } from './Icon'
+import { MarqueeText } from './MarqueeText'
 
 type Props = {
   visible: boolean
@@ -26,9 +27,7 @@ export function RowActionSheet({ visible, title, onDelete, onClose }: Props): Re
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن">
         <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
           <View style={styles.handle} />
-          <Text style={[theme.typography('titleSm'), styles.title]} numberOfLines={1}>
-            {title}
-          </Text>
+          <MarqueeText style={[theme.typography('titleSm'), styles.title]}>{title}</MarqueeText>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="حذف"

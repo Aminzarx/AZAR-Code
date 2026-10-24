@@ -1,8 +1,9 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Card } from './Card'
 import { Icon, type IconName } from './Icon'
+import { MarqueeText } from './MarqueeText'
 import { EntityIconBadge, type EntityBadgeTone } from './EntityIconBadge'
 
 type Props = {
@@ -45,21 +46,9 @@ export function SelectionListItem({
         <View style={styles.row}>
           <EntityIconBadge icon={icon} tone={tone} />
           <View style={styles.textColumn}>
-            <Text
-              style={[theme.typography('titleSm'), styles.title]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {title}
-            </Text>
+            <MarqueeText style={[theme.typography('titleSm'), styles.title]}>{title}</MarqueeText>
             {subtitle ? (
-              <Text
-                style={[theme.typography('bodySm'), styles.subtitle]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {subtitle}
-              </Text>
+              <MarqueeText style={[theme.typography('bodySm'), styles.subtitle]}>{subtitle}</MarqueeText>
             ) : null}
           </View>
           <Icon
