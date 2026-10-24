@@ -1,5 +1,7 @@
-import React from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { NavigationContext } from '@react-navigation/native'
+import { toPersianDigits } from '@shared/utils/persianText'
 import { useTheme, type Theme } from '@shared/theme'
 import { EmptyState } from './EmptyState'
 
@@ -16,7 +18,13 @@ type Props<T extends ActivityItem> = {
   emptyDescription?: string
   /** When provided, each row becomes tappable (e.g. to navigate to the record the activity is about). */
   onSelect?: (item: T) => void
+  /** Amin #5070: how many of the latest show before «بیشتر» */
+  collapsedCount?: number
+  /** a change of this (another tab of records, another list mode) folds the list back */
+  resetKey?: string
 }
+
+const COLLAPSED_COUNT = 3
 
 /**
  * design-system.md §9 (v2.6.0) — the one reusable Activity pattern for
@@ -30,19 +38,29 @@ export function ActivityTimeline<T extends ActivityItem>({
   activity,
   emptyTitle = 'هنوز فعالیتی ثبت نشده',
   emptyDescription,
-  onSelect
+  onSelect,
+  collapsedCount = COLLAPSED_COUNT,
+  resetKey
 }: Props<T>): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
+  // Amin #5070: not one long column — the latest few, «بیشتر» for the rest; folded again on another tab or mode
+  const [expanded, setExpanded] = useState(false)
+  const navigation = useContext(NavigationContext)
+  useEffect(() => setExpanded(false), [resetKey])
+  useEffect(() => navigation?.addListener('blur', () => setExpanded(false)), [navigation])
 
   if (activity.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />
   }
 
+  const hidden = expanded ? 0 : Math.max(0, activity.length - collapsedCount)
+  const shown = hidden > 0 ? activity.slice(0, collapsedCount) : activity
+
   return (
     <View style={styles.list}>
-      {activity.map((item, index) => {
-        const isLast = index === activity.length - 1
+      {shown.map((item, index) => {
+        const isLast = index === shown.length - 1
         const content = (
           <View style={[styles.content, isLast && styles.contentLast]}>
             <Text style={[theme.typography('titleSm'), styles.title]}>{item.title}</Text>
@@ -71,6 +89,19 @@ export function ActivityTimeline<T extends ActivityItem>({
           </View>
         )
       })}
+      {activity.length > collapsedCount ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={expanded ? 'نمایش کمتر' : `نمایش ${hidden} فعالیت دیگر`}
+          onPress={() => setExpanded((current) => !current)}
+          style={styles.more}
+          hitSlop={theme.spacing.space2}
+        >
+          <Text style={[theme.typography('labelMd'), styles.moreText]}>
+            {expanded ? 'کمتر' : `بیشتر (${toPersianDigits(String(hidden))})`}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -101,6 +132,12 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.outlineVariant,
       marginTop: theme.spacing.space1
     },
+    more: {
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
+      marginTop: theme.spacing.space3,
+      paddingVertical: theme.spacing.space1
+    },
+    moreText: { color: theme.colors.primary },
     pressableContent: {
       flex: 1
     },

@@ -59,13 +59,16 @@ export function SuggestedPropertiesSection({
                 accessibilityLabel={match.property.title}
                 onPress={() => onSelectProperty(match.property.id)}
               >
-                <Text style={[theme.typography('titleSm'), styles.title]}>
-                  {match.property.title}
-                </Text>
+                {/* Amin #5069: the match % in the top-left corner, on the title's line */}
+                <View style={styles.titleRow}>
+                  <Text style={[theme.typography('titleSm'), styles.title]}>
+                    {match.property.title}
+                  </Text>
+                  <MatchScoreBadge score={match.score} />
+                </View>
                 <Text style={[theme.typography('bodySm'), styles.subtitle]}>
                   {match.property.city} • {match.property.address}
                 </Text>
-                <MatchScoreBadge score={match.score} />
                 <Text style={[theme.typography('labelSm'), styles.reason]}>
                   {match.matchedCriteria.map((criterion) => CRITERION_LABELS[criterion]).join('، ')}
                 </Text>
@@ -105,7 +108,9 @@ function createStyles(theme: Theme) {
     list: {
       gap: theme.spacing.space3
     },
+    titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.space2 },
     title: {
+      flex: 1, // the badge keeps the far corner
       color: theme.colors.onSurface,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },

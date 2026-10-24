@@ -205,9 +205,8 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
             value={values.title}
             onChangeText={(value) => onChange('title', value)}
             placeholder="مثلاً آپارتمان دو خوابه ولیعصر"
-            helperText={
-              step === 3 ? 'از نوع، اتاق و آدرس پیشنهاد شد؛ هر طور خواستید عوض کنید' : undefined
-            }
+            // Amin #5064: one short line even on a small phone
+            helperText={step === 3 ? 'پیشنهاد از نوع ملک، اتاق‌ها و آدرس؛ قابل ویرایش' : undefined}
             errorMessage={errors.title}
           />
           <TextInput

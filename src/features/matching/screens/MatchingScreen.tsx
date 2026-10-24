@@ -658,7 +658,9 @@ function createStyles(theme: Theme) {
     matchRowPressed: { backgroundColor: theme.colors.surfaceContainer },
     matchText: { flex: 1, gap: 2 },
     matchTitle: { color: theme.colors.onSurface, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' },
+    // Amin #5069: the match % in the card's top-left corner, on the title's line
     scoreBadge: {
+      alignSelf: 'flex-start',
       paddingHorizontal: theme.spacing.space2,
       paddingVertical: 2,
       borderRadius: theme.radius.small,
