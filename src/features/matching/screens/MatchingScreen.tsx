@@ -187,10 +187,10 @@ export function MatchingScreen({ navigation, route }: Props): React.JSX.Element 
     setCreatingKey(key)
     try {
       const deal = await dealService.createDeal(userId, propertyId, applicantId)
-      // Navigating away makes clearing creatingKey moot (and risks a
-      // post-unmount state update on a fast test double), so only the
-      // failure path resets it.
       navigation.navigate('DealDetail', { dealId: deal.id })
+      // v1.4.0: this screen stays under the deal in the same tab now, so
+      // the button must read «شروع معامله» again on the way back
+      setCreatingKey(null)
     } catch {
       setCreateError('ایجاد معامله با مشکل مواجه شد. دوباره تلاش کنید.')
       setCreatingKey(null)
