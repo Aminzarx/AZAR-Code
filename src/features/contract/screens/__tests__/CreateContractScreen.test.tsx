@@ -47,7 +47,7 @@ describe('CreateContractScreen', () => {
 
     // both dates empty: the short line under each
     expect(await findAllByText('مثل ۱۴۰۵/۰۵/۱۲ وارد کنید.')).toHaveLength(2)
-    expect(queryByText('دوربین')).toBeNull()
+    expect(queryByText('افزودن عکس')).toBeNull()
     expect(mockCreateContract).not.toHaveBeenCalled()
   })
 
@@ -63,8 +63,8 @@ describe('CreateContractScreen', () => {
     await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ شروع'), '1405/06/10'))
     await waitFor(() => fireEvent.changeText(getByLabelText('تاریخ پایان'), '1406/06/10'))
     await waitFor(() => fireEvent.press(getByText(NEXT)))
-    expect(getByText('دوربین')).toBeTruthy()
-    expect(getByText('گالری')).toBeTruthy()
+    // Amin #5170: one «افزودن عکس» button (camera / gallery in its menu) above the save button
+    expect(getByText('افزودن عکس')).toBeTruthy()
     await waitFor(() => fireEvent.press(getByText(SAVE)))
 
     expect(await findByText('تاریخ شروع را وارد کنید.')).toBeTruthy()

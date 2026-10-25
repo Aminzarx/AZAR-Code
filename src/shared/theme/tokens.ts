@@ -258,6 +258,8 @@ export type TypographyVariant = keyof typeof typographyLtr
 /**
  * Filenames match the bundled assets/fonts/*.ttf exactly (Android resolves font family by filename).
  * v1.5.0 (Amin #4632): Vazirmatn everywhere, IRANYekan (the kssx.ir v2 font) for headings.
+ * Amin #5174: the Vazirmatn files are its «Farsi-Digits» build (vazirmatn/misc/Farsi-Digits), which draws 0–9 as
+ * Persian digits, so a number shows Persian the moment it is typed, before the input converts it.
  */
 export const rtlFontFamilyByWeight: Record<TypographyToken['fontWeight'], string> = {
   '400': 'Vazirmatn-Regular',

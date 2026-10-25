@@ -1,71 +1,32 @@
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '@features/auth/AuthProvider'
-import { Button, Icon, LogoPlaceholder } from '@shared/components'
+import { Icon, LogoPlaceholder } from '@shared/components'
 import { useTheme, type Theme } from '@shared/theme'
 import { toPersianDigits } from '@shared/utils/persianText'
-import {
-  CameraPermissionError,
-  MAX_PHOTOS,
-  photoDataUri,
-  pickPhotos,
-  takePhoto,
-  type ConvertedPhoto
-} from '@infrastructure/images/listingPhotos'
+import { MAX_PHOTOS, photoDataUri } from '@infrastructure/images/listingPhotos'
 import { movePhoto, type EditorPhoto } from '../photoList'
+import type { PhotoAdder } from './PhotoAddButton'
 
 type Props = {
   photos: readonly EditorPhoto[]
   onChange: (photos: EditorPhoto[]) => void
   /** what the photos are of, for the hint («فایل» / «قرارداد») */
   noun: string
-}
-
-let nextKey = 0
-function asEditorPhoto(photo: ConvertedPhoto): EditorPhoto {
-  nextKey += 1
-  return {
-    key: `new-${Date.now()}-${nextKey}`,
-    data: photo.base64,
-    bytes: photo.bytes,
-    width: photo.width,
-    height: photo.height
-  }
+  /** Amin #5170: the «افزودن عکس» button sits in the screen's footer (PhotoAddButton); its progress and errors show here */
+  adder: PhotoAdder
 }
 
 /**
  * Amin #5062: the «عکس‌ها» step of a new property file or contract. Photos come from the camera or the gallery,
- * are made WebP (long side 1600, quality 80, no location data) in memory, and can be reordered (the first is the
+ * are made WebP (long side 1600, quality 80, no location data) in memory (see usePhotoAdder), and can be reordered (the first is the
  * main photo) or removed. The line on top says how many there are; tokens are counted only when the file is saved
  * (Amin #5108), so none are shown here. Empty places show the faded EYVAN logo (#5107).
  */
-export function PhotoEditor({ photos, onChange, noun }: Props): React.JSX.Element {
+export function PhotoEditor({ photos, onChange, noun, adder }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const room = MAX_PHOTOS - photos.length
-
-  async function add(source: 'camera' | 'gallery'): Promise<void> {
-    if (busy || room <= 0) return
-    setError(null)
-    setBusy(true)
-    try {
-      const added =
-        source === 'camera'
-          ? [await takePhoto()].filter((p): p is ConvertedPhoto => p !== null)
-          : await pickPhotos(room)
-      if (added.length > 0) onChange([...photos, ...added.map(asEditorPhoto)])
-    } catch (caught) {
-      setError(
-        caught instanceof CameraPermissionError
-          ? 'برای عکس گرفتن، اجازهٔ دوربین را بدهید.'
-          : 'افزودن عکس انجام نشد. دوباره تلاش کنید.'
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
+  const { busy, error } = adder
 
   return (
     <View style={styles.wrapper}>
@@ -74,22 +35,6 @@ export function PhotoEditor({ photos, onChange, noun }: Props): React.JSX.Elemen
           ? `عکس‌های ${noun} را اضافه کنید (اختیاری، تا ${toPersianDigits(String(MAX_PHOTOS))} عکس)`
           : `${toPersianDigits(String(photos.length))} از ${toPersianDigits(String(MAX_PHOTOS))} عکس`}
       </Text>
-      <View style={styles.buttons}>
-        <Button
-          label="دوربین"
-          variant="secondary"
-          onPress={() => add('camera')}
-          disabled={busy || room <= 0}
-          style={styles.button}
-        />
-        <Button
-          label="گالری"
-          variant="secondary"
-          onPress={() => add('gallery')}
-          disabled={busy || room <= 0}
-          style={styles.button}
-        />
-      </View>
       {busy ? <ActivityIndicator color={theme.colors.primary} /> : null}
       {error ? <Text style={[theme.typography('bodySm'), styles.error]}>{error}</Text> : null}
 
@@ -185,8 +130,6 @@ function createStyles(theme: Theme) {
   return StyleSheet.create({
     wrapper: { gap: theme.spacing.space4 },
     summary: { color: theme.colors.onSurfaceVariant, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' },
-    buttons: { flexDirection: 'row', gap: theme.spacing.space3 },
-    button: { flex: 1 },
     error: { color: theme.colors.error, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.space3 },
     cell: { width: '30%', aspectRatio: 1 },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Pressable, StyleSheet } from 'react-native'
-import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
+import type { AccessibilityRole, AccessibilityState, StyleProp, ViewStyle } from 'react-native'
 import { useTheme } from '@shared/theme'
 
 /**
@@ -11,6 +11,17 @@ import { useTheme } from '@shared/theme'
  * same subtle press-scale treatment `Button.tsx` already uses everywhere
  * else, so tab presses feel like the same product as every other button.
  */
+type TabBarButtonProps = {
+  children?: React.ReactNode
+  style?: StyleProp<ViewStyle>
+  onPress?: () => void
+  onLongPress?: () => void
+  accessibilityRole?: AccessibilityRole
+  accessibilityState?: AccessibilityState
+  accessibilityLabel?: string
+  testID?: string
+}
+
 export function TabBarButton({
   children,
   style,
@@ -20,7 +31,7 @@ export function TabBarButton({
   accessibilityState,
   accessibilityLabel,
   testID
-}: BottomTabBarButtonProps): React.JSX.Element {
+}: TabBarButtonProps): React.JSX.Element {
   const theme = useTheme()
   const [isPressed, setIsPressed] = useState(false)
 

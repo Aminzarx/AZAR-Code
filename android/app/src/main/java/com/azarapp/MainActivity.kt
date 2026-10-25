@@ -11,7 +11,7 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 class MainActivity : ReactActivity() {
 
   /**
-   * Amin #4946: no screenshots or screen recordings anywhere in the app. FLAG_SECURE on the one window covers every
+   * Amin #4946: no screenshots or screen recordings in the app (since #5162: except Settings, see AzarScreenModule). FLAG_SECURE on the one window covers every
    * screen and the recent-apps preview; React Native's Modal copies the flag onto its dialogs.
    */
   override fun onCreate(savedInstanceState: Bundle?) {

@@ -16,6 +16,7 @@ import {
 import { PropertyValidationError } from '../services/PropertyValidationError'
 import { validatePropertyForm } from '../services/propertyValidation'
 import { PhotoEditor } from '@features/photos/components/PhotoEditor'
+import { PhotoAddButton, usePhotoAdder } from '@features/photos/components/PhotoAddButton'
 import { usePhotoRepository } from '@features/photos/hooks/usePhotoRepository'
 import type { EditorPhoto } from '@features/photos/photoList'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
@@ -79,6 +80,10 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const [isDirty, setIsDirty] = useState(false)
   const [step, setStep] = useState<PropertyFormStep>(1)
   const [photos, setPhotos] = useState<EditorPhoto[]>([])
+  const photoAdder = usePhotoAdder(photos, (next) => {
+    setPhotos(next)
+    setIsDirty(true)
+  })
   const photoRepository = usePhotoRepository()
   // A guard beyond `isSubmitting`/the Save button's own disabled state —
   // both are React state, so two presses landing in the same tick (a fast
@@ -221,14 +226,18 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
         </View>
       }
       footer={
-        step < LAST_STEP ? (
-          <Button
-            label={`ادامه: ${STEP_NAMES[(step + 1) as PropertyFormStep]}`}
-            onPress={handleNext}
-          />
-        ) : (
-          <Button label="ذخیرهٔ فایل" onPress={handleSubmit} loading={isSubmitting} />
-        )
+        <View style={{ gap: theme.spacing.space3 }}>
+          {/* Amin #5170: on the photos step the «افزودن عکس» button sits right above «ادامه» */}
+          {step === 4 ? <PhotoAddButton adder={photoAdder} /> : null}
+          {step < LAST_STEP ? (
+            <Button
+              label={`ادامه: ${STEP_NAMES[(step + 1) as PropertyFormStep]}`}
+              onPress={handleNext}
+            />
+          ) : (
+            <Button label="ذخیرهٔ فایل" onPress={handleSubmit} loading={isSubmitting} />
+          )}
+        </View>
       }
     >
       {submitError ? (
@@ -238,6 +247,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
         <PhotoEditor
           photos={photos}
           noun="فایل"
+          adder={photoAdder}
           onChange={(next) => {
             setPhotos(next)
             setIsDirty(true)

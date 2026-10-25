@@ -126,11 +126,7 @@ function TokenBreakdownSheet({
               {`${formatTokenAmount(summary.balance)} توکن`}
             </Text>
           </View>
-
-          <Text style={[theme.typography('labelSm'), styles.muted]}>
-            توکن فقط هنگام ذخیرهٔ فایل ملک، متقاضی یا قرارداد (به اندازهٔ اطلاعات و عکس‌هایش) و تغییر شماره کم می‌شود؛
-            حذف هر مورد توکنش را برمی‌گرداند.
-          </Text>
+          {/* Amin #5163: no explanation under the figures */}
         </Pressable>
       </Pressable>
     </Modal>

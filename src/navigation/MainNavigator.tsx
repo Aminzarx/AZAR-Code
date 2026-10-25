@@ -1,6 +1,5 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { DashboardScreen } from '@features/dashboard/DashboardScreen'
 import { FilesScreen } from '@features/files/screens/FilesScreen'
 import { PropertyListScreen } from '@features/property/screens/PropertyListScreen'
@@ -21,14 +20,13 @@ import { ContractDetailScreen } from '@features/contract/screens/ContractDetailS
 import { SettingsScreen } from '@features/settings/screens/SettingsScreen'
 import { ProfileScreen } from '@features/settings/screens/ProfileScreen'
 import { ChangePhoneScreen } from '@features/settings/screens/ChangePhoneScreen'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
-import { TabBarButton } from './TabBarButton'
 import { withLicence } from '@features/licence/LicenceLocked'
-import { getFocusedRouteNameFromRoute, type RouteProp, type ParamListBase } from '@react-navigation/native'
-import { TabSwipe, shiftFor } from './TabSwipe'
+import { getFocusedRouteNameFromRoute, useIsFocused, type RouteProp, type ParamListBase } from '@react-navigation/native'
+import { createSwipeTabNavigator } from './SwipeTabs'
+import { setScreenshotsAllowed } from '@infrastructure/security/screenshots'
 
 export type MainStackParamList = {
   Home: undefined
@@ -59,7 +57,7 @@ export type MainStackParamList = {
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
-const Tab = createBottomTabNavigator()
+const Tab = createSwipeTabNavigator()
 
 type TabName = 'HomeTab' | 'FilesTab' | 'MatchingTab' | 'ContractsTab' | 'ProfileTab'
 
@@ -122,26 +120,26 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['ContractDetail', LockedContractDetail]
 ]
 
+/** Amin #5162: screenshots are allowed only in the Settings section (its first page and the pages it opens) */
+const SETTINGS_PAGES = new Set<string>(['Settings', 'Profile', 'ChangePhone'])
+
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
-  return function TabStack({
-    navigation,
-    route
-  }: {
-    navigation: React.ComponentProps<typeof TabSwipe>['navigation']
-    route: RouteProp<ParamListBase>
-  }): React.JSX.Element {
-    const theme = useTheme()
-    // Amin #5046: the swipe between tabs works on the tab's first page only
+  return function TabStack({ route }: { route: RouteProp<ParamListBase> }): React.JSX.Element {
+    const isTabFocused = useIsFocused()
     const focused = getFocusedRouteNameFromRoute(route) ?? root
+    const inSettings = root === 'Settings' && isTabFocused && SETTINGS_PAGES.has(focused)
+    useEffect(() => {
+      if (root !== 'Settings') return
+      setScreenshotsAllowed(inSettings)
+      return () => setScreenshotsAllowed(false)
+    }, [inSettings])
     return (
-      <TabSwipe navigation={navigation} atRoot={focused === root} isRTL={theme.isRTL}>
-        <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false }}>
-          <Stack.Screen name={root} component={RootScreen} />
-          {SHARED_SCREENS.filter(([name]) => name !== root).map(([name, component]) => (
-            <Stack.Screen key={name} name={name} component={component} />
-          ))}
-        </Stack.Navigator>
-      </TabSwipe>
+      <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false }}>
+        <Stack.Screen name={root} component={RootScreen} />
+        {SHARED_SCREENS.filter(([name]) => name !== root).map(([name, component]) => (
+          <Stack.Screen key={name} name={name} component={component} />
+        ))}
+      </Stack.Navigator>
     )
   }
 }
@@ -193,47 +191,9 @@ function createTabIconStyles(theme: Theme) {
  * why it's hand-drawn rather than Material Symbols).
  */
 export function MainNavigator(): React.JSX.Element {
-  const theme = useTheme()
-  // §13.4 (safe area) — a literal `height` here would silently override
-  // @react-navigation/bottom-tabs' own safe-area-aware sizing, which is
-  // exactly what let tab labels render behind a phone's gesture-nav bar
-  // (reported on Samsung A06). Add the bottom inset explicitly instead
-  // of hardcoding a fixed height that assumes no gesture bar exists.
-  const insets = useSafeAreaInsets()
-  const tabBarHeight = theme.layout.bottomNavHeight + insets.bottom
-
+  // Amin #5179/#5182: the tab bar, the Telegram-like sliding pages and the swipe back live in SwipeTabs
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        // §16 — all 5 tab stacks are registered from app start, so a
-        // switch to a tab root (crossTabNavigate) always finds its stack.
-        lazy: false,
-        // design-system.md §7.5 (v2.7.2) — the icon's own active-indicator
-        // pill (makeTabIcon) now carries the active fill; the tab bar's
-        // own background/ripple no longer does (see TabBarButton).
-        tabBarButton: TabBarButton,
-        // v1.3.0: the tab bar sat on top of the keyboard while typing
-        // (tester report); hide it while the keyboard is open.
-        tabBarHideOnKeyboard: true,
-        // Amin #5046: a tab change (a tap or a swipe) slides in from the tab's side of the bar
-        animation: 'shift',
-        sceneStyleInterpolator: shiftFor(theme.isRTL),
-        tabBarActiveTintColor: theme.colors.onSecondaryContainer,
-        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarStyle: {
-          height: tabBarHeight,
-          paddingBottom: insets.bottom,
-          paddingTop: theme.spacing.space2,
-          backgroundColor: theme.colors.surfaceContainerLowest,
-          borderTopColor: theme.colors.outlineVariant
-        },
-        tabBarLabelStyle: {
-          ...theme.typography('labelSm'),
-          fontSize: 10
-        }
-      }}
-    >
+    <Tab.Navigator>
       <Tab.Screen
         name="HomeTab"
         options={{ tabBarLabel: TAB_LABELS.HomeTab, tabBarIcon: makeTabIcon(TAB_ICONS.HomeTab) }}

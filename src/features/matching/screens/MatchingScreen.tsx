@@ -33,6 +33,9 @@ import {
 } from '../services/matchingService'
 import type { MatchCriterion } from '../types'
 
+/** Amin #5173: a match is shown green only from this score (%) up */
+const STRONG_MATCH = 70
+
 type Props = NativeStackScreenProps<MainStackParamList, 'Matching'>
 
 type MatchingTarget = 'properties' | 'applicants'
@@ -578,8 +581,9 @@ function OverviewCard({
                 </MarqueeText>
               ) : null}
             </View>
-            <View style={styles.scoreBadge}>
-              <Text style={[theme.typography('labelSm'), styles.scoreText]}>{`${toPersianDigits(String(row.score))}٪`}</Text>
+            {/* Amin #5173: green only from 70%; a weaker match stays grey */}
+            <View style={[styles.scoreBadge, row.score < STRONG_MATCH && styles.scoreBadgeWeak]}>
+              <Text style={[theme.typography('labelSm'), styles.scoreText, row.score < STRONG_MATCH && styles.scoreTextWeak]}>{`${toPersianDigits(String(row.score))}٪`}</Text>
             </View>
           </Pressable>
         ))
@@ -680,6 +684,8 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.successContainer
     },
     scoreText: { color: theme.colors.onSuccessContainer, fontWeight: '700' },
+    scoreBadgeWeak: { backgroundColor: theme.colors.surfaceContainerHigh },
+    scoreTextWeak: { color: theme.colors.onSurfaceVariant },
     actions: { flexDirection: 'row', gap: theme.spacing.space2, marginTop: theme.spacing.space1 },
     actionButton: {
       flex: 1,

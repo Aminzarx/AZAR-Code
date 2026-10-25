@@ -20,6 +20,7 @@ class MainApplication : Application(), ReactApplication {
           add(AzarInstallerPackage())
           add(AzarImagePackage())
           add(AzarAppearancePackage())
+          add(AzarScreenPackage())
         },
     )
   }

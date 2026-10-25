@@ -1,5 +1,7 @@
 import React from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+// Amin #5182: the gesture-handler ScrollView, so sliding these options wins over the swipe back
+import { ScrollView } from 'react-native-gesture-handler'
 import { useTheme, type Theme } from '@shared/theme'
 import {
   AutocompleteInput,

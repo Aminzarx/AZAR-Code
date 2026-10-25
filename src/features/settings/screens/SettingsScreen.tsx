@@ -1,6 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { SubscriptionCard } from '@features/licence/SubscriptionCard'
-import { Clipboard, Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
+import {
+  Clipboard,
+  Image,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -330,18 +342,14 @@ export function SettingsScreen(props: Props): React.JSX.Element {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={isQrVisible ? 'بستن بارکد' : 'نمایش بارکد'}
-                onPress={() => setIsQrVisible((current) => !current)}
+                accessibilityLabel="نمایش بارکد"
+                onPress={() => setIsQrVisible(true)}
                 style={styles.inviteAction}
               >
                 <Icon name="qr" size="sm" color={theme.colors.onBrand} />
               </Pressable>
             </View>
-            {isQrVisible ? (
-              <View style={styles.qrFrame}>
-                <QRCode value={session.referralCode} size={140} color={theme.colors.brand} backgroundColor="#FFFFFF" />
-              </View>
-            ) : null}
+            <ReferralQrPopup code={session.referralCode} visible={isQrVisible} onClose={() => setIsQrVisible(false)} />
           </View>
         ) : null}
 
@@ -490,6 +498,39 @@ const APPEARANCE_OPTIONS: readonly { value: AppearanceMode; label: string }[] = 
   { value: 'dark', label: 'تیره' },
   { value: 'system', label: 'هماهنگ با گوشی' }
 ]
+
+/** Amin #5160: the referrer's barcode opens in its own popup, as wide as the screen allows with a proper margin */
+function ReferralQrPopup({
+  code,
+  visible,
+  onClose
+}: {
+  code: string
+  visible: boolean
+  onClose: () => void
+}): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
+  const { width, height } = useWindowDimensions()
+  const cardWidth = Math.min(width - theme.spacing.space6 * 2, height * 0.6, 380)
+  const qrSize = Math.round(cardWidth - theme.spacing.space5 * 2)
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.qrBackdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن بارکد">
+        <Pressable style={[styles.qrPopup, { width: cardWidth }]} onPress={(event) => event.stopPropagation()}>
+          <Text style={[theme.typography('titleSm'), styles.qrTitle]}>بارکد معرف</Text>
+          <View style={styles.qrWhite}>
+            <QRCode value={code} size={qrSize - theme.spacing.space3 * 2} color={theme.colors.brand} backgroundColor="#FFFFFF" />
+          </View>
+          <Text style={[theme.typography('titleMd'), styles.qrCode]}>{code}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="بستن" onPress={onClose} style={styles.qrClose}>
+            <Text style={[theme.typography('labelMd'), styles.qrCloseText]}>بستن</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  )
+}
 
 function createStyles(theme: Theme) {
   const start = theme.isRTL ? 'flex-start' : 'flex-end'
@@ -713,13 +754,30 @@ function createStyles(theme: Theme) {
       marginTop: theme.spacing.space4,
       gap: theme.spacing.space2
     },
-    qrFrame: {
-      padding: theme.spacing.space3,
-      borderRadius: theme.radius.large,
-      borderWidth: 1,
-      borderColor: theme.colors.outlineVariant,
+    qrBackdrop: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(15,23,42,0.55)'
+    },
+    qrPopup: {
+      alignItems: 'center',
+      gap: theme.spacing.space3,
+      padding: theme.spacing.space5,
+      borderRadius: theme.radius.extraLarge,
       backgroundColor: theme.colors.surfaceContainerLowest
     },
+    qrTitle: { color: theme.colors.onSurface },
+    qrWhite: { padding: theme.spacing.space3, borderRadius: theme.radius.large, backgroundColor: '#FFFFFF' },
+    qrClose: {
+      alignSelf: 'stretch',
+      minHeight: theme.touchTargetMinimum,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: theme.radius.medium,
+      backgroundColor: theme.colors.primary
+    },
+    qrCloseText: { color: theme.colors.onPrimary },
     qrCode: {
       color: theme.colors.primary,
       letterSpacing: 2

@@ -7,6 +7,7 @@ import { useTheme, type Theme } from '@shared/theme'
 import { Button, ChipGroup, FormScreenContainer } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { PhotoEditor } from '@features/photos/components/PhotoEditor'
+import { PhotoAddButton, usePhotoAdder } from '@features/photos/components/PhotoAddButton'
 import { usePhotoRepository } from '@features/photos/hooks/usePhotoRepository'
 import type { EditorPhoto } from '@features/photos/photoList'
 import { useContractService } from '../hooks/useContractService'
@@ -52,6 +53,7 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState<ContractStep>(1)
   const [photos, setPhotos] = useState<EditorPhoto[]>([])
+  const photoAdder = usePhotoAdder(photos, setPhotos)
   const photoRepository = usePhotoRepository()
   // A guard beyond `isSubmitting`/the Save button's own disabled state —
   // both are React state, so two presses landing in the same tick (a
@@ -150,7 +152,11 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
         step === 1 ? (
           <Button label={`ادامه: ${STEP_NAMES[2]}`} onPress={handleNext} />
         ) : (
-          <Button label="ذخیرهٔ قرارداد" onPress={handleSubmit} loading={isSubmitting} />
+          <View style={{ gap: theme.spacing.space3 }}>
+            {/* Amin #5170: the «افزودن عکس» button right above the save button */}
+            <PhotoAddButton adder={photoAdder} />
+            <Button label="ذخیرهٔ قرارداد" onPress={handleSubmit} loading={isSubmitting} />
+          </View>
         )
       }
     >
@@ -170,7 +176,7 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
           </View>
         </>
       ) : (
-        <PhotoEditor photos={photos} noun="قرارداد" onChange={setPhotos} />
+        <PhotoEditor photos={photos} noun="قرارداد" onChange={setPhotos} adder={photoAdder} />
       )}
     </FormScreenContainer>
   )

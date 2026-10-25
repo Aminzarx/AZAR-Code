@@ -24,8 +24,9 @@ jobs:
         run: npm ci
 
       # Amin #4798/#4809: no build when any text is aligned off the RTL start edge without an rtl-allow
-      - name: RTL alignment check
-        run: npx jest src/shared/theme/__tests__/rtlAlignment.test.ts
+      # (rtlAlignment.test.ts); since 1.5.2 the whole suite runs here too, so no build ships with a failing test
+      - name: Tests (incl. RTL alignment check)
+        run: npx jest --maxWorkers=2
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

@@ -1541,3 +1541,33 @@ kssx.ir's apps page; updates are accepted from https://kssx.ir/dl/ as well as th
 **Migration requirements**: none.
 
 **Tests**: update check accepts kssx.ir/dl/ and refuses a look-alike host.
+
+---
+
+## 2026-10-25 — 1.5.2: Telegram-like tab swipe, swipe back, screenshots only in Settings
+
+**Change**:
+- The tabs are one sliding strip (`navigation/SwipeTabs.tsx`, a custom TabRouter navigator in place of
+  bottom-tabs): on a tab's first page the pages follow the finger and settle on release; a tap on the tab bar slides
+  the same way (#5179).
+- On an inner page a swipe to the left goes back one page in that tab, until its first page (#5182). Horizontal
+  scrollers (filter chips, barter options) are gesture-handler ScrollViews so they keep their own drag.
+- Screenshots are allowed only in the Settings section (`AzarScreenModule` clears/sets FLAG_SECURE; #5162).
+- The referrer barcode opens in a popup sized to the screen (#5160).
+- No explanation text under the token breakdown (#5163).
+- Photos step: one «افزودن عکس» button above continue/save, opening a camera/gallery menu like the profile
+  photo's (`PhotoAddButton`, `usePhotoAdder`; #5170).
+- A match under 70% shows grey, not green (#5173).
+- Vazirmatn is its Farsi-Digits build, so typed digits show Persian at once (#5174).
+- CI runs the whole jest suite before building.
+
+**Reason**: Amin #5160, #5162, #5163, #5170, #5173, #5174, #5179, #5182.
+
+**Affected modules**: navigation (`SwipeTabs`, `TabSwipe`, `TabBarButton`, `MainNavigator`), `MainActivity`,
+`AzarScreenModule`, `security/screenshots`, Settings (`SettingsScreen`, `TokenCard`), photos (`PhotoEditor`,
+`PhotoAddButton`), create property/contract screens, `MatchingScreen`, `DealListScreen`, `PropertyForm`, fonts,
+CI workflow.
+
+**Migration requirements**: none.
+
+**Tests**: back-swipe rule; contract photos step shows the single add button.
