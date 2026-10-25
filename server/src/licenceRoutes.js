@@ -43,11 +43,24 @@ db.exec(`
   );
 `)
 
+// Kssx.ir 2026-10-25 (#5109): the last good answer is also kept on disk, so a restart while kss-pricing cannot be
+// reached still has the allowance (never 0, nobody locked out)
+db.exec('CREATE TABLE IF NOT EXISTS pricing_cache (id INTEGER PRIMARY KEY CHECK (id = 1), prices TEXT NOT NULL, at TEXT NOT NULL)')
+function keptPrices() {
+  try {
+    const row = db.prepare('SELECT prices FROM pricing_cache WHERE id = 1').get()
+    return row ? JSON.parse(row.prices) : null
+  } catch {
+    return null
+  }
+}
+
 let prices = null
 let pricesAt = 0
 /** the app's prices from kss-pricing, kept 10 minutes; the last good answer stays when pricing cannot be reached */
 async function appPrices() {
   if (prices && Date.now() - pricesAt < PRICES_TTL) return prices
+  if (!prices) prices = keptPrices()
   if (!PRICING_URL || !PRICING_KEY) return prices
   try {
     const res = await fetch(`${PRICING_URL}/apps`, {
@@ -71,6 +84,9 @@ async function appPrices() {
         tokenPacks: ['eyvan_token_pack_1', 'eyvan_token_pack_2', 'eyvan_token_pack_3'].map(num).filter((n) => n !== null)
       }
       pricesAt = Date.now()
+      db.prepare(
+        'INSERT INTO pricing_cache (id, prices, at) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET prices = excluded.prices, at = excluded.at'
+      ).run(JSON.stringify(prices), new Date(pricesAt).toISOString())
     }
   } catch {
     // keep the last answer
@@ -125,10 +141,11 @@ router.post('/status', async (req, res, next) => {
   }
 })
 
-/** tests: forget the cached prices so the next read asks kss-pricing again */
-function resetPricesCache() {
+/** tests: forget the cached prices so the next read asks kss-pricing again; `keepDisk` = as after a restart */
+function resetPricesCache({ keepDisk = false } = {}) {
   prices = null
   pricesAt = 0
+  if (!keepDisk) db.prepare('DELETE FROM pricing_cache').run()
 }
 
 module.exports = { router, licenceOf, appPrices, resetPricesCache }

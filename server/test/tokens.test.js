@@ -16,7 +16,12 @@ process.env.KSS_PRICING_KEY = 'reader-key'
 
 /** kss-pricing's «اپلیکیشن‌ها» as GET /apps answers it; each test sets the numbers it needs */
 let apps = {}
+let pricingDown = false
 const pricing = http.createServer((req, res) => {
+  if (pricingDown) {
+    res.writeHead(503).end()
+    return
+  }
   if (req.url !== '/apps' || req.headers.authorization !== 'Bearer reader-key') {
     res.writeHead(401).end()
     return
@@ -62,6 +67,7 @@ after(() => {
 })
 
 beforeEach(() => {
+  pricingDown = false
   apps = { eyvan_token_allowance: 100, eyvan_tokens_per_kb: 0.127 }
   licence.resetPricesCache()
 })
@@ -274,4 +280,13 @@ test('pricing without the allowance or tokens per KB: the ledger is off (no made
 
 test('token packs are not sold until the wallet decision', async () => {
   assert.equal((await post('/tokens/buy', {})).status, 403)
+})
+
+// Kssx.ir 2026-10-25 (#5109): pricing down after a restart → the last known allowance, never 0
+test('a restart while kss-pricing is down keeps the last known allowance', async () => {
+  setApps({ eyvan_token_allowance: 2540 })
+  assert.equal((await licence.appPrices()).tokenAllowance, 2540)
+  licence.resetPricesCache({ keepDisk: true })
+  pricingDown = true
+  assert.equal((await licence.appPrices()).tokenAllowance, 2540)
 })
