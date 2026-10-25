@@ -18,6 +18,15 @@ const OTP_MAX_ATTEMPTS = 5 // wrong tries before the code is void
 // from the service's environment file. The rest of the flow (expiry, wrong-try limit) is unchanged. Remove that line
 // from the environment file to switch the real SMS code back on.
 const FIXED_OTP_CODE = /^\d{6}$/.test(process.env.AZAR_FIXED_OTP_CODE || '') ? process.env.AZAR_FIXED_OTP_CODE : ''
+// KSS (2026-10-25): with the real SMS on (#5189), KSS's own emulator tests sign in with numbers listed here
+// (AZAR_TEST_OTP_NUMBERS=09xxxxxxxxx,…): no SMS goes to them and their code is 123456. Kept empty except during a test.
+const TEST_NUMBERS = new Set(
+  String(process.env.AZAR_TEST_OTP_NUMBERS || '')
+    .split(',')
+    .map((n) => sms.iranMobile(n.trim()))
+    .filter(Boolean)
+)
+const TEST_OTP_CODE = '123456'
 
 // The "mother" referral code — always valid for registration regardless of
 // whether it's ever actually stored as a real user.referral_code, until
@@ -108,6 +117,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     if (!mobile) {
       return fail(res, 422, 'invalid_phone_number', 'Enter a valid phone number.')
     }
+    const fixed = FIXED_OTP_CODE || (TEST_NUMBERS.has(mobile) ? TEST_OTP_CODE : '')
     const now = Date.now()
     const row = db.prepare('SELECT * FROM otp_requests WHERE phone_number = ?').get(phoneNumber)
     if (row?.code_hash && row.sent_at && now - Date.parse(row.sent_at) < OTP_RESEND_MS && Date.parse(row.expires_at) > now) {
@@ -116,14 +126,14 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     const sameWindow = !!row?.window_start && now - Date.parse(row.window_start) < 60 * 60 * 1000
     const windowStart = sameWindow ? row.window_start : new Date(now).toISOString()
     const sentInWindow = sameWindow ? row.sent_count || 0 : 0
-    if (!FIXED_OTP_CODE && sentInWindow >= OTP_MAX_PER_HOUR) {
+    if (!fixed && sentInWindow >= OTP_MAX_PER_HOUR) {
       return fail(res, 429, 'too_many_codes', 'Too many codes for this number; try again later.')
     }
-    if (!FIXED_OTP_CODE && !sms.ready()) {
+    if (!fixed && !sms.ready()) {
       return fail(res, 503, 'sms_unavailable', 'Codes cannot be sent right now.')
     }
-    const code = FIXED_OTP_CODE || sms.newCode()
-    if (!FIXED_OTP_CODE) {
+    const code = fixed || sms.newCode()
+    if (!fixed) {
       await sms.sendCode(mobile, code) // throws when Kavenegar refuses: nothing is stored then
     }
     const at = new Date(now).toISOString()
