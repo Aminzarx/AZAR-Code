@@ -196,7 +196,8 @@ function createTabIconStyles(theme: Theme) {
     pill: {
       width: 56,
       height: 32,
-      borderRadius: theme.radius.full,
+      // Amin #5296: half the height, not radius.full (9999), which some Android builds draw with square corners
+      borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center'
     },

@@ -14,12 +14,12 @@ import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
 import { ContractValidationError } from '../validation/ContractValidationError'
 import { validateContractForm } from '../validation/contractValidation'
-import type { ContractFormErrors, ContractFormValues } from '../types'
+import { hasRenewalReminder, type ContractFormErrors, type ContractFormValues } from '../types'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateContract'>
 
 const EMPTY_VALUES: ContractFormValues = {
-  // Amin #5240: contracts are only for رهن و اجاره
+  // Amin #5295: خرید و فروش, رهن و اجاره or تهاتر (رهن و اجاره first, the usual one)
   type: 'رهن و اجاره',
   amount: '',
   startDate: '',
@@ -104,7 +104,8 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
       if (photos.length > 0) {
         await photoRepository?.replaceFor(session.userId, 'contract', contract.id, photos)
       }
-      const offsetMonths = Number(reminderOffset)
+      // Amin #5295: the end-of-contract reminder is only for رهن و اجاره
+      const offsetMonths = hasRenewalReminder(values.type) ? Number(reminderOffset) : 0
       if (offsetMonths > 0) {
         // Best-effort — createContract already succeeded, a calendar
         // permission problem shouldn't block navigating to the new
@@ -167,14 +168,16 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
       {step === 1 ? (
         <>
           <ContractForm values={values} errors={errors} onChange={handleChange} />
-          <View style={styles.reminderSection}>
-            <ChipGroup
-              label="یادآور پایان قرارداد در تقویم گوشی"
-              options={REMINDER_OFFSET_OPTIONS}
-              value={reminderOffset}
-              onChange={(value) => setReminderOffset(value ?? '0')}
-            />
-          </View>
+          {hasRenewalReminder(values.type) ? (
+            <View style={styles.reminderSection}>
+              <ChipGroup
+                label="یادآور پایان قرارداد در تقویم گوشی"
+                options={REMINDER_OFFSET_OPTIONS}
+                value={reminderOffset}
+                onChange={(value) => setReminderOffset(value ?? '0')}
+              />
+            </View>
+          ) : null}
         </>
       ) : (
         <PhotoEditor photos={photos} noun="قرارداد" onChange={setPhotos} adder={photoAdder} />

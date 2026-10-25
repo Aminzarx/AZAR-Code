@@ -20,8 +20,9 @@ describe('ContractForm', () => {
       withTheme(<ContractForm values={EMPTY_VALUES} errors={{}} onChange={onChange} />)
     )
 
-    fireEvent.changeText(getByLabelText('نوع قرارداد'), 'اجاره')
-    expect(onChange).toHaveBeenCalledWith('type', 'اجاره')
+    // Amin #5295: the kind is one of خرید و فروش / رهن و اجاره / تهاتر
+    fireEvent.press(getByLabelText('تهاتر'))
+    expect(onChange).toHaveBeenCalledWith('type', 'تهاتر')
   })
 
   it('shows field-level error messages', async () => {

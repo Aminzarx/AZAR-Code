@@ -211,13 +211,13 @@ describe('ContractDetailScreen', () => {
     fireEvent.press(await findByText('ویرایش'))
     expect(await findByText('ذخیره')).toBeTruthy()
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('نوع قرارداد'), 'فروش'))
+    await waitFor(() => fireEvent.press(getByLabelText('خرید و فروش')))
     await waitFor(() => fireEvent.press(getByText('ذخیره')))
 
     await waitFor(() =>
       expect(mockUpdateContract).toHaveBeenCalledWith(
         'con-1',
-        expect.objectContaining({ type: 'فروش' }),
+        expect.objectContaining({ type: 'خرید و فروش' }),
         'active'
       )
     )

@@ -181,6 +181,13 @@ router.post('/push', json, async (req, res, next) => {
       if (error instanceof QuotaError) return fail(res, 422, 'storage_full', 'The storage tokens of this account are used up.')
       throw error
     }
+    // Amin #5295: a deleted contract leaves a line in the audit log (who, which contract, when)
+    const auditInsert = db.prepare('INSERT INTO admin_audit (id, at, actor, action, user_id, detail) VALUES (?, ?, ?, ?, ?, ?)')
+    for (const { c, delta } of prepared) {
+      if (c.t === 'contracts' && c.row === null && delta < 0) {
+        auditInsert.run(crypto.randomUUID(), now, 'app', 'contract_delete', accountId, `contract ${c.k}`)
+      }
+    }
     await tokens.checkBonuses(accountId)
     res.json({ usage: usageOf(accountId) })
   } catch (error) {

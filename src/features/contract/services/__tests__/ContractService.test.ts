@@ -29,7 +29,7 @@ const mockDeleteContractReminder = deleteContractReminder as jest.MockedFunction
 const USER_ID = 'user-1'
 
 const VALID_VALUES: ContractFormValues = {
-  type: 'اجاره',
+  type: 'رهن و اجاره',
   amount: '500000000',
   startDate: '2026-09-01',
   endDate: '2027-09-01',
@@ -209,6 +209,20 @@ describe('ContractService', () => {
         })
       )
       expect(updated.calendarEventId).toBe('event-1')
+    })
+
+    it('sets no reminder on a خرید و فروش or تهاتر contract (Amin #5295)', async () => {
+      mockCreateContractEndReminder.mockClear()
+      const created = await service.createContract(
+        USER_ID,
+        { propertyId, applicantId },
+        { ...VALID_VALUES, type: 'خرید و فروش' }
+      )
+
+      const updated = await service.setEndDateReminder(created.id, 3)
+
+      expect(mockCreateContractEndReminder).not.toHaveBeenCalled()
+      expect(updated.calendarEventId).toBeNull()
     })
 
     it('replaces an existing reminder rather than stacking a second one', async () => {

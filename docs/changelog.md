@@ -1649,6 +1649,26 @@ kss-pricing 0.38.1.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
 
+## 2026-10-25 — 1.5.3: contract kinds, contract delete, pinned add buttons, round tab pill
+
+**Change**:
+- Contracts are for «خرید و فروش», «رهن و اجاره» or «تهاتر» (a three-way choice instead of the free field); the
+  end-of-contract calendar reminder is offered and kept only for «رهن و اجاره» (a contract changed to another kind
+  loses its reminder). Corrects #5240.
+- Deleting a contract (contract page, with a confirm step) also removes its calendar reminder and photos; the server
+  writes `contract_delete` to the audit log when the deletion syncs.
+- Home: the «فایل ملکی» and «متقاضی» buttons stay fixed just above the tab bar; the page scrolls behind them.
+- The selected-tab pill has round corners on every Android build (radius 16, not 9999).
+
+**Reason**: Amin #5295, #5296, #5297.
+
+**Affected modules**: `ContractForm`, `CreateContractScreen`, `ContractService`, `contract/types`, `DashboardScreen`,
+`MainNavigator`, `server/src/syncRoutes.js`.
+
+**Migration requirements**: none.
+
+**Tests**: `ContractService.test.ts` (+1), `ContractForm.test.tsx`, `ContractDetailScreen.test.tsx`.
+
 ## 2026-10-25 — KSS test account for Amin (server)
 
 **Change**: Numbers in `AZAR_TEST_OTP_NUMBERS` are KSS test accounts: fixed code 123456, `test: true` in the admin

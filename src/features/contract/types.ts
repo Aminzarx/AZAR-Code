@@ -12,6 +12,11 @@ export type ContractWithDetails = ContractRecord & {
   applicant: Applicant | null
 }
 
+/** Amin #5295 (corrects #5240): a contract is for خرید و فروش, رهن و اجاره or تهاتر; only رهن و اجاره gets reminders */
+export const CONTRACT_KINDS = ['خرید و فروش', 'رهن و اجاره', 'تهاتر'] as const
+export const RENT_CONTRACT = 'رهن و اجاره'
+export const hasRenewalReminder = (type: string | null | undefined): boolean => (type ?? '').trim() === RENT_CONTRACT
+
 export type ContractFormValues = {
   type: string
   amount: string

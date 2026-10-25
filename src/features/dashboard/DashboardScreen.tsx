@@ -140,8 +140,6 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
               />
             ) : null}
 
-            {canEdit ? <HomeAddButtons onAddProperty={addProperty} onAddApplicant={addApplicant} /> : null}
-
             {canEdit && data.matches.matchCount > 0 ? (
               <MatchBanner
                 matches={data.matches}
@@ -172,6 +170,12 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           </>
         ) : null}
       </ScrollView>
+      {/* Amin #5297: «فایل ملکی» and «متقاضی» stay put just above the tab bar; the page scrolls behind them */}
+      {canEdit && data ? (
+        <View style={styles.pinnedAdd}>
+          <HomeAddButtons onAddProperty={addProperty} onAddApplicant={addApplicant} />
+        </View>
+      ) : null}
     </SafeAreaView>
   )
 }
@@ -182,6 +186,13 @@ function createStyles(theme: Theme) {
     safeArea: {
       flex: 1,
       backgroundColor: theme.colors.background
+    },
+    pinnedAdd: {
+      paddingHorizontal: theme.layout.screenPaddingX,
+      paddingVertical: theme.spacing.space3,
+      backgroundColor: theme.colors.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.outlineVariant
     },
     content: {
       paddingHorizontal: theme.layout.screenPaddingX,

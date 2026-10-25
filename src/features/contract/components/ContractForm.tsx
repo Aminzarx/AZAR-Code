@@ -1,8 +1,10 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
-import { AutocompleteInput, DateInput, FormRow, MoneyInput, TextInput } from '@shared/components'
-import type { ContractFormErrors, ContractFormValues } from '../types'
+import { ChipGroup, DateInput, FormRow, MoneyInput, TextInput } from '@shared/components'
+import { CONTRACT_KINDS, type ContractFormErrors, type ContractFormValues } from '../types'
+
+const KIND_OPTIONS = CONTRACT_KINDS.map((k) => ({ value: k, label: k }))
 
 type Props = {
   values: ContractFormValues
@@ -22,14 +24,12 @@ export function ContractForm({ values, errors, onChange }: Props): React.JSX.Ele
 
   return (
     <View style={styles.form}>
-      <AutocompleteInput
+      {/* Amin #5295: خرید و فروش, رهن و اجاره or تهاتر */}
+      <ChipGroup
         label="نوع قرارداد"
-        value={values.type}
-        onChangeValue={(value) => onChange('type', value)}
-        // Amin #5240: contracts are only for رهن و اجاره
-        suggestions={['رهن و اجاره']}
-        placeholder="رهن و اجاره"
-        errorMessage={errors.type}
+        options={KIND_OPTIONS}
+        value={values.type as (typeof CONTRACT_KINDS)[number]}
+        onChange={(value) => value && onChange('type', value)} // one kind is always chosen
       />
       <MoneyInput
         label="مبلغ (تومان)"

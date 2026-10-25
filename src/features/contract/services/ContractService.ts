@@ -5,7 +5,7 @@ import {
   createContractEndReminder,
   deleteContractReminder
 } from '@infrastructure/calendar/calendarService'
-import type { Contract, ContractFormValues, ContractStatus, ContractWithDetails } from '../types'
+import { hasRenewalReminder, type Contract, type ContractFormValues, type ContractStatus, type ContractWithDetails } from '../types'
 import { validateContractForm } from '../validation/contractValidation'
 import { ContractValidationError } from '../validation/ContractValidationError'
 
@@ -57,7 +57,12 @@ export class ContractService {
     if (!input) {
       throw new ContractValidationError(errors)
     }
-    return this.repository.update(id, { ...input, status })
+    const updated = await this.repository.update(id, { ...input, status })
+    // Amin #5295: a contract that is no longer رهن و اجاره keeps no end-of-contract reminder
+    if (updated.calendarEventId && !hasRenewalReminder(updated.type)) {
+      return this.setEndDateReminder(id, 0)
+    }
+    return updated
   }
 
   async listContracts(userId: string): Promise<ContractWithDetails[]> {
@@ -101,7 +106,7 @@ export class ContractService {
       await this.repository.setCalendarEventId(id, null)
     }
 
-    if (offsetMonths > 0) {
+    if (offsetMonths > 0 && hasRenewalReminder(contract.type)) {
       const eventId = await createContractEndReminder({
         contractId: id,
         endDateIso: contract.endDate,
