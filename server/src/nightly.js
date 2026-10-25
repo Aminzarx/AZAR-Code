@@ -8,6 +8,7 @@
  * Amin #5281: the zips are plain, readable files (no encryption); the folder and files are root-only (0700/0600) and
  * the Drive folder is private. The Drive upload runs on the PC (tools/drive-sync/eyvan_backups.py), so the Google
  * sign-in never sits on the VPS; while it can't run, days stay «pending» here and go up on its next good run.
+ * KSS test accounts (numbers in AZAR_TEST_OTP_NUMBERS) are left out (#5292).
  * Run as root, the job hands the database's -wal/-shm files back to the database's owner, so azar-auth keeps working.
  */
 const fs = require('node:fs')
@@ -60,6 +61,7 @@ function handBackDbFiles() {
 function run(now = new Date()) {
   const { purgeDue } = require('./adminRoutes')
   const { buildExport, safeName } = require('./exportAccount')
+  const { isTestNumber } = require('./sms')
   const purged = purgeDue(now.getTime())
 
   const date = tehranDate(now)
@@ -72,6 +74,7 @@ function run(now = new Date()) {
   const users = db()
     .prepare("SELECT id, phone_number FROM users WHERE id != 'bootstrap-seed-user' AND deleted_at IS NULL ORDER BY created_at")
     .all()
+    .filter((u) => !isTestNumber(u.phone_number)) // Amin #5292: KSS test accounts stay out of the backup
   let bytes = 0
   const names = new Set()
   for (const user of users) {

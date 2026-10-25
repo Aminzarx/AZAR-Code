@@ -1649,6 +1649,22 @@ kss-pricing 0.38.1.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
 
+## 2026-10-25 — KSS test account for Amin (server)
+
+**Change**: Numbers in `AZAR_TEST_OTP_NUMBERS` are KSS test accounts: fixed code 123456, `test: true` in the admin
+user list and detail (billing leaves them out of the sales numbers), and no nightly backup. 09120009162 got a free
+licence for a year and a seeded set pushed through `/sync/push`: 20 files (sale, رهن و اجاره, barter, mixed) and
+15 applicants (buy, rent, barter) in Tehran and Karaj, 6 deals at different stages and one رهن و اجاره contract,
+with high, mid and under-70 matches.
+
+**Reason**: Amin #5292.
+
+**Affected modules**: `server/src/sms.js` (`isTestNumber`), `authRoutes.js`, `adminRoutes.js`, `nightly.js`.
+
+**Migration requirements**: none.
+
+**Tests**: server suite (33).
+
 ## 2026-10-25 — Start page texts (1.5.2)
 
 **Change**: The start page reads «به جمع حرفه‌ای‌ها خوش آمدید», with the rows «ثبت آسان و فوری فایل‌ها»,

@@ -6,6 +6,7 @@ const tokens = require('./tokens')
 const sync = require('./syncRoutes')
 const { licenceOf } = require('./licenceRoutes')
 const { buildExport } = require('./exportAccount')
+const { isTestNumber } = require('./sms')
 
 /**
  * Amin #5197: the billing panel's «اپلیکیشن‌ها › ایوان» reads and manages EYVAN accounts here.
@@ -109,6 +110,8 @@ async function summaryRow(user, s) {
   return {
     id: user.id,
     phone: shownPhone(user),
+    // Amin #5292: a KSS test account (its number is in AZAR_TEST_OTP_NUMBERS); leave it out of the sales numbers
+    test: isTestNumber(user.phone_number),
     name: profile.display_name ?? null,
     agency: profile.agency_name ?? null,
     referralCode: user.referral_code,
@@ -213,6 +216,7 @@ router.get('/users/:id', async (req, res, next) => {
     res.json({
       id: user.id,
       phone: shownPhone(user),
+      test: isTestNumber(user.phone_number),
       name: profile.display_name ?? null,
       agency: profile.agency_name ?? null,
       archivedAt: user.archived_at ?? null,

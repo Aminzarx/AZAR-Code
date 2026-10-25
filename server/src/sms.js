@@ -14,6 +14,16 @@ function iranMobile(phone) {
   return m ? '0' + m[1] : null
 }
 
+// KSS test numbers (AZAR_TEST_OTP_NUMBERS=09xxxxxxxxx,…): sign in with a fixed code, shown as «test» in admin, left out
+// of the nightly backup (Amin #5292: a test account for him to try the app with)
+const TEST_NUMBERS = new Set(
+  String(process.env.AZAR_TEST_OTP_NUMBERS || '')
+    .split(',')
+    .map((n) => iranMobile(n.trim()))
+    .filter(Boolean)
+)
+const isTestNumber = (phone) => TEST_NUMBERS.has(iranMobile(phone || '') || '')
+
 const newCode = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0')
 const hashCode = (phone, code) => crypto.createHash('sha256').update(`${phone}:${code}`).digest('hex')
 const sameCode = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))
@@ -29,4 +39,4 @@ async function sendCode(mobile, code) {
   if (!res.ok || j?.return?.status !== 200) throw new Error(`kavenegar ${res.status} ${j?.return?.status ?? ''}`.trim())
 }
 
-module.exports = { ready, iranMobile, newCode, hashCode, sameCode, sendCode }
+module.exports = { ready, iranMobile, isTestNumber, newCode, hashCode, sameCode, sendCode }
