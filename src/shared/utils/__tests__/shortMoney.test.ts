@@ -29,10 +29,12 @@ describe('shortMoney (v1.3.0 design batch 2)', () => {
 })
 
 describe('moneyLine', () => {
-  it('prefers the sale price, else the rental amounts', () => {
+  it('shows the sale price and the rental amounts that are set', () => {
     expect(moneyLine(8_500_000_000, null, null)).toBe('۸٫۵ میلیارد تومان')
     expect(moneyLine(null, 2_000_000_000, 45_000_000)).toBe('رهن ۲ میلیارد · اجاره ۴۵ میلیون')
     expect(moneyLine(null, 3_000_000_000, 0)).toBe('رهن ۳ میلیارد')
     expect(moneyLine(null, null, null)).toBeNull()
+    // Amin #5240: for sale and for رهن و اجاره at once
+    expect(moneyLine(8_500_000_000, 2_000_000_000, 45_000_000)).toBe('۸٫۵ میلیارد تومان · رهن ۲ میلیارد · اجاره ۴۵ میلیون')
   })
 })

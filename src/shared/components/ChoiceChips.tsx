@@ -95,6 +95,62 @@ export function ChoiceChips({
   )
 }
 
+type MultiProps = {
+  label: string
+  options: readonly string[]
+  values: readonly string[]
+  onChange: (values: string[]) => void
+  required?: boolean
+  errorMessage?: string
+  helperText?: string
+}
+
+/** Amin #5240: the same chips, several may be on (a file for sale and for رهن و اجاره at once). */
+export function MultiChoiceChips({
+  label,
+  options,
+  values,
+  onChange,
+  required,
+  errorMessage,
+  helperText
+}: MultiProps): React.JSX.Element {
+  const theme = useTheme()
+  const styles = createStyles(theme)
+  return (
+    <View style={styles.group}>
+      <Text style={[theme.typography('labelMd'), styles.label]}>
+        {label}
+        {required ? <Text style={styles.required}> *</Text> : null}
+      </Text>
+      <View style={styles.row}>
+        {options.map((option) => {
+          const selected = values.includes(option)
+          return (
+            <Pressable
+              key={option}
+              accessibilityRole="checkbox"
+              accessibilityLabel={option}
+              accessibilityState={{ checked: selected }}
+              onPress={() =>
+                onChange(selected ? values.filter((v) => v !== option) : options.filter((o) => o === option || values.includes(o)))
+              }
+              style={[styles.chip, selected && styles.chipSelected]}
+            >
+              <Text style={[theme.typography('labelMd'), selected ? styles.textSelected : styles.text]}>{option}</Text>
+            </Pressable>
+          )
+        })}
+      </View>
+      {errorMessage ? (
+        <Text style={[theme.typography('bodySm'), styles.error]}>{errorMessage}</Text>
+      ) : helperText ? (
+        <Text style={[theme.typography('bodySm'), styles.helper]}>{helperText}</Text>
+      ) : null}
+    </View>
+  )
+}
+
 function createStyles(theme: Theme) {
   const start = theme.isRTL ? 'flex-start' : 'flex-end'
   return StyleSheet.create({
@@ -135,6 +191,10 @@ function createStyles(theme: Theme) {
     },
     error: {
       color: theme.colors.error,
+      alignSelf: start
+    },
+    helper: {
+      color: theme.colors.onSurfaceVariant,
       alignSelf: start
     }
   })

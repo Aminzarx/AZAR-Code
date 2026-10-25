@@ -120,7 +120,7 @@ describe('scoreMatch', () => {
         price: 100,
         area: 5
       }),
-      makeApplicant({ rooms: 5 })
+      makeApplicant({ rooms: 5, preferredTransactionType: null })
     )
     expect(result?.score).toBe(25)
     expect(result?.matchedCriteria).toEqual(['city'])
@@ -159,13 +159,15 @@ describe('findPropertyMatchesForApplicant', () => {
     const weakMatch = makeProperty({
       id: 'prop-weak',
       propertyType: 'ویلایی',
-      transactionType: 'رهن'
+      rooms: 5
     })
     const differentCity = makeProperty({ id: 'prop-different-city', city: 'شیراز' })
+    const rentOnly = makeProperty({ id: 'prop-rent-only', transactionType: 'رهن و اجاره' })
 
     const results = findPropertyMatchesForApplicant(applicant, [
       weakMatch,
       differentCity,
+      rentOnly,
       strongMatch
     ])
 
@@ -183,5 +185,46 @@ describe('findApplicantMatchesForProperty', () => {
     const results = findApplicantMatchesForProperty(property, [differentCity, strongMatch])
 
     expect(results.map((r) => r.applicant.id)).toEqual(['app-strong'])
+  })
+})
+
+describe('deal kinds and closed files (Amin #5240/#5241)', () => {
+  it('never shows a buyer a file that is only for rent or only for barter', () => {
+    expect(scoreMatch(makeProperty({ transactionType: 'رهن و اجاره' }), makeApplicant())).toBeNull()
+    expect(scoreMatch(makeProperty({ transactionType: 'تهاتر' }), makeApplicant())).toBeNull()
+  })
+
+  it('a file offered for several kinds matches each kind of applicant', () => {
+    const property = makeProperty({
+      transactionType: 'فروش، رهن و اجاره، تهاتر',
+      depositAmount: 3000000000,
+      rentAmount: 20000000
+    })
+    expect(scoreMatch(property, makeApplicant())?.matchedCriteria).toContain('transactionType')
+    expect(
+      scoreMatch(property, makeApplicant({ preferredTransactionType: 'اجاره' }))?.matchedCriteria
+    ).toContain('transactionType')
+    expect(
+      scoreMatch(property, makeApplicant({ preferredTransactionType: 'تهاتر' }))?.matchedCriteria
+    ).toContain('transactionType')
+  })
+
+  it('compares a tenant budget with the deposit, not the sale price', () => {
+    const property = makeProperty({
+      transactionType: 'فروش، رهن و اجاره',
+      price: 9000000000,
+      depositAmount: 3000000000
+    })
+    const tenant = makeApplicant({ preferredTransactionType: 'رهن و اجاره' })
+    expect(scoreMatch(property, tenant)?.matchedCriteria).toContain('budget')
+    expect(scoreMatch(property, makeApplicant())?.matchedCriteria).not.toContain('budget')
+  })
+
+  it('leaves out a file with a contract or a closed deal, and an archived one', () => {
+    expect(scoreMatch(makeProperty({ closed: true }), makeApplicant())).toBeNull()
+    expect(scoreMatch(makeProperty({ status: 'archived' }), makeApplicant())).toBeNull()
+    expect(
+      findPropertyMatchesForApplicant(makeApplicant(), [makeProperty({ id: 'sold', closed: true })])
+    ).toEqual([])
   })
 })

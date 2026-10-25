@@ -1,6 +1,7 @@
 import type { Property } from '@features/property/types'
 import type { Applicant } from '@features/applicant/types'
 import { normalizePersianText } from '@shared/utils/persianText'
+import { kindForApplicant, parseDealKinds } from '@shared/utils/dealKinds'
 import type { ApplicantMatch, MatchCriterion, MatchResult, PropertyMatch } from '../types'
 
 /**
@@ -30,32 +31,10 @@ export const CRITERION_LABELS: Record<MatchCriterion, string> = {
 }
 
 /**
- * A property's transaction type -> the applicant-side transaction types
- * compatible with it. Property and applicant use different vocabulary for
- * the same deal (a "for sale" property is what a "buyer" applicant wants),
- * so exact string equality was never the right test — see §1 of the
- * forms/matching polish brief. Unknown/custom free-text values (this
- * field stays unconstrained, see propertyValidation.ts) fall back to
- * exact-match compatibility below.
- */
-const TRANSACTION_COMPATIBILITY: Record<string, readonly string[]> = {
-  فروش: ['خرید'],
-  اجاره: ['اجاره', 'رهن و اجاره', 'رهن', 'استیجاری'],
-  'رهن و اجاره': ['اجاره', 'رهن و اجاره', 'رهن', 'استیجاری'],
-  رهن: ['اجاره', 'رهن و اجاره', 'رهن', 'استیجاری'],
-  تهاتر: ['تهاتر'],
-  // Applicant-only vocabulary — a property's own transaction type is never
-  // "buyer", so it can never be compatible with anything on the property side.
-  خرید: []
-}
-
-/**
- * True when a property listed under `propertyTransactionType` is what an
- * applicant looking for `applicantTransactionType` actually wants — e.g.
- * a "فروش" (for-sale) property matches a "خرید" (buyer) applicant, but not
- * another "فروش" listing's applicant-side counterpart. Values outside the
- * known vocabulary fall back to normalized exact-match, so free-text
- * entries that happen to agree ("فروش" = "فروش") still count.
+ * True when a property offered as `propertyTransactionType` (one or more kinds, «فروش، رهن و اجاره») is what an
+ * applicant looking for `applicantTransactionType` wants: a buyer needs a file for sale, a tenant one for رهن و اجاره,
+ * a barter applicant one for barter (Amin #5240). When neither side is in the known vocabulary they fall back to
+ * normalized exact-match, so free-text entries that happen to agree still count.
  */
 export function areTransactionTypesCompatible(
   propertyTransactionType: string | null,
@@ -64,13 +43,26 @@ export function areTransactionTypesCompatible(
   if (!propertyTransactionType?.trim() || !applicantTransactionType?.trim()) {
     return false
   }
-  const normalizedProperty = normalizePersianText(propertyTransactionType)
-  const normalizedApplicant = normalizePersianText(applicantTransactionType)
-  const compatibleValues = TRANSACTION_COMPATIBILITY[normalizedProperty]
-  if (compatibleValues) {
-    return compatibleValues.map(normalizePersianText).includes(normalizedApplicant)
+  const kinds = parseDealKinds(propertyTransactionType)
+  const wanted = kindForApplicant(applicantTransactionType)
+  if (kinds.length > 0 && wanted) {
+    return kinds.includes(wanted)
   }
-  return normalizedProperty === normalizedApplicant
+  if (kinds.length > 0 || wanted) {
+    // one side known, the other not (e.g. a seller-side «فروش» applicant): no match
+    return false
+  }
+  return normalizePersianText(propertyTransactionType) === normalizePersianText(applicantTransactionType)
+}
+
+/**
+ * Amin #5240: a known deal kind on both sides that does not fit is never a match (a buyer is never shown a file that
+ * is only for rent or barter). Unknown on either side stays soft: no points, no exclusion.
+ */
+function transactionTypesClash(property: Property, applicant: Applicant): boolean {
+  const kinds = parseDealKinds(property.transactionType)
+  const wanted = kindForApplicant(applicant.preferredTransactionType)
+  return kinds.length > 0 && wanted !== null && !kinds.includes(wanted)
 }
 
 /** Normalized equality — collapses Arabic/Persian character variants and stray whitespace. See persianText.ts. */
@@ -93,13 +85,20 @@ function isWithinRange(value: number | null, min: number | null, max: number | n
 
 /**
  * Returns null when the property/applicant are hard-excluded from
- * matching (different cities) rather than merely low-scoring — a
+ * matching (closed file, deal kinds that do not fit, different cities) rather than merely low-scoring — a
  * different-city pair should never be surfaced as a suggestion at all,
  * per §1 of the forms/matching brief. Missing city data on either side
  * (legacy records) falls back to the old soft scoring instead of a hard
  * block, since we can't determine a mismatch either way.
  */
 export function scoreMatch(property: Property, applicant: Applicant): MatchResult | null {
+  // Amin #5241: a file with a contract (or a deal at «قرارداد»/«موفق») or an archived one is no longer on offer
+  if (property.status !== 'active' || property.closed) {
+    return null
+  }
+  if (transactionTypesClash(property, applicant)) {
+    return null
+  }
   const bothCitiesKnown = Boolean(property.city.trim() && applicant.city.trim())
   const sameCity = citiesMatch(property.city, applicant.city)
   if (bothCitiesKnown && !sameCity) {
@@ -122,7 +121,10 @@ export function scoreMatch(property: Property, applicant: Applicant): MatchResul
   if (areTransactionTypesCompatible(property.transactionType, applicant.preferredTransactionType)) {
     matchedCriteria.push('transactionType')
   }
-  if (isWithinRange(property.price, applicant.minBudget, applicant.maxBudget)) {
+  // a tenant's budget is the رهن; everyone else's is the price (sale price or barter value)
+  const budgetAmount =
+    kindForApplicant(applicant.preferredTransactionType) === 'رهن و اجاره' ? property.depositAmount : property.price
+  if (isWithinRange(budgetAmount, applicant.minBudget, applicant.maxBudget)) {
     matchedCriteria.push('budget')
   }
   if (isWithinRange(property.area, applicant.minArea, applicant.maxArea)) {

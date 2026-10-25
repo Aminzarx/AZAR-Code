@@ -20,6 +20,7 @@ import {
   type QuickFilterChip
 } from '@shared/components'
 import { PROPERTY_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
+import { parseDealKinds, type DealKind } from '@shared/utils/dealKinds'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { useApplicants } from '@features/applicant/hooks/useApplicants'
 import { findApplicantMatchesForProperty } from '@features/matching/services/matchingService'
@@ -79,7 +80,8 @@ function matchesFilters(property: Property, filters: PropertyFilters): boolean {
   if (filters.status && property.status !== filters.status) {
     return false
   }
-  if (filters.transaction && property.transactionType !== filters.transaction) {
+  // Amin #5240: a file may carry several kinds; it shows under each of them
+  if (filters.transaction && !parseDealKinds(property.transactionType).includes(filters.transaction as DealKind)) {
     return false
   }
   if (filters.propertyType && property.propertyType !== filters.propertyType) {

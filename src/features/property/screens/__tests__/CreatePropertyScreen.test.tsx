@@ -46,13 +46,29 @@ const navigationProp = {
 } as never
 const routeProp = { key: 'CreateProperty', name: 'CreateProperty' as const, params: undefined }
 
-const NEXT_1 = 'ادامه: مشخصات و قیمت'
+const NEXT_1 = 'ادامه: مشخصات'
+const NEXT_SALE = 'ادامه: فروش'
 const NEXT_2 = 'ادامه: مشخصات مالک'
 const NEXT_3 = 'ادامه: عکس‌ها'
 const NEXT_4 = 'ادامه: عنوان و توضیحات'
+
+type Queries = {
+  getByLabelText: (text: string) => { props: { value?: string } }
+  getByText: (text: string) => unknown
+}
+/** Amin #5240: a sale file passes the place, specs and sale steps */
+async function throughSaleStep({ getByLabelText, getByText }: Queries): Promise<void> {
+  await waitFor(() => fireEvent.press(getByLabelText('فروش') as never))
+  await waitFor(() => fireEvent.changeText(getByLabelText('شهر') as never, 'تهران'))
+  await waitFor(() => fireEvent.changeText(getByLabelText('آدرس') as never, 'خیابان ولیعصر'))
+  await waitFor(() => fireEvent.press(getByText(NEXT_1) as never))
+  await waitFor(() => fireEvent.press(getByText(NEXT_SALE) as never))
+  await waitFor(() => fireEvent.changeText(getByLabelText('قیمت فروش (تومان)') as never, '5000000000'))
+  await waitFor(() => fireEvent.press(getByText(NEXT_2) as never))
+}
 const SAVE = 'ذخیرهٔ فایل'
 
-describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
+describe('CreatePropertyScreen (v3.0.0 steps; a step per deal kind, Amin #5240)', () => {
   const mockListProperties = jest.fn()
 
   beforeEach(() => {
@@ -100,11 +116,14 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
     )
 
     await waitFor(() => fireEvent.press(getByLabelText('آپارتمان')))
+    await waitFor(() => fireEvent.press(getByLabelText('فروش')))
     await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
     await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
     await waitFor(() => fireEvent.press(getByText(NEXT_1)))
     await waitFor(() => fireEvent.press(getByLabelText('یکی بیشتر تعداد اتاق')))
     await waitFor(() => fireEvent.press(getByLabelText('یکی بیشتر تعداد اتاق')))
+    await waitFor(() => fireEvent.press(getByText(NEXT_SALE)))
+    await waitFor(() => fireEvent.changeText(getByLabelText('قیمت فروش (تومان)'), '5000000000'))
     await waitFor(() => fireEvent.press(getByText(NEXT_2)))
     await waitFor(() => fireEvent.press(getByText(NEXT_3)))
     await waitFor(() => fireEvent.press(getByText(NEXT_4)))
@@ -120,8 +139,10 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
         expect.objectContaining({
           title: 'آپارتمان ۲ خوابه، تهران',
           propertyType: 'آپارتمان',
+          transactionType: 'فروش',
           city: 'تهران',
           address: 'خیابان ولیعصر',
+          price: '5000000000',
           rooms: '2'
         })
       )
@@ -139,14 +160,12 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
   it('goes back to the step that holds a field the service rejected', async () => {
     mockCreateProperty.mockRejectedValue(new PropertyValidationError({ city: 'شهر الزامی است.' }))
 
-    const { getByLabelText, getByText, findByText } = await render(
+    const screen = await render(
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
+    const { getByText, findByText } = screen
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
-    await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
-    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
-    await waitFor(() => fireEvent.press(getByText(NEXT_2)))
+    await throughSaleStep(screen as never)
     await waitFor(() => fireEvent.press(getByText(NEXT_3)))
     await waitFor(() => fireEvent.press(getByText(NEXT_4)))
     await waitFor(() => fireEvent.press(getByText(SAVE)))
@@ -157,14 +176,12 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
 
   it('Amin #5066: owner step is optional, but a typed owner needs a name and a valid mobile', async () => {
     mockCreateProperty.mockResolvedValue({ id: 'prop-2' })
-    const { getByLabelText, getByText, findByText, queryByLabelText } = await render(
+    const screen = await render(
       withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
     )
+    const { getByLabelText, getByText, findByText, queryByLabelText } = screen
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
-    await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
-    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
-    await waitFor(() => fireEvent.press(getByText(NEXT_2)))
+    await throughSaleStep(screen as never)
     await waitFor(() => fireEvent.changeText(getByLabelText('نام مالک'), 'حسین محمدی'))
     await waitFor(() => fireEvent.changeText(getByLabelText('شماره موبایل مالک'), '0912'))
     await waitFor(() => fireEvent.press(getByText(NEXT_3)))
@@ -185,6 +202,24 @@ describe('CreatePropertyScreen (v3.0.0 three steps)', () => {
         expect.objectContaining({ ownerName: 'حسین محمدی', ownerPhone: '۰۹۱۲۱۲۳۴۵۶۷' })
       )
     )
+  })
+
+  it('Amin #5240: needs a deal kind, then adds a step for each kind chosen', async () => {
+    const { getByLabelText, getByText, findByText, queryByText } = await render(
+      withTheme(<CreatePropertyScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('آدرس'), 'خیابان ولیعصر'))
+    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
+    expect(await findByText('نوع معامله را انتخاب کنید.')).toBeTruthy()
+
+    await waitFor(() => fireEvent.press(getByLabelText('رهن و اجاره')))
+    await waitFor(() => fireEvent.press(getByLabelText('تهاتر')))
+    expect(getByText(/از ۷/)).toBeTruthy()
+    await waitFor(() => fireEvent.press(getByText(NEXT_1)))
+    expect(getByText('ادامه: رهن و اجاره')).toBeTruthy()
+    expect(queryByText(NEXT_SALE)).toBeNull()
   })
 
   it('starts the city as the city of the last file', async () => {

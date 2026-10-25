@@ -23,7 +23,10 @@ export type PropertyOwnerWrite = {
 
 /** The properties row plus its owner contact's fields (aliased so they never clash with the property's own). */
 const SELECT_WITH_OWNER = `SELECT p.*, c.full_name AS owner_full_name, c.phone_number AS owner_phone_number,
-    c.notes AS owner_notes
+    c.notes AS owner_notes,
+    (EXISTS (SELECT 1 FROM contracts k WHERE k.property_id = p.id AND k.status IN ('active', 'completed'))
+      OR EXISTS (SELECT 1 FROM deals d WHERE d.property_id = p.id AND d.current_stage IN ('contract', 'won')))
+      AS is_closed
   FROM properties p LEFT JOIN contacts c ON c.id = p.owner_contact_id`
 
 export type PropertyRecord = {
@@ -48,6 +51,11 @@ export type PropertyRecord = {
   /** Amin #5066; null = no owner given (absent on records built outside the repository) */
   owner?: PropertyOwner | null
   status: PropertyStatus
+  /**
+   * Amin #5241: the file has an active/completed contract or a deal at «قرارداد»/«موفق», so it is off the market and
+   * never offered in matching. Read-only, worked out on every read.
+   */
+  closed?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -134,6 +142,7 @@ function toProperty(row: Record<string, unknown>): PropertyRecord {
           }
         : null,
     status: row.status as PropertyStatus,
+    closed: Boolean(row.is_closed),
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string
   }

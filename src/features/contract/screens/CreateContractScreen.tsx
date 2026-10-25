@@ -19,7 +19,8 @@ import type { ContractFormErrors, ContractFormValues } from '../types'
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateContract'>
 
 const EMPTY_VALUES: ContractFormValues = {
-  type: '',
+  // Amin #5240: contracts are only for رهن و اجاره
+  type: 'رهن و اجاره',
   amount: '',
   startDate: '',
   endDate: '',

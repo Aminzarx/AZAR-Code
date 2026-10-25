@@ -9,8 +9,10 @@ import { toPersianDigits } from '@shared/utils/persianText'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { usePropertyService } from '../hooks/usePropertyService'
 import {
-  PROPERTY_FIELD_STEP,
   PropertyForm,
+  STEP_NAMES,
+  stepOfField,
+  stepsFor,
   type PropertyFormStep
 } from '../components/PropertyForm'
 import { PropertyValidationError } from '../services/PropertyValidationError'
@@ -43,15 +45,6 @@ const EMPTY_VALUES: PropertyFormValues = {
   ownerNotes: ''
 }
 
-const STEP_NAMES: Record<PropertyFormStep, string> = {
-  1: 'نوع و مکان',
-  2: 'مشخصات و قیمت',
-  3: 'مشخصات مالک',
-  4: 'عکس‌ها',
-  5: 'عنوان و توضیحات'
-}
-const LAST_STEP: PropertyFormStep = 5
-const REQUIRED = 'این مورد لازم است.'
 
 /** v3.0.0: a starting title from what the broker already chose («آپارتمان ۲ خوابه ۹۵ متری، تهران»). */
 function suggestTitle(v: PropertyFormValues): string {
@@ -63,7 +56,7 @@ function suggestTitle(v: PropertyFormValues): string {
 }
 
 /**
- * v3.0.0 (Amin #4180/#4211): a new file in three short steps with one big
+ * v3.0.0 (Amin #4180/#4211): a new file in short steps with one big
  * button at the bottom, instead of one long two-column form with a small
  * save link in the header. The city starts as the city of the broker's
  * last file. Saving and validation are unchanged (PropertyService).
@@ -78,7 +71,11 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
-  const [step, setStep] = useState<PropertyFormStep>(1)
+  const [step, setStep] = useState<PropertyFormStep>('place')
+  // Amin #5240: a step for each chosen deal kind, so the count follows the chips on the first step
+  const steps = stepsFor(values)
+  const stepIndex = Math.max(0, steps.indexOf(step))
+  const isLast = stepIndex === steps.length - 1
   const [photos, setPhotos] = useState<EditorPhoto[]>([])
   const photoAdder = usePhotoAdder(photos, (next) => {
     setPhotos(next)
@@ -113,47 +110,33 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
     }
   }, [service, session])
 
+  /** This step's own errors: the full check, kept to the fields that live on the current step. */
+  function errorsOnStep(current: PropertyFormStep): PropertyFormErrors {
+    const all = validatePropertyForm(values).errors ?? {}
+    const onStep: PropertyFormErrors = {}
+    for (const field of Object.keys(all) as Array<keyof PropertyFormValues>) {
+      if (field !== 'title' && stepOfField(field, values) === current) onStep[field] = all[field]
+    }
+    return onStep
+  }
+
   function handleNext(): void {
-    if (step === 1) {
-      const stepErrors: PropertyFormErrors = {}
-      if (!values.city.trim()) stepErrors.city = REQUIRED
-      if (!values.address.trim()) stepErrors.address = REQUIRED
-      setErrors(stepErrors)
-      if (Object.keys(stepErrors).length > 0) {
-        return
-      }
-      setStep(2)
-      return
-    }
-    if (step === 2) {
-      setErrors({})
-      setStep(3)
-      return
-    }
-    if (step === 4) {
-      setErrors({})
-      if (!values.title.trim()) {
-        setValues((current) => ({ ...current, title: suggestTitle(current) }))
-      }
-      setStep(5)
-      return
-    }
-    // Amin #5066: the owner step may be left empty; once anything is typed, a name and a valid mobile are needed
-    const ownerErrors = validatePropertyForm(values).errors
-    const stepErrors: PropertyFormErrors = {}
-    if (ownerErrors?.ownerName) stepErrors.ownerName = ownerErrors.ownerName
-    if (ownerErrors?.ownerPhone) stepErrors.ownerPhone = ownerErrors.ownerPhone
+    const stepErrors = errorsOnStep(step)
     setErrors(stepErrors)
     if (Object.keys(stepErrors).length > 0) {
       return
     }
-    setStep(4)
+    const next = steps[stepIndex + 1]
+    if (next === 'title' && !values.title.trim()) {
+      setValues((current) => ({ ...current, title: suggestTitle(current) }))
+    }
+    setStep(next)
   }
 
   function handleBack(): void {
-    if (step > 1) {
+    if (stepIndex > 0) {
       setErrors({})
-      setStep((step - 1) as PropertyFormStep)
+      setStep(steps[stepIndex - 1])
       return
     }
     navigation.goBack()
@@ -196,8 +179,8 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       if (caughtError instanceof PropertyValidationError) {
         setErrors(caughtError.fieldErrors)
         const fields = Object.keys(caughtError.fieldErrors) as Array<keyof PropertyFormValues>
-        const first = Math.min(LAST_STEP, ...fields.map((f) => PROPERTY_FIELD_STEP[f]))
-        setStep(first as PropertyFormStep)
+        const onSteps = fields.map((f) => steps.indexOf(stepOfField(f, values))).filter((i) => i >= 0)
+        setStep(steps[Math.min(steps.length - 1, ...onSteps)])
       } else {
         setSubmitError('ثبت فایل با مشکل مواجه شد. دوباره تلاش کنید.')
       }
@@ -215,12 +198,12 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       subheader={
         <View style={styles.progress}>
           <View style={styles.bars}>
-            {([1, 2, 3, 4, 5] as const).map((n) => (
-              <View key={n} style={[styles.bar, n <= step && styles.barOn]} />
+            {steps.map((name, n) => (
+              <View key={name} style={[styles.bar, n <= stepIndex && styles.barOn]} />
             ))}
           </View>
           <Text style={[theme.typography('bodySm'), styles.stepText]}>
-            {`مرحلهٔ ${toPersianDigits(String(step))} از ۵ · `}
+            {`مرحلهٔ ${toPersianDigits(String(stepIndex + 1))} از ${toPersianDigits(String(steps.length))} · `}
             <Text style={[theme.typography('labelMd'), styles.stepName]}>{STEP_NAMES[step]}</Text>
           </Text>
         </View>
@@ -228,10 +211,10 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       footer={
         <View style={{ gap: theme.spacing.space3 }}>
           {/* Amin #5170: on the photos step the «افزودن عکس» button sits right above «ادامه» */}
-          {step === 4 ? <PhotoAddButton adder={photoAdder} /> : null}
-          {step < LAST_STEP ? (
+          {step === 'photos' ? <PhotoAddButton adder={photoAdder} /> : null}
+          {!isLast ? (
             <Button
-              label={`ادامه: ${STEP_NAMES[(step + 1) as PropertyFormStep]}`}
+              label={`ادامه: ${STEP_NAMES[steps[stepIndex + 1]]}`}
               onPress={handleNext}
             />
           ) : (
@@ -243,7 +226,7 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
       {submitError ? (
         <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
       ) : null}
-      {step === 4 ? (
+      {step === 'photos' ? (
         <PhotoEditor
           photos={photos}
           noun="فایل"

@@ -1571,8 +1571,17 @@ kssx.ir's apps page; updates are accepted from https://kssx.ir/dl/ as well as th
 - `app/mathRandomGuard.ts` (imported first in `index.js`): where `Math.random` returns values outside [0, 1)
   (seen on the test emulator: raw 64-bit integers), it is replaced by mulberry32. Without it every navigator got the
   same key «stack-undefined…», so the swipe back only reached the Settings stack.
+- A file is for sale, رهن و اجاره and/or barter, chosen together on the first step (`MultiChoiceChips`); each kind
+  chosen adds its own step with its own required fields (sale price; رهن and اجاره; barter items + value). Stored in
+  `transaction_type` as «فروش، رهن و اجاره» (`utils/dealKinds.ts`, no migration; old «اجاره»/«رهن» read as
+  رهن و اجاره). Fields of kinds not chosen are dropped on save (#5240).
+- Matching follows the kind: a buyer never sees a rent-only or barter-only file, a tenant never a sale-only one; a
+  tenant's budget is compared with the رهن. Contracts (and the «ایجاد قرارداد» button) are for رهن و اجاره deals only
+  (#5240).
+- A file with an active/finished contract, or with a deal at «قرارداد»/«موفق», or an archived file, no longer shows in
+  matching (`closed` from `PropertyRepository`; #5241).
 
-**Reason**: Amin #5160, #5162, #5233, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190, #5199.
+**Reason**: Amin #5160, #5162, #5233, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190, #5199, #5240, #5241.
 
 **Affected modules**: navigation (`SwipeTabs`, `TabSwipe`, `TabBarButton`, `MainNavigator`), `MainActivity`,
 `AzarScreenModule`, `security/screenshots`, Settings (`SettingsScreen`, `TokenCard`), photos (`PhotoEditor`,

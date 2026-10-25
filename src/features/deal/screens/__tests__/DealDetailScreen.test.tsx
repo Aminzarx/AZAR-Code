@@ -45,7 +45,7 @@ const DEAL: DealWithDetails = {
     ownerId: 'u1',
     title: 'آپارتمان دو خوابه',
     propertyType: null,
-    transactionType: null,
+    transactionType: 'رهن و اجاره',
     city: 'تهران',
     address: 'خیابان ولیعصر',
     price: null,
@@ -281,6 +281,22 @@ describe('DealDetailScreen', () => {
       propertyId: 'prop-1',
       applicantId: 'app-1'
     })
+  })
+
+  it('Amin #5240: a sale deal shows no contract button', async () => {
+    mockedUseDealDetail.mockReturnValue({
+      deal: { ...DEAL, property: { ...DEAL.property, transactionType: 'فروش' } },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn()
+    } as never)
+
+    const { findAllByText, queryByText } = await render(
+      withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
+    )
+
+    expect(await findAllByText('آپارتمان دو خوابه')).not.toHaveLength(0)
+    expect(queryByText('ایجاد قرارداد')).toBeNull()
   })
 
   it('navigates to CreateContract with the deal, property, and applicant prefilled', async () => {

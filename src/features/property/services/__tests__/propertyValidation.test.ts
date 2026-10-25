@@ -49,10 +49,9 @@ describe('validatePropertyForm', () => {
     expect(result.errors?.address).toBeTruthy()
   })
 
-  it('allows price, area, and rooms to be omitted', () => {
-    const result = validatePropertyForm({ ...VALID_VALUES, price: '', area: '', rooms: '' })
+  it('allows area and rooms to be omitted', () => {
+    const result = validatePropertyForm({ ...VALID_VALUES, area: '', rooms: '' })
     expect(result.errors).toBeNull()
-    expect(result.input?.price).toBeNull()
     expect(result.input?.area).toBeNull()
     expect(result.input?.rooms).toBeNull()
   })
@@ -73,10 +72,10 @@ describe('validatePropertyForm owner (Amin #5066)', () => {
   const base = {
     title: 'ت',
     propertyType: '',
-    transactionType: '',
+    transactionType: 'فروش',
     city: 'تهران',
     address: 'آ',
-    price: '',
+    price: '1000',
     area: '',
     rooms: '',
     depositAmount: '',
@@ -102,5 +101,57 @@ describe('validatePropertyForm owner (Amin #5066)', () => {
     expect(
       validatePropertyForm({ ...base, ownerName: ' حسین ', ownerPhone: '۰۹۱۲۱۲۳۴۵۶۷' }).input?.owner
     ).toEqual({ fullName: 'حسین', phoneNumber: '+989121234567', notes: null })
+  })
+})
+
+describe('validatePropertyForm deal kinds (Amin #5240)', () => {
+  const rent = { depositAmount: '2000000000', rentAmount: '45000000' }
+
+  it('needs at least one deal kind', () => {
+    expect(validatePropertyForm({ ...VALID_VALUES, transactionType: '' }).errors?.transactionType).toBe(
+      'نوع معامله را انتخاب کنید.'
+    )
+  })
+
+  it('a sale needs a price', () => {
+    expect(validatePropertyForm({ ...VALID_VALUES, price: '' }).errors?.price).toBe('قیمت فروش را وارد کنید.')
+  })
+
+  it('rent needs both amounts, not both zero, and keeps no sale price', () => {
+    const missing = validatePropertyForm({ ...VALID_VALUES, transactionType: 'رهن و اجاره', price: '' })
+    expect(missing.errors?.depositAmount).toBeTruthy()
+    expect(missing.errors?.rentAmount).toBeTruthy()
+    expect(
+      validatePropertyForm({
+        ...VALID_VALUES,
+        transactionType: 'رهن و اجاره',
+        depositAmount: '0',
+        rentAmount: '0'
+      }).errors?.rentAmount
+    ).toBeTruthy()
+    const ok = validatePropertyForm({ ...VALID_VALUES, transactionType: 'رهن و اجاره', ...rent })
+    expect(ok.errors).toBeNull()
+    expect(ok.input?.price).toBeNull()
+    expect(ok.input?.depositAmount).toBe(2000000000)
+  })
+
+  it('barter needs an item and a value', () => {
+    const result = validatePropertyForm({ ...VALID_VALUES, transactionType: 'تهاتر', price: '' })
+    expect(result.errors?.barterItems).toBeTruthy()
+    expect(result.errors?.price).toBe('ارزش ملک را وارد کنید.')
+  })
+
+  it('several kinds are stored together in a fixed order; fields of kinds not chosen are dropped', () => {
+    const result = validatePropertyForm({
+      ...VALID_VALUES,
+      ...rent,
+      transactionType: 'رهن و اجاره، فروش',
+      barterItems: ['سایر'],
+      barterOtherDescription: 'خودرو'
+    })
+    expect(result.errors).toBeNull()
+    expect(result.input?.transactionType).toBe('فروش، رهن و اجاره')
+    expect(result.input?.barterItems).toEqual([])
+    expect(result.input?.barterOtherDescription).toBeNull()
   })
 })

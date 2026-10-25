@@ -1,5 +1,6 @@
 import { canonicalizeIranPhoneNumber } from '@shared/utils/iranPhoneNumber'
 import { toEnglishDigits } from '@shared/utils/persianText'
+import { joinDealKinds, parseDealKinds } from '@shared/utils/dealKinds'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
 
 /** Amin #5066: the file's owner (kept as a contact with the «مالک» role). */
@@ -88,16 +89,36 @@ export function validatePropertyForm(
     errors.address = 'آدرس الزامی است.'
   }
 
-  const price = parsePositiveNumber(values.price, 'price', errors)
+  // Amin #5240: one or more deal kinds, each with its own required fields; a kind not chosen keeps nothing
+  const kinds = parseDealKinds(values.transactionType)
+  const forSale = kinds.includes('فروش')
+  const forRent = kinds.includes('رهن و اجاره')
+  const forBarter = kinds.includes('تهاتر')
+  if (kinds.length === 0) {
+    errors.transactionType = 'نوع معامله را انتخاب کنید.'
+  }
+
+  const usesPrice = forSale || forBarter
+  const price = usesPrice ? parsePositiveNumber(values.price, 'price', errors) : null
+  if (usesPrice && values.price.trim().length === 0) {
+    errors.price = forSale ? 'قیمت فروش را وارد کنید.' : 'ارزش ملک را وارد کنید.'
+  }
   const area = parsePositiveNumber(values.area, 'area', errors)
   const rooms = parsePositiveNumber(values.rooms, 'rooms', errors)
-  const depositAmount = parseNonNegativeNumber(values.depositAmount, 'depositAmount', errors)
-  const rentAmount = parseNonNegativeNumber(values.rentAmount, 'rentAmount', errors)
+  const depositAmount = forRent ? parseNonNegativeNumber(values.depositAmount, 'depositAmount', errors) : null
+  const rentAmount = forRent ? parseNonNegativeNumber(values.rentAmount, 'rentAmount', errors) : null
+  if (forRent) {
+    if (values.depositAmount.trim().length === 0) errors.depositAmount = 'میزان رهن را وارد کنید (۰ برای فقط اجاره).'
+    if (values.rentAmount.trim().length === 0) errors.rentAmount = 'میزان اجاره را وارد کنید (۰ برای رهن کامل).'
+    if (depositAmount === 0 && rentAmount === 0) errors.rentAmount = 'رهن و اجاره هر دو صفر نمی‌شوند.'
+  }
 
-  // "سایر" without a description is a barter item with no actual
-  // content — same "required when selected" shape as isConvertible's
-  // conditional fields above, just for a checkbox-driven choice instead.
-  if (values.barterItems.includes('سایر') && values.barterOtherDescription.trim().length === 0) {
+  const barterItems = forBarter ? values.barterItems : []
+  if (forBarter && barterItems.length === 0) {
+    errors.barterItems = 'دست‌کم یک مورد تهاتر را انتخاب کنید.'
+  }
+  // "سایر" without a description is a barter item with no actual content
+  if (barterItems.includes('سایر') && values.barterOtherDescription.trim().length === 0) {
     errors.barterOtherDescription = 'برای گزینه «سایر» توضیح مورد تهاتر را وارد کنید.'
   }
 
@@ -119,7 +140,7 @@ export function validatePropertyForm(
     input: {
       title: values.title.trim(),
       propertyType: values.propertyType.trim() || null,
-      transactionType: values.transactionType.trim() || null,
+      transactionType: joinDealKinds(kinds) || null,
       city: values.city.trim(),
       address: values.address.trim(),
       price,
@@ -127,9 +148,9 @@ export function validatePropertyForm(
       rooms,
       depositAmount,
       rentAmount,
-      isConvertible: values.isConvertible,
-      barterItems: values.barterItems,
-      barterOtherDescription: values.barterItems.includes('سایر')
+      isConvertible: forRent && values.isConvertible,
+      barterItems,
+      barterOtherDescription: barterItems.includes('سایر')
         ? values.barterOtherDescription.trim() || null
         : null,
       description: values.description.trim() || null,

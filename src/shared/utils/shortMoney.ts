@@ -91,10 +91,9 @@ export function moneyLine(
   depositAmount: number | null,
   rentAmount: number | null
 ): string | null {
-  if (price !== null && price > 0) {
-    return shortToman(price)
-  }
+  // Amin #5240: a file for sale and for رهن و اجاره shows both (unused amounts are cleared when a file is saved)
   const parts = [
+    price !== null && price > 0 ? shortToman(price) : null,
     depositAmount ? `رهن ${shortAmount(depositAmount)}` : null,
     rentAmount ? `اجاره ${shortAmount(rentAmount)}` : null
   ].filter((part): part is string => part !== null)

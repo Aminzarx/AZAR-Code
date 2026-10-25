@@ -31,6 +31,15 @@ import { LostReasonDialog } from '../components/LostReasonDialog'
 import { dealStageTone } from '../dealPipeline'
 import { DEAL_STAGE_LABELS, getNextStage } from '../dealStageLabels'
 
+import { kindForApplicant, parseDealKinds } from '@shared/utils/dealKinds'
+
+/** Amin #5240: a deal gets a contract only when it is a رهن و اجاره one (file offered for it, applicant after it). */
+function isRentDeal(propertyType: string | null | undefined, applicantType: string | null | undefined): boolean {
+  const wanted = kindForApplicant(applicantType)
+  return parseDealKinds(propertyType).includes('رهن و اجاره') && (wanted === null || wanted === 'رهن و اجاره')
+}
+
+
 type Props = NativeStackScreenProps<MainStackParamList, 'DealDetail'>
 
 export function DealDetailScreen({ navigation, route }: Props): React.JSX.Element {
@@ -239,16 +248,19 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
 
             {canEdit ? (
               <View style={styles.actions}>
-                <Button
-                  label="ایجاد قرارداد"
-                  onPress={() =>
-                    navigateAcrossTabs(navigation, 'CreateContract', {
-                      dealId: deal.id,
-                      propertyId: deal.propertyId,
-                      applicantId: deal.applicantId
-                    })
-                  }
-                />
+                {/* Amin #5240: contracts are only for رهن و اجاره; a sale or a barter needs no contract reminder */}
+                {isRentDeal(deal.property?.transactionType, deal.applicant?.preferredTransactionType) ? (
+                  <Button
+                    label="ایجاد قرارداد"
+                    onPress={() =>
+                      navigateAcrossTabs(navigation, 'CreateContract', {
+                        dealId: deal.id,
+                        propertyId: deal.propertyId,
+                        applicantId: deal.applicantId
+                      })
+                    }
+                  />
+                ) : null}
                 <Button
                   label="افزودن پیگیری"
                   variant="secondary"

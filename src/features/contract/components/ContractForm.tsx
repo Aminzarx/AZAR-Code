@@ -2,7 +2,6 @@ import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { AutocompleteInput, DateInput, FormRow, MoneyInput, TextInput } from '@shared/components'
-import { PROPERTY_TRANSACTION_TYPES } from '@shared/data/realEstateOptions'
 import type { ContractFormErrors, ContractFormValues } from '../types'
 
 type Props = {
@@ -27,8 +26,9 @@ export function ContractForm({ values, errors, onChange }: Props): React.JSX.Ele
         label="نوع قرارداد"
         value={values.type}
         onChangeValue={(value) => onChange('type', value)}
-        suggestions={PROPERTY_TRANSACTION_TYPES}
-        placeholder="فروش، اجاره..."
+        // Amin #5240: contracts are only for رهن و اجاره
+        suggestions={['رهن و اجاره']}
+        placeholder="رهن و اجاره"
         errorMessage={errors.type}
       />
       <MoneyInput
