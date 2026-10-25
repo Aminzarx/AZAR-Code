@@ -281,4 +281,22 @@ function deleteAccountData(accountId) {
   fs.rmSync(path.join(BLOB_DIR, accountId), { recursive: true, force: true })
 }
 
-module.exports = { router, deleteAccountData }
+/** Amin #5197 (admin export / nightly backup): every stored row of an account, opened. */
+function rowsOf(accountId) {
+  return db
+    .prepare('SELECT tbl, row_key, data FROM sync_rows WHERE account_id = ?')
+    .all(accountId)
+    .map((r) => ({ table: r.tbl, key: r.row_key, row: JSON.parse(open(r.data).toString('utf8')) }))
+}
+
+/** one stored photo of an account, opened, or null */
+function blobOf(accountId, hash) {
+  if (!HASH.test(hash)) return null
+  try {
+    return open(fs.readFileSync(blobPath(accountId, hash)))
+  } catch {
+    return null
+  }
+}
+
+module.exports = { router, deleteAccountData, rowsOf, blobOf, usageOf }

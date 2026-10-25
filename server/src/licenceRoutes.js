@@ -98,6 +98,8 @@ async function appPrices() {
 async function licenceOf(user, now = Date.now()) {
   const p = await appPrices()
   const base = { monthlyToman: p?.monthlyToman ?? null, trialDays: p?.trialDays ?? null }
+  // Amin #5197: an account a KSS admin deactivated reads as an ended licence (read-only on the phone)
+  if (user.admin_status === 'deactivated') return { state: 'expired', endsAt: user.admin_status_at, ...base }
   if (FREE.has(sms.iranMobile(user.phone_number))) return { state: 'free', endsAt: null, ...base }
   const paid = db.prepare('SELECT paid_until FROM licences WHERE user_id = ?').get(user.id)?.paid_until
   const paidUntil = paid ? Date.parse(paid) : 0

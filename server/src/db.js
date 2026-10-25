@@ -86,6 +86,30 @@ if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'delete
   db.exec('ALTER TABLE users ADD COLUMN deleted_at TEXT')
 }
 
+// KSS (Amin #5197): the billing panel's admin state of an account, its last sign-in, and the audit of every admin call
+{
+  const have = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name)
+  for (const [name, type] of [
+    ['admin_status', "TEXT NOT NULL DEFAULT 'active'"], // active | locked | deactivated | deleted (soft, see delete_after)
+    ['admin_status_at', 'TEXT'],
+    ['delete_after', 'TEXT'],
+    ['last_login_at', 'TEXT']
+  ]) {
+    if (!have.includes(name)) db.exec(`ALTER TABLE users ADD COLUMN ${name} ${type}`)
+  }
+}
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admin_audit (
+    id TEXT PRIMARY KEY,
+    at TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    action TEXT NOT NULL,
+    user_id TEXT,
+    detail TEXT
+  );
+  CREATE INDEX IF NOT EXISTS admin_audit_user ON admin_audit(user_id, at);
+`)
+
 // Registration requires a valid referral code with no bypass (ADR-009), so a
 // brand-new server has no user to be a referrer for the very first real
 // registration. Mirrors the client's own former bootstrap-seed migration

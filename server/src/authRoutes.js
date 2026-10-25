@@ -268,8 +268,14 @@ router.post('/login', registerLimiter, (req, res) => {
     user = createUser(phoneNumber, open.referrer, open.referrer.referral_code, open.invite.code)
   }
 
+  // Amin #5197: an account a KSS admin locked or deleted does not sign in
+  if (user.admin_status === 'locked' || user.admin_status === 'deleted') {
+    return fail(res, 403, 'account_locked', 'This account is locked. Contact support.')
+  }
+
   const sessionToken = generateSessionToken()
   db.transaction(() => {
+    db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?').run(new Date().toISOString(), user.id)
     // AZAR-SYNC-001 (Amin #4142 R5): the phone that signs in now is the account's only active phone;
     // the previous one is signed out and wipes its copy the next time it reaches the server
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)

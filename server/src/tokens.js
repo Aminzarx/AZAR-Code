@@ -18,6 +18,7 @@ const { appPrices } = require('./licenceRoutes')
 //   today is paid on a later push.
 
 const REASONS = [
+  'admin_grant', // Amin #5197: tokens a KSS admin gave from the billing panel (counted with the gifts)
   'allowance', // only the zero-amount marker of the current model (opening-v2); the allowance itself is not stored
   'file_spend',
   'file_refund',
@@ -259,13 +260,14 @@ function summaryOf(accountId, s) {
     phoneChange: round(-sum(['phone_change']))
   }
   const spent = round(spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange)
-  const earned = sum(BONUS_REASONS)
+  const granted = sum(['admin_grant'])
+  const earned = round(sum(BONUS_REASONS) + granted)
   const bought = sum(['pack_bought'])
   return {
     balance: Math.max(0, balanceOf(accountId, s)),
     allowance: s.tokenAllowance,
     earned,
-    earnedBy: { referral: sum(['referral_bonus']), profile: sum(['profile_bonus']) },
+    earnedBy: { referral: sum(['referral_bonus']), profile: sum(['profile_bonus']), granted },
     bought,
     spent,
     spentBy
@@ -312,6 +314,7 @@ module.exports = {
   chargeRecords,
   useStore,
   storeOf,
+  summaryOf,
   post,
   balanceOf,
   bytesToTokens,
