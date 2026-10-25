@@ -1597,3 +1597,26 @@ CI workflow.
 **Migration requirements**: none.
 
 **Tests**: back-swipe rule; contract photos step shows the single add button.
+
+## 2026-10-25 — Token purchase in the app, server side (#5245, on the sandbox)
+
+**Change**:
+- azar-auth `purchaseRoutes.js`: `POST /tokens/purchase/quote`, `POST /tokens/purchase` (Idempotency-Key),
+  `POST /tokens/purchase/status`, `POST /tokens/purchases` (receipts), `POST /tokens/purchase/paid` (billing's signed
+  notice, HMAC-SHA256 in `x-kss-signature`) and `GET /tokens/paid` (the «payment done, go back to the app» page).
+- The price per token and its VAT come only from kss-pricing (`app.eyvan_token_price`, `decision.eyvan_token_vat`,
+  `vat_rate` from 0.38.1). No price or no VAT answer = purchase off; no fallback price.
+- Buying opens at 95% of the tokens used. Until `AZAR_TOKEN_SALES_LIVE=1` (Navid's switch) only the numbers in
+  `AZAR_TOKEN_SALES_TEST_NUMBERS` may buy, and billing uses the Zarinpal sandbox.
+- Tokens are credited only after billing has verified the payment, once per order (ledger `pack_bought`,
+  idempotency `order:<id>`); a lost notice is caught up when the app asks for the order's status.
+- Orders left unpaid expire after 30 minutes. Admin: `GET /admin/users/:id/purchases`.
+
+**Reason**: Amin #5245; plan approved by the brain.
+
+**Affected modules**: azar-auth `purchaseRoutes.js`, `index.js`, `licenceRoutes.js`, `adminRoutes.js`; kssx-billing 0.41.0;
+kss-pricing 0.38.1.
+
+**Migration requirements**: new azar-auth table `token_orders` (created on start); billing migration 038.
+
+**Tests**: `server/test/purchase.test.js` (6).

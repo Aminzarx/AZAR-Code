@@ -7,6 +7,7 @@ const sync = require('./syncRoutes')
 const licence = require('./licenceRoutes')
 const tokens = require('./tokens')
 const admin = require('./adminRoutes')
+const purchases = require('./purchaseRoutes')
 
 const PORT = Number(process.env.PORT) || 8787
 // Explicit, not left to Node's default — nginx on the VPS host proxies to
@@ -21,6 +22,8 @@ app.set('trust proxy', 'loopback')
 app.use(cors())
 // AZAR-SYNC-001: mounted before the small global body limit; it parses its own larger bodies
 app.use('/sync', sync.router)
+// Amin #5245: token purchases (before the JSON parser: billing's paid notice is checked on its raw, signed body)
+app.use('/tokens', purchases.router)
 app.use(express.json({ limit: '16kb' }))
 
 app.get('/health', (_req, res) => {

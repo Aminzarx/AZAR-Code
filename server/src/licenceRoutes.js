@@ -84,6 +84,12 @@ async function appPrices() {
         profileBonus: num('eyvan_profile_bonus'),
         dailyBonusCap: num('eyvan_daily_bonus_cap'),
         tokenPriceToman: byKey.eyvan_token_price?.price_toman ?? null,
+        // Amin #5245: the token price's own VAT answer (decision.eyvan_token_vat) and the rate, from kss-pricing 0.38.1
+        tokenVat: {
+          applies: byKey.eyvan_token_price?.vat_applies ?? null,
+          included: byKey.eyvan_token_price?.vat_included ?? null,
+          rate: typeof byKey.eyvan_token_price?.vat_rate === 'number' ? byKey.eyvan_token_price.vat_rate : null
+        },
         tokenPacks: ['eyvan_token_pack_1', 'eyvan_token_pack_2', 'eyvan_token_pack_3'].map(num).filter((n) => n !== null)
       }
       pricesAt = Date.now()

@@ -256,6 +256,14 @@ router.get('/users/:id/tokens', (req, res) => {
   res.json({ total, page, lines })
 })
 
+// GET /admin/users/:id/purchases → { purchases }  (Amin #5245: the receipts on the user's page in billing)
+router.get('/users/:id/purchases', (req, res) => {
+  const user = findUser(req.params.id)
+  if (!user) return fail(res, 404, 'not_found', 'No such account.')
+  audit(req, 'read', user.id, 'purchases')
+  res.json({ purchases: require('./purchaseRoutes').purchasesOf(user.id) })
+})
+
 // POST /admin/users/:id/tokens/grant { amount, note }  (Idempotency-Key header)
 router.post('/users/:id/tokens/grant', async (req, res, next) => {
   try {
