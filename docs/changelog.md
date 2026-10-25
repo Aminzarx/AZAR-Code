@@ -1665,6 +1665,10 @@ kss-pricing 0.38.1.
 - Amin #5301/#5302: the phone page shows only the field «لطفا شماره خود را وارد کنید» and the button (plus the logo);
   the number takes Persian/Arabic digits, at most 11, and the button turns on only at a valid 09xxxxxxxxx. The server's
   send-otp accepts only +989xxxxxxxxx or 09xxxxxxxxx.
+- Amin #5298/#5308: «شخصی‌سازی» is a Settings row (like «یادآوری‌ها» and «این گوشی») that opens its own page: the app
+  colour — سرمه‌ای (default), آبی, ذغال‌سنگی — and «حالت نمایش». Blue has light and dark sides, charcoal is dark
+  only. The choice is kept on the phone (`AzarAppearance.setPalette`) and the system bars take the theme's page
+  colour (`setBars`). Palettes in `shared/theme/palettes.ts`.
 
 **Reason**: Amin #5295, #5296, #5297.
 

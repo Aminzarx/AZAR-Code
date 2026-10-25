@@ -22,7 +22,32 @@ class AzarAppearanceModule(reactContext: ReactApplicationContext) :
 
   override fun getName() = "AzarAppearance"
 
-  override fun getConstants(): Map<String, Any> = mapOf("mode" to savedMode(reactApplicationContext))
+  override fun getConstants(): Map<String, Any> = mapOf(
+    "mode" to savedMode(reactApplicationContext),
+    "palette" to (reactApplicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(PALETTE, "navy") ?: "navy")
+  )
+
+  /** Amin #5308: the theme (navy, blue or charcoal) is kept next to the light/dark choice */
+  @ReactMethod
+  fun setPalette(name: String) {
+    val clean = if (name == "blue" || name == "charcoal") name else "navy"
+    reactApplicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(PALETTE, clean).apply()
+  }
+
+  /** the status and navigation bars in the page colour of the theme on screen */
+  @ReactMethod
+  fun setBars(colour: String, dark: Boolean) {
+    val activity = reactApplicationContext.currentActivity ?: return
+    val parsed = try { android.graphics.Color.parseColor(colour) } catch (e: IllegalArgumentException) { return }
+    activity.runOnUiThread {
+      activity.window.statusBarColor = parsed
+      activity.window.navigationBarColor = parsed
+      WindowCompat.getInsetsController(activity.window, activity.window.decorView).apply {
+        isAppearanceLightStatusBars = !dark
+        isAppearanceLightNavigationBars = !dark
+      }
+    }
+  }
 
   @ReactMethod
   fun setMode(mode: String) {
@@ -46,6 +71,7 @@ class AzarAppearanceModule(reactContext: ReactApplicationContext) :
   companion object {
     private const val PREFS = "azar_appearance"
     private const val KEY = "mode"
+    private const val PALETTE = "palette"
     // = res/values(-night)/colors.xml bar_background
     private const val DAY_BAR = 0xFFF8FAFC.toInt()
     private const val NIGHT_BAR = 0xFF0B1220.toInt()

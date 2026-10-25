@@ -18,14 +18,13 @@ import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
-import { useAppearance, useTheme, type AppearanceMode, type Theme } from '@shared/theme'
+import { PALETTE_LABELS, useAppearance, useTheme, type AppearanceMode, type Theme } from '@shared/theme'
 import {
   ConfirmDialog,
   Icon,
   LogoPlaceholder,
   MarqueeText,
-  OtpPromptDialog,
-  SegmentedControl
+  OtpPromptDialog
 } from '@shared/components'
 import { getDatabase } from '@infrastructure/database/connection'
 import {
@@ -381,17 +380,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           onReceipts={() => props.navigation.navigate('BuyTokens', { receipts: true })}
         />
 
-        {/* Amin #5055: night mode; the phone's own setting is the default */}
-        <View style={styles.tokenCard} accessibilityLabel="حالت نمایش">
-          <View style={styles.tokenHead}>
-            <View style={styles.tokenIcon}>
-              <Icon name="moon" size="sm" color={theme.colors.primary} />
-            </View>
-            <Text style={[theme.typography('titleSm'), styles.tokenTitle]}>حالت نمایش</Text>
-          </View>
-          <SegmentedControl options={APPEARANCE_OPTIONS} value={appearance.mode} onChange={appearance.setMode} />
-        </View>
-
         <View style={styles.list}>
           <SettingsRow
             icon="cloud"
@@ -400,6 +388,13 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             onPress={() => {
               syncNow().catch(() => undefined)
             }}
+          />
+          {/* Amin #5308: theme and «حالت نمایش» on their own page, a row like the others */}
+          <SettingsRow
+            icon="moon"
+            label="شخصی‌سازی"
+            value={`${PALETTE_LABELS[appearance.palette]} · ${APPEARANCE_LABELS[appearance.mode]}`}
+            onPress={() => props.navigation.navigate('Personalize')}
           />
           <SettingsRow
             icon="bell"
@@ -518,11 +513,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
 
 const COMPANY_SITE_URL = 'https://kssx.ir'
 
-const APPEARANCE_OPTIONS: readonly { value: AppearanceMode; label: string }[] = [
-  { value: 'light', label: 'روشن' },
-  { value: 'dark', label: 'تیره' },
-  { value: 'system', label: 'هماهنگ با گوشی' }
-]
+const APPEARANCE_LABELS: Record<AppearanceMode, string> = { light: 'روشن', dark: 'تیره', system: 'هماهنگ با گوشی' }
 
 /** Amin #5160: the referrer's barcode opens in its own popup, as wide as the screen allows with a proper margin */
 function ReferralQrPopup({

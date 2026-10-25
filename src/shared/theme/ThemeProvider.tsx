@@ -1,13 +1,19 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useColorScheme } from 'react-native'
-import { savedAppearanceMode, saveAppearanceMode, type AppearanceMode } from './appearance'
+import {
+  colourSystemBars,
+  savedAppearanceMode,
+  saveAppearanceMode,
+  savedPaletteName,
+  savePaletteName,
+  type AppearanceMode
+} from './appearance'
+import { isDarkOnly, paletteFor, type PaletteName } from './palettes'
 import {
   componentTokens,
   elevation,
   iconSize,
   layoutTokens,
-  darkColors,
-  lightColors,
   motion,
   radius,
   spacing,
@@ -48,9 +54,9 @@ export type Theme = {
   status: (tone: StatusTone) => { background: string; foreground: string }
 }
 
-function buildTheme(isRTL: boolean, isDark: boolean): Theme {
+function buildTheme(isRTL: boolean, isDark: boolean, palette: PaletteName = 'navy'): Theme {
   const table = isRTL ? typographyRtl : typographyLtr
-  const colors = isDark ? darkColors : lightColors
+  const colors = paletteFor(palette, isDark)
   return {
     isRTL,
     isDark,
@@ -87,9 +93,13 @@ function buildTheme(isRTL: boolean, isDark: boolean): Theme {
 }
 
 const ThemeContext = createContext<Theme | null>(null)
-const AppearanceContext = createContext<{ mode: AppearanceMode; setMode: (mode: AppearanceMode) => void } | null>(
-  null
-)
+type AppearanceValue = {
+  mode: AppearanceMode
+  setMode: (mode: AppearanceMode) => void
+  palette: PaletteName
+  setPalette: (name: PaletteName) => void
+}
+const AppearanceContext = createContext<AppearanceValue | null>(null)
 
 type Props = {
   /**
@@ -106,13 +116,26 @@ type Props = {
 export function ThemeProvider({ isRTL = true, initialMode, children }: Props): React.JSX.Element {
   const [mode, setModeState] = useState<AppearanceMode>(() => initialMode ?? savedAppearanceMode())
   const system = useColorScheme()
-  const isDark = mode === 'dark' || (mode === 'system' && system === 'dark')
-  const theme = useMemo(() => buildTheme(isRTL, isDark), [isRTL, isDark])
+  const [palette, setPaletteState] = useState<PaletteName>(() => (initialMode ? 'navy' : savedPaletteName()))
+  const isDark = isDarkOnly(palette) || mode === 'dark' || (mode === 'system' && system === 'dark')
+  const theme = useMemo(() => buildTheme(isRTL, isDark, palette), [isRTL, isDark, palette])
   const setMode = useCallback((next: AppearanceMode) => {
     saveAppearanceMode(next)
     setModeState(next)
   }, [])
-  const appearance = useMemo(() => ({ mode, setMode }), [mode, setMode])
+  const setPalette = useCallback(
+    (next: PaletteName) => {
+      savePaletteName(next)
+      setPaletteState(next)
+      // charcoal is dark only: the phone's own dialogs and bars go dark with it
+      if (isDarkOnly(next)) setMode('dark')
+    },
+    [setMode]
+  )
+  useEffect(() => {
+    colourSystemBars(theme.colors.background, isDark)
+  }, [theme.colors.background, isDark])
+  const appearance = useMemo(() => ({ mode, setMode, palette, setPalette }), [mode, setMode, palette, setPalette])
   return (
     <AppearanceContext.Provider value={appearance}>
       <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
@@ -120,8 +143,8 @@ export function ThemeProvider({ isRTL = true, initialMode, children }: Props): R
   )
 }
 
-/** Amin #5055: the light/dark choice and its setter (saved on the phone) */
-export function useAppearance(): { mode: AppearanceMode; setMode: (mode: AppearanceMode) => void } {
+/** Amin #5055/#5308: the light/dark choice and the theme, with their setters (saved on the phone) */
+export function useAppearance(): AppearanceValue {
   const appearance = useContext(AppearanceContext)
   if (!appearance) {
     throw new Error('useAppearance must be used within a ThemeProvider')
