@@ -1,10 +1,10 @@
 import React from 'react'
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button } from './Button'
 import { Icon } from './Icon'
-import { KeyboardLift } from './KeyboardAwareScroll'
+import { SheetModal } from './SheetModal'
 
 type Props = {
   visible: boolean
@@ -48,19 +48,13 @@ export function FilterSheet({
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const { height: windowHeight } = useWindowDimensions()
   const styles = createStyles(theme, insets.bottom)
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardLift>
-        <Pressable
-          style={styles.backdrop}
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel="بستن"
-        >
+    <SheetModal visible={visible} onClose={onClose} backdropColor="rgba(30, 30, 32, 0.45)" keyboardLift>
           <View
-            style={styles.sheet}
+            style={[styles.sheet, { height: windowHeight * HEIGHT_RATIO }]}
             onStartShouldSetResponder={() => true}
             onTouchEnd={(event) => event.stopPropagation()}
           >
@@ -100,22 +94,14 @@ export function FilterSheet({
               <Button label={applyLabel} onPress={onApply} style={styles.action} />
             </View>
           </View>
-        </Pressable>
-      </KeyboardLift>
-    </Modal>
+    </SheetModal>
   )
 }
 
 function createStyles(theme: Theme, bottomInset: number) {
   return StyleSheet.create({
-    backdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(30, 30, 32, 0.45)',
-      justifyContent: 'flex-end'
-    },
     sheet: {
       width: '100%',
-      height: `${HEIGHT_RATIO * 100}%`,
       maxWidth: theme.component.bottomSheet.maxWidthDesktop,
       alignSelf: 'center',
       borderTopLeftRadius: theme.component.bottomSheet.radiusCompact,

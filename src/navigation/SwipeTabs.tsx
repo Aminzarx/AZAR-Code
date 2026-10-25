@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Animated, Easing, Keyboard, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native'
+import {
+  Animated,
+  Easing,
+  Keyboard,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent
+} from 'react-native'
 import {
   createNavigatorFactory,
   StackActions,
@@ -80,16 +89,27 @@ function SwipeTabNavigator({
     TabActionHelpers<ParamListBase>,
     SwipeTabOptions,
     SwipeTabEventMap
-  >(TabRouter, { id, initialRouteName, backBehavior, children, layout, screenListeners, screenOptions, screenLayout })
+  >(TabRouter, {
+    id,
+    initialRouteName,
+    backBehavior,
+    children,
+    layout,
+    screenListeners,
+    screenOptions,
+    screenLayout
+  })
 
   const theme = useTheme()
   const insets = useSafeAreaInsets()
-  const [width, setWidth] = useState(0)
+  // the window's width until the pager has measured itself (the same on a phone: the pager is full width)
+  const window = useWindowDimensions()
+  const [width, setWidth] = useState(window.width)
   const keyboardOpen = useKeyboardOpen()
   // physical direction of «the next tab»: right in LTR, left in RTL
   const sign = theme.isRTL ? -1 : 1
   const base = (index: number) => -index * sign * width
-  const offset = useRef(new Animated.Value(0)).current
+  const offset = useRef(new Animated.Value(-state.index * sign * width)).current
   const indexRef = useRef(state.index)
   indexRef.current = state.index
 
@@ -168,22 +188,23 @@ function SwipeTabNavigator({
       <View style={styles.fill}>
         <GestureDetector gesture={pan}>
           <View style={styles.pager} onLayout={onLayout} collapsable={false}>
-            {width > 0
-              ? state.routes.map((route, index) => {
-                  const focused = index === state.index
-                  return (
-                    <Animated.View
-                      key={route.key}
-                      style={[StyleSheet.absoluteFill, { transform: [{ translateX: sceneOffsets[index] }] }]}
-                      pointerEvents={focused ? 'auto' : 'none'}
-                      importantForAccessibility={focused ? 'auto' : 'no-hide-descendants'}
-                      accessibilityElementsHidden={!focused}
-                    >
-                      {descriptors[route.key].render()}
-                    </Animated.View>
-                  )
-                })
-              : null}
+            {state.routes.map((route, index) => {
+              const focused = index === state.index
+              return (
+                <Animated.View
+                  key={route.key}
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { transform: [{ translateX: sceneOffsets[index] }] }
+                  ]}
+                  pointerEvents={focused ? 'auto' : 'none'}
+                  importantForAccessibility={focused ? 'auto' : 'no-hide-descendants'}
+                  accessibilityElementsHidden={!focused}
+                >
+                  {descriptors[route.key].render()}
+                </Animated.View>
+              )
+            })}
           </View>
         </GestureDetector>
         {keyboardOpen ? null : (
@@ -203,7 +224,9 @@ function SwipeTabNavigator({
             {state.routes.map((route, index) => {
               const focused = index === state.index
               const options = descriptors[route.key].options
-              const color = focused ? theme.colors.onSecondaryContainer : theme.colors.onSurfaceVariant
+              const color = focused
+                ? theme.colors.onSecondaryContainer
+                : theme.colors.onSurfaceVariant
               return (
                 <TabBarButton
                   key={route.key}
@@ -214,7 +237,10 @@ function SwipeTabNavigator({
                   style={styles.tab}
                 >
                   {options.tabBarIcon?.({ color, focused })}
-                  <Text style={[theme.typography('labelSm'), styles.label, { color }]} numberOfLines={1}>
+                  <Text
+                    style={[theme.typography('labelSm'), styles.label, { color }]}
+                    numberOfLines={1}
+                  >
                     {options.tabBarLabel}
                   </Text>
                 </TabBarButton>

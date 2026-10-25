@@ -1559,9 +1559,13 @@ kssx.ir's apps page; updates are accepted from https://kssx.ir/dl/ as well as th
   photo's (`PhotoAddButton`, `usePhotoAdder`; #5170).
 - A match under 70% shows grey, not green (#5173).
 - Vazirmatn is its Farsi-Digits build, so typed digits show Persian at once (#5174).
+- Bottom sheets (row actions, options, filters, token details) slide up and back down (`SheetModal`); the snackbar
+  slides up; the long-press sheet has «انصراف» and «حذف» side by side (#5186).
+- A new page in a section slides in from the left and back out to the left (`slide_from_left`, all stacks; #5186).
+- The Settings tab always opens on its first page (#5190).
 - CI runs the whole jest suite before building.
 
-**Reason**: Amin #5160, #5162, #5163, #5170, #5173, #5174, #5179, #5182.
+**Reason**: Amin #5160, #5162, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190.
 
 **Affected modules**: navigation (`SwipeTabs`, `TabSwipe`, `TabBarButton`, `MainNavigator`), `MainActivity`,
 `AzarScreenModule`, `security/screenshots`, Settings (`SettingsScreen`, `TokenCard`), photos (`PhotoEditor`,

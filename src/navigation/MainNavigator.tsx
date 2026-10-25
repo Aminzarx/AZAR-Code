@@ -24,7 +24,7 @@ import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
 import { withLicence } from '@features/licence/LicenceLocked'
-import { getFocusedRouteNameFromRoute, useIsFocused, type RouteProp, type ParamListBase } from '@react-navigation/native'
+import { getFocusedRouteNameFromRoute, StackActions, useIsFocused, type RouteProp, type ParamListBase } from '@react-navigation/native'
 import { createSwipeTabNavigator } from './SwipeTabs'
 import { setScreenshotsAllowed } from '@infrastructure/security/screenshots'
 
@@ -124,17 +124,31 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
 const SETTINGS_PAGES = new Set<string>(['Settings', 'Profile', 'ChangePhone'])
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
-  return function TabStack({ route }: { route: RouteProp<ParamListBase> }): React.JSX.Element {
+  return function TabStack({
+    route,
+    navigation
+  }: {
+    route: RouteProp<ParamListBase>
+    navigation: { dispatch: (action: object) => void }
+  }): React.JSX.Element {
     const isTabFocused = useIsFocused()
     const focused = getFocusedRouteNameFromRoute(route) ?? root
     const inSettings = root === 'Settings' && isTabFocused && SETTINGS_PAGES.has(focused)
+    const childState = (route as { state?: unknown }).state as { key?: string; index?: number } | undefined
     useEffect(() => {
       if (root !== 'Settings') return
       setScreenshotsAllowed(inSettings)
       return () => setScreenshotsAllowed(false)
     }, [inSettings])
+    // Amin #5190: the Settings tab always opens on its first page; leaving it takes it back there
+    useEffect(() => {
+      if (root === 'Settings' && !isTabFocused && childState?.key && (childState.index ?? 0) > 0) {
+        navigation.dispatch({ ...StackActions.popToTop(), target: childState.key })
+      }
+    }, [isTabFocused, childState?.key, childState?.index, navigation])
     return (
-      <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false }}>
+      // Amin #5186: a new page inside a section slides in from the left and slides back out to the left
+      <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false, animation: 'slide_from_left' }}>
         <Stack.Screen name={root} component={RootScreen} />
         {SHARED_SCREENS.filter(([name]) => name !== root).map(([name, component]) => (
           <Stack.Screen key={name} name={name} component={component} />

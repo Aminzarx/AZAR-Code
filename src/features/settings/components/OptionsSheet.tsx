@@ -1,8 +1,9 @@
 import React from 'react'
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
+import { SheetModal } from '@shared/components/SheetModal'
 
 export type SheetOption = {
   icon: IconName
@@ -28,9 +29,8 @@ export function OptionsSheet({ visible, title, lead, options, onClose }: Props):
   const insets = useSafeAreaInsets()
   const styles = createStyles(theme, insets.bottom)
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن">
-        <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
+    <SheetModal visible={visible} onClose={onClose}>
+        <View style={styles.sheet}>
           <View style={styles.handle} />
           <Text style={[theme.typography('titleMd'), styles.title]}>{title}</Text>
           {lead ? <Text style={[theme.typography('bodySm'), styles.lead]}>{lead}</Text> : null}
@@ -62,15 +62,13 @@ export function OptionsSheet({ visible, title, lead, options, onClose }: Props):
               </Pressable>
             ))}
           </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+        </View>
+    </SheetModal>
   )
 }
 
 function createStyles(theme: Theme, bottomInset: number) {
   return StyleSheet.create({
-    backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,23,42,0.45)' },
     sheet: {
       backgroundColor: theme.colors.surfaceContainerLowest,
       borderTopLeftRadius: theme.radius.extraLarge,

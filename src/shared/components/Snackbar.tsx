@@ -1,5 +1,5 @@
-import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import React, { useEffect, useRef } from 'react'
+import { Animated, Easing, Pressable, StyleSheet, Text } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 
 type Props = {
@@ -19,12 +19,27 @@ type Props = {
 export function Snackbar({ visible, message, actionLabel, onAction, bottom = 16 }: Props): React.JSX.Element | null {
   const theme = useTheme()
   const styles = createStyles(theme)
+  // Amin #5186: it slides up from the bottom edge as it appears
+  const rise = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    if (!visible) {
+      rise.setValue(0)
+      return
+    }
+    Animated.timing(rise, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start()
+  }, [visible, rise])
   if (!visible) {
     return null
   }
   return (
-    <View style={[styles.wrap, { bottom }]} pointerEvents="box-none">
-      <View style={styles.bar} accessibilityLiveRegion="polite">
+    <Animated.View
+      style={[
+        styles.wrap,
+        { bottom, opacity: rise, transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [80, 0] }) }] }
+      ]}
+      pointerEvents="box-none"
+    >
+      <Animated.View style={styles.bar} accessibilityLiveRegion="polite">
         <Text style={[theme.typography('bodyMd'), styles.message]} numberOfLines={2}>
           {message}
         </Text>
@@ -33,8 +48,8 @@ export function Snackbar({ visible, message, actionLabel, onAction, bottom = 16 
             <Text style={[theme.typography('labelMd'), styles.action]}>{actionLabel}</Text>
           </Pressable>
         ) : null}
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   )
 }
 

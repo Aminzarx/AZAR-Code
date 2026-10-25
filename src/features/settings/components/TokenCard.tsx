@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Icon } from '@shared/components'
+import { SheetModal } from '@shared/components/SheetModal'
 import { useTheme, type Theme } from '@shared/theme'
 import {
   formatTokenAmount,
@@ -96,9 +97,8 @@ function TokenBreakdownSheet({
     level === 'danger' ? theme.colors.error : level === 'warn' ? theme.colors.onWarningContainer : theme.colors.onSurface
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن">
-        <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
+    <SheetModal visible={visible} onClose={onClose}>
+        <View style={styles.sheet}>
           <View style={styles.handle} />
           <Text style={[theme.typography('titleMd'), styles.title]}>جزئیات توکن‌ها</Text>
 
@@ -127,9 +127,8 @@ function TokenBreakdownSheet({
             </Text>
           </View>
           {/* Amin #5163: no explanation under the figures */}
-        </Pressable>
-      </Pressable>
-    </Modal>
+        </View>
+    </SheetModal>
   )
 }
 
@@ -188,7 +187,6 @@ function createStyles(theme: Theme, bottomInset = 0) {
       flexDirection: 'row'
     },
     fill: { height: 8, borderRadius: 4 },
-    backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,23,42,0.45)' },
     sheet: {
       backgroundColor: theme.colors.surfaceContainerLowest,
       borderTopLeftRadius: theme.radius.extraLarge,

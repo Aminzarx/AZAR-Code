@@ -1,9 +1,10 @@
 import React from 'react'
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon } from './Icon'
 import { MarqueeText } from './MarqueeText'
+import { SheetModal } from './SheetModal'
 
 type Props = {
   visible: boolean
@@ -14,8 +15,8 @@ type Props = {
 }
 
 /**
- * v1.4.0 (Amin #4315): the sheet a long-press on any list row opens.
- * One action for now, «حذف»; it asks for confirmation next (ConfirmDialog)
+ * v1.4.0 (Amin #4315): the sheet a long-press on any list row opens; it slides up (#5186).
+ * One action for now, «حذف», beside «انصراف»; it asks for confirmation next (ConfirmDialog)
  * and the delete itself can be undone from the snackbar.
  */
 export function RowActionSheet({ visible, title, onDelete, onClose }: Props): React.JSX.Element {
@@ -23,46 +24,38 @@ export function RowActionSheet({ visible, title, onDelete, onClose }: Props): Re
   const insets = useSafeAreaInsets()
   const styles = createStyles(theme, insets.bottom)
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن">
-        <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
-          <View style={styles.handle} />
-          <MarqueeText style={[theme.typography('titleSm'), styles.title]}>{title}</MarqueeText>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="حذف"
-            onPress={onDelete}
-            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-          >
-            <View style={styles.iconWrap}>
-              <Icon name="trash" size="sm" color={theme.colors.error} />
-            </View>
-            <Text style={[theme.typography('bodyLg'), styles.deleteLabel]}>حذف</Text>
-          </Pressable>
+    <SheetModal visible={visible} onClose={onClose}>
+      <View style={styles.sheet}>
+        <View style={styles.handle} />
+        <MarqueeText style={[theme.typography('titleSm'), styles.title]}>{title}</MarqueeText>
+        {/* Amin #5186: the two buttons side by side on one line */}
+        <View style={styles.buttons}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="انصراف"
             onPress={onClose}
-            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            style={({ pressed }) => [styles.button, styles.cancel, pressed && styles.pressed]}
           >
-            <View style={styles.iconWrap}>
-              <Icon name="close" size="sm" color={theme.colors.onSurfaceVariant} />
-            </View>
-            <Text style={[theme.typography('bodyLg'), styles.cancelLabel]}>انصراف</Text>
+            <Icon name="close" size="sm" color={theme.colors.onSurfaceVariant} />
+            <Text style={[theme.typography('labelMd'), styles.cancelLabel]}>انصراف</Text>
           </Pressable>
-        </Pressable>
-      </Pressable>
-    </Modal>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="حذف"
+            onPress={onDelete}
+            style={({ pressed }) => [styles.button, styles.delete, pressed && styles.pressed]}
+          >
+            <Icon name="trash" size="sm" color={theme.colors.onError} />
+            <Text style={[theme.typography('labelMd'), styles.deleteLabel]}>حذف</Text>
+          </Pressable>
+        </View>
+      </View>
+    </SheetModal>
   )
 }
 
 function createStyles(theme: Theme, bottomInset: number) {
   return StyleSheet.create({
-    backdrop: {
-      flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: 'rgba(15,23,42,0.45)'
-    },
     sheet: {
       backgroundColor: theme.colors.surfaceContainerLowest,
       borderTopLeftRadius: theme.radius.extraLarge,
@@ -84,29 +77,20 @@ function createStyles(theme: Theme, bottomInset: number) {
       color: theme.colors.onSurfaceVariant,
       marginBottom: theme.spacing.space2
     },
-    row: {
+    buttons: { flexDirection: 'row', gap: theme.spacing.space3 },
+    button: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.space3,
-      paddingVertical: theme.spacing.space3,
-      borderRadius: theme.radius.large
-    },
-    rowPressed: {
-      backgroundColor: theme.colors.surfaceContainerLow
-    },
-    iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radius.full,
-      alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.colors.surfaceContainerLow
+      gap: theme.spacing.space2,
+      minHeight: theme.touchTargetMinimum,
+      borderRadius: theme.radius.medium
     },
-    deleteLabel: {
-      color: theme.colors.error
-    },
-    cancelLabel: {
-      color: theme.colors.onSurface
-    }
+    cancel: { backgroundColor: theme.colors.surfaceContainerLow },
+    delete: { backgroundColor: theme.colors.error },
+    pressed: { opacity: 0.85 },
+    deleteLabel: { color: theme.colors.onError },
+    cancelLabel: { color: theme.colors.onSurface }
   })
 }

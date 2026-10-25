@@ -26,7 +26,8 @@ const Stack = createNativeStackNavigator<AuthStackParamList>()
  */
 export function AuthNavigator(): React.JSX.Element {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    // Amin #5186: a new page slides in from the left and slides back out to the left
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_left' }}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
       <Stack.Screen name="OtpVerification" component={OtpVerificationScreen} />
