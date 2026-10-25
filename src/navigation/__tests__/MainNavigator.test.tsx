@@ -52,9 +52,19 @@ jest.mock('@features/contract/screens/ContractListScreen', () => ({
   }
 }))
 jest.mock('@features/settings/screens/SettingsScreen', () => ({
-  SettingsScreen: () => {
+  SettingsScreen: ({ navigation }: { navigation: { navigate: (name: string) => void } }) => {
+    const { Text: RNText, Pressable } = require('react-native')
+    return (
+      <Pressable accessibilityRole="button" accessibilityLabel="ویرایش پروفایل" onPress={() => navigation.navigate('Profile')}>
+        <RNText>صفحه پروفایل</RNText>
+      </Pressable>
+    )
+  }
+}))
+jest.mock('@features/settings/screens/ProfileScreen', () => ({
+  ProfileScreen: () => {
     const { Text: RNText } = require('react-native')
-    return <RNText>صفحه پروفایل</RNText>
+    return <RNText>صفحه ویرایش پروفایل</RNText>
   }
 }))
 
@@ -93,6 +103,19 @@ describe('MainNavigator', () => {
     const { findByText } = await renderMainNavigator()
     fireEvent.press(await findByText('تنظیمات'))
     expect(await findByText('صفحه پروفایل')).toBeTruthy()
+  })
+
+  it('the Settings tab opens on its first page again after leaving it from an inner page (#5190)', async () => {
+    const { findByText, findByLabelText, queryByText } = await renderMainNavigator()
+    fireEvent.press(await findByText('تنظیمات'))
+    fireEvent.press(await findByLabelText('ویرایش پروفایل'))
+    expect(await findByText('صفحه ویرایش پروفایل')).toBeTruthy()
+
+    fireEvent.press(await findByText('خانه'))
+    fireEvent.press(await findByText('تنظیمات'))
+
+    expect(await findByText('صفحه پروفایل')).toBeTruthy()
+    expect(queryByText('صفحه ویرایش پروفایل')).toBeNull()
   })
 
   it('navigating from Home to a Files-owned screen switches to the Files tab, not a push within Home', async () => {

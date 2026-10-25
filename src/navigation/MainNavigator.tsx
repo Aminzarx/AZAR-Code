@@ -129,23 +129,28 @@ function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentTy
     navigation
   }: {
     route: RouteProp<ParamListBase>
-    navigation: { dispatch: (action: object) => void }
+    navigation: {
+      dispatch: (action: object) => void
+      getState: () => { routes: { key: string; state?: { key?: string; index?: number } }[] }
+    }
   }): React.JSX.Element {
     const isTabFocused = useIsFocused()
     const focused = getFocusedRouteNameFromRoute(route) ?? root
     const inSettings = root === 'Settings' && isTabFocused && SETTINGS_PAGES.has(focused)
-    const childState = (route as { state?: unknown }).state as { key?: string; index?: number } | undefined
     useEffect(() => {
       if (root !== 'Settings') return
       setScreenshotsAllowed(inSettings)
       return () => setScreenshotsAllowed(false)
     }, [inSettings])
-    // Amin #5190: the Settings tab always opens on its first page; leaving it takes it back there
+    // Amin #5190: the Settings tab always opens on its first page; leaving it takes it back there. The stack's state
+    // is read from the tab navigator: the `route` prop does not carry it (react-navigation 7 keeps it out of sight).
     useEffect(() => {
-      if (root === 'Settings' && !isTabFocused && childState?.key && (childState.index ?? 0) > 0) {
-        navigation.dispatch({ ...StackActions.popToTop(), target: childState.key })
+      if (root !== 'Settings' || isTabFocused) return
+      const stack = navigation.getState().routes.find((r) => r.key === route.key)?.state
+      if (stack?.key && (stack.index ?? 0) > 0) {
+        navigation.dispatch({ ...StackActions.popToTop(), target: stack.key })
       }
-    }, [isTabFocused, childState?.key, childState?.index, navigation])
+    }, [isTabFocused, navigation, route.key])
     return (
       // Amin #5186: a new page inside a section slides in from the left and slides back out to the left
       <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false, animation: 'slide_from_left' }}>

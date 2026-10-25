@@ -1562,7 +1562,8 @@ kssx.ir's apps page; updates are accepted from https://kssx.ir/dl/ as well as th
 - Bottom sheets (row actions, options, filters, token details) slide up and back down (`SheetModal`); the snackbar
   slides up; the long-press sheet has «انصراف» and «حذف» side by side (#5186).
 - A new page in a section slides in from the left and back out to the left (`slide_from_left`, all stacks; #5186).
-- The Settings tab always opens on its first page (#5190).
+- The Settings tab always opens on its first page (#5190). The tab reads its stack's state from the tab navigator
+  when it loses focus; the `route` prop does not carry it in react-navigation 7 (the first try never fired).
 - No copy/cut menu in text fields; the app is covered in the background/app switcher (`PrivacyCover`, and
   `setRecentsScreenshotEnabled(false)` on Android 13+), Settings included (#5199).
 - CI runs the whole jest suite before building.
