@@ -1,0 +1,10 @@
+[Unit]
+Description=EYVAN nightly backup at 00:00 Asia/Tehran
+
+[Timer]
+OnCalendar=*-*-* 00:00:00 Asia/Tehran
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

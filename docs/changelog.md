@@ -1648,3 +1648,19 @@ kss-pricing 0.38.1.
 **Migration requirements**: none.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
+
+## 2026-10-25 — Nightly backup of every account (server)
+
+**Change**: At 00:00 Tehran time the VPS timer `azar-nightly` runs `server/src/nightly.js`: it purges accounts deleted
+over 30 days ago, then writes one AES-256-GCM encrypted zip per account (same layout as the admin export, own key
+`EYVAN_BACKUP_KEY`) to `/var/backups/eyvan-nightly/<date>/`. A Windows task on the office PC uploads pending days to the
+personal Drive («EYVAN backups/<date>») and marks them uploaded, so the Google sign-in never sits on the server.
+Retention 14 daily + 8 Sundays on both sides. `GET /admin/backups` shows each day's state.
+
+**Reason**: Amin #5197.
+
+**Affected modules**: `server/src/nightly.js`, `server/deploy/azar-nightly.{service,timer}`, `install-nightly.sh`.
+
+**Migration requirements**: none (table `admin_backups` already exists).
+
+**Tests**: `server/test/nightly.test.js` (2).
