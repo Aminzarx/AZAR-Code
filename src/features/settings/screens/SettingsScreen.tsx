@@ -35,7 +35,7 @@ import { photoUri } from '@infrastructure/images/profilePhoto'
 import type { SupportContacts } from '@infrastructure/auth/httpAuthApiClient'
 import { ValidationFailureError } from '@core/auth/errors'
 
-const APP_DOWNLOAD_URL = 'https://eyvan.kssx.ir/' // Amin #4623: customer-facing links on kssx.ir
+const APP_DOWNLOAD_URL = 'https://kssx.ir/fa/solutions/apps' // Amin #5135: the download lives on kssx.ir's apps page
 
 /** «۱۲٫۴» — Persian digits, Persian decimal and thousands marks */
 function persianNumber(value: number): string {

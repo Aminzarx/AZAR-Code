@@ -45,6 +45,18 @@ describe('checkForUpdate (KSS server only — v1.2.0, Amin #4223)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  // Amin #5135: the install file on kssx.ir's own download folder; a look-alike host is still refused
+  it('accepts the install file on kssx.ir/dl/, not on a look-alike host', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { version: newer, url: `https://kssx.ir/dl/eyvan-${newer}.apk`, sha256: SHA })
+    )
+    expect((await checkForUpdate())?.downloadUrl).toBe(`https://kssx.ir/dl/eyvan-${newer}.apk`)
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { version: newer, url: `https://kssx.ir.evil.example/dl/eyvan.apk`, sha256: SHA })
+    )
+    expect(await checkForUpdate()).toBeNull()
+  })
+
   it('rejects an install link outside the KSS folder', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, {

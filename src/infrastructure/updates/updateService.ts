@@ -10,9 +10,11 @@ import { isNewerVersion } from '@shared/utils/semver'
  * v1.2.0 (Amin #4223): GitHub is no longer asked, and only install files
  * on that same KSS folder are accepted; sha256 lets the app check the
  * downloaded file before installing it.
+ * Amin #5135: the install file moves to KSS's own site (kssx.ir/dl/); the old folder stays accepted. The list file
+ * stays where every installed copy already looks for it.
  */
 export const KSS_MANIFEST_URL = 'https://api.zarandix.ir/app/update.json'
-const KSS_FILES_PREFIX = 'https://api.zarandix.ir/app/'
+const KSS_FILES_PREFIXES = ['https://kssx.ir/dl/', 'https://api.zarandix.ir/app/']
 
 export type AvailableUpdate = {
   version: string
@@ -53,7 +55,7 @@ export async function checkForUpdate(): Promise<AvailableUpdate | null> {
     !manifest ||
     typeof manifest.version !== 'string' ||
     typeof manifest.url !== 'string' ||
-    !manifest.url.startsWith(KSS_FILES_PREFIX) ||
+    !KSS_FILES_PREFIXES.some((prefix) => (manifest.url as string).startsWith(prefix)) ||
     typeof manifest.sha256 !== 'string' ||
     !/^[0-9a-f]{64}$/i.test(manifest.sha256)
   ) {

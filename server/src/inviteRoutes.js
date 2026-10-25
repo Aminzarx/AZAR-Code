@@ -115,7 +115,7 @@ page.get('/i/:code', (req, res) => {
   res.status(invite ? 200 : 404).type('html').send(renderPage(invite ? 'invite' : 'missing', referrer ? referrer.referral_code : ''))
 })
 
-// GET /dl — the plain download page (eyvan.kssx.ir/ serves it): for shares that carry no invite
+// GET /dl — the plain download page (no longer linked: since Amin #5135 eyvan.kssx.ir/ goes to kssx.ir's apps page)
 page.get('/dl', (req, res) => {
   res.set('Cache-Control', 'no-store')
   res.type('html').send(renderPage('download', ''))
@@ -148,12 +148,11 @@ button,.btn{font:inherit;border:0;border-radius:12px;padding:12px 16px;cursor:po
 <p>${LEADS[kind]}</p></div>
 ${referralCode ? `<div class="code"><b id="c">${escapeHtml(referralCode)}</b><button class="copy" onclick="copyCode()">کپی کد</button></div>
 <p class="note" id="n">با همین شماره‌ای که دعوت شده‌اید وارد شوید؛ کد معرف خودکار ثبت می‌شود.</p>` : ''}
-<a class="btn" id="dl" href="/app/" onclick="copyCode()">دریافت برنامه</a>
+<a class="btn" id="dl" href="https://kssx.ir/fa/solutions/apps" onclick="copyCode()">دریافت برنامه</a>
 <p class="note">پس از دریافت، فایل را باز کنید و «نصب» را بزنید.</p>
 </div><script>
 function copyCode(){var c=document.getElementById('c');if(!c)return;try{navigator.clipboard.writeText(c.textContent)}catch(e){}
 var n=document.getElementById('n');if(n)n.textContent='کد معرف کپی شد. با همین شماره وارد شوید.'}
-fetch('/app/update.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(m){if(m&&m.url)document.getElementById('dl').href='/app/'+m.url.split('/').pop()}).catch(function(){})
 </script></body></html>`
 }
 
