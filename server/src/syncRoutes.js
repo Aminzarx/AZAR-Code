@@ -58,6 +58,28 @@ db.exec(`
   );
 `)
 
+/** The stored rows of one account as the token ledger reads them (sizes and photos; rows are sealed at rest). */
+function storeOf(accountId) {
+  const bytesOf = db.prepare('SELECT bytes FROM sync_rows WHERE account_id = ? AND tbl = ? AND row_key = ?')
+  return {
+    rowBytes: (table, key) => bytesOf.get(accountId, table, key)?.bytes ?? 0,
+    photos: () =>
+      db
+        .prepare("SELECT row_key, data FROM sync_rows WHERE account_id = ? AND tbl = 'photos'")
+        .all(accountId)
+        .map((r) => photoSubject(r.row_key, JSON.parse(open(r.data).toString('utf8'))))
+        .filter(Boolean)
+  }
+}
+
+/** A photo row → the record it belongs to and its size (the photo's own bytes, as the phone measured them). */
+function photoSubject(key, row) {
+  const subjectTable = tokens.PHOTO_SUBJECTS[row?.subject_type]
+  if (!subjectTable || typeof row.subject_id !== 'string') return null
+  return { key, subjectTable, subjectId: row.subject_id, bytes: Number(row.bytes) || 0 }
+}
+tokens.useStore(storeOf)
+
 const limiter = rateLimit({ windowMs: 60 * 1000, limit: 240, standardHeaders: true, legacyHeaders: false })
 
 function fail(res, status, code, message) {
@@ -121,6 +143,19 @@ router.post('/push', json, async (req, res, next) => {
       ON CONFLICT(account_id, tbl, row_key) DO UPDATE SET data = excluded.data, bytes = excluded.bytes, updated_at = excluded.updated_at`)
     const remove = db.prepare('DELETE FROM sync_rows WHERE account_id = ? AND tbl = ? AND row_key = ?')
 
+    // Amin #5108: the records this save touches (a photo row counts for the record it belongs to, before and after)
+    const storedRow = db.prepare('SELECT data FROM sync_rows WHERE account_id = ? AND tbl = ? AND row_key = ?')
+    const subjects = []
+    for (const c of changes) {
+      if (tokens.RECORD_KINDS[c.t]) subjects.push({ table: c.t, key: c.k })
+      if (c.t !== 'photos') continue
+      const before = storedRow.get(accountId, c.t, c.k)
+      for (const row of [c.row, before ? JSON.parse(open(before.data).toString('utf8')) : null]) {
+        const p = row ? photoSubject(c.k, row) : null
+        if (p) subjects.push({ table: p.subjectTable, key: p.subjectId })
+      }
+    }
+
     const prepared = changes.map((c) => {
       const old = current.get(accountId, c.t, c.k)?.bytes ?? 0
       if (c.row === null) return { c, sealed: null, bytes: 0, delta: -old }
@@ -130,23 +165,14 @@ router.post('/push', json, async (req, res, next) => {
     const delta = prepared.reduce((sum, p) => sum + p.delta, 0)
     try {
       db.transaction(() => {
-        if (s) {
-          // the size change against what the server holds: a push sent again changes nothing
-          tokens.ensureOpening(accountId, s)
-          const rows = tokens.pushRows(
-            accountId,
-            prepared.map((p) => ({ table: p.c.t, delta: p.delta })),
-            s,
-            crypto.randomUUID()
-          )
-          for (const r of rows) tokens.post(accountId, r.reason, r.amount, r.idem, null, now)
-        } else if (delta > 0 && usageOf(accountId).bytes + delta > QUOTA_BYTES) {
-          throw new QuotaError()
-        }
+        if (s) tokens.ensureOpening(accountId, s, storeOf(accountId))
+        else if (delta > 0 && usageOf(accountId).bytes + delta > QUOTA_BYTES) throw new QuotaError()
         for (const { c, sealed, bytes } of prepared) {
           if (sealed) upsert.run(accountId, c.t, c.k, sealed, bytes, now)
           else remove.run(accountId, c.t, c.k)
         }
+        // each touched record against what it was charged: a push sent again changes nothing
+        if (s) tokens.chargeRecords(accountId, subjects, s, storeOf(accountId), now)
       })()
     } catch (error) {
       if (error instanceof tokens.TokensShortError) {
@@ -193,18 +219,12 @@ router.post('/blob/put', blobJson, async (req, res, next) => {
     }
     const hash = crypto.createHash('sha256').update(data).digest('hex')
     if (!db.prepare('SELECT 1 FROM sync_blobs WHERE account_id = ? AND hash = ?').get(accountId, hash)) {
+      // Amin #5108: an upload costs nothing; the photo counts with its record when that is saved (/sync/push)
       const s = await tokens.settings()
       const at = new Date().toISOString()
       try {
         db.transaction(() => {
-          if (s) {
-            // Amin #5062: a photo costs its exact WebP size
-            tokens.ensureOpening(accountId, s)
-            const rows = tokens.pushRows(accountId, [{ table: 'photos', delta: data.length }], s, `blob:${hash}:${at}`)
-            for (const r of rows) tokens.post(accountId, r.reason, r.amount, r.idem, hash, at)
-          } else if (usageOf(accountId).bytes + data.length > QUOTA_BYTES) {
-            throw new QuotaError()
-          }
+          if (!s && usageOf(accountId).bytes + data.length > QUOTA_BYTES) throw new QuotaError()
           db.prepare('INSERT INTO sync_blobs (account_id, hash, bytes, created_at) VALUES (?, ?, ?, ?)').run(
             accountId, hash, data.length, at
           )
@@ -236,26 +256,15 @@ router.post('/blob/get', json, (req, res) => {
   res.json({ data: open(fs.readFileSync(blobPath(accountId, hash))).toString('base64') })
 })
 
-// POST /sync/blob/delete { sessionToken, hash } → { usage }: a photo no longer used gives its tokens back
+// POST /sync/blob/delete { sessionToken, hash } → { usage }: a photo no longer used (its record gave the tokens back)
 router.post('/blob/delete', json, async (req, res, next) => {
   try {
     const accountId = accountOf(req)
     if (!accountId) return fail(res, 401, 'session_revoked', 'Sign in again.')
     const hash = typeof req.body?.hash === 'string' ? req.body.hash : ''
     if (HASH.test(hash)) {
-      const s = await tokens.settings()
       const blob = db.prepare('SELECT bytes FROM sync_blobs WHERE account_id = ? AND hash = ?').get(accountId, hash)
-      if (blob) {
-        const at = new Date().toISOString()
-        db.transaction(() => {
-          db.prepare('DELETE FROM sync_blobs WHERE account_id = ? AND hash = ?').run(accountId, hash)
-          // the photo's tokens come back
-          if (s) {
-            tokens.ensureOpening(accountId, s)
-            tokens.post(accountId, 'photo_refund', tokens.bytesToTokens(blob.bytes, s), `blob-delete:${accountId}:${hash}:${at}`, hash, at)
-          }
-        })()
-      }
+      if (blob) db.prepare('DELETE FROM sync_blobs WHERE account_id = ? AND hash = ?').run(accountId, hash)
       fs.rmSync(blobPath(accountId, hash), { force: true })
     }
     res.json({ usage: usageOf(accountId) })

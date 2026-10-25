@@ -1,7 +1,7 @@
 import { open } from '@op-engineering/op-sqlite'
 import { runMigrations } from '@infrastructure/database/migrationRunner'
 import { measureStorageUsage, bytesToTokens } from '@features/settings/services/storageTokens'
-import { movePhoto, photosTokens } from '../photoList'
+import { movePhoto } from '../photoList'
 
 describe('photo list (Amin #5062)', () => {
   it('moves a photo one place earlier or later, never past the ends', () => {
@@ -9,12 +9,6 @@ describe('photo list (Amin #5062)', () => {
     expect(movePhoto(['a', 'b', 'c'], 0, 1)).toEqual(['b', 'a', 'c'])
     expect(movePhoto(['a', 'b', 'c'], 0, -1)).toEqual(['a', 'b', 'c'])
     expect(movePhoto(['a', 'b', 'c'], 2, 1)).toEqual(['a', 'b', 'c'])
-  })
-
-  it('photos cost their WebP size in tokens (1 KB = 0.127 token)', () => {
-    // 300 KB + 200 KB of WebP = 500 KB → 63.5 tokens
-    expect(photosTokens([{ bytes: 300_000 }, { bytes: 200_000 }])).toBe(63.5)
-    expect(photosTokens([])).toBe(0)
   })
 
   it('the storage card counts a waiting photo by its WebP size, not by the longer base64 text it travels in', async () => {

@@ -64,7 +64,6 @@ class FakeServer {
         this.check()
         return {
           summary: { balance: 6340, allowance: 6350, earned: 0, bought: 0, spent: 10 },
-          rows: [{ at: '2026-10-24T10:00:00Z', reason: 'file_spend', amount: -10 }],
           settings: { tokensPerKb: 0.127, phoneChangeTokens: null, packsOn: false }
         }
       }

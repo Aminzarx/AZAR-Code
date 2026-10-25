@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { NavigationContext, NavigationRouteContext } from '@react-navigation/native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from './Icon'
+import { MarqueeText } from './MarqueeText'
 
 /**
  * v1.4.0 (Amin #4311 «بعضی بخش ها هم خیلی شبیه به همه»): each part of the
@@ -56,8 +57,9 @@ const ROUTE_LABEL: Record<string, string> = {
 
 /**
  * «where am I»: the path that led to this screen inside its tab, e.g.
- * «خانه ‹ معاملات ‹ معامله». Read from the stack itself, so it is always
- * the real way back (what the back button retraces).
+ * «خانه ← معاملات ← معامله». Read from the stack itself, so it is always
+ * the real way back (what the back button retraces). Amin #5110: «←» (not «‹», which the phone mirrors in Persian
+ * text and so pointed backwards).
  */
 export function useWhereAmI(): string | null {
   const navigation = useContext(NavigationContext)
@@ -70,26 +72,45 @@ export function useWhereAmI(): string | null {
   const path = (own >= 0 ? state.routes.slice(0, own + 1) : state.routes)
     .map((r) => ROUTE_LABEL[r.name])
     .filter(Boolean)
-  return path.length > 1 ? path.slice(-4).join(' ‹ ') : null
+  return path.length > 1 ? path.slice(-4).join(' ← ') : null
 }
 
-/** the «where am I» line under a header */
-export function WhereAmILine({ theme }: { theme: Theme }): React.JSX.Element | null {
+/**
+ * Amin #5110: a header on ONE line — the title, then the section's coloured chip, then the «where am I» path. The
+ * path gives way first on a narrow screen (cut with «…»), then the title (which scrolls).
+ */
+export function HeaderTitleLine({
+  title,
+  section,
+  theme
+}: {
+  title: string
+  section?: SectionKey
+  theme: Theme
+}): React.JSX.Element {
   const where = useWhereAmI()
-  if (!where) {
-    return null
-  }
   return (
-    <Text
-      style={[theme.typography('labelSm'), { color: theme.colors.onSurfaceVariant, marginTop: 2 }]}
-      numberOfLines={1}
-    >
-      {where}
-    </Text>
+    <View style={markStyles.line}>
+      <MarqueeText style={[theme.typography('titleSm'), markStyles.title, { color: theme.colors.onSurface }]}>
+        {title}
+      </MarqueeText>
+      {section ? <SectionMark section={section} /> : null}
+      {section && where ? (
+        <Text
+          style={[theme.typography('labelSm'), markStyles.where, { color: theme.colors.onSurfaceVariant }]}
+          numberOfLines={1}
+        >
+          {where}
+        </Text>
+      ) : null}
+    </View>
   )
 }
 
 const markStyles = StyleSheet.create({
+  line: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  title: { flexShrink: 1 },
+  where: { flexShrink: 3 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',

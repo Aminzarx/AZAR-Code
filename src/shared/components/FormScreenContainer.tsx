@@ -10,9 +10,8 @@ import { KeyboardAwareScroll } from './KeyboardAwareScroll'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon } from './Icon'
-import { MarqueeText } from './MarqueeText'
 import { BackButton } from './BackButton'
-import { SECTIONS, SectionMark, WhereAmILine, type SectionKey } from './SectionMark'
+import { HeaderTitleLine, SECTIONS, type SectionKey } from './SectionMark'
 
 /** How long the post-save "ذخیره شد" flash stays visible before the header reverts to its normal label. */
 const SAVED_FLASH_DURATION_MS = 1600
@@ -125,11 +124,7 @@ export function FormScreenContainer({
   const titleBlock = (standalone: boolean) =>
     headerTitle ? (
       <View style={[styles.titleBlock, standalone && styles.standaloneTitle]}>
-        <View style={styles.titleRow}>
-          {section ? <SectionMark section={section} /> : null}
-          <MarqueeText style={[theme.typography('titleSm'), styles.headerTitle]}>{headerTitle}</MarqueeText>
-        </View>
-        {section ? <WhereAmILine theme={theme} /> : null}
+        <HeaderTitleLine title={headerTitle} section={section} theme={theme} />
       </View>
     ) : null
 
@@ -219,21 +214,12 @@ function createStyles(theme: Theme, isDisabled: boolean) {
       alignItems: 'center',
       justifyContent: 'space-between'
     },
-    headerTitle: {
-      color: theme.colors.onSurface,
-      flexShrink: 1,
-      marginEnd: theme.spacing.space3
-    },
     standaloneTitle: {
       flex: 1
     },
     titleBlock: {
-      flexShrink: 1
-    },
-    titleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.space2
+      flexShrink: 1,
+      marginEnd: theme.spacing.space3
     },
     // design-system.md §7.2's disabled-field treatment (surfaceContainerLow
     // fill, outline text) reused here so "can't save yet" reads the same

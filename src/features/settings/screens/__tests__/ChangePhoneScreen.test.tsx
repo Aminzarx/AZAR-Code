@@ -22,7 +22,6 @@ function ledger(phoneChangeTokens: number | null, balance: number) {
     fresh: true,
     ledger: {
       summary: { balance, allowance: 6350, earned: 0, bought: 0, spent: 0 },
-      rows: [],
       settings: { tokensPerKb: 0.127, phoneChangeTokens, packsOn: false }
     }
   }

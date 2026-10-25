@@ -101,44 +101,74 @@ const push = (a, changes) => post('/sync/push', { sessionToken: a.sessionToken, 
 /** a row of about `bytes` bytes once stored */
 const sized = (bytes) => ({ text: 'x'.repeat(Math.max(0, bytes - 11)) })
 
-test('a new account opens with its allowance; an account that already stores files opens with them spent', async () => {
-  const a = await account()
-  const first = await ledger(a)
-  assert.equal(first.summary.balance, 100)
-  assert.deepEqual(first.rows.map((r) => [r.reason, r.amount]), [['allowance', 100]])
+/** the ledger's rows straight from the database (the history page is gone, #5105) */
+const rowsOf = (a) =>
+  db.prepare('SELECT reason, amount, ref FROM token_ledger WHERE account_id = ? AND amount <> 0 ORDER BY at DESC, rowid DESC').all(a.userId)
+const photoRow = (key, subjectType, subjectId, bytes) => ({
+  t: 'photos',
+  k: key,
+  row: { id: key, subject_type: subjectType, subject_id: subjectId, blob_hash: 'h'.repeat(64), data: null, bytes }
+})
 
-  // an account from before the ledger: what it stores is spent at the opening (its balance = today's card)
+test('the allowance is the pricing value now: changing it changes every account at once (#5109)', async () => {
+  const a = await account()
+  assert.equal((await ledger(a)).summary.balance, 100)
+  assert.equal(rowsOf(a).length, 0)
+  setApps({ eyvan_token_allowance: 2540 })
+  const l = await ledger(a)
+  assert.equal(l.summary.balance, 2540)
+  assert.equal(l.summary.allowance, 2540)
+})
+
+test('an account that already stores records opens with them charged; old per-push and photo rows are rebuilt', async () => {
   const b = await account()
   db.prepare("INSERT INTO sync_rows (account_id, tbl, row_key, data, bytes, updated_at) VALUES (?, 'properties', 'old', x'00', 10000, '2026-10-01')").run(b.userId)
+  // rows of the model before #5108 (allowance row, a photo upload) go
+  tokens.post(b.userId, 'allowance', 6350, `allowance:${b.userId}`)
+  tokens.post(b.userId, 'photo_spend', -3, `blob:x:${b.userId}`)
   const opened = await ledger(b)
   assert.equal(opened.summary.balance, 100 - 1.27)
-  assert.equal(opened.summary.spent, 1.27)
+  assert.equal(opened.summary.spentBy.files, 1.27)
+  assert.deepEqual(rowsOf(b).map((r) => r.reason), ['file_spend'])
 })
 
-test('files spend by size, deleting refunds, and a push sent again changes nothing', async () => {
+test('Amin #5108: only a saved record costs, with its photos; a push sent again changes nothing; deleting gives back', async () => {
   const a = await account()
-  const row = { t: 'properties', k: 'p1', row: sized(10000) }
-  assert.equal((await push(a, [row])).status, 200)
-  const afterOne = (await ledger(a)).summary.balance
-  assert.ok(Math.abs(afterOne - (100 - 1.27)) < 0.01, String(afterOne))
+  // other tables (settings, reminders, deals) cost nothing
+  await push(a, [{ t: 'reminders', k: 'r1', row: sized(5000) }, { t: 'deals', k: 'd1', row: sized(5000) }])
+  assert.equal((await ledger(a)).summary.balance, 100)
 
-  // the phone sends the same change again (offline replay): no second spend
-  assert.equal((await push(a, [row])).status, 200)
-  assert.equal((await ledger(a)).summary.balance, afterOne)
+  // a photo upload costs nothing by itself
+  const photo = crypto.randomBytes(20000).toString('base64')
+  assert.equal((await post('/sync/blob/put', { sessionToken: a.sessionToken, data: photo })).status, 200)
+  assert.equal((await ledger(a)).summary.balance, 100)
 
-  // a contract counts on its own line
-  assert.equal((await push(a, [{ t: 'contracts', k: 'c1', row: sized(5000) }])).status, 200)
-  const rows = (await ledger(a)).rows.map((r) => r.reason)
-  assert.ok(rows.includes('contract_spend') && rows.includes('file_spend'))
+  // the file saved with its photo: one charge, record + photo
+  const file = { t: 'properties', k: 'p1', row: sized(10000) }
+  assert.equal((await push(a, [file, photoRow('ph1', 'property', 'p1', 20000)])).status, 200)
+  const one = await ledger(a)
+  assert.ok(Math.abs(one.summary.balance - (100 - 30 * 0.127)) < 0.01, String(one.summary.balance))
+  assert.deepEqual(rowsOf(a).map((r) => [r.reason, r.ref]), [['file_spend', 'properties:p1']])
 
-  // deleting gives the tokens back
-  assert.equal((await push(a, [{ t: 'properties', k: 'p1', row: null }, { t: 'contracts', k: 'c1', row: null }])).status, 200)
+  // the phone sends the same save again (offline replay): nothing more
+  assert.equal((await push(a, [file, photoRow('ph1', 'property', 'p1', 20000)])).status, 200)
+  assert.equal((await ledger(a)).summary.balance, one.summary.balance)
+
+  // applicants and contracts on their own lines
+  await push(a, [{ t: 'applicants', k: 'x1', row: sized(2000) }, { t: 'contracts', k: 'c1', row: sized(5000) }])
+  const kinds = (await ledger(a)).summary.spentBy
+  assert.ok(kinds.applicants > 0 && kinds.contracts > 0 && kinds.files > 0, JSON.stringify(kinds))
+
+  // the photo removed in an edit: its part comes back; the file deleted: all of it
+  await push(a, [file, { t: 'photos', k: 'ph1', row: null }])
+  assert.ok(Math.abs((await ledger(a)).summary.spentBy.files - 1.27) < 0.01)
+  await push(a, [{ t: 'properties', k: 'p1', row: null }, { t: 'applicants', k: 'x1', row: null }, { t: 'contracts', k: 'c1', row: null }])
   const back = await ledger(a)
   assert.ok(Math.abs(back.summary.balance - 100) < 0.01, String(back.summary.balance))
-  assert.ok(back.rows.some((r) => r.reason === 'file_refund' && r.amount > 0))
+  assert.ok(rowsOf(a).some((r) => r.reason === 'file_refund' && r.amount > 0))
 })
 
-test('the balance never goes below zero: a push that does not fit is refused whole and nothing is stored', async () => {
+test('the balance never goes below zero: a save that does not fit is refused whole and nothing is stored', async () => {
   setApps({ eyvan_token_allowance: 1 })
   const a = await account()
   const res = await push(a, [{ t: 'properties', k: 'big', row: sized(20000) }])
@@ -149,22 +179,6 @@ test('the balance never goes below zero: a push that does not fit is refused who
   // a small one still fits
   assert.equal((await push(a, [{ t: 'properties', k: 'small', row: sized(1000) }])).status, 200)
   assert.ok((await ledger(a)).summary.balance >= 0)
-})
-
-test('a photo costs its exact size; deleting it gives the tokens back', async () => {
-  const a = await account()
-  const photo = crypto.randomBytes(20000).toString('base64')
-  const put = await post('/sync/blob/put', { sessionToken: a.sessionToken, data: photo })
-  assert.equal(put.status, 200)
-  const spent = await ledger(a)
-  assert.ok(Math.abs(spent.summary.balance - (100 - 20 * 0.127)) < 0.001, String(spent.summary.balance))
-  assert.equal(spent.rows[0].reason, 'photo_spend')
-  // the same photo again is stored once and spent once
-  await post('/sync/blob/put', { sessionToken: a.sessionToken, data: photo })
-  assert.equal((await ledger(a)).summary.balance, spent.summary.balance)
-
-  await post('/sync/blob/delete', { sessionToken: a.sessionToken, hash: put.body.hash })
-  assert.ok(Math.abs((await ledger(a)).summary.balance - 100) < 0.001)
 })
 
 test('referral bonus: only once the invited colleague is active (first file on the server), only once, within the daily cap', async () => {
@@ -214,7 +228,8 @@ test('profile bonus: once, when the name, agency and photo are all on the server
   await push(a, [setting('display_name')])
   const l = await ledger(a)
   assert.equal(l.summary.earned, 5)
-  assert.equal(l.rows.filter((r) => r.reason === 'profile_bonus').length, 1)
+  assert.equal(l.summary.earnedBy.profile, 5)
+  assert.equal(rowsOf(a).filter((r) => r.reason === 'profile_bonus').length, 1)
 })
 
 test('no referral bonus for a deleted referrer', async () => {
@@ -245,7 +260,8 @@ test('number change: off while its token cost is empty; then spends it with the 
   assert.equal(res.status, 200)
   const l = await ledger(a)
   assert.equal(l.summary.balance, 70)
-  assert.equal(l.rows[0].reason, 'phone_change')
+  assert.equal(l.summary.spentBy.phoneChange, 30)
+  assert.equal(rowsOf(a)[0].reason, 'phone_change')
 })
 
 test('pricing without the allowance or tokens per KB: the ledger is off (no made-up numbers) and the old quota guards pushes', async () => {
@@ -253,7 +269,7 @@ test('pricing without the allowance or tokens per KB: the ledger is off (no made
   const a = await account()
   assert.equal((await post('/tokens/ledger', { sessionToken: a.sessionToken })).status, 503)
   assert.equal((await push(a, [{ t: 'properties', k: 'p1', row: sized(500) }])).status, 200)
-  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM token_ledger WHERE account_id = ?').get(a.userId).n, 0)
+  assert.equal(rowsOf(a).length, 0)
 })
 
 test('token packs are not sold until the wallet decision', async () => {

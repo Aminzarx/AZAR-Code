@@ -1486,3 +1486,42 @@ options, version files.
 (counts, today/overdue follow-ups with phone, matching count without archived applicants), home
 screen (summary, add buttons, tiles, banner, follow-up call, empty day, bell, first steps), list
 and detail screens and cards updated for the new texts.
+
+---
+
+## 2026-10-25 — Tokens only on final save; token card on Settings; logo placeholders; one-line header; calendar cleanup
+
+**Change**:
+- **Token counting (server)**: tokens are counted only when a property file, an applicant or a contract
+  is saved (its data plus the WebP size of its photos, 0.127 per KB) and on a number change. Photo uploads
+  and drafts count nothing. Each save books the difference from what the record was charged so far; a
+  deleted record gives its tokens back. The allowance is no longer written into the ledger: it is read from
+  kss-pricing as it is now (`balance = allowance + ledger`). Existing ledgers are rebuilt once
+  (`opening-v2`).
+- **Token card**: back on Settings itself, smaller count («X از Y توکن مصرف شده»), bar green → yellow
+  when less than 30% is left → red from 95% used. The ⓘ opens a breakdown (allowance, gifts for referral
+  and profile, bought, used for files / applicants / contracts / number change, remaining). The
+  «کارنامهٔ توکن» history page is removed. No hard-coded allowance is shown.
+- The photo editor no longer shows «حدود X توکن».
+- **Placeholders**: where a photo can be but is not — empty photo grid, a file or contract page with no
+  photos, a photo still loading, the profile photo — a faded grey EYVAN logo.
+- **Header**: title, then the section chip, then the «where am I» path on one line; the path uses «←»
+  (the old «‹» was mirrored by the phone in Persian text and pointed backwards).
+- **Calendar**: signing out, account deletion and a sign-out forced by another phone delete the app's own
+  calendar (renewal / contract-end reminders) without asking for permission. The calendar is now called
+  «یادآورهای ایوان»; the older «یادآورهای آذر CRM» is cleaned up too. An uninstall cannot be caught: its
+  reminders go at the next install's first start, or with that one calendar in the phone's calendar app.
+
+**Reason**: Amin #5103–#5110, #5112.
+
+**Affected modules**: `server/src/tokens.js`, `syncRoutes.js`, `phoneRoutes.js`; settings
+(`TokenCard`, `tokenLedger`, Settings/Profile screens; `TokenLedgerScreen` removed), photos
+(`PhotoEditor`, `PhotoStrip`, `photoList`), shared `LogoPlaceholder`, `SectionMark`
+(`HeaderTitleLine`), `ScreenHeaderBar`, `FormScreenContainer`, `calendarService`, `AuthProvider`.
+
+**Migration requirements**: none on the phone; the server rebuilds each account's ledger once on its next
+sync.
+
+**Tests**: server tokens (live allowance, rebuild, records-only counting with photos, replay, refunds,
+short balance); token card levels and breakdown; calendar cleanup (both names, no permission prompt,
+never throws).

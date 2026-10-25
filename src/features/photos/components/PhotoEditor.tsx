@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '@features/auth/AuthProvider'
-import { Button, Icon } from '@shared/components'
+import { Button, Icon, LogoPlaceholder } from '@shared/components'
 import { useTheme, type Theme } from '@shared/theme'
 import { toPersianDigits } from '@shared/utils/persianText'
 import {
@@ -12,7 +12,7 @@ import {
   takePhoto,
   type ConvertedPhoto
 } from '@infrastructure/images/listingPhotos'
-import { movePhoto, photosTokens, type EditorPhoto } from '../photoList'
+import { movePhoto, type EditorPhoto } from '../photoList'
 
 type Props = {
   photos: readonly EditorPhoto[]
@@ -36,7 +36,8 @@ function asEditorPhoto(photo: ConvertedPhoto): EditorPhoto {
 /**
  * Amin #5062: the «عکس‌ها» step of a new property file or contract. Photos come from the camera or the gallery,
  * are made WebP (long side 1600, quality 80, no location data) in memory, and can be reordered (the first is the
- * main photo) or removed. The line on top says how many there are and what they cost in storage tokens.
+ * main photo) or removed. The line on top says how many there are; tokens are counted only when the file is saved
+ * (Amin #5108), so none are shown here. Empty places show the faded EYVAN logo (#5107).
  */
 export function PhotoEditor({ photos, onChange, noun }: Props): React.JSX.Element {
   const theme = useTheme()
@@ -71,9 +72,7 @@ export function PhotoEditor({ photos, onChange, noun }: Props): React.JSX.Elemen
       <Text style={[theme.typography('bodySm'), styles.summary]}>
         {photos.length === 0
           ? `عکس‌های ${noun} را اضافه کنید (اختیاری، تا ${toPersianDigits(String(MAX_PHOTOS))} عکس)`
-          : `${toPersianDigits(String(photos.length))} از ${toPersianDigits(String(MAX_PHOTOS))} عکس · حدود ${toPersianDigits(
-              String(photosTokens(photos))
-            ).replace('.', '٫')} توکن`}
+          : `${toPersianDigits(String(photos.length))} از ${toPersianDigits(String(MAX_PHOTOS))} عکس`}
       </Text>
       <View style={styles.buttons}>
         <Button
@@ -136,6 +135,9 @@ export function PhotoEditor({ photos, onChange, noun }: Props): React.JSX.Elemen
             </View>
           </View>
         ))}
+        {photos.length === 0
+          ? [0, 1, 2].map((slot) => <LogoPlaceholder key={slot} style={[styles.cell, styles.thumb]} />)
+          : null}
       </View>
       <Text style={[theme.typography('bodySm'), styles.hint]}>
         عکس‌ها بدون مکان و مشخصات گوشی ذخیره می‌شوند؛ اولین عکس، عکس اصلی است.
@@ -175,7 +177,7 @@ export function PhotoThumb({
   return data ? (
     <Image source={{ uri: photoDataUri(data) }} style={style} resizeMode={fit} />
   ) : (
-    <View style={[style, { backgroundColor: theme.colors.surfaceContainerHigh }]} />
+    <LogoPlaceholder style={[style, fit === 'contain' && { backgroundColor: theme.colors.surfaceContainerHighest }]} />
   )
 }
 

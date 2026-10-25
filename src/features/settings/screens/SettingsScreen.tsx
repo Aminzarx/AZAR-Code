@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { SubscriptionCard } from '@features/licence/SubscriptionCard'
 import { Clipboard, Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -10,6 +10,7 @@ import { useAppearance, useTheme, type AppearanceMode, type Theme } from '@share
 import {
   ConfirmDialog,
   Icon,
+  LogoPlaceholder,
   MarqueeText,
   OtpPromptDialog,
   SegmentedControl
@@ -28,7 +29,8 @@ import { InviteSmsDialog } from '../components/InviteSmsDialog'
 import { SettingsRow } from '../components/SettingsRow'
 import { OptionsSheet, type SheetOption } from '../components/OptionsSheet'
 import { useProfile } from '../hooks/useProfile'
-import { roundTokens, STORAGE_TOKEN_ALLOWANCE } from '../services/storageTokens'
+import { TokenCard } from '../components/TokenCard'
+import { normalizeSummary, type TokenSummary } from '../services/tokenLedger'
 import { photoUri } from '@infrastructure/images/profilePhoto'
 import type { SupportContacts } from '@infrastructure/auth/httpAuthApiClient'
 import { ValidationFailureError } from '@core/auth/errors'
@@ -56,8 +58,9 @@ export function SettingsScreen(props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const appearance = useAppearance()
-  const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts, sync, syncNow } = useAuth()
-  const { profile, storage } = useProfile({ withStorage: true })
+  const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts, getTokenLedger, sync, syncNow } =
+    useAuth()
+  const { profile } = useProfile()
   const displayName = profile.displayName
   const phoneNumber = profile.phoneNumber
   const isOnline = useNetworkStatus()
@@ -73,6 +76,26 @@ export function SettingsScreen(props: Props): React.JSX.Element {
   const [deleteStep, setDeleteStep] = useState<DeleteAccountStep>('closed')
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [tokens, setTokens] = useState<{ summary: TokenSummary | null; fresh: boolean }>({ summary: null, fresh: true })
+
+  // Amin #5108: tokens change only when a file, an applicant or a contract is saved — so asked again on every visit
+  // and after each sync round
+  const loadTokens = useCallback(() => {
+    getTokenLedger()
+      .then((result) => setTokens({ summary: normalizeSummary(result?.ledger.summary), fresh: result?.fresh ?? true }))
+      .catch(() => undefined)
+  }, [getTokenLedger])
+
+  useEffect(() => {
+    if (sync.state === 'idle') loadTokens()
+  }, [loadTokens, sync.state, sync.pending])
+
+  useEffect(() => {
+    if (typeof props.navigation.addListener !== 'function') {
+      return undefined
+    }
+    return props.navigation.addListener('focus', loadTokens)
+  }, [props.navigation, loadTokens])
 
   useEffect(() => {
     let cancelled = false
@@ -226,9 +249,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
     }
   }
 
-  // the server's count once it has answered; until then this phone's own estimate
-  const usedTokens = sync.usage ? sync.usage.tokens : (storage?.tokens ?? 0)
-  const usedShare = sync.usage ? sync.usage.bytes / sync.usage.quotaBytes : (storage?.share ?? 0)
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -243,11 +263,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
               accessibilityIgnoresInvertColors
             />
           ) : (
-            <View style={styles.avatar}>
-              <Text style={[theme.typography('titleMd'), styles.avatarText]}>
-                {(displayName || 'ا').trim().charAt(0)}
-              </Text>
-            </View>
+            <LogoPlaceholder style={styles.avatar} logoShare={0.6} />
           )}
           <View style={styles.profileText}>
             <MarqueeText style={[theme.typography('titleMd'), styles.value]}>
@@ -329,29 +345,8 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           </View>
         ) : null}
 
-        {/* v1.5.0 (Amin #4632 «چرا بخش توکن‌ها نیست؟», rule #4164): storage shown as tokens */}
-        <View style={styles.tokenCard} accessibilityLabel="فضای ذخیره‌سازی">
-          <View style={styles.tokenHead}>
-            <View style={styles.tokenIcon}>
-              <Icon name="token" size="sm" color={theme.colors.primary} />
-            </View>
-            <Text style={[theme.typography('titleSm'), styles.tokenTitle]}>توکن‌های فضای ذخیره‌سازی</Text>
-          </View>
-          <Text style={[theme.typography('bodyMd'), styles.tokenValue]}>
-            {`${persianNumber(roundTokens(usedTokens))} از ${persianNumber(STORAGE_TOKEN_ALLOWANCE)} توکن مصرف شده`}
-          </Text>
-          <View style={styles.tokenTrack}>
-            <View style={[styles.tokenFill, { width: `${Math.max(usedTokens > 0 ? 1.5 : 0, usedShare * 100)}%` }]} />
-          </View>
-          {/* Amin #5052/#5054: the balance and its history */}
-          <SettingsRow
-            icon="token"
-            label="کارنامهٔ توکن"
-            value="موجودی و تاریخچه"
-            onPress={() => props.navigation.navigate('TokenLedger')}
-            last
-          />
-        </View>
+        {/* Amin #5103/#5106: the token card back on Settings itself; the ⓘ holds the breakdown (#5105: no history page) */}
+        <TokenCard summary={tokens.summary} fresh={tokens.fresh} />
 
         {/* Amin #5055: night mode; the phone's own setting is the default */}
         <View style={styles.tokenCard} accessibilityLabel="حالت نمایش">
@@ -503,12 +498,8 @@ function createStyles(theme: Theme) {
     avatar: {
       width: 56,
       height: 56,
-      borderRadius: 28,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: theme.colors.primary
+      borderRadius: 28
     },
-    avatarText: { color: theme.colors.onPrimary },
     profileText: { flex: 1, gap: 2, alignItems: start },
     editButton: {
       flexDirection: 'row',
@@ -537,15 +528,6 @@ function createStyles(theme: Theme) {
       justifyContent: 'center'
     },
     tokenTitle: { color: theme.colors.onSurface },
-    tokenValue: { color: theme.colors.onSurface, alignSelf: start },
-    tokenTrack: {
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: theme.colors.surfaceContainerLow,
-      overflow: 'hidden',
-      flexDirection: 'row'
-    },
-    tokenFill: { height: 8, borderRadius: 4, backgroundColor: theme.colors.primary },
     phone: { color: theme.colors.onSurfaceVariant },
     inviteCard: {
       backgroundColor: theme.colors.brand,

@@ -22,6 +22,7 @@ import {
   type SyncUsage
 } from '@infrastructure/sync/syncApiClient'
 import type { TokenLedger } from '@features/settings/services/tokenLedger'
+import { clearAllAzarReminders } from '@infrastructure/calendar/calendarService'
 
 /** AZAR-SYNC-001: where the account's files stand against the server. */
 export type SyncStatus = {
@@ -162,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
             // reached the server stay queued (encrypted) until the same number signs in again.
             if ((await syncService.pendingCount()) === 0) await syncService.wipe()
             else await syncService.forget()
+            await clearAllAzarReminders()
             await sessionManager?.logout()
             setSession(null)
             setSync(IDLE_SYNC)
@@ -245,6 +247,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     async function signOutHere(): Promise<void> {
       await exclusive(async () => {
         await syncService?.wipe()
+        // Amin #5112: the account's renewal reminders leave the phone's calendar with it
+        await clearAllAzarReminders()
         await sessionManager?.logout()
       })
       setSession(null)

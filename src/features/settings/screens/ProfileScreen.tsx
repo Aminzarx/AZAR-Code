@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, FormScreenContainer, Icon, TextInput, type IconName } from '@shared/components'
+import { Button, FormScreenContainer, Icon, LogoPlaceholder, TextInput, type IconName } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { formatIranPhoneNumberForDisplay } from '@shared/utils/iranPhoneNumber'
 import { photoUri, pickProfilePhoto, removeProfilePhotoFile } from '@infrastructure/images/profilePhoto'
@@ -98,7 +98,6 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   }
 
   const uri = photoUri(photoPath)
-  const initial = (name || 'ا').trim().charAt(0)
 
   return (
     <FormScreenContainer
@@ -121,9 +120,8 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
           {uri ? (
             <Image source={{ uri }} style={styles.photo} accessibilityIgnoresInvertColors />
           ) : (
-            <View style={[styles.photo, styles.photoEmpty]}>
-              <Text style={[theme.typography('headlineMd'), styles.photoInitial]}>{initial}</Text>
-            </View>
+            // Amin #5107: no photo yet = the faded EYVAN logo
+            <LogoPlaceholder style={styles.photo} logoShare={0.6} />
           )}
           <View style={styles.cameraBadge}>
             <Icon name="camera" size="sm" color={theme.colors.onPrimary} />
@@ -202,8 +200,6 @@ function createStyles(theme: Theme) {
     photoBlock: { alignItems: 'center', gap: theme.spacing.space2, paddingTop: theme.spacing.space2 },
     photoFrame: { width: PHOTO, height: PHOTO },
     photo: { width: PHOTO, height: PHOTO, borderRadius: PHOTO / 2 },
-    photoEmpty: { backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center' },
-    photoInitial: { color: theme.colors.onPrimary, textAlign: 'center' }, // rtl-allow: initial inside the round avatar
     cameraBadge: {
       position: 'absolute',
       bottom: 0,

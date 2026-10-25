@@ -9,7 +9,7 @@ import {
   useWindowDimensions
 } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
-import { Icon } from '@shared/components'
+import { Icon, LogoPlaceholder } from '@shared/components'
 import { useTheme, type Theme } from '@shared/theme'
 import { useFilesVersion } from '@shared/hooks/useFilesVersion'
 import { toPersianDigits } from '@shared/utils/persianText'
@@ -19,7 +19,8 @@ import { PhotoThumb } from './PhotoEditor'
 
 /**
  * Amin #5062: the photos of a file or contract on its page — a row of thumbnails (the main photo first); a tap
- * opens them full size. Nothing shows when there are none. Photos already on the server are fetched while online.
+ * opens them full size. With none, one faded EYVAN logo tile (Amin #5107). Photos already on the server are fetched
+ * while online.
  */
 export function PhotoStrip({
   subjectType,
@@ -52,7 +53,14 @@ export function PhotoStrip({
     }
   }, [repository, subjectType, subjectId, filesVersion, refreshKey])
 
-  if (photos.length === 0) return null
+  if (photos.length === 0) {
+    return (
+      <View style={styles.wrapper} accessibilityLabel="بدون عکس">
+        <Text style={[theme.typography('labelMd'), styles.title]}>عکس‌ها</Text>
+        <LogoPlaceholder style={styles.thumb} />
+      </View>
+    )
+  }
   return (
     <View style={styles.wrapper}>
       <Text style={[theme.typography('labelMd'), styles.title]}>

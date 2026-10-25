@@ -64,8 +64,8 @@ router.post('/change-phone', limiter, async (req, res, next) => {
   const changeId = generateId()
   try {
   db.transaction(() => {
-    tokens.ensureOpening(user.id, s)
-    const balance = tokens.balanceOf(user.id)
+    tokens.ensureOpening(user.id, s, tokens.storeOf(user.id))
+    const balance = tokens.balanceOf(user.id, s)
     if (balance < cost) throw new tokens.TokensShortError(balance, cost)
     tokens.post(user.id, 'phone_change', -cost, `phone-change:${changeId}`, changeId, at)
     db.prepare(

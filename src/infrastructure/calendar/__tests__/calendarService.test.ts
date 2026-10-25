@@ -100,7 +100,7 @@ describe('createContractEndReminder', () => {
     jest.spyOn(mockedEvents, 'checkPermissions').mockResolvedValue('authorized')
     jest
       .spyOn(mockedEvents, 'findCalendars')
-      .mockResolvedValue([{ id: 'existing-id', title: 'یادآورهای آذر CRM' } as never])
+      .mockResolvedValue([{ id: 'existing-id', title: 'یادآورهای ایوان' } as never])
     const saveCalendarSpy = jest.spyOn(mockedEvents, 'saveCalendar')
     jest.spyOn(mockedEvents, 'saveEvent').mockResolvedValue('event-2')
 
@@ -137,6 +137,10 @@ describe('deleteContractReminder', () => {
 })
 
 describe('clearAllAzarReminders', () => {
+  beforeEach(() => {
+    jest.spyOn(mockedEvents, 'checkPermissions').mockResolvedValue('authorized')
+  })
+
   afterEach(() => {
     jest.restoreAllMocks()
   })
@@ -150,15 +154,31 @@ describe('clearAllAzarReminders', () => {
     expect(removeCalendarSpy).not.toHaveBeenCalled()
   })
 
-  it('removes the dedicated calendar when it exists', async () => {
-    jest
-      .spyOn(mockedEvents, 'findCalendars')
-      .mockResolvedValue([{ id: 'azar-id', title: 'یادآورهای آذر CRM' } as never])
+  // Amin #5112: everything the app wrote, under the current and the older name; the user's own calendars stay
+  it('removes the dedicated calendars (current and older name) and nothing else', async () => {
+    jest.spyOn(mockedEvents, 'findCalendars').mockResolvedValue([
+      { id: 'eyvan-id', title: 'یادآورهای ایوان' } as never,
+      { id: 'azar-id', title: 'یادآورهای آذر CRM' } as never,
+      { id: 'own-id', title: 'Personal' } as never
+    ])
     jest.spyOn(mockedEvents, 'removeCalendar').mockResolvedValue(true)
 
     await clearAllAzarReminders()
 
+    expect(mockedEvents.removeCalendar).toHaveBeenCalledTimes(2)
+    expect(mockedEvents.removeCalendar).toHaveBeenCalledWith('eyvan-id')
     expect(mockedEvents.removeCalendar).toHaveBeenCalledWith('azar-id')
+  })
+
+  it('never asks for calendar permission (without it nothing was written)', async () => {
+    jest.spyOn(mockedEvents, 'checkPermissions').mockResolvedValue('undetermined')
+    const requestSpy = jest.spyOn(mockedEvents, 'requestPermissions')
+    const findSpy = jest.spyOn(mockedEvents, 'findCalendars')
+
+    await clearAllAzarReminders()
+
+    expect(requestSpy).not.toHaveBeenCalled()
+    expect(findSpy).not.toHaveBeenCalled()
   })
 
   it('does not throw if removing the calendar fails', async () => {

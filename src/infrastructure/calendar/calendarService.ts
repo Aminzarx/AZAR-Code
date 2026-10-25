@@ -5,10 +5,12 @@ import RNCalendarEvents from 'react-native-calendar-events'
  * Every reminder this app writes lives in its own dedicated device
  * calendar, found/created by this exact title — never mixed into the
  * user's personal calendar. This is what makes `clearAllAzarReminders`
- * (a fresh-install cleanup) safe: deleting this one calendar can never
- * touch an event the user created themselves.
+ * (a fresh-install cleanup, and since Amin #5112 also on sign-out and account deletion) safe: deleting this one
+ * calendar can never touch an event the user created themselves.
  */
-const CALENDAR_TITLE = 'یادآورهای آذر CRM'
+const CALENDAR_TITLE = 'یادآورهای ایوان'
+/** the calendar's name before the app was EYVAN — still found, so older reminders are cleaned up too */
+const LEGACY_CALENDAR_TITLES = ['یادآورهای آذر CRM']
 
 /** Requests calendar write access if not already granted; returns whether it's usable. */
 export async function ensureCalendarPermission(): Promise<boolean> {
@@ -23,6 +25,13 @@ export async function ensureCalendarPermission(): Promise<boolean> {
 async function findAzarCalendarId(): Promise<string | null> {
   const calendars = await RNCalendarEvents.findCalendars()
   return calendars.find((calendar) => calendar.title === CALENDAR_TITLE)?.id ?? null
+}
+
+/** this app's calendars, the current one and any left from the older name */
+async function findAllAzarCalendarIds(): Promise<string[]> {
+  const titles = [CALENDAR_TITLE, ...LEGACY_CALENDAR_TITLES]
+  const calendars = await RNCalendarEvents.findCalendars()
+  return calendars.filter((calendar) => titles.includes(calendar.title)).map((calendar) => calendar.id)
 }
 
 async function getOrCreateAzarCalendarId(): Promise<string> {
@@ -99,20 +108,22 @@ export async function deleteContractReminder(eventId: string): Promise<void> {
 
 /**
  * Deletes the app's entire dedicated calendar (and every reminder in
- * it) in one call — the fresh-install cleanup: this app's own SQLite
- * database is wiped on reinstall, so every `calendar_event_id` it used
- * to track is gone too, but the OS calendar itself survives a
- * reinstall. Without this, reminders from a previous install would
- * linger forever with no way to find them again. No-op (not an error)
- * if the calendar was never created.
+ * it) in one call. Runs:
+ * - on a fresh install: this app's own SQLite database is wiped on reinstall, so every `calendar_event_id` it
+ *   used to track is gone too, but the OS calendar itself survives a reinstall;
+ * - Amin #5112: on sign-out and on account deletion, so no reminder of the account stays on the phone.
+ * An uninstall itself cannot be caught by the app: its reminders go at the next install's first start, or with
+ * this one calendar in the phone's calendar app. Never asks for calendar permission (without it the app never
+ * wrote any), and never throws.
  */
 export async function clearAllAzarReminders(): Promise<void> {
-  const calendarId = await findAzarCalendarId()
-  if (!calendarId) {
-    return
-  }
   try {
-    await RNCalendarEvents.removeCalendar(calendarId)
+    if ((await RNCalendarEvents.checkPermissions()) !== 'authorized') {
+      return
+    }
+    for (const calendarId of await findAllAzarCalendarIds()) {
+      await RNCalendarEvents.removeCalendar(calendarId)
+    }
   } catch {
     // Best-effort — nothing else to do if this fails.
   }

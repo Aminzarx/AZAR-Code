@@ -14,6 +14,7 @@ const mockUseProfile = jest.fn()
 const mockNavigate = jest.fn()
 const mockGetSupportContacts = jest.fn()
 const mockSyncNow = jest.fn()
+const mockGetTokenLedger = jest.fn()
 let mockSync = { state: 'idle', pending: 0, usage: null as null | { bytes: number; quotaBytes: number; tokens: number }, loaded: true, settled: true }
 
 jest.mock('@features/auth/AuthProvider', () => ({
@@ -24,6 +25,7 @@ jest.mock('@features/auth/AuthProvider', () => ({
     verifyOtp: mockVerifyOtp,
     deleteAccount: mockDeleteAccount,
     getSupportContacts: mockGetSupportContacts,
+    getTokenLedger: mockGetTokenLedger,
     sync: mockSync,
     syncNow: mockSyncNow
   })
@@ -61,8 +63,25 @@ function profileWith(over: { displayName?: string | null } = {}) {
       photoPath: null,
       phoneNumber: '+989121234567'
     },
-    storage: { bytes: 97600, tokens: 12.4, allowance: 6350, share: 12.4 / 6350 },
     reload: jest.fn()
+  }
+}
+
+function summaryOf({ spent }: { spent: number }) {
+  return {
+    fresh: true,
+    ledger: {
+      summary: {
+        balance: 2640 - spent,
+        allowance: 2540,
+        earned: 100,
+        earnedBy: { referral: 100, profile: 0 },
+        bought: 0,
+        spent,
+        spentBy: { files: spent, applicants: 0, contracts: 0, phoneChange: 0 }
+      },
+      settings: { tokensPerKb: 0.127, phoneChangeTokens: null, packsOn: false }
+    }
   }
 }
 
@@ -74,6 +93,8 @@ async function openMenu(_findByLabelText: (label: string) => Promise<any>): Prom
 
 describe('SettingsScreen', () => {
   beforeEach(() => {
+    mockGetTokenLedger.mockReset()
+    mockGetTokenLedger.mockResolvedValue(null)
     mockLogout.mockReset()
     mockSendOtp.mockReset()
     mockVerifyOtp.mockReset()
@@ -227,23 +248,40 @@ describe('SettingsScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('Profile')
   })
 
-  // v1.5.0 (Amin #4632 «چرا بخش توکن‌ها نیست؟»)
-  it('shows the storage tokens used out of 6,350', async () => {
-    const { findByText } = await render(
+  // Amin #5103/#5106: the token card on Settings; ⓘ = the breakdown; green → yellow (>70% used) → red (≥95%)
+  it('shows the tokens used out of the whole, and the breakdown behind ⓘ', async () => {
+    mockGetTokenLedger.mockResolvedValue(summaryOf({ spent: 12.4 }))
+    const { findByText, findByLabelText, queryByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
+    expect(await findByText('۱۲٫۴ از ۲٬۶۴۰ توکن مصرف شده')).toBeTruthy()
+    expect(queryByText('کارنامهٔ توکن')).toBeNull()
+    fireEvent.press(await findByLabelText('جزئیات توکن‌ها'))
+    expect(await findByText('هدیهٔ معرفی همکار')).toBeTruthy()
+    expect(await findByText('۲٬۶۲۷٫۶ توکن')).toBeTruthy()
+  })
 
-    expect(await findByText('۱۲٫۴ از ۶٬۳۵۰ توکن مصرف شده')).toBeTruthy()
+  it('warns once less than 30% is left', async () => {
+    mockGetTokenLedger.mockResolvedValue(summaryOf({ spent: 2000 }))
+    const { findByText } = await render(withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />))
+    expect(await findByText('کمتر از ۳۰٪ توکن‌ها مانده است.')).toBeTruthy()
+  })
+
+  it('says when the tokens are almost all used', async () => {
+    mockGetTokenLedger.mockResolvedValue(summaryOf({ spent: 2600 }))
+    const { findByText } = await render(withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />))
+    expect(await findByText('توکن‌ها تقریباً تمام شده است.')).toBeTruthy()
   })
 
   // v1.5.0 (Amin #4632): support in the messenger the user picks, labelled for IRIS
   // AZAR-SYNC-001 (Amin #4797): the account's files live on the server; no backup files any more
   it('shows the server\'s token count and that every file is saved, with no backup row', async () => {
     mockSync = { state: 'idle', pending: 0, usage: { bytes: 1_000_000, quotaBytes: 50_000_000, tokens: 127 }, loaded: true, settled: true }
+    mockGetTokenLedger.mockResolvedValue(summaryOf({ spent: 127 }))
     const { findByText, queryByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
-    expect(await findByText('۱۲۷ از ۶٬۳۵۰ توکن مصرف شده')).toBeTruthy()
+    expect(await findByText('۱۲۷ از ۲٬۶۴۰ توکن مصرف شده')).toBeTruthy()
     expect(await findByText('همهٔ پرونده‌ها روی حساب شما ذخیره شده است')).toBeTruthy()
     expect(queryByText('نسخه پشتیبان')).toBeNull()
   })
