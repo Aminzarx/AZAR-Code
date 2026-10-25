@@ -54,7 +54,13 @@ describe('read-only after the licence ends (Amin #4906)', () => {
   it('the trial shows the days left out of the trial days', async () => {
     const endsAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 - 1000).toISOString()
     const { findByText } = await within({ ...OPEN_LICENCE, state: 'trial', endsAt, trialDays: 7, monthlyToman: 290000 }, <SubscriptionCard />)
-    expect(await findByText('۵ روز از ۷ روز آزمایش رایگان مانده')).toBeTruthy()
+    expect(await findByText('۵ روز از ۷ روز آزمایشی مانده')).toBeTruthy()
     expect(await findByText('۲۹۰٬۰۰۰ تومان')).toBeTruthy()
+  })
+
+  it('Amin #5245: a free account sees no subscription card and no «free» wording', async () => {
+    const { queryByLabelText, queryByText } = await within({ ...OPEN_LICENCE, state: 'free' }, <SubscriptionCard />)
+    expect(queryByLabelText('اشتراک ایوان')).toBeNull()
+    expect(queryByText(/رایگان/)).toBeNull()
   })
 })

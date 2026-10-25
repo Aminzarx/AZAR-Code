@@ -113,7 +113,7 @@ function createStyles(theme: Theme) {
       borderRadius: theme.component.textField.radius,
       borderWidth: 1,
       borderColor: theme.colors.outlineVariant,
-      backgroundColor: theme.colors.surfaceContainerLowest,
+      backgroundColor: theme.colors.field,
       overflow: 'hidden'
     },
     dropdownItem: {

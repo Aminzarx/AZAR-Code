@@ -25,12 +25,10 @@ function statusLine(licence: Licence): string {
   switch (licence.state) {
     case 'trial':
       return licence.trialDays
-        ? `${toPersianDigits(String(left ?? 0))} روز از ${toPersianDigits(String(licence.trialDays))} روز آزمایش رایگان مانده`
-        : `${toPersianDigits(String(left ?? 0))} روز از آزمایش رایگان مانده`
+        ? `${toPersianDigits(String(left ?? 0))} روز از ${toPersianDigits(String(licence.trialDays))} روز آزمایشی مانده`
+        : `${toPersianDigits(String(left ?? 0))} روز از دورهٔ آزمایشی مانده`
     case 'active':
       return licence.endsAt ? `فعال تا ${formatDate(licence.endsAt)}` : 'فعال'
-    case 'free':
-      return 'این حساب رایگان است و تمدید لازم ندارد.'
     case 'expired':
       return 'تمام شده؛ پرونده‌ها سر جایشان است و فقط خواندنی‌اند.'
     default:
@@ -43,7 +41,7 @@ function statusLine(licence: Licence): string {
  * (with a bar), the monthly price from kss-pricing and the renewal. Paying from the KSSX wallet is switched on after
  * the wallet go-ahead (#4899); until then the button says so instead of failing.
  */
-export function SubscriptionCard(): React.JSX.Element {
+export function SubscriptionCard(): React.JSX.Element | null {
   const theme = useTheme()
   const styles = createStyles(theme)
   const licence = useLicence()
@@ -52,6 +50,8 @@ export function SubscriptionCard(): React.JSX.Element {
   const trialShare =
     licence.state === 'trial' && licence.trialDays && left !== null ? Math.min(1, left / licence.trialDays) : null
   const canRenew = licence.state !== 'free'
+  // Amin #5245: a free account sees no subscription card at all (no «free» wording while everyone is free)
+  if (licence.state === 'free') return null
 
   return (
     <View style={[styles.card, ended && styles.cardEnded]} accessibilityLabel="اشتراک ایوان">

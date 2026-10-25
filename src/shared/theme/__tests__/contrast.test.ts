@@ -20,7 +20,8 @@ const SURFACES = [
   'surfaceContainerLow',
   'surfaceContainer',
   'surfaceContainerHigh',
-  'surfaceVariant'
+  'surfaceVariant',
+  'field'
 ] as const
 const TEXT_ON_SURFACES = ['onSurface', 'onSurfaceVariant', 'primary', 'error', 'secondary', 'tertiary'] as const
 
@@ -46,5 +47,13 @@ describe('night mode contrast (Amin #5055)', () => {
 
   it('the dark palette fills every role of the light one', () => {
     expect(Object.keys(darkColors).sort()).toEqual(Object.keys(lightColors).sort())
+  })
+
+  it('Amin #5242: page, cards and controls are told apart; borders show on cards and fields', () => {
+    const c = darkColors
+    expect(contrast(c.surfaceContainerLowest, c.background)).toBeGreaterThanOrEqual(1.15)
+    expect(contrast(c.field, c.surfaceContainerLowest)).toBeGreaterThanOrEqual(1.15)
+    expect(contrast(c.outline, c.surfaceContainerLowest)).toBeGreaterThanOrEqual(3)
+    expect(contrast(c.outline, c.field)).toBeGreaterThanOrEqual(2.5)
   })
 })

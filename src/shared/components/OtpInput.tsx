@@ -213,7 +213,7 @@ function createStyles(theme: Theme) {
       borderRadius: theme.radius.large,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.colors.surfaceContainerLowest
+      backgroundColor: theme.colors.field
     },
     digitText: {
       color: theme.colors.primary,

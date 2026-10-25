@@ -138,7 +138,7 @@ function createStyles(theme: Theme) {
       borderRadius: theme.radius.extraLarge,
       padding: theme.spacing.space6,
       gap: theme.spacing.space4,
-      backgroundColor: theme.colors.surfaceContainerLowest,
+      backgroundColor: theme.colors.field,
       borderWidth: 1,
       borderColor: theme.colors.outlineVariant,
       ...theme.elevation.level4

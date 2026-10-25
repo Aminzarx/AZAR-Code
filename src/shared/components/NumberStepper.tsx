@@ -81,7 +81,7 @@ function createStyles(theme: Theme) {
       borderWidth: 1,
       borderColor: theme.colors.outline,
       borderRadius: theme.component.textField.radius,
-      backgroundColor: theme.colors.surfaceContainerLowest,
+      backgroundColor: theme.colors.field,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',

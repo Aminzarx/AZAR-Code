@@ -175,7 +175,7 @@ function createStyles(theme: Theme) {
       borderRadius: theme.radius.full,
       borderWidth: 1,
       borderColor: theme.colors.outline,
-      backgroundColor: theme.colors.surfaceContainerLowest,
+      backgroundColor: theme.colors.field,
       alignItems: 'center',
       justifyContent: 'center'
     },

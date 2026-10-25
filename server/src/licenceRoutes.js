@@ -11,6 +11,9 @@ const sms = require('./sms')
 // date; online, this server is the source of truth. When the licence has ended the app does not lock: the user can
 // still open and read their own files; everything else waits for the renewal.
 
+// Amin #5245: for now every account is free (AZAR_LICENCE_ALL_FREE=1); the app then shows no subscription at all.
+// The plans for later (Amin #5244): 1 month 200,000 · 3 months 600,000 · 6 months 1,200,000 · 1 year 2,400,000 toman.
+const ALL_FREE = process.env.AZAR_LICENCE_ALL_FREE === '1'
 const PRICING_URL = process.env.KSS_PRICING_URL || ''
 const PRICING_KEY = process.env.KSS_PRICING_KEY || ''
 const DAY = 24 * 60 * 60 * 1000
@@ -100,7 +103,7 @@ async function licenceOf(user, now = Date.now()) {
   const base = { monthlyToman: p?.monthlyToman ?? null, trialDays: p?.trialDays ?? null }
   // Amin #5197: an account a KSS admin deactivated reads as an ended licence (read-only on the phone)
   if (user.admin_status === 'deactivated') return { state: 'expired', endsAt: user.admin_status_at, ...base }
-  if (FREE.has(sms.iranMobile(user.phone_number))) return { state: 'free', endsAt: null, ...base }
+  if (ALL_FREE || FREE.has(sms.iranMobile(user.phone_number))) return { state: 'free', endsAt: null, ...base }
   const paid = db.prepare('SELECT paid_until FROM licences WHERE user_id = ?').get(user.id)?.paid_until
   const paidUntil = paid ? Date.parse(paid) : 0
   if (p?.trialDays == null && paidUntil <= now) return null

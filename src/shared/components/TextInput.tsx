@@ -122,7 +122,7 @@ function createStyles(theme: Theme) {
       paddingVertical: theme.component.textField.paddingY,
       paddingHorizontal: theme.component.textField.paddingX,
       color: theme.colors.onSurface,
-      backgroundColor: theme.colors.surfaceContainerLowest
+      backgroundColor: theme.colors.field
     },
     inputDefault: {
       borderWidth: 1,

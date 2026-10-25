@@ -1580,8 +1580,14 @@ kssx.ir's apps page; updates are accepted from https://kssx.ir/dl/ as well as th
   (#5240).
 - A file with an active/finished contract, or with a deal at «قرارداد»/«موفق», or an archived file, no longer shows in
   matching (`closed` from `PropertyRepository`; #5241).
+- Night mode has more depth: cards lift clearly off the page, form controls have their own fill (new `field` colour
+  role, both palettes) and their borders show (`outline` ≥ 3:1 on cards; checked in `contrast.test.ts`; #5242).
+- Every account is free for now: the server answers «free» for all when `AZAR_LICENCE_ALL_FREE=1`, and a free account
+  sees no subscription card, so the app never says «free» (#5245). The plans for later stay on file in
+  `licenceRoutes.js` (#5244).
 
-**Reason**: Amin #5160, #5162, #5233, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190, #5199, #5240, #5241.
+**Reason**: Amin #5160, #5162, #5233, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190, #5199, #5240, #5241,
+#5242, #5244, #5245.
 
 **Affected modules**: navigation (`SwipeTabs`, `TabSwipe`, `TabBarButton`, `MainNavigator`), `MainActivity`,
 `AzarScreenModule`, `security/screenshots`, Settings (`SettingsScreen`, `TokenCard`), photos (`PhotoEditor`,

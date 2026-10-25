@@ -75,6 +75,8 @@ export const lightColors = {
   outline: '#CBD5E1',
   outlineVariant: '#E2E8F0',
   placeholder: '#94A3B8',
+  /** Amin #5242: the fill of form controls (fields, chips, steppers), its own step so it can differ from cards */
+  field: '#FFFFFF',
   /** Amin #5055: the navy brand surfaces (invite card, welcome header, the mark) stay navy in both modes */
   brand: '#21364F',
   onBrand: '#FFFFFF'
@@ -122,20 +124,22 @@ export const darkColors: Palette = {
   onBackground: '#E2E8F0',
   surface: '#0B1220',
   surfaceDim: '#070C16',
-  surfaceBright: '#1E293B',
-  surfaceContainerLowest: '#111A2B',
-  surfaceContainerLow: '#152033',
-  surfaceContainer: '#18243A',
-  surfaceContainerHigh: '#1E2B42',
-  surfaceContainerHighest: '#2A3850',
-  surfaceVariant: '#1E2B42',
+  surfaceBright: '#26344E',
+  // Amin #5242: cards lift clearly off the page, controls lift off the cards, borders are visible
+  surfaceContainerLowest: '#18243A',
+  surfaceContainerLow: '#1B273D',
+  surfaceContainer: '#202D45',
+  surfaceContainerHigh: '#26344E',
+  surfaceContainerHighest: '#31405C',
+  surfaceVariant: '#26344E',
   onSurface: '#E2E8F0',
   onSurfaceVariant: '#9AA8BC',
   inverseSurface: '#E2E8F0',
   inverseOnSurface: '#0F172A',
-  outline: '#3A4A63',
-  outlineVariant: '#243149',
-  placeholder: '#6B7A90',
+  outline: '#62738D',
+  outlineVariant: '#2E3D57',
+  placeholder: '#7D8BA1',
+  field: '#25344F',
   brand: '#21364F',
   onBrand: '#FFFFFF'
 }
