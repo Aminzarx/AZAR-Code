@@ -320,7 +320,7 @@ h1{font-size:22px;margin:0 0 8px}p{line-height:1.9;margin:0}
 </style></head><body><div class="wrap">
 <div class="hero"><h1>${ok ? 'پرداخت انجام شد' : 'پرداخت انجام نشد'}</h1>
 <p>${ok ? 'توکن‌ها به حساب شما اضافه شد. به اپ ایوان برگردید؛ رسید خرید آنجاست.' : 'مبلغی از حساب شما کم نشد، یا اگر کم شده باشد بانک آن را برمی‌گرداند. به اپ ایوان برگردید و دوباره امتحان کنید.'}</p></div>
-<a class="btn" href="intent://#Intent;package=com.azarapp;end">بازگشت به اپ ایوان</a>
+<a class="btn" href="intent://paid#Intent;scheme=eyvan;package=com.azarapp;end">بازگشت به اپ ایوان</a>
 <p class="note">اگر دکمه کار نکرد، این صفحه را ببندید و اپ ایوان را باز کنید.</p>
 </div></body></html>`)
 })

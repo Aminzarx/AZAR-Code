@@ -75,10 +75,10 @@ describe('BuyTokensScreen (Amin #5245)', () => {
 
     // back from the bank: the app asks, the server says paid
     mockStatus.mockResolvedValue(order({ status: 'paid', refId: '98765', paidAt: '2026-10-25T14:05:00.000Z' }))
-    mockReceipts.mockResolvedValue([])
+    mockReceipts.mockResolvedValue([order({ status: 'paid', refId: '98765', paidAt: '2026-10-25T14:05:00.000Z' })])
     await act(async () => appStateListener?.('active'))
     expect(await findByText('۲۰۰ توکن به حساب شما اضافه شد')).toBeTruthy()
-    expect(getByText('۹۸۷۶۵')).toBeTruthy()
+    expect(getByText('۹۸۷۶۵')).toBeTruthy() // once: the new receipt is not repeated in the list
     expect(mockStatus).toHaveBeenCalledWith('tko_1')
   })
 

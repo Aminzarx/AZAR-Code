@@ -1632,6 +1632,9 @@ kss-pricing 0.38.1.
 - «رسیدهای خرید» in the token details (when something was bought) opens the receipts of earlier purchases.
 - Token details: «کسر توسط پشتیبانی» line when support took tokens off (#5243).
 - One key per buying attempt (Idempotency-Key): a retry never makes a second order.
+- The page after the bank has «بازگشت به اپ ایوان», which opens the app through a new `eyvan://paid` link (Chrome opens
+  apps only through a browsable link); the receipt just shown is not repeated in the list below it. Checked end to end on
+  the emulator against a local stack (pricing with a test price, billing, azar-auth).
 
 **Reason**: Amin #5245, #5243.
 

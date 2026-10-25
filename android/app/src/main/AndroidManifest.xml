@@ -31,6 +31,13 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <!-- Amin #5245: «بازگشت به اپ ایوان» on the page after the bank (eyvan://paid) -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="eyvan" android:host="paid" />
+        </intent-filter>
       </activity>
       <provider
         android:name=".AzarUpdateFileProvider"

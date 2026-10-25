@@ -124,6 +124,8 @@ export function BuyTokensScreen({ navigation, route }: Props): React.JSX.Element
   }
 
   const pending = order?.status === 'pending'
+  // the receipt just shown above is not repeated in the list below
+  const earlier = receipts.filter((r) => !(order?.status === 'paid' && r.id === order.id))
   const footer = receiptsOnly ? undefined : order?.status === 'paid' ? (
     <Button label="بازگشت به تنظیمات" onPress={() => navigation.goBack()} />
   ) : pending ? (
@@ -176,10 +178,10 @@ export function BuyTokensScreen({ navigation, route }: Props): React.JSX.Element
       ) : null}
       {error ? <Text style={[theme.typography('bodySm'), styles.error]}>{error}</Text> : null}
 
-      {receipts.length > 0 ? (
+      {earlier.length > 0 ? (
         <View style={styles.receipts}>
           <Text style={[theme.typography('titleSm'), styles.line]}>رسیدهای خرید</Text>
-          {receipts.map((r) => (
+          {earlier.map((r) => (
             <Receipt key={r.id} order={r} theme={theme} styles={styles} />
           ))}
         </View>

@@ -225,7 +225,7 @@ test('the page after the gateway says plainly whether it worked, and offers the 
   assert.equal(ok.headers.get('cache-control'), 'no-store')
   const okText = await ok.text()
   assert.match(okText, /پرداخت انجام شد/)
-  assert.match(okText, /package=com\.azarapp/)
+  assert.match(okText, /intent:\/\/paid#Intent;scheme=eyvan;package=com\.azarapp;end/)
   assert.doesNotMatch(okText, /tko_x/)
   assert.match(await (await fetch(`${base}/tokens/paid?paid=failed`)).text(), /پرداخت انجام نشد/)
 })
