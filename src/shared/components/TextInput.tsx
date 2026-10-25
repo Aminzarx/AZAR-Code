@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import {
+  Platform,
   StyleSheet,
   Text,
   TextInput as RNTextInput,
@@ -68,7 +69,9 @@ export function TextInput({
           theme.typography('bodyMd'),
           styles.input,
           hasError ? styles.inputError : isFocused ? styles.inputFocused : styles.inputDefault,
-          disabled && styles.inputDisabled
+          disabled && styles.inputDisabled,
+          // web (#5183): the textAlign prop below is Android's; the browser reads the style, where typography put 'left'
+          Platform.OS === 'web' && { textAlign: theme.isRTL ? 'right' : 'left' } // rtl-allow: web inputs do not swap
         ]}
         value={value}
         onChangeText={onChangeText}

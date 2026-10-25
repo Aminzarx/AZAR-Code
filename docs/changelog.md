@@ -1664,3 +1664,25 @@ Retention 14 daily + 8 Sundays on both sides. `GET /admin/backups` shows each da
 **Migration requirements**: none (table `admin_backups` already exists).
 
 **Tests**: `server/test/nightly.test.js` (2).
+
+## 2026-10-25 — EYVAN on iPhone: the web app at app.kssx.ir (#5183)
+
+**Change**: `web/` builds the same app (`src/`) with react-native-web + Vite. Native modules have browser stand-ins
+(`web/src/shims/`); where a module differs as a whole, a `*.web.ts(x)` sits next to the Android file (Metro ignores
+it). Server calls go to `app.kssx.ir/api/…`, which nginx passes to azar-auth on the same machine, so no other domain
+shows. Contract reminders become a `.ics` file for the phone's calendar. Installed from Safari with «Add to Home
+Screen» (a guide shows first). Amin #5199 on the web: no selecting/copying/menu/printing, the screen is covered when
+the app leaves it; screenshots cannot be blocked in a browser.
+Also for Android: Settings asked the server for the token ledger on every 3-second sync tick (the function changed
+with each tick); it is now asked when the sync state changes, on focus, and once at start. The wide «+ فایل تازه»
+button uses `width: 'auto'` (the web kept 56 px).
+
+**Reason**: Amin #5183 (plan approved by the brain), #5199.
+
+**Affected modules**: `web/*`, `src/**/*.web.ts(x)`, `AuthProvider` (getTokenLedger), `FloatingActionButton`,
+`TextInput` (web-only alignment), `server/deploy/nginx-app.kssx.ir.conf`, `server/deploy/deploy-web.sh`.
+
+**Migration requirements**: none.
+
+**Tests**: checked live on app.kssx.ir with the test number: sign-in, files from the server with photos, a new file
+through the 6-step wizard pushed and deleted, privacy cover, copy/menu blocked, photo conversion 3000×2000 → 1600 WebP.
