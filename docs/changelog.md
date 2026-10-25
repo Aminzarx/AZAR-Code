@@ -1669,6 +1669,9 @@ kss-pricing 0.38.1.
   colour — سرمه‌ای (default), آبی, ذغال‌سنگی — and «حالت نمایش». Blue has light and dark sides, charcoal is dark
   only. The choice is kept on the phone (`AzarAppearance.setPalette`) and the system bars take the theme's page
   colour (`setBars`). Palettes in `shared/theme/palettes.ts`.
+- Amin #5314: the «ذخیره روی سرور» row is gone from Settings (syncing and its tokens work as before).
+- Amin #5315: «آفلاین» (the «این گوشی» badge and the home offline line) in dark grey (`onTertiaryContainer`, light grey
+  on dark), on the neutral container.
 
 **Reason**: Amin #5295, #5296, #5297.
 

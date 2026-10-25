@@ -316,7 +316,8 @@ describe('SettingsScreen', () => {
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
     expect(await findByText('۱۲۷ از ۲٬۶۴۰ توکن مصرف شده')).toBeTruthy()
-    expect(await findByText('همهٔ پرونده‌ها روی حساب شما ذخیره شده است')).toBeTruthy()
+    // Amin #5314: no «ذخیره روی سرور» row any more (the files still go to the server)
+    expect(queryByText('ذخیره روی سرور')).toBeNull()
     expect(queryByText('نسخه پشتیبان')).toBeNull()
   })
 
@@ -326,7 +327,6 @@ describe('SettingsScreen', () => {
     const { findByLabelText, findByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
-    expect(await findByText('۳ تغییر منتظر اینترنت است')).toBeTruthy()
     fireEvent.press(await findByLabelText('خروج از حساب'))
     expect(await findByText(/۳ تغییر هنوز به سرور نرسیده/)).toBeTruthy()
     fireEvent.press(await findByText('خروج و پاک کردن'))
