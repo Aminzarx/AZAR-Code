@@ -232,21 +232,6 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
                 ) : null}
               </View>
             ) : null}
-                <Button
-                  label="موفق"
-                  variant="secondary"
-                  loading={isTransitioning}
-                  onPress={() => handleTransition('won')}
-                />
-                <Button
-                  label="ناموفق"
-                  variant="destructiveText"
-                  fullWidth={false}
-                  onPress={() => setIsLostDialogVisible(true)}
-                  style={styles.lostAction}
-                />
-              </View>
-            ) : null}
 
             <DealActivitySection
               stageHistory={activity.stageHistory}
