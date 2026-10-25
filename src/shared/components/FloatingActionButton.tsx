@@ -78,7 +78,8 @@ function createStyles(theme: Theme) {
       ...theme.elevation.level2
     },
     extended: {
-      width: undefined,
+      // 'auto', not undefined: the web build ignores an undefined override and kept the round button's 56 px
+      width: 'auto',
       flexDirection: 'row',
       gap: theme.spacing.space2,
       paddingHorizontal: theme.spacing.space5,

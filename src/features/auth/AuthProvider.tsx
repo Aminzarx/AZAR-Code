@@ -207,6 +207,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     }
   }, [session, syncService, syncOnce])
 
+  // Its own callback too: inside the memo below it changed with every 3-second sync tick, and Settings asked the
+  // server for the ledger each time (seen on the web build, 2026-10-25)
+  const getTokenLedger = useCallback(
+    () => (session && syncService ? syncService.tokenLedger(session.sessionToken) : Promise.resolve(null)),
+    [session, syncService]
+  )
+
   // Amin #5245: its own memo, so screens that ask the price are not asked again on every sync step
   const tokenPurchase = useMemo<TokenPurchaseApi | null>(
     () =>
@@ -284,8 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       session,
       sync,
       syncNow: () => (session ? syncOnce(session) : Promise.resolve(0)),
-      getTokenLedger: () =>
-        session && syncService ? syncService.tokenLedger(session.sessionToken) : Promise.resolve(null),
+      getTokenLedger,
       tokenPurchase,
       loadPhoto: (photo) =>
         photo.data
@@ -336,7 +342,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       },
       getSupportContacts: () => authApiClient.getSupportContacts()
     }
-  }, [authApiClient, sessionManager, session, isInitializing, userRepository, syncService, sync, syncOnce, exclusive, tokenPurchase])
+  }, [authApiClient, sessionManager, session, isInitializing, userRepository, syncService, sync, syncOnce, exclusive, tokenPurchase, getTokenLedger])
 
   return (
     <AuthContext.Provider value={value ?? { ...placeholderValue, isInitializing: true }}>

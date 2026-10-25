@@ -13,5 +13,5 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "index.js", "*.d.ts"],
-  "exclude": ["node_modules", "android", "ios"]
+  "exclude": ["node_modules", "android", "ios", "web", "src/**/*.web.ts", "src/**/*.web.tsx"]
 }

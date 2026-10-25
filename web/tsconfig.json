@@ -1,0 +1,20 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "paths": {
+      "@app/*": ["src/app/*"],
+      "@navigation/*": ["src/navigation/*"],
+      "@core/*": ["src/core/*"],
+      "@features/*": ["src/features/*"],
+      "@shared/*": ["src/shared/*"],
+      "@infrastructure/*": ["src/infrastructure/*"],
+      "react-native-fs": ["web/src/shims/fs.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../src/**/*.web.ts", "../src/**/*.web.tsx"],
+  "exclude": ["node_modules", "dist"]
+}
