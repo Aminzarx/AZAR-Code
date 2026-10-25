@@ -166,7 +166,12 @@ router.get('/users', async (req, res, next) => {
       where.push("admin_status != 'deleted'")
     }
     if (q) {
-      const digits = q.replace(/\D/g, '').replace(/^(98|0098)/, '0')
+      // numbers are stored as +98912…: staff may type 0912…, 912…, +98912… or Persian/Arabic digits
+      const digits = q
+        .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+        .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+        .replace(/\D/g, '')
+        .replace(/^(0098|98|0)/, '')
       where.push('(phone_number LIKE ? OR archived_phone LIKE ? OR referral_code = ?)')
       args.push(`%${digits || q}%`, `%${digits || q}%`, q.toUpperCase())
     }

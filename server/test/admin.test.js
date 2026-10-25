@@ -161,6 +161,14 @@ test('list and detail show the account, its profile, counts and tokens; every re
   assert.equal(row.status, 'active')
   assert.ok(row.lastLoginAt === null || typeof row.lastLoginAt === 'string')
 
+  // the number as staff type it: 0912…, 912…, +98912…, Persian digits
+  const local = '0' + a.phoneNumber.replace(/^\+98/, '')
+  const persian = local.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d])
+  for (const q of [local, local.slice(1), '+98' + local.slice(1), persian]) {
+    const found = await call('GET', `/users?q=${encodeURIComponent(q)}`)
+    assert.ok(found.body.users.some((u) => u.id === a.userId), q)
+  }
+
   const detail = await call('GET', `/users/${a.userId}`)
   assert.equal(detail.status, 200)
   assert.equal(detail.body.referralCode, a.referralCode)
