@@ -9,7 +9,9 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Avatar, ErrorState, LoadingIndicator } from '@shared/components'
+import { Avatar, ErrorState, LoadingIndicator, LogoPlaceholder } from '@shared/components'
+import { useProfile } from '@features/settings/hooks/useProfile'
+import { photoUri } from '@infrastructure/images/profilePhoto'
 import { useDisplayName } from '@shared/hooks/useDisplayName'
 import { getTimeBasedGreeting } from '@shared/utils/greeting'
 import { useDashboardData } from './hooks/useDashboardData'
@@ -38,6 +40,8 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const { session } = useAuth()
   const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
   const { displayName } = useDisplayName()
+  const { profile } = useProfile()
+  const ownPhoto = photoUri(profile.photoPath)
   // Amin #4906: after the licence ends Home keeps the follow-ups and the summary; adding and matching wait
   const { canEdit } = useLicence()
 
@@ -77,7 +81,12 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
             accessibilityLabel="مشاهده پروفایل و تنظیمات"
             style={styles.headerLeading}
           >
-            <Avatar name={displayName ?? 'کاربر ایوان'} size="lg" />
+            {/* Amin #5107: the profile photo, or the faded EYVAN logo until there is one */}
+            {ownPhoto ? (
+              <Avatar name={displayName ?? 'کاربر ایوان'} imageUri={ownPhoto} size="lg" />
+            ) : (
+              <LogoPlaceholder style={styles.avatar} logoShare={0.6} />
+            )}
             <View style={styles.headerText}>
               {/* #5122: never cut — a long name makes the line smaller (down to 70%), then «…» at its end */}
               <Text
@@ -197,6 +206,7 @@ function createStyles(theme: Theme) {
       flexShrink: 1,
       minWidth: 0
     },
+    avatar: { width: 56, height: 56, borderRadius: 28 },
     greeting: {
       color: theme.colors.onSurface,
       alignSelf: start

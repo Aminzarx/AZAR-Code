@@ -76,8 +76,8 @@ export function useWhereAmI(): string | null {
 }
 
 /**
- * Amin #5110: a header on ONE line — the title, then the section's coloured chip, then the «where am I» path. The
- * path gives way first on a narrow screen (cut with «…»), then the title (which scrolls).
+ * Amin #5110: a header on ONE line — the title, then the section's coloured chip, then the «where am I» path. On a
+ * narrow screen the path gives way (cut with «…»); the title keeps its full width unless it alone does not fit.
  */
 export function HeaderTitleLine({
   title,
@@ -109,8 +109,8 @@ export function HeaderTitleLine({
 
 const markStyles = StyleSheet.create({
   line: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  title: { flexShrink: 1 },
-  where: { flexShrink: 3 },
+  title: { flexShrink: 0.01 },
+  where: { flexShrink: 100, minWidth: 0 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',

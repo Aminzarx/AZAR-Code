@@ -15,6 +15,10 @@ jest.mock('@features/auth/AuthProvider', () => ({
   })
 }))
 
+jest.mock('@features/settings/hooks/useProfile', () => ({
+  useProfile: () => ({ profile: { photoPath: null }, storage: null, reload: jest.fn() })
+}))
+
 jest.mock('../services/dashboardDataService')
 
 const mockedFetchDashboardData = fetchDashboardData as jest.MockedFunction<

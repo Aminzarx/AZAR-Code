@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -44,7 +44,18 @@ export function DealListScreen({ navigation }: Props): React.JSX.Element {
   const { session } = useAuth()
   const userId = session?.userId ?? ''
   const { deals, isLoading, error, refetch } = useDeals(userId)
-  const { reminders } = useIncompleteReminders(userId)
+  const { reminders, refetch: refetchReminders } = useIncompleteReminders(userId)
+
+  // the contracts tab keeps this list while other tabs are used: a deal started from «تطبیق» must show on return
+  useEffect(() => {
+    if (typeof navigation.addListener !== 'function') {
+      return undefined
+    }
+    return navigation.addListener('focus', () => {
+      refetch()
+      refetchReminders()
+    })
+  }, [navigation, refetch, refetchReminders])
   const [filter, setFilter] = useState<ChipFilter>('all')
   const dealService = useDealService()
   const del = useUndoableDelete({

@@ -136,7 +136,7 @@ export function PhotoEditor({ photos, onChange, noun }: Props): React.JSX.Elemen
           </View>
         ))}
         {photos.length === 0
-          ? [0, 1, 2].map((slot) => <LogoPlaceholder key={slot} style={[styles.cell, styles.thumb]} />)
+          ? [0, 1, 2].map((slot) => <LogoPlaceholder key={slot} style={[styles.cell, styles.placeholder]} />)
           : null}
       </View>
       <Text style={[theme.typography('bodySm'), styles.hint]}>
@@ -191,6 +191,7 @@ function createStyles(theme: Theme) {
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.space3 },
     cell: { width: '30%', aspectRatio: 1 },
     thumb: { width: '100%', height: '100%', borderRadius: theme.radius.medium },
+    placeholder: { borderRadius: theme.radius.medium },
     mainBadge: {
       position: 'absolute',
       bottom: 6,
