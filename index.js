@@ -2,6 +2,8 @@
  * @format
  */
 
+// first: navigator keys need a working Math.random (see mathRandomGuard.ts)
+import './src/app/mathRandomGuard'
 import { AppRegistry, I18nManager, NativeModules } from 'react-native'
 import { App } from './src/app/App'
 import { name as appName } from './app.json'
