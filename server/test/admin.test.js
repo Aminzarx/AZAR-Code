@@ -197,8 +197,8 @@ test('deduct needs a reason, books once per key, and never takes the balance bel
   assert.equal(d2.body.tokens.balance, before - 5)
   assert.equal(d2.body.tokens.spentBy.deducted, 5)
   const tooMuch = await call('POST', `/users/${a.userId}/tokens/deduct`, { amount: before, reason: 'بیش از موجودی' })
-  assert.equal(tooMuch.status, 422)
-  assert.equal(tooMuch.body.error.code, 'exceeds_balance')
+  assert.equal(tooMuch.status, 409)
+  assert.equal(tooMuch.body.error.code, 'insufficient_tokens')
   assert.equal(tooMuch.body.balance, before - 5)
   const lines = (await call('GET', `/users/${a.userId}/tokens`)).body.lines
   assert.ok(lines.some((l) => l.reason === 'admin_deduct' && l.amount === -5 && l.ref === 'خطای ثبت'))

@@ -278,7 +278,8 @@ router.post('/users/:id/tokens/grant', async (req, res, next) => {
 
 // POST /admin/users/:id/tokens/deduct { amount, reason }  (Idempotency-Key header)
 // Amin #5243: takes tokens back. The reason is required and goes to the ledger line and the audit; the balance never
-// goes below 0 (a bigger amount is refused with the balance, nothing is taken). The same key twice deducts once.
+// goes below 0 (a bigger amount is refused, 409 insufficient_tokens with the balance; nothing is taken). The same key
+// twice deducts once.
 router.post('/users/:id/tokens/deduct', async (req, res, next) => {
   try {
     const user = findUser(req.params.id)
@@ -301,8 +302,8 @@ router.post('/users/:id/tokens/deduct', async (req, res, next) => {
       return 'done'
     })()
     if (outcome?.short !== undefined) {
-      return res.status(422).json({
-        error: { code: 'exceeds_balance', message: 'The balance cannot go below 0.' },
+      return res.status(409).json({
+        error: { code: 'insufficient_tokens', message: 'The balance cannot go below 0.' },
         balance: outcome.short
       })
     }
