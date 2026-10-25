@@ -37,6 +37,12 @@ const pricing = http.createServer((req, res) => {
 const payments = new Map()
 let billingCalls = 0
 const billingSrv = http.createServer((req, res) => {
+  // the bank's return (no key): billing verifies and says where to go next
+  const back = req.url.match(/^\/eyvan-pay\/callback\/([^?]+)\?(.*)$/)
+  if (back) {
+    const to = back[1] === 'etp_evil01' ? 'https://evil.example/x' : `https://api.zarandix.ir/tokens/paid?paid=ok&order=tko_${back[1]}&q=${encodeURIComponent(back[2])}`
+    return res.writeHead(303, { location: to }).end()
+  }
   if (req.headers.authorization !== 'Bearer billing-key') return res.writeHead(401).end()
   let raw = ''
   req.on('data', (c) => (raw += c))
@@ -75,6 +81,7 @@ before(async () => {
   const app = express()
   app.set('trust proxy', 'loopback')
   app.use('/tokens', purchases.router)
+  app.use(purchases.bankReturn)
   app.use(express.json())
   app.use('/auth', authRoutes)
   app.use('/tokens', tokens.router)
@@ -221,4 +228,15 @@ test('the page after the gateway says plainly whether it worked, and offers the 
   assert.match(okText, /package=com\.azarapp/)
   assert.doesNotMatch(okText, /tko_x/)
   assert.match(await (await fetch(`${base}/tokens/paid?paid=failed`)).text(), /پرداخت انجام نشد/)
+})
+
+test('the bank sends the buyer back through our host: billing verifies on loopback, only its «go back» redirect is passed on', async () => {
+  const get = (p) => fetch(`${base}${p}`, { redirect: 'manual', headers: { 'x-forwarded-for': `10.9.0.${++requests & 255}` } })
+  const ok = await get('/pay/api/v1/eyvan-pay/callback/etp_abc123?Authority=A1&Status=OK')
+  assert.equal(ok.status, 303)
+  assert.equal(ok.headers.get('location'), 'https://api.zarandix.ir/tokens/paid?paid=ok&order=tko_etp_abc123&q=Authority%3DA1%26Status%3DOK')
+  const evil = await get('/pay/api/v1/eyvan-pay/callback/etp_evil01?Status=OK')
+  assert.equal(evil.headers.get('location'), '/tokens/paid?paid=failed')
+  const bad = await get('/pay/api/v1/eyvan-pay/callback/..%2Fadmin?Status=OK')
+  assert.equal(bad.headers.get('location'), '/tokens/paid?paid=failed')
 })
