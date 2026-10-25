@@ -220,7 +220,8 @@ test('the order needs a key and a whole token count', async () => {
 })
 
 test('the page after the gateway says plainly whether it worked, and offers the way back to the app', async () => {
-  const ok = await fetch(`${base}/tokens/paid?paid=ok&order=tko_x`)
+  const android = { headers: { 'user-agent': 'Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile' } }
+  const ok = await fetch(`${base}/tokens/paid?paid=ok&order=tko_x`, android)
   assert.equal(ok.status, 200)
   assert.equal(ok.headers.get('cache-control'), 'no-store')
   const okText = await ok.text()
@@ -228,6 +229,9 @@ test('the page after the gateway says plainly whether it worked, and offers the 
   assert.match(okText, /intent:\/\/paid#Intent;scheme=eyvan;package=com\.azarapp;end/)
   assert.doesNotMatch(okText, /tko_x/)
   assert.match(await (await fetch(`${base}/tokens/paid?paid=failed`)).text(), /پرداخت انجام نشد/)
+  // #5183: an iPhone goes back to the web app
+  const iphone = { headers: { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Safari/604.1' } }
+  assert.match(await (await fetch(`${base}/tokens/paid?paid=ok`, iphone)).text(), /href="https:\/\/app\.kssx\.ir\/"/)
 })
 
 test('the bank sends the buyer back through our host: billing verifies on loopback, only its «go back» redirect is passed on', async () => {

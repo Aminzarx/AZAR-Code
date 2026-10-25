@@ -304,6 +304,10 @@ router.post('/purchase/paid', limited, express.raw({ type: '*/*', limit: '4kb' }
 // GET /tokens/paid?paid=ok|failed&order=… — where billing sends the buyer's browser after the gateway. Only words: the
 // tokens were already credited by billing's signed notice, and the app reads the order's status when it is opened again.
 router.get('/paid', (req, res) => {
+  // Android opens the app itself (eyvan://paid); iPhone and other browsers go back to the web app (#5183)
+  const backToApp = /Android/i.test(String(req.get('user-agent') || ''))
+    ? 'intent://paid#Intent;scheme=eyvan;package=com.azarapp;end'
+    : 'https://app.kssx.ir/'
   const ok = req.query.paid === 'ok'
   res.set({ 'cache-control': 'no-store', 'content-type': 'text/html; charset=utf-8', 'referrer-policy': 'no-referrer' })
   res.send(`<!doctype html>
@@ -320,7 +324,7 @@ h1{font-size:22px;margin:0 0 8px}p{line-height:1.9;margin:0}
 </style></head><body><div class="wrap">
 <div class="hero"><h1>${ok ? 'پرداخت انجام شد' : 'پرداخت انجام نشد'}</h1>
 <p>${ok ? 'توکن‌ها به حساب شما اضافه شد. به اپ ایوان برگردید؛ رسید خرید آنجاست.' : 'مبلغی از حساب شما کم نشد، یا اگر کم شده باشد بانک آن را برمی‌گرداند. به اپ ایوان برگردید و دوباره امتحان کنید.'}</p></div>
-<a class="btn" href="intent://paid#Intent;scheme=eyvan;package=com.azarapp;end">بازگشت به اپ ایوان</a>
+<a class="btn" href="${backToApp}">بازگشت به اپ ایوان</a>
 <p class="note">اگر دکمه کار نکرد، این صفحه را ببندید و اپ ایوان را باز کنید.</p>
 </div></body></html>`)
 })
