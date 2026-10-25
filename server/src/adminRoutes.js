@@ -404,22 +404,91 @@ router.post('/users/:id/unarchive', (req, res) => {
   res.json({ status: 'active' })
 })
 
-// POST /admin/users/:id/attach { targetId, note }: the archived account :id joins the new account on the same number.
-// Files, photos, token lines, the later paid licence and the people it invited move; where both hold the same record,
-// the new account's copy stays. The archived account then becomes a tombstone, so the referral chain stays whole.
-// The phone shows the attached files after its next sign-in.
-router.post('/users/:id/attach', (req, res) => {
+/** the archived account :id and the live account on its number, or an error response */
+function attachPair(req, res, targetId) {
   const from = findUser(req.params.id)
-  const to = findUser(String(req.body?.targetId || ''))
+  const to = findUser(String(targetId || ''))
   if (!from || !to) return fail(res, 404, 'not_found', 'No such account.')
   if (from.admin_status !== 'archived') return fail(res, 409, 'not_archived', 'Only an archived account can be attached.')
   if (to.admin_status === 'archived' || to.admin_status === 'deleted') {
     return fail(res, 409, 'bad_target', 'The target must be a live account.')
   }
   if (to.phone_number !== from.archived_phone) return fail(res, 422, 'phone_mismatch', 'The target must use the archived number.')
+  return { from, to }
+}
+
+const parentOf = (id) => db.prepare('SELECT * FROM referral_relationships WHERE referred_user_id = ?').get(id)
+
+/** what attach would do, without doing it (the panel shows it before the confirm) */
+function attachPlan(from, to) {
+  const keys = (id) => db.prepare('SELECT tbl, row_key FROM sync_rows WHERE account_id = ?').all(id)
+  const have = new Set(keys(to.id).map((r) => `${r.tbl}|${r.row_key}`))
+  const records = {}
+  let kept = 0
+  for (const r of keys(from.id)) {
+    if (have.has(`${r.tbl}|${r.row_key}`)) kept += 1
+    else records[r.tbl] = (records[r.tbl] ?? 0) + 1
+  }
+  const paid = (id) => db.prepare('SELECT paid_until FROM licences WHERE user_id = ?').get(id)?.paid_until ?? null
+  const oldPaid = paid(from.id)
+  const newPaid = paid(to.id)
+  const oldParent = parentOf(from.id)
+  const newParent = parentOf(to.id)
+  return {
+    records: {
+      properties: records.properties ?? 0,
+      applicants: records.applicants ?? 0,
+      contracts: records.contracts ?? 0,
+      deals: records.deals ?? 0,
+      photos: records.photos ?? 0,
+      other: Object.entries(records)
+        .filter(([t]) => !['properties', 'applicants', 'contracts', 'deals', 'photos'].includes(t))
+        .reduce((n, [, c]) => n + c, 0)
+    },
+    kept,
+    tokenLines: db.prepare("SELECT COUNT(*) AS n FROM token_ledger WHERE account_id = ? AND reason != 'allowance' AND amount != 0").get(from.id).n,
+    paidUntil: oldPaid && (!newPaid || Date.parse(oldPaid) > Date.parse(newPaid)) ? oldPaid : newPaid,
+    referees: db.prepare('SELECT COUNT(*) AS n FROM referral_relationships WHERE referrer_user_id = ?').get(from.id).n,
+    referrer: {
+      from: newParent?.referrer_user_id ?? null,
+      to: oldParent ? oldParent.referrer_user_id : (newParent?.referrer_user_id ?? null)
+    }
+  }
+}
+
+// GET /admin/users/:id/attach-preview?targetId=  → the counts attach would move (Kssx.ir: preview before confirming)
+router.get('/users/:id/attach-preview', (req, res) => {
+  const pair = attachPair(req, res, req.query.targetId)
+  if (!pair?.from) return
+  audit(req, 'read', pair.to.id, `attach preview from ${pair.from.id}`)
+  res.json(attachPlan(pair.from, pair.to))
+})
+
+// POST /admin/users/:id/attach { targetId, note }: the archived account :id joins the new account on the same number
+// (Amin #5216, rules by Kssx.ir). Files, applicants, contracts, deals and photos are appended (never overwritten: where
+// both hold the same record, the new account's copy stays); token lines move (the allowance counts once, from
+// pricing); the later paid licence wins; the OLD referral place comes back: the old parent link replaces the new
+// account's temporary one (audited) and the old referees point at the new account (#5045). The archived account then
+// becomes a tombstone. One transaction. The phone shows the attached files after its next sign-in.
+router.post('/users/:id/attach', (req, res) => {
+  const pair = attachPair(req, res, req.body?.targetId)
+  if (!pair?.from) return
+  const { from, to } = pair
   const now = new Date().toISOString()
   let result
+  let replacedParent = null
   db.transaction(() => {
+    // the old referral place: its parent link moves to the new account, replacing the temporary one
+    const oldParent = parentOf(from.id)
+    if (oldParent) {
+      const newParent = parentOf(to.id)
+      if (newParent) {
+        replacedParent = newParent.referrer_user_id
+        db.prepare('DELETE FROM referral_relationships WHERE id = ?').run(newParent.id)
+      }
+      db.prepare('UPDATE referral_relationships SET referred_user_id = ? WHERE id = ?').run(to.id, oldParent.id)
+      db.prepare('UPDATE users SET used_referral_code = ? WHERE id = ?').run(from.used_referral_code, to.id)
+    }
     result = sync.moveAccountData(from.id, to.id)
     // token lines: all but the model marker, under new keys so nothing collides
     const insertLine = db.prepare(
@@ -454,8 +523,15 @@ router.post('/users/:id/attach', (req, res) => {
     db.prepare('DELETE FROM phone_changes WHERE user_id = ?').run(from.id)
     sync.deleteAccountData(from.id)
   })()
-  audit(req, 'attach', to.id, `from ${from.id}: ${result.moved} moved, ${result.kept} kept. ${String(req.body?.note || '').slice(0, 200)}`)
-  res.json({ targetId: to.id, moved: result.moved, kept: result.kept })
+  audit(
+    req,
+    'attach',
+    to.id,
+    `from ${from.id}: ${result.moved} moved, ${result.kept} kept` +
+      (replacedParent ? `; parent ${replacedParent} replaced by the old one` : '') +
+      `. ${String(req.body?.note || '').slice(0, 200)}`
+  )
+  res.json({ targetId: to.id, moved: result.moved, kept: result.kept, replacedReferrer: replacedParent })
 })
 
 // GET /admin/backups

@@ -266,7 +266,8 @@ test('«حذف موقت»: archive frees the number; a new account signs up on i
   // the number signs up again as a newcomer
   await post('/auth/send-otp', { phoneNumber: old.phoneNumber })
   await post('/auth/verify-otp', { phoneNumber: old.phoneNumber, code: '123456' })
-  const fresh = await post('/auth/register', { phoneNumber: old.phoneNumber, referralCode: 'AMINZX' })
+  const other = await account()
+  const fresh = await post('/auth/register', { phoneNumber: old.phoneNumber, referralCode: other.referralCode })
   assert.equal(fresh.status, 201, JSON.stringify(fresh.body))
   await post('/sync/push', {
     sessionToken: fresh.body.sessionToken,
@@ -275,6 +276,14 @@ test('«حذف موقت»: archive frees the number; a new account signs up on i
   const newDetail = (await call('GET', `/users/${fresh.body.userId}`)).body
   assert.deepEqual(newDetail.archivedAccounts.map((a) => a.id), [old.userId])
   assert.equal((await call('POST', `/users/${old.userId}/unarchive`)).status, 409)
+
+  const oldParent = db.prepare('SELECT referrer_user_id FROM referral_relationships WHERE referred_user_id = ?').get(old.userId).referrer_user_id
+  const preview = await call('GET', `/users/${old.userId}/attach-preview?targetId=${fresh.body.userId}`)
+  assert.equal(preview.status, 200)
+  assert.equal(preview.body.records.properties, 1)
+  assert.equal(preview.body.kept, 1)
+  assert.equal(preview.body.referrer.from, other.userId)
+  assert.equal(preview.body.referrer.to, oldParent)
 
   const at = await call('POST', `/users/${old.userId}/attach`, { targetId: fresh.body.userId })
   assert.equal(at.status, 200, JSON.stringify(at.body))
@@ -288,4 +297,8 @@ test('«حذف موقت»: archive frees the number; a new account signs up on i
   const shop = JSON.stringify(pulled.body)
   assert.ok(shop.includes('مغازه') && shop.includes(fresh.body.userId))
   assert.equal((await call('GET', `/users/${old.userId}`)).status, 404)
+  // the old referral place came back (#5045); the temporary parent is gone
+  assert.equal(at.body.replacedReferrer, other.userId)
+  const parent = db.prepare('SELECT referrer_user_id FROM referral_relationships WHERE referred_user_id = ?').get(fresh.body.userId)
+  assert.equal(parent.referrer_user_id, oldParent)
 })
