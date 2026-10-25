@@ -60,6 +60,8 @@ export function TextInput({
         {required ? <Text style={styles.requiredMark}> *</Text> : null}
       </Text>
       <RNTextInput
+        // Amin #5199: no copy/cut/share menu on what is typed in the app
+        contextMenuHidden
         accessibilityLabel={label}
         accessibilityState={{ disabled }}
         style={[

@@ -1563,9 +1563,11 @@ kssx.ir's apps page; updates are accepted from https://kssx.ir/dl/ as well as th
   slides up; the long-press sheet has «انصراف» and «حذف» side by side (#5186).
 - A new page in a section slides in from the left and back out to the left (`slide_from_left`, all stacks; #5186).
 - The Settings tab always opens on its first page (#5190).
+- No copy/cut menu in text fields; the app is covered in the background/app switcher (`PrivacyCover`, and
+  `setRecentsScreenshotEnabled(false)` on Android 13+), Settings included (#5199).
 - CI runs the whole jest suite before building.
 
-**Reason**: Amin #5160, #5162, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190.
+**Reason**: Amin #5160, #5162, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190, #5199.
 
 **Affected modules**: navigation (`SwipeTabs`, `TabSwipe`, `TabBarButton`, `MainNavigator`), `MainActivity`,
 `AzarScreenModule`, `security/screenshots`, Settings (`SettingsScreen`, `TokenCard`), photos (`PhotoEditor`,

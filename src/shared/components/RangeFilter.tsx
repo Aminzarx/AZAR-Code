@@ -33,6 +33,8 @@ export function RangeFilter({ label, from, to, onChange }: Props): React.JSX.Ele
       <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
       <View style={styles.row}>
         <RNTextInput
+          // Amin #5199: no copy/cut/share menu on what is typed in the app
+          contextMenuHidden
           value={toPersianDigits(from)}
           onChangeText={(text) => onChange(clean(text), to)}
           keyboardType="decimal-pad"
@@ -43,6 +45,8 @@ export function RangeFilter({ label, from, to, onChange }: Props): React.JSX.Ele
         />
         <Text style={[theme.typography('bodySm'), styles.to]}>تا</Text>
         <RNTextInput
+          // Amin #5199: no copy/cut/share menu on what is typed in the app
+          contextMenuHidden
           value={toPersianDigits(to)}
           onChangeText={(text) => onChange(from, clean(text))}
           keyboardType="decimal-pad"

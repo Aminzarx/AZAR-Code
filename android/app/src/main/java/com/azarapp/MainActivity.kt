@@ -1,6 +1,7 @@
 package com.azarapp
 
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import com.facebook.react.ReactActivity
@@ -17,6 +18,8 @@ class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
     super.onCreate(null)
+    // Amin #5199: no preview of the app in the app switcher, Settings included (where screenshots are allowed)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) setRecentsScreenshotEnabled(false)
   }
 
   /** Amin #5055: «هماهنگ با گوشی» — the bars follow the phone when it switches between day and night */

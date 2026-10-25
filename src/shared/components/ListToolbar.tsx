@@ -69,6 +69,8 @@ export function ListToolbar({
         <View style={styles.search}>
           <Icon name="search" size="sm" color={theme.colors.onSurfaceVariant} />
           <RNTextInput
+            // Amin #5199: no copy/cut/share menu on what is typed in the app
+            contextMenuHidden
             value={search}
             onChangeText={onSearchChange}
             placeholder={searchPlaceholder}

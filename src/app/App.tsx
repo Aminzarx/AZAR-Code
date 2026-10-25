@@ -9,6 +9,7 @@ import { LicenceProvider } from '@features/licence/LicenceProvider'
 import { RootNavigator } from '@navigation/RootNavigator'
 import { runStartupTasks } from './startup'
 import { UpdateChecker } from './UpdateChecker'
+import { PrivacyCover } from './PrivacyCover'
 
 /**
  * One shared QueryClient instance for the app's data-fetching/caching layer
@@ -32,6 +33,7 @@ export function App(): React.JSX.Element {
               </LicenceProvider>
             </AuthProvider>
             <UpdateChecker />
+            <PrivacyCover />
           </QueryClientProvider>
         </ThemeProvider>
       </SafeAreaProvider>
