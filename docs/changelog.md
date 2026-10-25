@@ -1649,6 +1649,23 @@ kss-pricing 0.38.1.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
 
+## 2026-10-25 — Nightly backups as plain, readable zips (server)
+
+**Change**: The nightly job no longer encrypts. Each account's zip is the plain export layout (folders and files named
+by property, applicant and contract; contracts readable), written to the root-only `/root/kss-backups/eyvan-nightly/`
+(the service now runs as root and hands the database's -wal/-shm files back to azar-auth). The PC task uploads them to
+the private Drive folder as before; retention unchanged. The backup key is removed; `--decrypt` is gone. Today's
+encrypted set was trashed on Drive and re-uploaded plain.
+
+**Reason**: Amin #5281.
+
+**Affected modules**: `server/src/nightly.js`, `server/deploy/azar-nightly.service`, `install-nightly.sh`,
+`tools/drive-sync/eyvan_backups.py` (B2B chain).
+
+**Migration requirements**: none.
+
+**Tests**: `server/test/nightly.test.js` (2).
+
 ## 2026-10-25 — Nightly backup of every account (server)
 
 **Change**: At 00:00 Tehran time the VPS timer `azar-nightly` runs `server/src/nightly.js`: it purges accounts deleted

@@ -1,43 +1,21 @@
 /**
- * Amin #5197: the nightly job (systemd timer azar-nightly, 00:00 Asia/Tehran, runs as the azar-auth user).
- *   node src/nightly.js                     purge due deletions, then one encrypted zip per account into
- *                                           $EYVAN_BACKUP_DIR/<yyyy-mm-dd>/<phone>-<yyyy-mm-dd>.zip.enc, then retention
+ * Amin #5197: the nightly job (systemd timer azar-nightly, 00:00 Asia/Tehran, runs as root).
+ *   node src/nightly.js                     purge due deletions, then one zip per account (the export layout: folders
+ *                                           and files named by property, applicant and contract) into
+ *                                           $EYVAN_BACKUP_DIR/<yyyy-mm-dd>/<phone>-<yyyy-mm-dd>.zip, then retention
  *   node src/nightly.js --list              JSON for the PC uploader: { pending: [{ date, files }], keep: [dates] }
- *   node src/nightly.js --mark <date> <uploaded|failed>
- *   node src/nightly.js --decrypt <in> <out.zip>   (restore; needs EYVAN_BACKUP_KEY)
- * The Drive upload runs on the PC (tools/drive-sync/eyvan_backups.py), so the Google sign-in never sits on the VPS;
- * while it can't run, days stay «pending» here and go up on its next good run.
- * File format: "EYVB1" | 12-byte IV | 16-byte GCM tag | AES-256-GCM ciphertext of the zip.
+ *   node src/nightly.js --mark <date> <uploaded|failed|pending>
+ * Amin #5281: the zips are plain, readable files (no encryption); the folder and files are root-only (0700/0600) and
+ * the Drive folder is private. The Drive upload runs on the PC (tools/drive-sync/eyvan_backups.py), so the Google
+ * sign-in never sits on the VPS; while it can't run, days stay «pending» here and go up on its next good run.
+ * Run as root, the job hands the database's -wal/-shm files back to the database's owner, so azar-auth keeps working.
  */
-const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 
-const MAGIC = Buffer.from('EYVB1')
-const DIR = process.env.EYVAN_BACKUP_DIR || '/var/backups/eyvan-nightly'
+const DIR = process.env.EYVAN_BACKUP_DIR || '/root/kss-backups/eyvan-nightly'
 const KEEP_DAILY = 14
 const KEEP_WEEKLY = 8
-
-function backupKey() {
-  const raw = String(process.env.EYVAN_BACKUP_KEY || '').trim()
-  if (!/^[0-9a-f]{64}$/i.test(raw)) throw new Error('EYVAN_BACKUP_KEY must be 64 hex characters')
-  return Buffer.from(raw, 'hex')
-}
-
-function encrypt(buffer, key) {
-  const iv = crypto.randomBytes(12)
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
-  const body = Buffer.concat([cipher.update(buffer), cipher.final()])
-  return Buffer.concat([MAGIC, iv, cipher.getAuthTag(), body])
-}
-
-function decrypt(buffer, key) {
-  if (!buffer.subarray(0, MAGIC.length).equals(MAGIC)) throw new Error('not an EYVAN backup file')
-  const iv = buffer.subarray(5, 17)
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
-  decipher.setAuthTag(buffer.subarray(17, 33))
-  return Buffer.concat([decipher.update(buffer.subarray(33)), decipher.final()])
-}
 
 /** the calendar date in Tehran, yyyy-mm-dd */
 function tehranDate(now = new Date()) {
@@ -67,8 +45,19 @@ function ensureTable() {
   )`)
 }
 
+/** a root run must not leave root-owned -wal/-shm files behind: azar-auth (the database's owner) could not open them */
+function handBackDbFiles() {
+  const dbPath = process.env.AZAR_DB_PATH
+  if (!dbPath || typeof process.getuid !== 'function' || process.getuid() !== 0) return
+  try {
+    const { uid, gid } = fs.statSync(dbPath)
+    for (const extra of ['-wal', '-shm']) if (fs.existsSync(dbPath + extra)) fs.chownSync(dbPath + extra, uid, gid)
+  } catch {
+    // nothing to hand back
+  }
+}
+
 function run(now = new Date()) {
-  const key = backupKey()
   const { purgeDue } = require('./adminRoutes')
   const { buildExport, safeName } = require('./exportAccount')
   const purged = purgeDue(now.getTime())
@@ -77,6 +66,7 @@ function run(now = new Date()) {
   const dayDir = path.join(DIR, date)
   const work = `${dayDir}.part`
   fs.rmSync(work, { recursive: true, force: true })
+  fs.mkdirSync(DIR, { recursive: true, mode: 0o700 })
   fs.mkdirSync(work, { recursive: true, mode: 0o700 })
 
   const users = db()
@@ -85,12 +75,12 @@ function run(now = new Date()) {
   let bytes = 0
   const names = new Set()
   for (const user of users) {
-    let name = `${safeName(user.phone_number, user.id)}-${date}.zip.enc`
-    if (names.has(name)) name = `${user.id}-${date}.zip.enc`
+    let name = `${safeName(user.phone_number, user.id)}-${date}.zip`
+    if (names.has(name)) name = `${user.id}-${date}.zip`
     names.add(name)
-    const sealed = encrypt(buildExport(user.id).buffer, key)
-    fs.writeFileSync(path.join(work, name), sealed, { mode: 0o600 })
-    bytes += sealed.length
+    const zip = buildExport(user.id).buffer
+    fs.writeFileSync(path.join(work, name), zip, { mode: 0o600 })
+    bytes += zip.length
   }
   fs.rmSync(dayDir, { recursive: true, force: true })
   fs.renameSync(work, dayDir)
@@ -115,7 +105,7 @@ function list() {
   return {
     pending: dates
       .filter((d) => status.get(d) !== 'uploaded')
-      .map((d) => ({ date: d, files: fs.readdirSync(path.join(DIR, d)).filter((f) => f.endsWith('.zip.enc')).sort() })),
+      .map((d) => ({ date: d, files: fs.readdirSync(path.join(DIR, d)).filter((f) => f.endsWith('.zip')).sort() })),
     keep: [...keepSet(dates)].sort()
   }
 }
@@ -133,13 +123,14 @@ if (require.main === module) {
   try {
     if (flag === '--list') console.log(JSON.stringify(list()))
     else if (flag === '--mark') console.log(JSON.stringify({ marked: mark(a, b) }))
-    else if (flag === '--decrypt') fs.writeFileSync(b, decrypt(fs.readFileSync(a), backupKey()))
     else if (!flag) console.log(JSON.stringify(run()))
     else throw new Error(`unknown option ${flag}`)
   } catch (e) {
     console.error(`nightly: ${e.message}`)
-    process.exit(1)
+    process.exitCode = 1
+  } finally {
+    handBackDbFiles()
   }
 }
 
-module.exports = { run, list, mark, encrypt, decrypt, keepSet, tehranDate }
+module.exports = { run, list, mark, keepSet, tehranDate }

@@ -1,18 +1,18 @@
-# Amin #5197: purge due deletions + one encrypted backup zip per account (src/nightly.js); Drive upload runs on the PC.
+# Amin #5197/#5281: purge due deletions + one plain zip per account (src/nightly.js) into the root-only
+# /root/kss-backups/eyvan-nightly; the Drive upload runs on the PC. Runs as root; nightly.js hands the database's
+# -wal/-shm files back to azar-auth.
 [Unit]
 Description=EYVAN nightly backup and purge (azar-auth)
 After=azar-auth.service
 
 [Service]
 Type=oneshot
-User=azar-auth
 WorkingDirectory=/opt/azar-auth
-Environment=NODE_ENV=production AZAR_DB_PATH=/opt/azar-auth/data/azar-auth.db EYVAN_BACKUP_DIR=/var/backups/eyvan-nightly
+Environment=NODE_ENV=production AZAR_DB_PATH=/opt/azar-auth/data/azar-auth.db EYVAN_BACKUP_DIR=/root/kss-backups/eyvan-nightly
 EnvironmentFile=/root/kss-secrets/azar-auth.env
-EnvironmentFile=/root/kss-secrets/eyvan-backup.env
 ExecStart=/usr/bin/node src/nightly.js
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=/opt/azar-auth/data /var/backups/eyvan-nightly
-ProtectHome=true
+ReadWritePaths=/opt/azar-auth/data /root/kss-backups/eyvan-nightly
 PrivateTmp=true
+UMask=0077
