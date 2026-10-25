@@ -14,6 +14,16 @@ import { canonicalizeIranPhoneNumber } from '@shared/utils/iranPhoneNumber'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'PhoneEntry'>
 
+/** Amin #5302: exactly 11 digits, 09xxxxxxxxx; Persian and Arabic digits count, anything else is dropped */
+const LOCAL_MOBILE = /^09\d{9}$/
+function localMobileDigits(text: string): string {
+  return text
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/\D/g, '')
+    .slice(0, 11)
+}
+
 /**
  * v3.0.0 (Amin #4180/#4205): sign-in on one page. Once the code is sent the
  * number is locked and only «ویرایش شماره» is active; tapping it drops the
@@ -62,20 +72,14 @@ export function PhoneEntryScreen({ navigation }: Props): React.JSX.Element {
   return (
     <AuthScreenContainer>
       <BrandMark />
-      <View style={styles.header}>
-        <Text style={[theme.typography('headlineLgMobile'), styles.headerTitle]}>
-          ورود با شماره موبایل
-        </Text>
-        <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>
-          رمز لازم نیست؛ یک کد تأیید برای شما پیامک می‌شود.
-        </Text>
-      </View>
+      {/* Amin #5301: only the number field, its label and the button */}
       <View style={styles.form}>
         <View style={styles.phoneGroup}>
           <TextInput
-            label="شماره موبایل"
+            label="لطفا شماره خود را وارد کنید"
             value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            onChangeText={(text) => setPhoneNumber(localMobileDigits(text))}
+            maxLength={11}
             placeholder="09121234567"
             keyboardType="phone-pad"
             errorMessage={error ?? undefined}
@@ -111,7 +115,7 @@ export function PhoneEntryScreen({ navigation }: Props): React.JSX.Element {
             label="دریافت کد تأیید"
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={phoneNumber.length < 8}
+            disabled={!LOCAL_MOBILE.test(phoneNumber)}
           />
         )}
       </View>
@@ -121,21 +125,6 @@ export function PhoneEntryScreen({ navigation }: Props): React.JSX.Element {
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    header: {
-      gap: theme.spacing.space2,
-      marginBottom: theme.spacing.space6
-    },
-    // design-system.md §10 — a short Text in a column container doesn't
-    // reliably stretch to full width, so textAlign alone isn't enough;
-    // alignSelf explicitly anchors it to the correct edge.
-    headerTitle: {
-      color: theme.colors.onSurface,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
-    headerSubtitle: {
-      color: theme.colors.onSurfaceVariant,
-      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
-    },
     form: {
       gap: theme.spacing.space6
     },

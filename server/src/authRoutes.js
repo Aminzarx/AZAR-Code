@@ -107,7 +107,8 @@ function uniqueReferralCode() {
 router.post('/send-otp', otpLimiter, async (req, res) => {
   try {
     const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
-    const mobile = PHONE_NUMBER_PATTERN.test(phoneNumber) ? sms.iranMobile(phoneNumber) : null
+    // Amin #5302: an Iranian mobile only, +989xxxxxxxxx or 09xxxxxxxxx (11 digits)
+    const mobile = /^(\+989\d{9}|09\d{9})$/.test(phoneNumber) ? sms.iranMobile(phoneNumber) : null
     if (!mobile) {
       return fail(res, 422, 'invalid_phone_number', 'Enter a valid phone number.')
     }

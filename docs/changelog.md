@@ -1662,6 +1662,9 @@ kss-pricing 0.38.1.
 - Amin #5299: no text in the system font. `babel.config.js` points every `Text`/`TextInput` from 'react-native' in src/
   at `shared/components/FontText` (Vazirmatn in the style's weight when the style names no font); the Android theme
   sets Vazirmatn for native dialogs, pickers and menus (`res/font/vazirmatn.ttf`).
+- Amin #5301/#5302: the phone page shows only the field «لطفا شماره خود را وارد کنید» and the button (plus the logo);
+  the number takes Persian/Arabic digits, at most 11, and the button turns on only at a valid 09xxxxxxxxx. The server's
+  send-otp accepts only +989xxxxxxxxx or 09xxxxxxxxx.
 
 **Reason**: Amin #5295, #5296, #5297.
 

@@ -40,17 +40,17 @@ describe('PhoneEntryScreen (v3.0.0 one-page sign-in, Amin #4205)', () => {
       withTheme(<PhoneEntryScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    await waitFor(() => fireEvent.changeText(getByLabelText('شماره موبایل'), '09121234567'))
+    await waitFor(() => fireEvent.changeText(getByLabelText('لطفا شماره خود را وارد کنید'), '09121234567'))
     await waitFor(() => fireEvent.press(getByText('دریافت کد تأیید')))
 
     await waitFor(() => expect(mockSendOtp).toHaveBeenCalledWith('+989121234567'))
-    await waitFor(() => expect(getByLabelText('شماره موبایل').props.editable).toBe(false))
+    await waitFor(() => expect(getByLabelText('لطفا شماره خود را وارد کنید').props.editable).toBe(false))
     expect(getByLabelText('رقم 1 کد تأیید')).toBeTruthy()
     expect(queryByLabelText('دریافت کد تأیید')).toBeNull()
 
     await waitFor(() => fireEvent.press(getByLabelText('ویرایش شماره')))
 
-    await waitFor(() => expect(getByLabelText('شماره موبایل').props.editable).toBe(true))
+    await waitFor(() => expect(getByLabelText('لطفا شماره خود را وارد کنید').props.editable).toBe(true))
     expect(queryByLabelText('رقم 1 کد تأیید')).toBeNull()
     expect(getByText('دریافت کد تأیید')).toBeTruthy()
   })
