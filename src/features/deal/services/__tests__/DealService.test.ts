@@ -39,10 +39,10 @@ describe('DealService', () => {
     const property = await propertyService.createProperty(USER_ID, {
       title: 'آپارتمان دو خوابه',
       propertyType: '',
-      transactionType: '',
+      transactionType: 'فروش',
       city: 'تهران',
       address: 'خیابان ولیعصر',
-      price: '',
+      price: '5000000000',
       area: '',
       rooms: '',
       depositAmount: '',

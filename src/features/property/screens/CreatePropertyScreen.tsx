@@ -55,6 +55,8 @@ function suggestTitle(v: PropertyFormValues): string {
   return city ? `${parts.join(' ')}، ${city}` : parts.join(' ')
 }
 
+const REQUIRED = 'این مورد لازم است.'
+
 /**
  * v3.0.0 (Amin #4180/#4211): a new file in short steps with one big
  * button at the bottom, instead of one long two-column form with a small
@@ -117,6 +119,9 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
     for (const field of Object.keys(all) as Array<keyof PropertyFormValues>) {
       if (field !== 'title' && stepOfField(field, values) === current) onStep[field] = all[field]
     }
+    // an empty city/address keeps the short step message
+    if (onStep.city && !values.city.trim()) onStep.city = REQUIRED
+    if (onStep.address && !values.address.trim()) onStep.address = REQUIRED
     return onStep
   }
 
