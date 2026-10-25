@@ -11,20 +11,21 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Welcome'>
 // Amin #5233: the EYVAN logo on the start page (the light-text version, for the navy header)
 const logo = require('../../../assets/eyvan-logo-dark.png')
 
+// Amin #5280: the start-page texts as he wrote them
 const BENEFITS: Array<{ icon: IconName; title: string; detail: string }> = [
   {
     icon: 'files',
-    title: 'فایل ملک و متقاضی را در یک دقیقه ثبت کنید',
+    title: 'ثبت آسان و فوری فایل‌ها',
     detail: 'با چند لمس، بدون تایپ زیاد'
   },
   {
     icon: 'matching',
-    title: 'فایل مناسب هر متقاضی خودش پیدا می‌شود',
+    title: 'انطباق هوشمند',
     detail: 'با بودجه، متراژ و محلهٔ دلخواهش'
   },
   {
     icon: 'calendar',
-    title: 'پیگیری و قراردادی یادتان نمی‌رود',
+    title: 'سیستم پیگیری خودکار',
     detail: 'یادآوری به‌موقع برای هر کار'
   }
 ]
@@ -39,7 +40,7 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
       <View style={styles.hero}>
         <Image source={logo} style={styles.logo} accessibilityLabel="ایوان" />
         <Text style={[theme.typography('headlineLgMobile'), styles.heroTitle]}>
-          همهٔ فایل‌ها و مشتری‌هایتان در یک جا
+          به جمع حرفه‌ای‌ها خوش آمدید
         </Text>
       </View>
       <View style={styles.body}>
@@ -56,7 +57,7 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
         ))}
       </View>
       <View style={styles.footer}>
-        <Button label="شروع" onPress={() => navigation.navigate('PhoneEntry')} />
+        <Button label="شروع کنید" onPress={() => navigation.navigate('PhoneEntry')} />
       </View>
     </SafeAreaView>
   )

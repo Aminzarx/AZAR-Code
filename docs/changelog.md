@@ -1649,6 +1649,19 @@ kss-pricing 0.38.1.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
 
+## 2026-10-25 — Start page texts (1.5.2)
+
+**Change**: The start page reads «به جمع حرفه‌ای‌ها خوش آمدید», with the rows «ثبت آسان و فوری فایل‌ها»,
+«انطباق هوشمند», «سیستم پیگیری خودکار» and the button «شروع کنید», exactly as Amin wrote them.
+
+**Reason**: Amin #5280.
+
+**Affected modules**: `WelcomeScreen`.
+
+**Migration requirements**: none.
+
+**Tests**: `App.test.tsx`.
+
 ## 2026-10-25 — Nightly backups as plain, readable zips (server)
 
 **Change**: The nightly job no longer encrypts. Each account's zip is the plain export layout (folders and files named
