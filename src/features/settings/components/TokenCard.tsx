@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Icon } from '@shared/components'
+import { Button, Icon } from '@shared/components'
 import { SheetModal } from '@shared/components/SheetModal'
 import { useTheme, type Theme } from '@shared/theme'
 import {
@@ -16,6 +16,14 @@ type Props = {
   summary: TokenSummary | null
   /** false = the copy kept on the phone (no internet) */
   fresh: boolean
+  /**
+   * Amin #5245: buying, shown once 95% is used. `open` false = the button is off and `hint` says why (no price yet,
+   * not open for this account). Absent = no buy row (offline, or not asked yet).
+   */
+  buy?: { open: boolean; hint: string | null } | null
+  onBuy?: () => void
+  /** the receipts of earlier purchases (shown in the details when something was bought) */
+  onReceipts?: () => void
 }
 
 /**
@@ -23,7 +31,7 @@ type Props = {
  * a small line, and a bar — green, yellow once less than 30% is left, red once 95% is used. The ⓘ opens where the
  * tokens came from and where they went.
  */
-export function TokenCard({ summary, fresh }: Props): React.JSX.Element {
+export function TokenCard({ summary, fresh, buy, onBuy, onReceipts }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const [isDetailVisible, setIsDetailVisible] = useState(false)
@@ -65,6 +73,14 @@ export function TokenCard({ summary, fresh }: Props): React.JSX.Element {
               {level === 'danger' ? 'توکن‌ها تقریباً تمام شده است.' : 'کمتر از ۳۰٪ توکن‌ها مانده است.'}
             </Text>
           ) : null}
+          {level === 'danger' && buy && onBuy ? (
+            <>
+              <Button label="خرید توکن" onPress={onBuy} disabled={!buy.open} />
+              {!buy.open && buy.hint ? (
+                <Text style={[theme.typography('labelSm'), styles.muted]}>{buy.hint}</Text>
+              ) : null}
+            </>
+          ) : null}
           {!fresh ? (
             <Text style={[theme.typography('labelSm'), styles.muted]}>آخرین موجودیِ ذخیره‌شده؛ با اینترنت به‌روز می‌شود.</Text>
           ) : null}
@@ -74,7 +90,19 @@ export function TokenCard({ summary, fresh }: Props): React.JSX.Element {
       )}
 
       {summary ? (
-        <TokenBreakdownSheet summary={summary} visible={isDetailVisible} onClose={() => setIsDetailVisible(false)} />
+        <TokenBreakdownSheet
+          summary={summary}
+          visible={isDetailVisible}
+          onClose={() => setIsDetailVisible(false)}
+          onReceipts={
+            onReceipts && summary.bought > 0
+              ? () => {
+                  setIsDetailVisible(false)
+                  onReceipts()
+                }
+              : undefined
+          }
+        />
       ) : null}
     </View>
   )
@@ -83,11 +111,13 @@ export function TokenCard({ summary, fresh }: Props): React.JSX.Element {
 function TokenBreakdownSheet({
   summary,
   visible,
-  onClose
+  onClose,
+  onReceipts
 }: {
   summary: TokenSummary
   visible: boolean
   onClose: () => void
+  onReceipts?: () => void
 }): React.JSX.Element {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
@@ -117,6 +147,9 @@ function TokenBreakdownSheet({
             <Line styles={styles} theme={theme} label="متقاضیان" value={summary.spentBy.applicants} />
             <Line styles={styles} theme={theme} label="قراردادها" value={summary.spentBy.contracts} />
             <Line styles={styles} theme={theme} label="تغییر شماره" value={summary.spentBy.phoneChange} />
+            {summary.spentBy.deducted > 0 ? (
+              <Line styles={styles} theme={theme} label="کسر توسط پشتیبانی" value={summary.spentBy.deducted} />
+            ) : null}
             <Line styles={styles} theme={theme} label="جمع" value={summary.spent} strong />
           </View>
 
@@ -126,6 +159,7 @@ function TokenBreakdownSheet({
               {`${formatTokenAmount(summary.balance)} توکن`}
             </Text>
           </View>
+          {onReceipts ? <Button label="رسیدهای خرید" variant="text" onPress={onReceipts} /> : null}
           {/* Amin #5163: no explanation under the figures */}
         </View>
     </SheetModal>

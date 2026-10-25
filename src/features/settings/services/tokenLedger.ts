@@ -11,7 +11,7 @@ export type TokenSummary = {
   earnedBy: { referral: number; profile: number }
   bought: number
   spent: number
-  spentBy: { files: number; applicants: number; contracts: number; phoneChange: number }
+  spentBy: { files: number; applicants: number; contracts: number; phoneChange: number; deducted: number }
 }
 
 export type TokenLedger = {
@@ -33,7 +33,9 @@ export function normalizeSummary(summary: Partial<TokenSummary> | undefined): To
       files: summary.spentBy?.files ?? 0,
       applicants: summary.spentBy?.applicants ?? 0,
       contracts: summary.spentBy?.contracts ?? 0,
-      phoneChange: summary.spentBy?.phoneChange ?? 0
+      phoneChange: summary.spentBy?.phoneChange ?? 0,
+      // Amin #5243: taken off by support (billing «کسر توکن»), with the reason kept on the server
+      deducted: summary.spentBy?.deducted ?? 0
     }
   }
 }

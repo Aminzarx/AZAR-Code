@@ -1,6 +1,11 @@
 import NetInfo from '@react-native-community/netinfo'
 import { NetworkFailureError } from '../../core/auth/errors'
 import type { TokenLedger } from '@features/settings/services/tokenLedger'
+import {
+  PurchaseRefusedError,
+  type PurchaseOffer,
+  type TokenOrder
+} from '@features/settings/services/tokenPurchase'
 
 /**
  * a request the network never answers counts as offline after this long (React Native's fetch has no timeout).
@@ -67,7 +72,26 @@ export class SyncApiClient {
     return this.post('/tokens/ledger', { sessionToken })
   }
 
-  private async post<T>(path: string, body: unknown): Promise<T> {
+  /** Amin #5245: the price for `tokens` (or only whether buying is open) */
+  purchaseQuote(sessionToken: string, tokens?: number): Promise<PurchaseOffer> {
+    return this.post('/tokens/purchase/quote', { sessionToken, tokens })
+  }
+
+  /** Amin #5245: makes the order; the same key again returns the same order (never a second one) */
+  purchaseTokens(sessionToken: string, tokens: number, key: string): Promise<{ order: TokenOrder; payUrl: string | null }> {
+    return this.post('/tokens/purchase', { sessionToken, tokens }, { 'Idempotency-Key': key })
+  }
+
+  purchaseStatus(sessionToken: string, orderId: string): Promise<{ order: TokenOrder }> {
+    return this.post('/tokens/purchase/status', { sessionToken, orderId })
+  }
+
+  /** the paid purchases (receipts), newest first */
+  tokenPurchases(sessionToken: string): Promise<{ purchases: TokenOrder[] }> {
+    return this.post('/tokens/purchases', { sessionToken })
+  }
+
+  private async post<T>(path: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
     // offline (airplane mode, no network): say so at once instead of waiting on a request that cannot go out
     const network = await NetInfo.fetch().catch(() => null)
     if (
@@ -84,7 +108,7 @@ export class SyncApiClient {
     try {
       response = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(body),
         signal: abort.signal
       })
@@ -100,6 +124,10 @@ export class SyncApiClient {
     if (response.status === 401) throw new SessionRevokedError()
     // Amin #5052: the token ledger refuses a change that does not fit (tokens_short); same «full» state for the user
     if (parsed.error?.code === 'storage_full' || parsed.error?.code === 'tokens_short') throw new StorageFullError()
+    // Amin #5245: a purchase step the server refuses with a reason the screen can say in words
+    if (path.startsWith('/tokens/purchase') && parsed.error?.code && response.status !== 429) {
+      throw new PurchaseRefusedError(parsed.error.code)
+    }
     throw new NetworkFailureError()
   }
 }

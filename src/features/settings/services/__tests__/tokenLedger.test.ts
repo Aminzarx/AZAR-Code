@@ -11,6 +11,7 @@ describe('token card presentation (Amin #5103)', () => {
   it('a copy kept by an older version reads the missing parts as zero', () => {
     const summary = normalizeSummary({ balance: 2530, allowance: 2540, earned: 0, bought: 0, spent: 10 })
     expect(summary?.spentBy.files).toBe(0)
+    expect(summary?.spentBy.deducted).toBe(0)
     expect(summary && usedShare(summary)).toBeCloseTo(10 / 2540)
     expect(normalizeSummary(undefined)).toBeNull()
   })

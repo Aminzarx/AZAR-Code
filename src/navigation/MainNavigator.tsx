@@ -20,6 +20,7 @@ import { ContractDetailScreen } from '@features/contract/screens/ContractDetailS
 import { SettingsScreen } from '@features/settings/screens/SettingsScreen'
 import { ProfileScreen } from '@features/settings/screens/ProfileScreen'
 import { ChangePhoneScreen } from '@features/settings/screens/ChangePhoneScreen'
+import { BuyTokensScreen } from '@features/settings/screens/BuyTokensScreen'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
@@ -54,6 +55,8 @@ export type MainStackParamList = {
   Settings: undefined
   Profile: undefined
   ChangePhone: undefined
+  /** Amin #5245: buying tokens; `receipts` opens only the receipts of earlier purchases */
+  BuyTokens: { receipts?: boolean } | undefined
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -113,6 +116,7 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['ReminderList', ReminderListScreen],
   ['Profile', ProfileScreen],
   ['ChangePhone', ChangePhoneScreen],
+  ['BuyTokens', BuyTokensScreen],
   ['CreateReminder', LockedCreateReminder],
   ['ReminderDetail', ReminderDetailScreen],
   ['ContractList', LockedContractList],
@@ -121,7 +125,7 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
 ]
 
 /** Amin #5162: screenshots are allowed only in the Settings section (its first page and the pages it opens) */
-const SETTINGS_PAGES = new Set<string>(['Settings', 'Profile', 'ChangePhone'])
+const SETTINGS_PAGES = new Set<string>(['Settings', 'Profile', 'ChangePhone', 'BuyTokens'])
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
   return function TabStack({

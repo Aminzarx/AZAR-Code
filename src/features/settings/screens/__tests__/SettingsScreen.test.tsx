@@ -15,6 +15,8 @@ const mockNavigate = jest.fn()
 const mockGetSupportContacts = jest.fn()
 const mockSyncNow = jest.fn()
 const mockGetTokenLedger = jest.fn()
+const mockQuote = jest.fn()
+const mockTokenPurchase = { quote: mockQuote, buy: jest.fn(), status: jest.fn(), receipts: jest.fn() }
 let mockSync = { state: 'idle', pending: 0, usage: null as null | { bytes: number; quotaBytes: number; tokens: number }, loaded: true, settled: true }
 
 jest.mock('@features/auth/AuthProvider', () => ({
@@ -26,6 +28,7 @@ jest.mock('@features/auth/AuthProvider', () => ({
     deleteAccount: mockDeleteAccount,
     getSupportContacts: mockGetSupportContacts,
     getTokenLedger: mockGetTokenLedger,
+    tokenPurchase: mockTokenPurchase,
     sync: mockSync,
     syncNow: mockSyncNow
   })
@@ -95,6 +98,8 @@ describe('SettingsScreen', () => {
   beforeEach(() => {
     mockGetTokenLedger.mockReset()
     mockGetTokenLedger.mockResolvedValue(null)
+    mockQuote.mockReset()
+    mockQuote.mockResolvedValue({ open: false, reason: 'price_unset', unitToman: null, minTokens: 1, maxTokens: 1000000, quote: null, sandbox: true })
     mockLogout.mockReset()
     mockSendOtp.mockReset()
     mockVerifyOtp.mockReset()
@@ -271,6 +276,35 @@ describe('SettingsScreen', () => {
     mockGetTokenLedger.mockResolvedValue(summaryOf({ spent: 2600 }))
     const { findByText } = await render(withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />))
     expect(await findByText('توکن‌ها تقریباً تمام شده است.')).toBeTruthy()
+  })
+
+  // Amin #5245: buying opens at 95% used; while the server says it is closed the button is off with the reason
+  it('offers «خرید توکن» once 95% is used, off with the reason while buying is closed', async () => {
+    mockGetTokenLedger.mockResolvedValue(summaryOf({ spent: 2600 }))
+    const { findByText } = await render(withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />))
+    expect(await findByText('قیمت توکن هنوز تعیین نشده است؛ به‌زودی خرید فعال می‌شود.')).toBeTruthy()
+    fireEvent.press(await findByText('خرید توکن'))
+    expect(mockNavigate).not.toHaveBeenCalledWith('BuyTokens')
+  })
+
+  it('opens the buying page when the server says buying is open', async () => {
+    mockGetTokenLedger.mockResolvedValue(summaryOf({ spent: 2600 }))
+    mockQuote.mockResolvedValue({ open: true, reason: null, unitToman: 50, minTokens: 1, maxTokens: 1000000, quote: null, sandbox: true })
+    const { findByText } = await render(withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />))
+    await waitFor(() => expect(mockQuote).toHaveBeenCalled())
+    const button = await findByText('خرید توکن')
+    await waitFor(() => {
+      fireEvent.press(button)
+      expect(mockNavigate).toHaveBeenCalledWith('BuyTokens')
+    })
+  })
+
+  it('does not ask about buying while plenty is left', async () => {
+    mockGetTokenLedger.mockResolvedValue(summaryOf({ spent: 12.4 }))
+    const { findByText, queryByText } = await render(withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />))
+    expect(await findByText('۱۲٫۴ از ۲٬۶۴۰ توکن مصرف شده')).toBeTruthy()
+    expect(queryByText('خرید توکن')).toBeNull()
+    expect(mockQuote).not.toHaveBeenCalled()
   })
 
   // v1.5.0 (Amin #4632): support in the messenger the user picks, labelled for IRIS

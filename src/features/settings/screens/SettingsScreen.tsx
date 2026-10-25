@@ -42,7 +42,8 @@ import { SettingsRow } from '../components/SettingsRow'
 import { OptionsSheet, type SheetOption } from '../components/OptionsSheet'
 import { useProfile } from '../hooks/useProfile'
 import { TokenCard } from '../components/TokenCard'
-import { normalizeSummary, type TokenSummary } from '../services/tokenLedger'
+import { normalizeSummary, tokenLevel, usedShare, type TokenSummary } from '../services/tokenLedger'
+import { closedReasonText } from '../services/tokenPurchase'
 import { photoUri } from '@infrastructure/images/profilePhoto'
 import type { SupportContacts } from '@infrastructure/auth/httpAuthApiClient'
 import { ValidationFailureError } from '@core/auth/errors'
@@ -70,7 +71,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const appearance = useAppearance()
-  const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts, getTokenLedger, sync, syncNow } =
+  const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts, getTokenLedger, tokenPurchase, sync, syncNow } =
     useAuth()
   const { profile } = useProfile()
   const displayName = profile.displayName
@@ -97,6 +98,24 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       .then((result) => setTokens({ summary: normalizeSummary(result?.ledger.summary), fresh: result?.fresh ?? true }))
       .catch(() => undefined)
   }, [getTokenLedger])
+
+  // Amin #5245: once 95% is used, ask the server whether buying is open (the button is off with a reason otherwise)
+  const [buy, setBuy] = useState<{ open: boolean; hint: string | null } | null>(null)
+  const nearlyOut = tokens.summary !== null && tokens.fresh && tokenLevel(usedShare(tokens.summary)) === 'danger'
+  useEffect(() => {
+    if (!nearlyOut || !tokenPurchase) {
+      setBuy(null)
+      return undefined
+    }
+    let live = true
+    tokenPurchase
+      .quote()
+      .then((offer) => live && setBuy({ open: offer.open, hint: offer.open ? null : closedReasonText(offer.reason) }))
+      .catch(() => live && setBuy(null))
+    return () => {
+      live = false
+    }
+  }, [nearlyOut, tokenPurchase])
 
   useEffect(() => {
     if (sync.state === 'idle') loadTokens()
@@ -354,7 +373,13 @@ export function SettingsScreen(props: Props): React.JSX.Element {
         ) : null}
 
         {/* Amin #5103/#5106: the token card back on Settings itself; the ⓘ holds the breakdown (#5105: no history page) */}
-        <TokenCard summary={tokens.summary} fresh={tokens.fresh} />
+        <TokenCard
+          summary={tokens.summary}
+          fresh={tokens.fresh}
+          buy={buy}
+          onBuy={() => props.navigation.navigate('BuyTokens')}
+          onReceipts={() => props.navigation.navigate('BuyTokens', { receipts: true })}
+        />
 
         {/* Amin #5055: night mode; the phone's own setting is the default */}
         <View style={styles.tokenCard} accessibilityLabel="حالت نمایش">

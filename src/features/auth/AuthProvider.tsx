@@ -22,6 +22,7 @@ import {
   type SyncUsage
 } from '@infrastructure/sync/syncApiClient'
 import type { TokenLedger } from '@features/settings/services/tokenLedger'
+import type { PurchaseOffer, TokenOrder } from '@features/settings/services/tokenPurchase'
 import { clearAllAzarReminders } from '@infrastructure/calendar/calendarService'
 
 /** AZAR-SYNC-001: where the account's files stand against the server. */
@@ -77,6 +78,15 @@ type AuthContextValue = {
   loadPhoto: (photo: { data: string | null; blobHash: string | null }) => Promise<string | null>
   /** Amin #5052: «کارنامهٔ توکن»; offline the last kept answer (fresh false); null when there is none */
   getTokenLedger: () => Promise<{ ledger: TokenLedger; fresh: boolean } | null>
+  /** Amin #5245: buying tokens; null while signed out */
+  tokenPurchase: TokenPurchaseApi | null
+}
+
+export type TokenPurchaseApi = {
+  quote: (tokens?: number) => Promise<PurchaseOffer>
+  buy: (tokens: number, key: string) => Promise<{ order: TokenOrder; payUrl: string | null }>
+  status: (orderId: string) => Promise<TokenOrder>
+  receipts: () => Promise<TokenOrder[]>
 }
 
 export type SignUpProfile = { displayName?: string; agencyName?: string }
@@ -197,6 +207,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     }
   }, [session, syncService, syncOnce])
 
+  // Amin #5245: its own memo, so screens that ask the price are not asked again on every sync step
+  const tokenPurchase = useMemo<TokenPurchaseApi | null>(
+    () =>
+      session && syncService
+        ? {
+            quote: (tokens) => syncService.purchases.purchaseQuote(session.sessionToken, tokens),
+            buy: (tokens, key) => syncService.purchases.purchaseTokens(session.sessionToken, tokens, key),
+            status: async (orderId) => (await syncService.purchases.purchaseStatus(session.sessionToken, orderId)).order,
+            receipts: async () => (await syncService.purchases.tokenPurchases(session.sessionToken)).purchases
+          }
+        : null,
+    [session, syncService]
+  )
+
   const value = useMemo<AuthContextValue | null>(() => {
     if (!sessionManager || !authApiClient || !syncService) {
       return null
@@ -262,6 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       syncNow: () => (session ? syncOnce(session) : Promise.resolve(0)),
       getTokenLedger: () =>
         session && syncService ? syncService.tokenLedger(session.sessionToken) : Promise.resolve(null),
+      tokenPurchase,
       loadPhoto: (photo) =>
         photo.data
           ? Promise.resolve(photo.data)
@@ -311,7 +336,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       },
       getSupportContacts: () => authApiClient.getSupportContacts()
     }
-  }, [authApiClient, sessionManager, session, isInitializing, userRepository, syncService, sync, syncOnce, exclusive])
+  }, [authApiClient, sessionManager, session, isInitializing, userRepository, syncService, sync, syncOnce, exclusive, tokenPurchase])
 
   return (
     <AuthContext.Provider value={value ?? { ...placeholderValue, isInitializing: true }}>
@@ -329,6 +354,7 @@ const placeholderValue: AuthContextValue = {
   syncNow: () => Promise.resolve(0),
   loadPhoto: (photo) => Promise.resolve(photo.data),
   getTokenLedger: () => Promise.resolve(null),
+  tokenPurchase: null,
   sendOtp: () => Promise.reject(new Error('Auth is still initializing.')),
   verifyOtp: () => Promise.reject(new Error('Auth is still initializing.')),
   register: () => Promise.reject(new Error('Auth is still initializing.')),

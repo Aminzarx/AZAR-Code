@@ -142,6 +142,11 @@ export class SyncService {
     }
   }
 
+  /** Amin #5245: the buying calls, straight to the server (nothing about a purchase is kept on the phone) */
+  get purchases(): Pick<SyncApiClient, 'purchaseQuote' | 'purchaseTokens' | 'purchaseStatus' | 'tokenPurchases'> {
+    return this.api
+  }
+
   /** Asks the server how much space the account uses (for the tokens card). */
   async refreshUsage(sessionToken: string): Promise<SyncUsage> {
     const { usage } = await this.api.usage(sessionToken)

@@ -38,7 +38,8 @@ describe('OtpCodePanel — code from the SMS (v1.2.0, Amin #4229)', () => {
       sync: { state: 'idle', pending: 0, usage: null, loaded: true, settled: true },
       syncNow: jest.fn(),
       loadPhoto: jest.fn(),
-      getTokenLedger: jest.fn()
+      getTokenLedger: jest.fn(),
+      tokenPurchase: null
     })
 
     const { unmount } = await render(

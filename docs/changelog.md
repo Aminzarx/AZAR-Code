@@ -1620,3 +1620,24 @@ kss-pricing 0.38.1.
 **Migration requirements**: new azar-auth table `token_orders` (created on start); billing migration 038.
 
 **Tests**: `server/test/purchase.test.js` (6).
+
+## 2026-10-25 — Token purchase in the app (#5245; for 1.5.3, not released)
+
+**Change**:
+- Settings › token card: once 95% is used, a «خرید توکن» button. The app asks the server whether buying is open; while
+  it is not (no price or VAT answer in kss-pricing, not open for this account), the button is off with the reason.
+- New page «خرید توکن» (`BuyTokensScreen`): the server's price per token, the count, the price without VAT, the VAT and
+  the total; «تأیید و پرداخت» opens the bank's page; back in the app, it asks the order's status and shows the receipt
+  (tracking number, date and time, tokens, VAT, amount paid). Sandbox payments say «پرداخت آزمایشی».
+- «رسیدهای خرید» in the token details (when something was bought) opens the receipts of earlier purchases.
+- Token details: «کسر توسط پشتیبانی» line when support took tokens off (#5243).
+- One key per buying attempt (Idempotency-Key): a retry never makes a second order.
+
+**Reason**: Amin #5245, #5243.
+
+**Affected modules**: `BuyTokensScreen`, `TokenCard`, `SettingsScreen`, `tokenPurchase`, `tokenLedger`, `syncApiClient`,
+`SyncService`, `AuthProvider`, `MainNavigator` (screenshots allowed on the page: it is in Settings, #5162).
+
+**Migration requirements**: none.
+
+**Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
