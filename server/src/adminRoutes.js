@@ -276,6 +276,43 @@ router.post('/users/:id/tokens/grant', async (req, res, next) => {
   }
 })
 
+// POST /admin/users/:id/tokens/deduct { amount, reason }  (Idempotency-Key header)
+// Amin #5243: takes tokens back. The reason is required and goes to the ledger line and the audit; the balance never
+// goes below 0 (a bigger amount is refused with the balance, nothing is taken). The same key twice deducts once.
+router.post('/users/:id/tokens/deduct', async (req, res, next) => {
+  try {
+    const user = findUser(req.params.id)
+    if (!user) return fail(res, 404, 'not_found', 'No such account.')
+    const amount = Number(req.body?.amount)
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) {
+      return fail(res, 422, 'invalid_amount', 'amount must be > 0 and <= 100000.')
+    }
+    const reason = String(req.body?.reason || '').trim().slice(0, 300)
+    if (!reason) return fail(res, 422, 'reason_required', 'A reason is required.')
+    const s = await tokens.settings()
+    if (!s) return fail(res, 503, 'tokens_unavailable', 'Token settings are not available right now.')
+    const idemKey = `admin_deduct:${user.id}:${String(req.get('idempotency-key') || crypto.randomUUID()).slice(0, 100)}`
+    // check and book in one transaction, so two deducts at once cannot both pass the balance check
+    const outcome = db.transaction(() => {
+      if (db.prepare('SELECT 1 FROM token_ledger WHERE idem_key = ?').get(idemKey)) return 'repeat'
+      const balance = tokens.balanceOf(user.id, s)
+      if (amount > balance) return { short: Math.max(0, balance) }
+      tokens.post(user.id, 'admin_deduct', -amount, idemKey, reason)
+      return 'done'
+    })()
+    if (outcome?.short !== undefined) {
+      return res.status(422).json({
+        error: { code: 'exceeds_balance', message: 'The balance cannot go below 0.' },
+        balance: outcome.short
+      })
+    }
+    if (outcome === 'done') audit(req, 'deduct', user.id, `${amount} ${reason}`)
+    res.json({ tokens: tokensView(user.id, s) })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // POST /admin/users/:id/licence/extend { days, note }
 router.post('/users/:id/licence/extend', async (req, res, next) => {
   try {

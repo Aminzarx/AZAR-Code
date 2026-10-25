@@ -186,6 +186,24 @@ test('grant adds tokens once per idempotency key; extend moves the paid date', a
   assert.equal(e.body.licence.state, 'active')
 })
 
+test('deduct needs a reason, books once per key, and never takes the balance below 0 (#5243)', async () => {
+  const a = await account()
+  const before = (await call('GET', `/users/${a.userId}`)).body.tokens.balance
+  assert.equal((await call('POST', `/users/${a.userId}/tokens/deduct`, { amount: 5 })).status, 422)
+  assert.equal((await call('POST', `/users/${a.userId}/tokens/deduct`, { amount: 0, reason: 'x' })).status, 422)
+  const d1 = await call('POST', `/users/${a.userId}/tokens/deduct`, { amount: 5, reason: 'خطای ثبت' }, { 'idempotency-key': 'd1' })
+  const d2 = await call('POST', `/users/${a.userId}/tokens/deduct`, { amount: 5, reason: 'خطای ثبت' }, { 'idempotency-key': 'd1' })
+  assert.equal(d1.status, 200)
+  assert.equal(d2.body.tokens.balance, before - 5)
+  assert.equal(d2.body.tokens.spentBy.deducted, 5)
+  const tooMuch = await call('POST', `/users/${a.userId}/tokens/deduct`, { amount: before, reason: 'بیش از موجودی' })
+  assert.equal(tooMuch.status, 422)
+  assert.equal(tooMuch.body.error.code, 'exceeds_balance')
+  assert.equal(tooMuch.body.balance, before - 5)
+  const lines = (await call('GET', `/users/${a.userId}/tokens`)).body.lines
+  assert.ok(lines.some((l) => l.reason === 'admin_deduct' && l.amount === -5 && l.ref === 'خطای ثبت'))
+})
+
 test('lock signs out and blocks sign-in; deactivate reads as an ended licence; active undoes both', async () => {
   const a = await account()
   assert.equal((await call('POST', `/users/${a.userId}/status`, { status: 'locked' })).status, 200)

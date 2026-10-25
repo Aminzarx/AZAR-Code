@@ -19,6 +19,7 @@ const { appPrices } = require('./licenceRoutes')
 
 const REASONS = [
   'admin_grant', // Amin #5197: tokens a KSS admin gave from the billing panel (counted with the gifts)
+  'admin_deduct', // Amin #5243: tokens a KSS admin took back, with a reason (counted with the spending)
   'allowance', // only the zero-amount marker of the current model (opening-v2); the allowance itself is not stored
   'file_spend',
   'file_refund',
@@ -257,9 +258,12 @@ function summaryOf(accountId, s) {
     files: used('file'),
     applicants: used('applicant'),
     contracts: used('contract'),
-    phoneChange: round(-sum(['phone_change']))
+    phoneChange: round(-sum(['phone_change'])),
+    deducted: round(-sum(['admin_deduct']))
   }
-  const spent = round(spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange)
+  const spent = round(
+    spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange + spentBy.deducted
+  )
   const granted = sum(['admin_grant'])
   const earned = round(sum(BONUS_REASONS) + granted)
   const bought = sum(['pack_bought'])
