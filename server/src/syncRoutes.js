@@ -299,4 +299,41 @@ function blobOf(accountId, hash) {
   }
 }
 
-module.exports = { router, deleteAccountData, rowsOf, blobOf, usageOf }
+/**
+ * Amin #5216: an archived account's files join the new account on the same number. Rows the new account already has
+ * (same table + key) stay as they are; the rest move, with user_id/owner_id pointing at the new account. Photos are
+ * copied. Returns { moved, kept }.
+ */
+function moveAccountData(fromId, toId) {
+  const have = new Set(
+    db.prepare('SELECT tbl, row_key FROM sync_rows WHERE account_id = ?').all(toId).map((r) => `${r.tbl}|${r.row_key}`)
+  )
+  const insert = db.prepare(
+    'INSERT INTO sync_rows (account_id, tbl, row_key, data, bytes, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+  )
+  let moved = 0
+  let kept = 0
+  for (const r of db.prepare('SELECT tbl, row_key, data, bytes, updated_at FROM sync_rows WHERE account_id = ?').all(fromId)) {
+    if (have.has(`${r.tbl}|${r.row_key}`)) {
+      kept += 1
+      continue
+    }
+    const row = JSON.parse(open(r.data).toString('utf8'))
+    for (const field of ['user_id', 'owner_id']) if (row && row[field] === fromId) row[field] = toId
+    insert.run(toId, r.tbl, r.row_key, seal(Buffer.from(JSON.stringify(row), 'utf8')), r.bytes, r.updated_at)
+    moved += 1
+  }
+  const hasBlob = db.prepare('SELECT 1 FROM sync_blobs WHERE account_id = ? AND hash = ?')
+  const insertBlob = db.prepare('INSERT INTO sync_blobs (account_id, hash, bytes, created_at) VALUES (?, ?, ?, ?)')
+  for (const b of db.prepare('SELECT hash, bytes, created_at FROM sync_blobs WHERE account_id = ?').all(fromId)) {
+    if (hasBlob.get(toId, b.hash)) continue
+    const from = blobPath(fromId, b.hash)
+    if (!fs.existsSync(from)) continue
+    fs.mkdirSync(path.dirname(blobPath(toId, b.hash)), { recursive: true })
+    fs.copyFileSync(from, blobPath(toId, b.hash))
+    insertBlob.run(toId, b.hash, b.bytes, b.created_at)
+  }
+  return { moved, kept }
+}
+
+module.exports = { router, deleteAccountData, rowsOf, blobOf, usageOf, moveAccountData }

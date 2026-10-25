@@ -108,17 +108,35 @@ async function summaryRow(user, s) {
   const t = tokensView(user.id, s)
   return {
     id: user.id,
-    phone: user.phone_number,
+    phone: shownPhone(user),
     name: profile.display_name ?? null,
     agency: profile.agency_name ?? null,
     referralCode: user.referral_code,
     status: user.admin_status,
+    archivedAt: user.archived_at ?? null,
     createdAt: user.created_at,
     lastLoginAt: user.last_login_at ?? null,
     tokens: t ? { balance: t.balance, allowance: t.allowance, spent: t.spent } : null,
     licence: await licenceView(user),
     counts: countsOf(user.id)
   }
+}
+
+/** an archived account keeps its number aside (phone_number = archived:<id>) */
+function shownPhone(user) {
+  return user.admin_status === 'archived' ? user.archived_phone : user.phone_number
+}
+
+/** Amin #5216: the archived accounts on this account's number, for «حساب قبلی بایگانی‌شده» */
+function archivesFor(user) {
+  if (user.admin_status === 'archived') return []
+  return db
+    .prepare(
+      `SELECT id, archived_at, created_at FROM users WHERE admin_status = 'archived' AND archived_phone = ? AND ${LIVE}
+       ORDER BY archived_at DESC`
+    )
+    .all(user.phone_number)
+    .map((a) => ({ id: a.id, archivedAt: a.archived_at, createdAt: a.created_at, counts: countsOf(a.id) }))
 }
 
 function findUser(id) {
@@ -138,7 +156,7 @@ router.get('/users', async (req, res, next) => {
     const pageSize = Math.min(200, Math.max(1, Number(req.query.pageSize) || 50))
     const where = [LIVE]
     const args = []
-    if (STATUSES.includes(status) || status === 'deleted') {
+    if (STATUSES.includes(status) || status === 'deleted' || status === 'archived') {
       where.push('admin_status = ?')
       args.push(status)
     } else if (status !== 'all') {
@@ -146,8 +164,8 @@ router.get('/users', async (req, res, next) => {
     }
     if (q) {
       const digits = q.replace(/\D/g, '').replace(/^(98|0098)/, '0')
-      where.push('(phone_number LIKE ? OR referral_code = ?)')
-      args.push(`%${digits || q}%`, q.toUpperCase())
+      where.push('(phone_number LIKE ? OR archived_phone LIKE ? OR referral_code = ?)')
+      args.push(`%${digits || q}%`, `%${digits || q}%`, q.toUpperCase())
     }
     const sql = `FROM users WHERE ${where.join(' AND ')}`
     const total = db.prepare(`SELECT COUNT(*) AS n ${sql}`).get(...args).n
@@ -194,9 +212,11 @@ router.get('/users/:id', async (req, res, next) => {
     audit(req, 'read', user.id, 'detail')
     res.json({
       id: user.id,
-      phone: user.phone_number,
+      phone: shownPhone(user),
       name: profile.display_name ?? null,
       agency: profile.agency_name ?? null,
+      archivedAt: user.archived_at ?? null,
+      archivedAccounts: archivesFor(user),
       photo: photo ? `data:image/webp;base64,${photo.toString('base64')}` : null,
       referralCode: user.referral_code,
       usedReferralCode: user.used_referral_code ?? null,
@@ -285,6 +305,7 @@ router.post('/users/:id/status', (req, res) => {
   const status = String(req.body?.status || '')
   if (!STATUSES.includes(status)) return fail(res, 422, 'invalid_status', 'status must be active, locked or deactivated.')
   if (user.admin_status === 'deleted') return fail(res, 409, 'deleted', 'Restore the account first.')
+  if (user.admin_status === 'archived') return fail(res, 409, 'archived', 'Unarchive or attach the account first.')
   db.transaction(() => {
     db.prepare('UPDATE users SET admin_status = ?, admin_status_at = ?, delete_after = NULL WHERE id = ?').run(
       status,
@@ -301,6 +322,7 @@ router.post('/users/:id/status', (req, res) => {
 router.post('/users/:id/delete', (req, res) => {
   const user = findUser(req.params.id)
   if (!user) return fail(res, 404, 'not_found', 'No such account.')
+  if (user.admin_status === 'archived') return fail(res, 409, 'archived', 'Unarchive the account first.')
   const now = Date.now()
   const deleteAfter = new Date(now + DELETE_GRACE_DAYS * DAY).toISOString()
   db.transaction(() => {
@@ -342,6 +364,98 @@ router.get('/users/:id/export', (req, res, next) => {
   } catch (error) {
     next(error)
   }
+})
+
+// POST /admin/users/:id/archive { note }  — Amin #5216 «حذف موقت»
+// The account and its files stay (never purged); its number is freed, so the next sign-in with that number is a new,
+// empty account like any newcomer's. Later KSS decides: attach the old files to it, or unarchive.
+router.post('/users/:id/archive', (req, res) => {
+  const user = findUser(req.params.id)
+  if (!user) return fail(res, 404, 'not_found', 'No such account.')
+  if (user.admin_status === 'archived' || user.admin_status === 'deleted') {
+    return fail(res, 409, user.admin_status, `The account is ${user.admin_status}.`)
+  }
+  const at = new Date().toISOString()
+  db.transaction(() => {
+    db.prepare(
+      `UPDATE users SET archived_phone = phone_number, phone_number = ?, admin_status = 'archived', admin_status_at = ?,
+       archived_at = ?, delete_after = NULL WHERE id = ?`
+    ).run(`archived:${user.id}`, at, at, user.id)
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
+    db.prepare('DELETE FROM invites WHERE referrer_user_id = ?').run(user.id)
+  })()
+  audit(req, 'archive', user.id, String(req.body?.note || '').slice(0, 300))
+  res.json({ status: 'archived', archivedAt: at })
+})
+
+// POST /admin/users/:id/unarchive { note }: back to active on its number, only while no other account uses that number
+router.post('/users/:id/unarchive', (req, res) => {
+  const user = findUser(req.params.id)
+  if (!user) return fail(res, 404, 'not_found', 'No such account.')
+  if (user.admin_status !== 'archived') return fail(res, 409, 'not_archived', 'The account is not archived.')
+  if (db.prepare('SELECT 1 FROM users WHERE phone_number = ?').get(user.archived_phone)) {
+    return fail(res, 409, 'phone_in_use', 'A new account uses this number; attach instead.')
+  }
+  db.prepare(
+    `UPDATE users SET phone_number = archived_phone, archived_phone = NULL, archived_at = NULL, admin_status = 'active',
+     admin_status_at = ? WHERE id = ?`
+  ).run(new Date().toISOString(), user.id)
+  audit(req, 'unarchive', user.id, String(req.body?.note || '').slice(0, 300))
+  res.json({ status: 'active' })
+})
+
+// POST /admin/users/:id/attach { targetId, note }: the archived account :id joins the new account on the same number.
+// Files, photos, token lines, the later paid licence and the people it invited move; where both hold the same record,
+// the new account's copy stays. The archived account then becomes a tombstone, so the referral chain stays whole.
+// The phone shows the attached files after its next sign-in.
+router.post('/users/:id/attach', (req, res) => {
+  const from = findUser(req.params.id)
+  const to = findUser(String(req.body?.targetId || ''))
+  if (!from || !to) return fail(res, 404, 'not_found', 'No such account.')
+  if (from.admin_status !== 'archived') return fail(res, 409, 'not_archived', 'Only an archived account can be attached.')
+  if (to.admin_status === 'archived' || to.admin_status === 'deleted') {
+    return fail(res, 409, 'bad_target', 'The target must be a live account.')
+  }
+  if (to.phone_number !== from.archived_phone) return fail(res, 422, 'phone_mismatch', 'The target must use the archived number.')
+  const now = new Date().toISOString()
+  let result
+  db.transaction(() => {
+    result = sync.moveAccountData(from.id, to.id)
+    // token lines: all but the model marker, under new keys so nothing collides
+    const insertLine = db.prepare(
+      'INSERT OR IGNORE INTO token_ledger (id, account_id, at, reason, amount, ref, idem_key) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    )
+    for (const l of db.prepare("SELECT * FROM token_ledger WHERE account_id = ? AND reason != 'allowance'").all(from.id)) {
+      insertLine.run(crypto.randomUUID(), to.id, l.at, l.reason, l.amount, l.ref, `attached:${from.id}:${l.idem_key}`)
+    }
+    // licence: the later paid date wins
+    const paid = (id) => db.prepare('SELECT paid_until FROM licences WHERE user_id = ?').get(id)?.paid_until ?? null
+    const old = paid(from.id)
+    const current = paid(to.id)
+    if (old && (!current || Date.parse(old) > Date.parse(current))) {
+      db.prepare(
+        `INSERT INTO licences (user_id, paid_until, updated_at) VALUES (?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET paid_until = excluded.paid_until, updated_at = excluded.updated_at`
+      ).run(to.id, old, now)
+    }
+    // the people the old account invited now count for the new one
+    db.prepare('UPDATE referral_relationships SET referrer_user_id = ? WHERE referrer_user_id = ? AND referred_user_id != ?').run(
+      to.id,
+      from.id,
+      to.id
+    )
+    db.prepare("UPDATE users SET phone_number = ?, deleted_at = ?, admin_status = 'merged', admin_status_at = ? WHERE id = ?").run(
+      `deleted:${from.id}`,
+      now,
+      now,
+      from.id
+    )
+    db.prepare('DELETE FROM licences WHERE user_id = ?').run(from.id)
+    db.prepare('DELETE FROM phone_changes WHERE user_id = ?').run(from.id)
+    sync.deleteAccountData(from.id)
+  })()
+  audit(req, 'attach', to.id, `from ${from.id}: ${result.moved} moved, ${result.kept} kept. ${String(req.body?.note || '').slice(0, 200)}`)
+  res.json({ targetId: to.id, moved: result.moved, kept: result.kept })
 })
 
 // GET /admin/backups

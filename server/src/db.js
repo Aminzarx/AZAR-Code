@@ -90,10 +90,13 @@ if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'delete
 {
   const have = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name)
   for (const [name, type] of [
-    ['admin_status', "TEXT NOT NULL DEFAULT 'active'"], // active | locked | deactivated | deleted (soft, see delete_after)
+    ['admin_status', "TEXT NOT NULL DEFAULT 'active'"], // active | locked | deactivated | deleted (soft, see delete_after) | archived
     ['admin_status_at', 'TEXT'],
     ['delete_after', 'TEXT'],
-    ['last_login_at', 'TEXT']
+    ['last_login_at', 'TEXT'],
+    // Amin #5216 «حذف موقت»: the archived account's number (phone_number then holds archived:<id>, so the number is free)
+    ['archived_phone', 'TEXT'],
+    ['archived_at', 'TEXT']
   ]) {
     if (!have.includes(name)) db.exec(`ALTER TABLE users ADD COLUMN ${name} ${type}`)
   }

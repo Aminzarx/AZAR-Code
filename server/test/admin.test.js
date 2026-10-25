@@ -245,3 +245,47 @@ test('export is a zip of named folders, the lists as CSV and data.json', async (
   const audit = await call('GET', `/audit?userId=${a.userId}`)
   assert.ok(audit.body.rows.some((r) => r.action === 'export'))
 })
+
+test('«حذف موقت»: archive frees the number; a new account signs up on it; attach moves the old files in', async () => {
+  const old = await account()
+  await post('/sync/push', {
+    sessionToken: old.sessionToken,
+    changes: [
+      { t: 'properties', k: 'op1', row: { id: 'op1', owner_id: old.userId, title: 'مغازه' } },
+      { t: 'application_settings', k: 'display_name', row: { key: 'display_name', value: 'قدیمی' } }
+    ]
+  })
+  await call('POST', `/users/${old.userId}/licence/extend`, { days: 60 })
+  const ar = await call('POST', `/users/${old.userId}/archive`, { note: 'test' })
+  assert.equal(ar.status, 200)
+  assert.equal((await post('/tokens/ledger', { sessionToken: old.sessionToken })).status, 401)
+  const archived = (await call('GET', `/users/${old.userId}`)).body
+  assert.equal(archived.status, 'archived')
+  assert.equal(archived.phone, old.phoneNumber)
+
+  // the number signs up again as a newcomer
+  await post('/auth/send-otp', { phoneNumber: old.phoneNumber })
+  await post('/auth/verify-otp', { phoneNumber: old.phoneNumber, code: '123456' })
+  const fresh = await post('/auth/register', { phoneNumber: old.phoneNumber, referralCode: 'AMINZX' })
+  assert.equal(fresh.status, 201, JSON.stringify(fresh.body))
+  await post('/sync/push', {
+    sessionToken: fresh.body.sessionToken,
+    changes: [{ t: 'application_settings', k: 'display_name', row: { key: 'display_name', value: 'جدید' } }]
+  })
+  const newDetail = (await call('GET', `/users/${fresh.body.userId}`)).body
+  assert.deepEqual(newDetail.archivedAccounts.map((a) => a.id), [old.userId])
+  assert.equal((await call('POST', `/users/${old.userId}/unarchive`)).status, 409)
+
+  const at = await call('POST', `/users/${old.userId}/attach`, { targetId: fresh.body.userId })
+  assert.equal(at.status, 200, JSON.stringify(at.body))
+  assert.equal(at.body.kept, 1) // display_name: the new account's stays
+  const merged = (await call('GET', `/users/${fresh.body.userId}`)).body
+  assert.equal(merged.name, 'جدید')
+  assert.equal(merged.counts.properties, 1)
+  assert.equal(merged.licence.state, 'active')
+  assert.deepEqual(merged.archivedAccounts, [])
+  const pulled = await post('/sync/pull', { sessionToken: fresh.body.sessionToken })
+  const shop = JSON.stringify(pulled.body)
+  assert.ok(shop.includes('مغازه') && shop.includes(fresh.body.userId))
+  assert.equal((await call('GET', `/users/${old.userId}`)).status, 404)
+})
