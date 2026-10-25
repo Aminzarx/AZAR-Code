@@ -1525,3 +1525,19 @@ sync.
 **Tests**: server tokens (live allowance, rebuild, records-only counting with photos, replay, refunds,
 short balance); token card levels and breakdown; calendar cleanup (both names, no permission prompt,
 never throws).
+
+---
+
+## 2026-10-25 — 1.5.1: installs on 32-bit phones; download on kssx.ir
+
+**Change**: the release build now carries armeabi-v7a native code next to arm64-v8a (CI adds swap so both fit in
+the runner's memory), so 32-bit Xiaomi/Redmi phones can install it. The download and the app's share link move to
+kssx.ir's apps page; updates are accepted from https://kssx.ir/dl/ as well as the old folder.
+
+**Reason**: Amin #5149 («برای گوشی های شیائومی نصب نمیشه»), #5135.
+
+**Affected modules**: `.github/workflows/android-build.yml`, version files, `updateService`, `SettingsScreen`.
+
+**Migration requirements**: none.
+
+**Tests**: update check accepts kssx.ir/dl/ and refuses a look-alike host.
