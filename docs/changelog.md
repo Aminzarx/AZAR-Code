@@ -1649,6 +1649,20 @@ kss-pricing 0.38.1.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
 
+## 2026-10-26 — 1.5.4: the right version number, quicker update checks
+
+**Change**: 1.5.3 shipped with `APP_VERSION` still at 1.5.2, so a 1.5.3 phone keeps offering 1.5.3 as an update.
+The version now has one source: package.json (`appVersion.ts` reads it, `build.gradle` versionName reads it).
+The update check runs again whenever the app comes back after 10 minutes (was an hour), so a phone that keeps the
+app open sees a new version sooner. Checked on the emulator: 1.5.2 → «نسخهٔ تازه آماده است» for 1.5.3 within
+about 90 s of launch.
+
+**Reason**: Amin #5325.
+
+**Affected modules**: `shared/appVersion.ts`, `app/UpdateChecker.tsx`, `android/app/build.gradle`, `package.json`.
+
+**Migration requirements**: none.
+
 ## 2026-10-25 — 1.5.3: contract kinds, contract delete, pinned add buttons, round tab pill
 
 **Change**:

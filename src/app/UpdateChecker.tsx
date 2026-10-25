@@ -11,8 +11,8 @@ import {
 } from '@infrastructure/updates/appInstaller'
 import { toPersianDigits } from '@shared/utils/persianText'
 
-/** v1.1.0 (Amin #4216): check again when the app comes back, at most once an hour. */
-const RECHECK_MS = 60 * 60 * 1000
+/** Amin #5325: check again when the app comes back after 10 minutes (was an hour, so a phone left open missed new versions) */
+const RECHECK_MS = 10 * 60 * 1000
 
 type ReadyUpdate = { update: AvailableUpdate; path: string }
 
