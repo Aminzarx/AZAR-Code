@@ -1686,3 +1686,18 @@ button uses `width: 'auto'` (the web kept 56 px).
 
 **Tests**: checked live on app.kssx.ir with the test number: sign-in, files from the server with photos, a new file
 through the 6-step wizard pushed and deleted, privacy cover, copy/menu blocked, photo conversion 3000×2000 → 1600 WebP.
+
+## 2026-10-25 — 1.5.2: deal page order (Amin #5274), one version with the purchase items
+
+**Change**: On the deal page the property-file and applicant cards come first, above «مسیر معامله»; «پیشرفت»,
+«موفق» and «ناموفق» sit side by side on one row, with «مرحلهٔ بعد: …» under them. 1.5.2 (not published yet) now also
+carries the token purchase screen, the eyvan://paid return, the single receipt and the kssx.ir bank return, so they
+ship as one version.
+
+**Reason**: Amin #5274; brain 2026-10-25 (one version).
+
+**Affected modules**: `DealDetailScreen` (+ test).
+
+**Migration requirements**: none.
+
+**Tests**: `DealDetailScreen.test.tsx` (advance uses «پیشرفت», checks the next-stage line).

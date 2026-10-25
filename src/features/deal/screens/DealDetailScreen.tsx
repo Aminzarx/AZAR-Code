@@ -149,45 +149,7 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
               />
             ) : null}
 
-            <View style={styles.section}>
-              <Text style={[theme.typography('titleMd'), styles.heading]}>مسیر معامله</Text>
-              <PipelineIndicator stage={deal.currentStage} />
-            </View>
-
-            {!isTerminal && canEdit ? (
-              // v2.9.1: reordered/re-styled for clearer visual hierarchy
-              // per explicit feedback that the three actions competed for
-              // attention. "پیشرفت" (advance to the next real pipeline
-              // stage) is now the sole filled `primary` CTA; "موفق" is a
-              // tonal secondary (still a real, common action); "ناموفق"
-              // is a muted text action, not a solid-red button sitting
-              // next to a primary CTA — the outcome is still clearly
-              // destructive by its red label color, just not shouting.
-              <View style={styles.stageActions}>
-                {nextStage ? (
-                  <Button
-                    label={`پیشرفت به «${DEAL_STAGE_LABELS[nextStage]}»`}
-                    variant="primary"
-                    loading={isTransitioning}
-                    onPress={() => handleTransition(nextStage)}
-                  />
-                ) : null}
-                <Button
-                  label="موفق"
-                  variant="secondary"
-                  loading={isTransitioning}
-                  onPress={() => handleTransition('won')}
-                />
-                <Button
-                  label="ناموفق"
-                  variant="destructiveText"
-                  fullWidth={false}
-                  onPress={() => setIsLostDialogVisible(true)}
-                  style={styles.lostAction}
-                />
-              </View>
-            ) : null}
-
+            {/* Amin #5274: the file and the applicant first, above the deal path */}
             <View style={styles.summaryRow}>
               <SummaryBlock
                 title={deal.property?.title ?? 'ملک نامشخص'}
@@ -226,6 +188,65 @@ export function DealDetailScreen({ navigation, route }: Props): React.JSX.Elemen
                 styles={styles}
               />
             </View>
+
+            <View style={styles.section}>
+              <Text style={[theme.typography('titleMd'), styles.heading]}>مسیر معامله</Text>
+              <PipelineIndicator stage={deal.currentStage} />
+            </View>
+
+            {!isTerminal && canEdit ? (
+              // Amin #5274: «پیشرفت», «موفق» and «ناموفق» side by side on one row («ناموفق» stays a quiet red text
+              // action, v2.9.1); the next stage's name is the line under them
+              <View style={styles.section}>
+                <View style={styles.stageActions}>
+                  {nextStage ? (
+                    <Button
+                      label="پیشرفت"
+                      variant="primary"
+                      fullWidth={false}
+                      loading={isTransitioning}
+                      onPress={() => handleTransition(nextStage)}
+                      style={styles.stageAction}
+                    />
+                  ) : null}
+                  <Button
+                    label="موفق"
+                    variant="secondary"
+                    fullWidth={false}
+                    loading={isTransitioning}
+                    onPress={() => handleTransition('won')}
+                    style={styles.stageAction}
+                  />
+                  <Button
+                    label="ناموفق"
+                    variant="destructiveText"
+                    fullWidth={false}
+                    onPress={() => setIsLostDialogVisible(true)}
+                    style={styles.stageAction}
+                  />
+                </View>
+                {nextStage ? (
+                  <Text style={[theme.typography('bodySm'), styles.nextStageHint]}>
+                    {`مرحلهٔ بعد: ${DEAL_STAGE_LABELS[nextStage]}`}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+                <Button
+                  label="موفق"
+                  variant="secondary"
+                  loading={isTransitioning}
+                  onPress={() => handleTransition('won')}
+                />
+                <Button
+                  label="ناموفق"
+                  variant="destructiveText"
+                  fullWidth={false}
+                  onPress={() => setIsLostDialogVisible(true)}
+                  style={styles.lostAction}
+                />
+              </View>
+            ) : null}
 
             <DealActivitySection
               stageHistory={activity.stageHistory}
@@ -358,10 +379,15 @@ function createStyles(theme: Theme) {
       gap: theme.spacing.space3
     },
     stageActions: {
+      flexDirection: 'row',
       gap: theme.spacing.space2
     },
-    lostAction: {
-      alignSelf: 'center'
+    stageAction: {
+      flex: 1
+    },
+    nextStageHint: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     // design-system.md §10 — a short Text in a column container doesn't
     // reliably stretch to full width, so textAlign alone isn't enough;

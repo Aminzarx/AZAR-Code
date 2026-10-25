@@ -352,7 +352,9 @@ describe('DealDetailScreen', () => {
       withTheme(<DealDetailScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    fireEvent.press(await findByText('پیشرفت به «پیشنهاد قیمت»'))
+    // Amin #5274: a short «پیشرفت» on the one-row actions; the next stage is named under them
+    expect(await findByText('مرحلهٔ بعد: پیشنهاد قیمت')).toBeTruthy()
+    fireEvent.press(await findByText('پیشرفت'))
 
     await waitFor(() =>
       expect(mockTransitionStage).toHaveBeenCalledWith('deal-1', 'offer', 'u1', {
