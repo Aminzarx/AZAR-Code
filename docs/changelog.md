@@ -1635,6 +1635,10 @@ kss-pricing 0.38.1.
 - The page after the bank has «بازگشت به اپ ایوان», which opens the app through a new `eyvan://paid` link (Chrome opens
   apps only through a browsable link); the receipt just shown is not repeated in the list below it. Checked end to end on
   the emulator against a local stack (pricing with a test price, billing, azar-auth).
+- The bank returns the buyer to kssx.ir only (Amin #5135: no other domain in front of users): nginx snippet
+  `server/deploy/nginx-kssx-eyvan-pay.conf` (live as /etc/nginx/snippets/kssx-eyvan-pay.conf) passes
+  `kssx.ir/pay/eyvan/api/v1/eyvan-pay/callback/<id>` to billing and serves `kssx.ir/pay/eyvan/done` from azar-auth's page.
+  The api.zarandix.ir relay stays only as a fallback for payments started before the switch.
 
 **Reason**: Amin #5245, #5243.
 

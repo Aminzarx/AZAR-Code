@@ -325,8 +325,8 @@ h1{font-size:22px;margin:0 0 8px}p{line-height:1.9;margin:0}
 </div></body></html>`)
 })
 
-// GET /pay/api/v1/eyvan-pay/callback/:id — the bank sends the buyer back here (a public host of ours; billing's own
-// public host is behind a login). Passed to billing on loopback, which verifies the payment and answers with where to go
+// GET /pay/api/v1/eyvan-pay/callback/:id — FALLBACK only: since 2026-10-25 the bank returns to kssx.ir/pay/eyvan/… (nginx →
+// billing; Amin #5135: no other domain in front of users). Kept for payments started through api.zarandix.ir before that. Passed to billing on loopback, which verifies the payment and answers with where to go
 // next (the «go back to the app» page); only that redirect is passed on, never billing's body.
 const bankReturn = express.Router()
 bankReturn.get('/pay/api/v1/eyvan-pay/callback/:id', limited, async (req, res) => {
@@ -337,7 +337,7 @@ bankReturn.get('/pay/api/v1/eyvan-pay/callback/:id', limited, async (req, res) =
     try {
       const r = await fetch(`${BILLING_URL}/eyvan-pay/callback/${id}${query}`, { redirect: 'manual', signal: AbortSignal.timeout(30000) })
       const location = r.headers.get('location')
-      if (location && /^https:\/\/api\.zarandix\.ir\/tokens\/paid\?/.test(location)) to = location
+      if (location && /^https:\/\/(kssx\.ir\/pay\/eyvan\/done|api\.zarandix\.ir\/tokens\/paid)\?/.test(location)) to = location
       else if (location && location.startsWith('/tokens/paid?')) to = location
     } catch {
       // billing unreachable: the buyer is told it did not go through; the order's status is read again from the app

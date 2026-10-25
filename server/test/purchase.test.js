@@ -40,7 +40,7 @@ const billingSrv = http.createServer((req, res) => {
   // the bank's return (no key): billing verifies and says where to go next
   const back = req.url.match(/^\/eyvan-pay\/callback\/([^?]+)\?(.*)$/)
   if (back) {
-    const to = back[1] === 'etp_evil01' ? 'https://evil.example/x' : `https://api.zarandix.ir/tokens/paid?paid=ok&order=tko_${back[1]}&q=${encodeURIComponent(back[2])}`
+    const to = back[1] === 'etp_evil01' ? 'https://evil.example/x' : `https://kssx.ir/pay/eyvan/done?paid=ok&order=tko_${back[1]}&q=${encodeURIComponent(back[2])}`
     return res.writeHead(303, { location: to }).end()
   }
   if (req.headers.authorization !== 'Bearer billing-key') return res.writeHead(401).end()
@@ -234,7 +234,7 @@ test('the bank sends the buyer back through our host: billing verifies on loopba
   const get = (p) => fetch(`${base}${p}`, { redirect: 'manual', headers: { 'x-forwarded-for': `10.9.0.${++requests & 255}` } })
   const ok = await get('/pay/api/v1/eyvan-pay/callback/etp_abc123?Authority=A1&Status=OK')
   assert.equal(ok.status, 303)
-  assert.equal(ok.headers.get('location'), 'https://api.zarandix.ir/tokens/paid?paid=ok&order=tko_etp_abc123&q=Authority%3DA1%26Status%3DOK')
+  assert.equal(ok.headers.get('location'), 'https://kssx.ir/pay/eyvan/done?paid=ok&order=tko_etp_abc123&q=Authority%3DA1%26Status%3DOK')
   const evil = await get('/pay/api/v1/eyvan-pay/callback/etp_evil01?Status=OK')
   assert.equal(evil.headers.get('location'), '/tokens/paid?paid=failed')
   const bad = await get('/pay/api/v1/eyvan-pay/callback/..%2Fadmin?Status=OK')
