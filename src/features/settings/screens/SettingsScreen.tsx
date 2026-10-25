@@ -226,17 +226,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
     setIsLogoutConfirmVisible(true)
   }
 
-  /** AZAR-SYNC-001 (Amin #4797): where the account's files stand against the server */
-  function syncSummary(): string {
-    if (sync.state === 'full') return 'توکن‌ها تمام شده؛ تغییرهای تازه فعلاً فقط روی این گوشی است'
-    if (sync.pending > 0) {
-      return sync.state === 'offline'
-        ? `${persianNumber(sync.pending)} تغییر منتظر اینترنت است`
-        : `در حال ذخیرهٔ ${persianNumber(sync.pending)} تغییر`
-    }
-    return 'همهٔ پرونده‌ها روی حساب شما ذخیره شده است'
-  }
-
   async function handleStartAccountDeletion(): Promise<void> {
     if (!phoneNumber) {
       return
@@ -381,14 +370,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
         />
 
         <View style={styles.list}>
-          <SettingsRow
-            icon="cloud"
-            label="ذخیره روی سرور"
-            value={syncSummary()}
-            onPress={() => {
-              syncNow().catch(() => undefined)
-            }}
-          />
+          {/* Amin #5314: no «ذخیره روی سرور» row; the files still go to the server by themselves */}
           {/* Amin #5308: theme and «حالت نمایش» on their own page, a row like the others */}
           <SettingsRow
             icon="moon"
@@ -410,6 +392,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
                 : 'نامشخص'
             }
             badge={isOnline === null ? undefined : isOnline ? 'آنلاین' : 'آفلاین'}
+            badgeMuted={isOnline === false}
           />
           <SettingsRow
             icon="help"

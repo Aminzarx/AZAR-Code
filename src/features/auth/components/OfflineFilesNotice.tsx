@@ -18,7 +18,7 @@ export function OfflineFilesNotice(): React.JSX.Element | null {
   if (!session || !sync?.settled || sync.loaded || sync.state === 'syncing') return null
   return (
     <View style={styles.notice} accessibilityRole="alert">
-      <Icon name="cloud-offline" size="sm" color={theme.colors.onWarningContainer} />
+      <Icon name="cloud-offline" size="sm" color={theme.colors.onTertiaryContainer} />
       <Text style={[theme.typography('labelMd'), styles.text]}>{OFFLINE_FILES_TEXT}</Text>
     </View>
   )
@@ -34,8 +34,9 @@ function createStyles(theme: Theme) {
       paddingVertical: theme.spacing.space2,
       minHeight: theme.touchTargetMinimum,
       borderRadius: theme.radius.large,
-      backgroundColor: theme.colors.warningContainer
+      // Amin #5315: the offline line in dark grey (light grey on dark), on the neutral container
+      backgroundColor: theme.colors.tertiaryContainer
     },
-    text: { flex: 1, color: theme.colors.onWarningContainer, textAlign: 'left' }
+    text: { flex: 1, color: theme.colors.onTertiaryContainer, textAlign: 'left' }
   })
 }

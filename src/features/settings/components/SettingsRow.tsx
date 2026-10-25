@@ -8,6 +8,8 @@ type Props = {
   label: string
   value?: string
   badge?: string
+  /** Amin #5315: «آفلاین» in dark grey, not green */
+  badgeMuted?: boolean
   onPress?: () => void
   destructive?: boolean
   /** no divider under the last row */
@@ -15,7 +17,7 @@ type Props = {
 }
 
 /** v1.4.0 (approved «من» design): one row of the profile list — icon, label, value or chevron. */
-export function SettingsRow({ icon, label, value, badge, onPress, destructive, last }: Props): React.JSX.Element {
+export function SettingsRow({ icon, label, value, badge, badgeMuted, onPress, destructive, last }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const color = destructive ? theme.colors.error : theme.colors.onSurface
@@ -32,7 +34,7 @@ export function SettingsRow({ icon, label, value, badge, onPress, destructive, l
           </MarqueeText>
         ) : null}
       </View>
-      {badge ? <Text style={[theme.typography('labelSm'), styles.badge]}>{badge}</Text> : null}
+      {badge ? <Text style={[theme.typography('labelSm'), styles.badge, badgeMuted && styles.badgeMuted]}>{badge}</Text> : null}
       {onPress && !destructive ? <Icon name="chevron" size="xs" color={theme.colors.outline} /> : null}
     </>
   )
@@ -73,6 +75,7 @@ function createStyles(theme: Theme) {
     iconWrapDestructive: { backgroundColor: theme.colors.errorContainer },
     text: { flex: 1, gap: 2, alignItems: theme.isRTL ? 'flex-start' : 'flex-end' },
     value: { color: theme.colors.onSurfaceVariant },
-    badge: { color: theme.colors.success }
+    badge: { color: theme.colors.success },
+    badgeMuted: { color: theme.colors.onTertiaryContainer }
   })
 }
