@@ -188,7 +188,8 @@ function makeTabIcon(name: IconName) {
     const theme = useTheme()
     const styles = createTabIconStyles(theme)
     return (
-      <View style={[styles.pill, focused && styles.pillActive]}>
+      // Amin #5296: never flattened, so the round corners stay when the tab turns active (seen square on 1.5.3)
+      <View collapsable={false} style={[styles.pill, focused && styles.pillActive]}>
         <Icon name={name} size="sm" color={color} />
       </View>
     )
@@ -202,6 +203,8 @@ function createTabIconStyles(theme: Theme) {
       height: 32,
       // Amin #5296: half the height, not radius.full (9999), which some Android builds draw with square corners
       borderRadius: 16,
+      overflow: 'hidden',
+      backgroundColor: 'transparent',
       alignItems: 'center',
       justifyContent: 'center'
     },
