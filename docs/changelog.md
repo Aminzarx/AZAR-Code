@@ -1649,6 +1649,29 @@ kss-pricing 0.38.1.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
 
+## 2026-10-26 — 1.5.5: fields start on the right; applicants with several deal modes
+
+**Change**:
+- Every text field is right-aligned again, so tapping an empty field puts the caret at the right, not at the end of
+  the grey hint, and a tap in typed text lands where it is (Amin #5328). The cause was `theme.typography`'s
+  `textAlign: 'left'` (meant for `<Text>`, which Android swaps under RTL) beating the input's `textAlign` prop; the
+  app-wide `FontText` input wrapper now puts the field's own prop last.
+- An applicant can want خرید, رهن و اجاره and تهاتر together, chosen like a file's deal kinds (Amin #5327). Each
+  mode asks its own field: buy/barter a budget, رهن و اجاره a رهن or اجاره. Kept in `preferred_transaction_type`
+  joined with «، »; an existing single type (incl. «اجاره») reads as the one chosen mode, so no migration and nothing
+  lost. Matching takes a file offered for any of the modes; the budget fits if it fits for a shared mode (price for
+  buy/barter, the applicant's رهن for رهن و اجاره, or the old budget-vs-deposit for an applicant who only rents). The
+  applicants list filter shows a multi-mode applicant under each mode; the deal page's contract button reads all modes.
+
+**Reason**: Amin #5327, #5328 (brain order for 1.5.5).
+
+**Affected modules**: `FontText`, `dealKinds` (+ test), `ApplicantForm`, `applicantValidation` (+ test),
+`matchingService` (+ test), `ApplicantListScreen`, `DealDetailScreen`; version 1.5.5 / versionCode 12.
+
+**Migration requirements**: none.
+
+**Tests**: jest in CI; emulator check of the profile fields (caret on the right) and the applicant form.
+
 ## 2026-10-26 — 1.5.4: the right version number, quicker update checks
 
 **Change**: 1.5.3 shipped with `APP_VERSION` still at 1.5.2, so a 1.5.3 phone keeps offering 1.5.3 as an update.

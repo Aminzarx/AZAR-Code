@@ -29,8 +29,14 @@ export function Text({ style, ...props }: TextProps & { ref?: React.Ref<RNText> 
   return <RNText {...props} style={withFont(style)} />
 }
 
+/**
+ * Amin #5328: theme.typography carries `textAlign: 'left'` (right for <Text>, which Android swaps under RTL), and on an
+ * input that style beat the field's own `textAlign` prop — text, hint and caret sat on the left, the caret at the end
+ * of the grey hint. The field's prop now wins, so a Persian field starts on the right and a tap lands where it is.
+ */
 function FontTextInput({ style, ...props }: TextInputProps & { ref?: React.Ref<RNTextInput> }): React.JSX.Element {
-  return <RNTextInput {...props} style={withFont(style)} />
+  const aligned = props.textAlign ? [withFont(style), { textAlign: props.textAlign }] : withFont(style) // rtl-allow: the field's own prop
+  return <RNTextInput {...props} style={aligned} />
 }
 
 /** keeps TextInput.State (focused input) and the other statics */

@@ -31,12 +31,12 @@ import { LostReasonDialog } from '../components/LostReasonDialog'
 import { dealStageTone } from '../dealPipeline'
 import { DEAL_STAGE_LABELS, getNextStage } from '../dealStageLabels'
 
-import { kindForApplicant, parseDealKinds } from '@shared/utils/dealKinds'
+import { kindsForApplicant, parseDealKinds } from '@shared/utils/dealKinds'
 
 /** Amin #5240: a deal gets a contract only when it is a رهن و اجاره one (file offered for it, applicant after it). */
 function isRentDeal(propertyType: string | null | undefined, applicantType: string | null | undefined): boolean {
-  const wanted = kindForApplicant(applicantType)
-  return parseDealKinds(propertyType).includes('رهن و اجاره') && (wanted === null || wanted === 'رهن و اجاره')
+  const wanted = kindsForApplicant(applicantType)
+  return parseDealKinds(propertyType).includes('رهن و اجاره') && (wanted.length === 0 || wanted.includes('رهن و اجاره'))
 }
 
 

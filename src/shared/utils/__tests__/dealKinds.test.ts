@@ -1,4 +1,11 @@
-import { joinDealKinds, kindForApplicant, parseDealKinds } from '../dealKinds'
+import {
+  joinApplicantKinds,
+  joinDealKinds,
+  kindForApplicant,
+  kindsForApplicant,
+  parseApplicantKinds,
+  parseDealKinds
+} from '../dealKinds'
 
 describe('dealKinds (Amin #5240)', () => {
   it('reads one or several kinds in a fixed order, old single values included', () => {
@@ -25,5 +32,21 @@ describe('dealKinds (Amin #5240)', () => {
     expect(kindForApplicant('تهاتر')).toBe('تهاتر')
     expect(kindForApplicant('')).toBeNull()
     expect(kindForApplicant('سرمایه‌گذاری')).toBeNull()
+  })
+})
+
+describe('applicant modes (Amin #5327)', () => {
+
+  it('reads an old single type as its one mode', () => {
+    expect(parseApplicantKinds('خرید')).toEqual(['خرید'])
+    expect(parseApplicantKinds('اجاره')).toEqual(['رهن و اجاره'])
+    expect(parseApplicantKinds('')).toEqual([])
+    expect(parseApplicantKinds('سرمایه‌گذاری')).toEqual([])
+  })
+
+  it('keeps several modes in a fixed order', () => {
+    expect(joinApplicantKinds(['تهاتر', 'خرید'])).toBe('خرید، تهاتر')
+    expect(parseApplicantKinds('خرید، رهن و اجاره')).toEqual(['خرید', 'رهن و اجاره'])
+    expect(kindsForApplicant('خرید، تهاتر')).toEqual(['فروش', 'تهاتر'])
   })
 })

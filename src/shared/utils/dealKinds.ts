@@ -48,3 +48,36 @@ export function kindForApplicant(applicantType: string | null | undefined): Deal
   }
   return null
 }
+
+/**
+ * Amin #5327: an applicant can want several of خرید / رهن و اجاره / تهاتر at once, like a file. Kept in the same
+ * `preferred_transaction_type` column joined with «، », so an old single type (or «اجاره») reads as the one chosen
+ * mode — no migration, nothing lost.
+ */
+export const APPLICANT_KINDS = ['خرید', 'رهن و اجاره', 'تهاتر'] as const
+export type ApplicantKind = (typeof APPLICANT_KINDS)[number]
+
+const APPLICANT_KIND_FOR: Record<DealKind, ApplicantKind> = { فروش: 'خرید', 'رهن و اجاره': 'رهن و اجاره', تهاتر: 'تهاتر' }
+
+/** The applicant's modes in a stored value, in the fixed order of APPLICANT_KINDS, without repeats. */
+export function parseApplicantKinds(value: string | null | undefined): ApplicantKind[] {
+  const found = new Set(
+    String(value ?? '')
+      .split(SEPARATOR)
+      .map(kindForApplicant)
+      .filter((k): k is DealKind => k !== null)
+      .map((k) => APPLICANT_KIND_FOR[k])
+  )
+  return APPLICANT_KINDS.filter((k) => found.has(k))
+}
+
+/** What is stored for an applicant: the modes in the fixed order, joined with «، ». */
+export function joinApplicantKinds(kinds: readonly string[]): string {
+  return parseApplicantKinds(kinds.join('،')).join('، ')
+}
+
+/** The file kinds that serve an applicant's modes (خرید → فروش); empty = unknown vocabulary or nothing chosen. */
+export function kindsForApplicant(value: string | null | undefined): DealKind[] {
+  const modes = parseApplicantKinds(value)
+  return DEAL_KINDS.filter((k) => modes.includes(APPLICANT_KIND_FOR[k]))
+}

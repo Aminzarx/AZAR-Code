@@ -1,7 +1,7 @@
 import type { Property } from '@features/property/types'
 import type { Applicant } from '@features/applicant/types'
 import { normalizePersianText } from '@shared/utils/persianText'
-import { kindForApplicant, parseDealKinds } from '@shared/utils/dealKinds'
+import { kindsForApplicant, parseDealKinds, type DealKind } from '@shared/utils/dealKinds'
 import type { ApplicantMatch, MatchCriterion, MatchResult, PropertyMatch } from '../types'
 
 /**
@@ -44,11 +44,12 @@ export function areTransactionTypesCompatible(
     return false
   }
   const kinds = parseDealKinds(propertyTransactionType)
-  const wanted = kindForApplicant(applicantTransactionType)
-  if (kinds.length > 0 && wanted) {
-    return kinds.includes(wanted)
+  // Amin #5327: an applicant may want several modes; one the file is offered for is enough
+  const wanted = kindsForApplicant(applicantTransactionType)
+  if (kinds.length > 0 && wanted.length > 0) {
+    return kinds.some((k) => wanted.includes(k))
   }
-  if (kinds.length > 0 || wanted) {
+  if (kinds.length > 0 || wanted.length > 0) {
     // one side known, the other not (e.g. a seller-side «فروش» applicant): no match
     return false
   }
@@ -61,8 +62,31 @@ export function areTransactionTypesCompatible(
  */
 function transactionTypesClash(property: Property, applicant: Applicant): boolean {
   const kinds = parseDealKinds(property.transactionType)
-  const wanted = kindForApplicant(applicant.preferredTransactionType)
-  return kinds.length > 0 && wanted !== null && !kinds.includes(wanted)
+  const wanted = kindsForApplicant(applicant.preferredTransactionType)
+  return kinds.length > 0 && wanted.length > 0 && !kinds.some((k) => wanted.includes(k))
+}
+
+/**
+ * Amin #5327: the budget fits when it fits for any mode both sides share. Buy and barter compare the budget range with
+ * the price; رهن و اجاره compares the applicant's own «رهن موردنظر» with the file's deposit, or — for an applicant who
+ * only rents and has no رهن set (older records) — the budget range with the deposit, as before.
+ */
+function budgetFits(property: Property, applicant: Applicant): boolean {
+  const wanted = kindsForApplicant(applicant.preferredTransactionType)
+  if (wanted.length === 0) {
+    return isWithinRange(property.price, applicant.minBudget, applicant.maxBudget)
+  }
+  const offered = parseDealKinds(property.transactionType)
+  const shared: DealKind[] = wanted.filter((k) => offered.length === 0 || offered.includes(k))
+  return shared.some((kind) => {
+    if (kind !== 'رهن و اجاره') {
+      return isWithinRange(property.price, applicant.minBudget, applicant.maxBudget)
+    }
+    if (applicant.depositAmount !== null && applicant.depositAmount > 0) {
+      return property.depositAmount !== null && property.depositAmount <= applicant.depositAmount
+    }
+    return wanted.length === 1 && isWithinRange(property.depositAmount, applicant.minBudget, applicant.maxBudget)
+  })
 }
 
 /** Normalized equality — collapses Arabic/Persian character variants and stray whitespace. See persianText.ts. */
@@ -122,9 +146,7 @@ export function scoreMatch(property: Property, applicant: Applicant): MatchResul
     matchedCriteria.push('transactionType')
   }
   // a tenant's budget is the رهن; everyone else's is the price (sale price or barter value)
-  const budgetAmount =
-    kindForApplicant(applicant.preferredTransactionType) === 'رهن و اجاره' ? property.depositAmount : property.price
-  if (isWithinRange(budgetAmount, applicant.minBudget, applicant.maxBudget)) {
+  if (budgetFits(property, applicant)) {
     matchedCriteria.push('budget')
   }
   if (isWithinRange(property.area, applicant.minArea, applicant.maxArea)) {

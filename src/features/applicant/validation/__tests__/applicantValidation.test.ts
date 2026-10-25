@@ -88,3 +88,25 @@ describe('validateApplicantForm', () => {
     expect(result.errors?.maxArea).toBeTruthy()
   })
 })
+
+describe('applicant modes (Amin #5327)', () => {
+  it('asks each chosen mode for its own field', () => {
+    const result = validateApplicantForm({
+      ...VALID_VALUES,
+      preferredTransactionType: 'خرید، رهن و اجاره',
+      minBudget: '',
+      maxBudget: ''
+    })
+    expect(result.errors?.minBudget).toBe('بودجه را وارد کنید.')
+    expect(result.errors?.depositAmount).toBe('رهن یا اجارهٔ موردنظر را وارد کنید.')
+  })
+
+  it('keeps several modes as they were chosen', () => {
+    const result = validateApplicantForm({
+      ...VALID_VALUES,
+      preferredTransactionType: 'خرید، رهن و اجاره',
+      depositAmount: '500000000'
+    })
+    expect(result.input?.preferredTransactionType).toBe('خرید، رهن و اجاره')
+  })
+})

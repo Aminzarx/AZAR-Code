@@ -1,3 +1,4 @@
+import { parseApplicantKinds } from '@shared/utils/dealKinds'
 import type { ApplicantFormErrors, ApplicantFormValues } from '../types'
 
 export type ValidatedApplicantInput = {
@@ -88,6 +89,19 @@ export function validateApplicantForm(
   }
   if (minArea !== null && maxArea !== null && maxArea < minArea) {
     errors.maxArea = 'حداکثر متراژ باید بزرگ‌تر یا مساوی حداقل متراژ باشد.'
+  }
+
+  // Amin #5327: each chosen mode has its own required field — buy/barter a budget, رهن و اجاره a رهن or اجاره
+  const modes = parseApplicantKinds(values.preferredTransactionType)
+  if ((modes.includes('خرید') || modes.includes('تهاتر')) && !errors.minBudget && !errors.maxBudget) {
+    if (minBudget === null && maxBudget === null) {
+      errors.minBudget = 'بودجه را وارد کنید.'
+    }
+  }
+  if (modes.includes('رهن و اجاره') && !errors.depositAmount && !errors.rentAmount) {
+    if (depositAmount === null && rentAmount === null) {
+      errors.depositAmount = 'رهن یا اجارهٔ موردنظر را وارد کنید.'
+    }
   }
 
   if (Object.keys(errors).length > 0) {

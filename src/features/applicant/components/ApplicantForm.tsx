@@ -7,12 +7,13 @@ import {
   ChoiceChips,
   FormRow,
   MoneyInput,
+  MultiChoiceChips,
   NumberStepper,
   TextInput
 } from '@shared/components'
 import { IRANIAN_CITIES } from '@shared/data/iranianCities'
-import { APPLICANT_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
-import { isRentOrMortgageTransaction } from '@shared/utils/rentStatus'
+import { PROPERTY_TYPES } from '@shared/data/realEstateOptions'
+import { APPLICANT_KINDS, joinApplicantKinds, parseApplicantKinds } from '@shared/utils/dealKinds'
 import { shortTomanRange } from '@shared/utils/shortMoney'
 import type { ApplicantFormErrors, ApplicantFormValues } from '../types'
 
@@ -60,7 +61,13 @@ function amount(raw: string): number | null {
 export function ApplicantForm({ values, errors, onChange, step }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const showRentFields = isRentOrMortgageTransaction(values.preferredTransactionType)
+  // Amin #5327: one or more modes, each with its own fields — buy and barter the budget, رهن و اجاره the رهن/اجاره
+  const modes = parseApplicantKinds(values.preferredTransactionType)
+  const showRentFields = modes.includes('رهن و اجاره')
+  const priceMode = modes.includes('خرید') || modes.includes('تهاتر')
+  // an older tenant whose budget was the رهن keeps seeing (and can clear) it
+  const showBudget =
+    modes.length === 0 || priceMode || Boolean(values.minBudget || values.maxBudget)
   const show = (s: ApplicantFormStep): boolean => step === undefined || step === s
   const budgetWords = shortTomanRange(amount(values.minBudget), amount(values.maxBudget))
 
@@ -99,11 +106,12 @@ export function ApplicantForm({ values, errors, onChange, step }: Props): React.
 
       {show(2) ? (
         <>
-          <ChoiceChips
+          <MultiChoiceChips
             label="نوع معامله"
-            options={APPLICANT_TRANSACTION_TYPES}
-            value={values.preferredTransactionType}
-            onChange={(value) => onChange('preferredTransactionType', value)}
+            options={APPLICANT_KINDS}
+            values={modes}
+            onChange={(next) => onChange('preferredTransactionType', joinApplicantKinds(next))}
+            helperText="می‌توانید چند مورد را با هم انتخاب کنید"
             errorMessage={errors.preferredTransactionType}
           />
           <ChoiceChips
@@ -119,6 +127,7 @@ export function ApplicantForm({ values, errors, onChange, step }: Props): React.
               <FormRow>
                 <MoneyInput
                   label="رهن موردنظر (تومان)"
+                  required
                   value={values.depositAmount}
                   onChangeValue={(value) => onChange('depositAmount', value)}
                   errorMessage={errors.depositAmount}
@@ -137,28 +146,33 @@ export function ApplicantForm({ values, errors, onChange, step }: Props): React.
               />
             </>
           ) : null}
-          <View style={styles.group}>
-            <FormRow>
-              <MoneyInput
-                label="بودجه از (تومان)"
-                value={values.minBudget}
-                onChangeValue={(value) => onChange('minBudget', value)}
-                errorMessage={errors.minBudget}
-              />
-              <MoneyInput
-                label="تا (تومان)"
-                value={values.maxBudget}
-                onChangeValue={(value) => onChange('maxBudget', value)}
-                errorMessage={errors.maxBudget}
-              />
-            </FormRow>
-            {budgetWords ? (
-              <Text style={[theme.typography('bodySm'), styles.words]}>{budgetWords}</Text>
-            ) : null}
-            <Text style={[theme.typography('bodySm'), styles.hint]}>
-              فایل‌های مناسب همین بازه‌ها خودکار پیشنهاد می‌شوند.
-            </Text>
-          </View>
+          {showBudget ? (
+            <View style={styles.group}>
+              <FormRow>
+                <MoneyInput
+                  label={
+                    priceMode && showRentFields ? 'بودجهٔ خرید از (تومان)' : 'بودجه از (تومان)'
+                  }
+                  required={priceMode}
+                  value={values.minBudget}
+                  onChangeValue={(value) => onChange('minBudget', value)}
+                  errorMessage={errors.minBudget}
+                />
+                <MoneyInput
+                  label="تا (تومان)"
+                  value={values.maxBudget}
+                  onChangeValue={(value) => onChange('maxBudget', value)}
+                  errorMessage={errors.maxBudget}
+                />
+              </FormRow>
+              {budgetWords ? (
+                <Text style={[theme.typography('bodySm'), styles.words]}>{budgetWords}</Text>
+              ) : null}
+              <Text style={[theme.typography('bodySm'), styles.hint]}>
+                فایل‌های مناسب همین بازه‌ها خودکار پیشنهاد می‌شوند.
+              </Text>
+            </View>
+          ) : null}
         </>
       ) : null}
 

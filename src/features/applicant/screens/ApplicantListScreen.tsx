@@ -19,7 +19,8 @@ import {
   type ActiveFilterChip,
   type QuickFilterChip
 } from '@shared/components'
-import { APPLICANT_TRANSACTION_TYPES, PROPERTY_TYPES } from '@shared/data/realEstateOptions'
+import { PROPERTY_TYPES } from '@shared/data/realEstateOptions'
+import { APPLICANT_KINDS, parseApplicantKinds, type ApplicantKind } from '@shared/utils/dealKinds'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { useProperties } from '@features/property/hooks/useProperties'
 import { findPropertyMatchesForApplicant } from '@features/matching/services/matchingService'
@@ -41,7 +42,7 @@ const STATUS_OPTIONS: readonly { value: ApplicantStatus; label: string }[] = [
   { value: 'archived', label: 'غیرفعال' }
 ]
 
-const TRANSACTION_OPTIONS = APPLICANT_TRANSACTION_TYPES.map((type) => ({
+const TRANSACTION_OPTIONS = APPLICANT_KINDS.map((type) => ({
   value: type,
   label: type
 }))
@@ -72,7 +73,8 @@ function matchesFilters(applicant: Applicant, filters: ApplicantFilters): boolea
   if (filters.status && applicant.status !== filters.status) {
     return false
   }
-  if (filters.transaction && applicant.preferredTransactionType !== filters.transaction) {
+  // Amin #5327: an applicant with several modes shows under each of them
+  if (filters.transaction && !parseApplicantKinds(applicant.preferredTransactionType).includes(filters.transaction as ApplicantKind)) {
     return false
   }
   if (filters.propertyType && applicant.preferredPropertyType !== filters.propertyType) {

@@ -228,3 +228,14 @@ describe('deal kinds and closed files (Amin #5240/#5241)', () => {
     ).toEqual([])
   })
 })
+
+describe('applicant with several modes (Amin #5327)', () => {
+  it('matches a file offered for any of the modes and checks each mode its own way', () => {
+    const rentOnly = makeProperty({ transactionType: 'رهن و اجاره', price: null, depositAmount: 400000000 })
+    const saleOnly = makeProperty({ transactionType: 'فروش', price: 3000000000 })
+    const both = makeApplicant({ preferredTransactionType: 'خرید، رهن و اجاره', depositAmount: 500000000 })
+    expect(scoreMatch(rentOnly, both)?.matchedCriteria).toEqual(expect.arrayContaining(['transactionType', 'budget']))
+    expect(scoreMatch(saleOnly, both)?.matchedCriteria).toEqual(expect.arrayContaining(['transactionType', 'budget']))
+    expect(scoreMatch(makeProperty({ transactionType: 'تهاتر' }), both)).toBeNull()
+  })
+})
