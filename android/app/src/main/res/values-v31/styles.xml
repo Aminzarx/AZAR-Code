@@ -3,6 +3,9 @@
     <!-- Android 12+: the system splash shows the same logo on the same background (Amin #4936) -->
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <!-- Amin #5299: native dialogs, pickers and menus in the app font too -->
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="fontFamily">@font/vazirmatn</item>
         <item name="android:windowBackground">@drawable/splash_background</item>
         <!-- Amin #5055: bars in the app's background colour, icons dark on light and light on dark -->
         <item name="android:statusBarColor">@color/bar_background</item>

@@ -1659,6 +1659,9 @@ kss-pricing 0.38.1.
   writes `contract_delete` to the audit log when the deletion syncs.
 - Home: the «فایل ملکی» and «متقاضی» buttons stay fixed just above the tab bar; the page scrolls behind them.
 - The selected-tab pill has round corners on every Android build (radius 16, not 9999).
+- Amin #5299: no text in the system font. `babel.config.js` points every `Text`/`TextInput` from 'react-native' in src/
+  at `shared/components/FontText` (Vazirmatn in the style's weight when the style names no font); the Android theme
+  sets Vazirmatn for native dialogs, pickers and menus (`res/font/vazirmatn.ttf`).
 
 **Reason**: Amin #5295, #5296, #5297.
 
