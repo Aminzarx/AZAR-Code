@@ -1,13 +1,15 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Image, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '@navigation/AuthNavigator'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Icon, type IconName } from '@shared/components'
-import { BrandMark } from '@features/auth/components/BrandMark'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Welcome'>
+
+// Amin #5233: the EYVAN logo on the start page (the light-text version, for the navy header)
+const logo = require('../../../assets/eyvan-logo-dark.png')
 
 const BENEFITS: Array<{ icon: IconName; title: string; detail: string }> = [
   {
@@ -27,7 +29,7 @@ const BENEFITS: Array<{ icon: IconName; title: string; detail: string }> = [
   }
 ]
 
-/** v3.0.0 (Amin #4180/#4211): navy header with the mark, three plain benefits, one button. */
+/** v3.0.0 (Amin #4180/#4211): navy header with the logo (#5233), three plain benefits, one button. */
 export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -35,7 +37,7 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <View style={styles.hero}>
-        <BrandMark inverse />
+        <Image source={logo} style={styles.logo} accessibilityLabel="ایوان" />
         <Text style={[theme.typography('headlineLgMobile'), styles.heroTitle]}>
           همهٔ فایل‌ها و مشتری‌هایتان در یک جا
         </Text>
@@ -72,6 +74,12 @@ function createStyles(theme: Theme) {
       paddingHorizontal: theme.spacing.space6,
       paddingTop: theme.spacing.space16,
       paddingBottom: theme.spacing.space8
+    },
+    logo: {
+      width: 96,
+      height: 96,
+      alignSelf: start,
+      marginBottom: theme.spacing.space4
     },
     heroTitle: {
       color: theme.colors.onBrand,

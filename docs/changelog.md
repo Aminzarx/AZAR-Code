@@ -1566,12 +1566,13 @@ kssx.ir's apps page; updates are accepted from https://kssx.ir/dl/ as well as th
   when it loses focus; the `route` prop does not carry it in react-navigation 7 (the first try never fired).
 - No copy/cut menu in text fields; the app is covered in the background/app switcher (`PrivacyCover`, and
   `setRecentsScreenshotEnabled(false)` on Android 13+), Settings included (#5199).
+- The start page shows the EYVAN logo in its navy header instead of the «EYVAN» tile (#5233).
 - CI runs the whole jest suite before building.
 - `app/mathRandomGuard.ts` (imported first in `index.js`): where `Math.random` returns values outside [0, 1)
   (seen on the test emulator: raw 64-bit integers), it is replaced by mulberry32. Without it every navigator got the
   same key «stack-undefined…», so the swipe back only reached the Settings stack.
 
-**Reason**: Amin #5160, #5162, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190, #5199.
+**Reason**: Amin #5160, #5162, #5233, #5163, #5170, #5173, #5174, #5179, #5182, #5186, #5190, #5199.
 
 **Affected modules**: navigation (`SwipeTabs`, `TabSwipe`, `TabBarButton`, `MainNavigator`), `MainActivity`,
 `AzarScreenModule`, `security/screenshots`, Settings (`SettingsScreen`, `TokenCard`), photos (`PhotoEditor`,
