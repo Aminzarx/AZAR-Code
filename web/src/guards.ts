@@ -1,6 +1,6 @@
 /**
- * Amin #5199 on the web: no copying, cutting, dragging out or long-press menu anywhere in the app. Typing and pasting
- * into fields still work. (A browser cannot stop screenshots; Amin was told, #5183.)
+ * Amin #5199 on the web: no copying, cutting, dragging out or long-press menu on the page itself. Fields are free:
+ * copy, cut, paste and their menu work there (Navid, 2026-10-26). (A browser cannot stop screenshots; Amin was told, #5183.)
  */
 export function installGuards(): void {
   const style = document.createElement('style')
@@ -16,8 +16,8 @@ export function installGuards(): void {
       name,
       (event) => {
         const field = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement
-        // fields: typing and caret moves need selectstart; copy/cut/menu stay closed there too
-        if (field && name === 'selectstart') return
+        // fields: copy, cut, paste, the menu and selecting all work (Navid, 2026-10-26)
+        if (field && name !== 'dragstart') return
         block(event)
       },
       { capture: true }

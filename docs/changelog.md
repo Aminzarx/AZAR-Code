@@ -1663,9 +1663,12 @@ kss-pricing 0.38.1.
   buy/barter, the applicant's رهن for رهن و اجاره, or the old budget-vs-deposit for an applicant who only rents). The
   applicants list filter shows a multi-mode applicant under each mode; the deal page's contract button reads all modes.
 
-**Reason**: Amin #5327, #5328 (brain order for 1.5.5).
+- Copy, cut and paste work again in every field (the field menu is back), in the app and on the web; the page
+  itself still cannot be copied (Navid, 2026-10-26, reversing the field part of Amin #5199).
 
-**Affected modules**: `FontText`, `dealKinds` (+ test), `ApplicantForm`, `applicantValidation` (+ test),
+**Reason**: Amin #5327, #5328 (brain order for 1.5.5); Navid 2026-10-26 (copy/paste in fields).
+
+**Affected modules**: `FontText`, `TextInput`, `ListToolbar`, `RangeFilter`, `web/src/guards.ts`, `dealKinds` (+ test), `ApplicantForm`, `applicantValidation` (+ test),
 `matchingService` (+ test), `ApplicantListScreen`, `DealDetailScreen`; version 1.5.5 / versionCode 12.
 
 **Migration requirements**: none.
