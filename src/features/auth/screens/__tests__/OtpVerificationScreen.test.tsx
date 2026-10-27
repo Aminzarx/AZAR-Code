@@ -80,7 +80,7 @@ describe('OtpVerificationScreen', () => {
     expect(mockNavigate).not.toHaveBeenCalledWith('ReferralCode', expect.anything())
   })
 
-  it('sends a new number to the referral-code screen when no account exists yet', async () => {
+  it('sends a new number to the name page when no account exists yet (Amin #5745)', async () => {
     mockVerifyOtp.mockResolvedValue(undefined)
     mockLogin.mockRejectedValue(
       new ValidationFailureError('No account found for this number.', 'invalid_phone_number')
@@ -92,11 +92,7 @@ describe('OtpVerificationScreen', () => {
     await typeCode(getByLabelText, '518322')
 
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('ReferralCode', {
-        phoneNumber: '+989121234567',
-        displayName: undefined,
-        agencyName: undefined
-      })
+      expect(mockNavigate).toHaveBeenCalledWith('RegisterName', { phoneNumber: '+989121234567' })
     )
   })
 

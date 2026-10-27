@@ -18,13 +18,29 @@ export function RegisterNameScreen({ navigation, route }: Props): React.JSX.Elem
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [agency, setAgency] = useState('')
-  const canContinue = firstName.trim().length >= 2 && lastName.trim().length >= 2
+  const [tried, setTried] = useState(false)
+
+  // Amin #5746: «ادامه» is never a dead grey button — a tap says what is missing under the field. A whole name typed
+  // in «نام» with «نام خانوادگی» left empty is split at its first space.
+  function names(): { first: string; last: string } {
+    const first = firstName.trim().replace(/\s+/g, ' ')
+    const last = lastName.trim().replace(/\s+/g, ' ')
+    if (!last && first.includes(' ')) {
+      const at = first.indexOf(' ')
+      return { first: first.slice(0, at), last: first.slice(at + 1) }
+    }
+    return { first, last }
+  }
+  const { first, last } = names()
+  const firstError = tried && first.length < 2 ? 'نام را بنویسید (دست‌کم ۲ حرف).' : undefined
+  const lastError = tried && last.length < 2 ? 'نام خانوادگی را بنویسید (دست‌کم ۲ حرف).' : undefined
 
   function handleContinue(): void {
-    if (!canContinue) return
+    setTried(true)
+    if (first.length < 2 || last.length < 2) return
     navigation.navigate('ReferralCode', {
       phoneNumber: route.params.phoneNumber,
-      displayName: `${firstName.trim()} ${lastName.trim()}`,
+      displayName: `${first} ${last}`,
       agencyName: agency.trim() || undefined
     })
   }
@@ -36,8 +52,27 @@ export function RegisterNameScreen({ navigation, route }: Props): React.JSX.Elem
         <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>حساب تازه است؛ نام خود را بنویسید.</Text>
       </View>
       <View style={styles.form}>
-        <TextInput label="نام" required value={firstName} onChangeText={setFirstName} placeholder="مثلاً علی" autoFocus />
-        <TextInput label="نام خانوادگی" required value={lastName} onChangeText={setLastName} placeholder="مثلاً رضایی" />
+        <TextInput
+          label="نام"
+          required
+          value={firstName}
+          onChangeText={setFirstName}
+          placeholder="مثلاً علی"
+          errorMessage={firstError}
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={handleContinue}
+        />
+        <TextInput
+          label="نام خانوادگی"
+          required
+          value={lastName}
+          onChangeText={setLastName}
+          placeholder="مثلاً رضایی"
+          errorMessage={lastError}
+          returnKeyType="done"
+          onSubmitEditing={handleContinue}
+        />
         <TextInput
           label="نام مشاور املاک (اختیاری)"
           value={agency}
@@ -46,7 +81,7 @@ export function RegisterNameScreen({ navigation, route }: Props): React.JSX.Elem
           returnKeyType="done"
           onSubmitEditing={handleContinue}
         />
-        <Button label="ادامه" onPress={handleContinue} disabled={!canContinue} />
+        <Button label="ادامه" onPress={handleContinue} />
       </View>
     </AuthScreenContainer>
   )

@@ -2045,3 +2045,7 @@ the company site.
   then the invite page.
 - Whether an account exists is told only after the code is confirmed (the server's existing «no account» answer to
   sign-in), so nobody can try numbers to learn who has an account. No server change.
+- Amin #5746: «ادامه» on the name page was a grey, dead button until both names had two letters, with no word on
+  why (typical: the whole name typed in «نام» and «نام خانوادگی» left empty, or the keyboard's ✓ tapped, which did
+  nothing). Now the button always answers: what is missing shows in red under the field; a whole name in «نام» with
+  an empty last name is split at its first space; the keyboard's ✓ on either name field continues too.

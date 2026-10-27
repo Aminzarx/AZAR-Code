@@ -23,4 +23,27 @@ describe('RegisterNameScreen (Amin #5348, #5745)', () => {
       agencyName: undefined
     })
   })
+
+  it('says what is missing instead of a dead button (Amin #5746)', async () => {
+    const navigate = jest.fn()
+    const { getByText } = await render(withTheme(<RegisterNameScreen navigation={{ navigate } as never} route={route} />))
+    await fireEvent.press(getByText('ادامه'))
+    expect(navigate).not.toHaveBeenCalled()
+    expect(getByText('نام را بنویسید (دست‌کم ۲ حرف).')).toBeTruthy()
+    expect(getByText('نام خانوادگی را بنویسید (دست‌کم ۲ حرف).')).toBeTruthy()
+  })
+
+  it('splits a whole name typed in «نام» when the last name is left empty', async () => {
+    const navigate = jest.fn()
+    const { getByLabelText, getByText } = await render(
+      withTheme(<RegisterNameScreen navigation={{ navigate } as never} route={route} />)
+    )
+    await fireEvent.changeText(getByLabelText('نام'), ' امین  زرندی ')
+    await fireEvent.press(getByText('ادامه'))
+    expect(navigate).toHaveBeenCalledWith('ReferralCode', {
+      phoneNumber: '+989121234567',
+      displayName: 'امین زرندی',
+      agencyName: undefined
+    })
+  })
 })
