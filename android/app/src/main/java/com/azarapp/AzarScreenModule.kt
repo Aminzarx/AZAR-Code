@@ -21,7 +21,7 @@ class AzarScreenModule(reactContext: ReactApplicationContext) :
       if (allowed) {
         activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
       } else {
-        activity.window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        // TEASER CAPTURE BUILD ONLY: FLAG_SECURE never set again
       }
     }
   }

@@ -17,7 +17,7 @@ class MainActivity : ReactActivity() {
    * screen and the recent-apps preview; React Native's Modal copies the flag onto its dialogs.
    */
   override fun onCreate(savedInstanceState: Bundle?) {
-    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+    // TEASER CAPTURE BUILD ONLY (Amin #5735): never published — screenshots allowed
     super.onCreate(null)
     // Amin #5199: no preview of the app in the app switcher, Settings included (where screenshots are allowed)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) setRecentsScreenshotEnabled(false)
