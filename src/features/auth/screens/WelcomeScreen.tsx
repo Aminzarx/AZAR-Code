@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Image, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '@navigation/AuthNavigator'
 import { useTheme, type Theme } from '@shared/theme'
 import { Button, Icon, type IconName } from '@shared/components'
+import { takeSignedOutNotice } from '../signedOutNotice'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Welcome'>
 
@@ -34,6 +35,8 @@ const BENEFITS: Array<{ icon: IconName; title: string; detail: string }> = [
 export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
+  // Amin #5645: why this phone was signed out, if another phone took the number
+  const [notice] = useState(takeSignedOutNotice)
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
@@ -57,6 +60,12 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
         ))}
       </View>
       <View style={styles.footer}>
+        {notice ? (
+          <View style={styles.notice} accessibilityRole="alert">
+            <Icon name="info" size="sm" color={theme.colors.onWarningContainer} />
+            <Text style={[theme.typography('bodySm'), styles.noticeText]}>{notice}</Text>
+          </View>
+        ) : null}
         <Button label="شروع کنید" onPress={() => navigation.navigate('RegisterName') /* Amin #5565: name first */} />
       </View>
     </SafeAreaView>
@@ -66,6 +75,19 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
 function createStyles(theme: Theme) {
   const start = theme.isRTL ? 'flex-start' : 'flex-end'
   return StyleSheet.create({
+    notice: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.spacing.space2,
+      padding: theme.spacing.space3,
+      marginBottom: theme.spacing.space3,
+      borderRadius: theme.radius.medium,
+      backgroundColor: theme.colors.warningContainer
+    },
+    noticeText: {
+      flex: 1,
+      color: theme.colors.onWarningContainer
+    },
     safeArea: {
       flex: 1,
       backgroundColor: theme.colors.surfaceContainerLowest

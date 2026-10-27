@@ -1981,3 +1981,19 @@ empty-state block is gone, and the add button is always shown.
 
 **Tests**: ReminderListItem (kind label, overdue, done); ReminderListScreen (grey line when empty and when nothing is
 today, add button when empty).
+
+---
+
+## 2026-10-27 — 1.5.7 (part 5): why this phone was signed out (Amin #5645), left corners (#5634)
+
+**Change**: Amin found that leaving the app «seems to log out». The app never signs out on close or in the
+background. It signs out only when the server answers `session_revoked`, because another phone signed in with the
+same number (one phone per account, AZAR-SYNC-001). The server log shows exactly that: the test number
+09120009162 was used by Amin's phone and by KSS's emulator at the same time, and each emulator sign-in signed his
+phone out. From now on KSS's emulator tests do not use that number while Amin uses it. In the app, the start page now
+says once why the phone was signed out («با این شماره روی گوشی دیگری وارد شده‌اید…», `signedOutNotice.ts`), so it never
+looks like a random logout. Reminder cards' left corners have radius 2 (#5634).
+
+**Affected modules**: features/auth (AuthProvider, signedOutNotice, WelcomeScreen), reminder/ReminderListItem.
+
+**Migration requirements**: None.

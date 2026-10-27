@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import RNFS from 'react-native-fs'
 import { AppState } from 'react-native'
+import { SIGNED_IN_ELSEWHERE, setSignedOutNotice } from './signedOutNotice'
 import { getDatabase, getDeviceStore } from '@infrastructure/database/connection'
 import { bumpFilesVersion } from '@infrastructure/sync/filesVersion'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
@@ -186,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
             else await syncService.forget()
             await clearAllAzarReminders()
             await sessionManager?.logout()
+            setSignedOutNotice(SIGNED_IN_ELSEWHERE)
             setSession(null)
             setSync(IDLE_SYNC)
             return 0
