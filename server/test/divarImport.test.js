@@ -84,6 +84,8 @@ async function account() {
   assert.equal((await post('/auth/verify-otp', { phoneNumber, code: '123456' })).status, 204)
   const res = await post('/auth/register', { phoneNumber, referralCode: 'AMINZX' })
   assert.equal(res.status, 201, JSON.stringify(res.body))
+  // Amin #5795: the import works only once the user turned it on and agreed
+  assert.equal((await post('/divar/consent', { sessionToken: res.body.sessionToken, on: true })).status, 200)
   return res.body
 }
 const spent = (a) =>
@@ -126,4 +128,29 @@ test('the same post is read from Divar once an hour, not per user', async () => 
   const b = await account()
   await post('/divar/import', { sessionToken: b.sessionToken, link: 'gaffwOpk' })
   assert.equal(divarHits, before)
+})
+
+test('the import is off until the user turns it on and agrees; the choice is kept with the words agreed to (Amin #5795)', async () => {
+  const phoneNumber = '+989120009999'
+  await post('/auth/send-otp', { phoneNumber })
+  await post('/auth/verify-otp', { phoneNumber, code: '123456' })
+  const a = (await post('/auth/register', { phoneNumber, referralCode: 'AMINZX' })).body
+  const link = 'https://divar.ir/v/gaffwOpk'
+  assert.deepEqual((await post('/divar/consent/status', { sessionToken: a.sessionToken })).body, { on: false, at: null })
+  const off = await post('/divar/import', { sessionToken: a.sessionToken, link })
+  assert.equal(off.status, 403)
+  assert.equal(off.body.error.code, 'consent_required')
+
+  const on = await post('/divar/consent', { sessionToken: a.sessionToken, on: true })
+  assert.equal(on.body.on, true)
+  const row = db.prepare('SELECT * FROM divar_consents WHERE user_id = ? ORDER BY rowid DESC').get(a.userId)
+  assert.equal(row.turned_on, 1)
+  assert.equal(row.consent_text, require('../src/divar').CONSENT_TEXT)
+  assert.equal((await post('/divar/import', { sessionToken: a.sessionToken, link })).status, 200)
+
+  await post('/divar/consent', { sessionToken: a.sessionToken, on: false })
+  assert.equal((await post('/divar/consent/status', { sessionToken: a.sessionToken })).body.on, false)
+  assert.equal((await post('/divar/import', { sessionToken: a.sessionToken, link })).body.error.code, 'consent_required')
+  assert.equal((await post('/divar/consent', { sessionToken: 'nope', on: true })).status, 401)
+  assert.equal((await post('/divar/consent', { sessionToken: a.sessionToken, on: 'yes' })).status, 422)
 })

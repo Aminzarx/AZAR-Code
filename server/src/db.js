@@ -112,6 +112,18 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS admin_audit_user ON admin_audit(user_id, at);
 `)
+// Amin #5795: each turn of the «ورود آگهی از دیوار» switch, with the exact words the user agreed to (append-only;
+// the latest row is the account's current choice)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS divar_consents (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    at TEXT NOT NULL,
+    turned_on INTEGER NOT NULL,
+    consent_text TEXT
+  );
+  CREATE INDEX IF NOT EXISTS divar_consents_user ON divar_consents(user_id, at);
+`)
 
 // Registration requires a valid referral code with no bypass (ADR-009), so a
 // brand-new server has no user to be a referrer for the very first real

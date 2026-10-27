@@ -22,6 +22,7 @@ import { ProfileScreen } from '@features/settings/screens/ProfileScreen'
 import { ChangePhoneScreen } from '@features/settings/screens/ChangePhoneScreen'
 import { BuyTokensScreen } from '@features/settings/screens/BuyTokensScreen'
 import { PersonalizeScreen } from '@features/settings/screens/PersonalizeScreen'
+import { ConnectionsScreen } from '@features/settings/screens/ConnectionsScreen'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
@@ -62,6 +63,8 @@ export type MainStackParamList = {
   BuyTokens: { receipts?: boolean } | undefined
   /** Amin #5308: theme and light/dark */
   Personalize: undefined
+  // Amin #5795: «اتصال‌ها و API‌ها»; fromShare = a Divar post was shared while the import is off
+  Connections: { fromShare?: boolean } | undefined
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -123,6 +126,7 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['ChangePhone', ChangePhoneScreen],
   ['BuyTokens', BuyTokensScreen],
   ['Personalize', PersonalizeScreen],
+  ['Connections', ConnectionsScreen],
   ['CreateReminder', LockedCreateReminder],
   ['ReminderDetail', ReminderDetailScreen],
   ['ContractList', LockedContractList],
@@ -131,7 +135,7 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
 ]
 
 /** Amin #5162: screenshots are allowed only in the Settings section (its first page and the pages it opens) */
-const SETTINGS_PAGES = new Set<string>(['Settings', 'Profile', 'ChangePhone', 'BuyTokens', 'Personalize'])
+const SETTINGS_PAGES = new Set<string>(['Settings', 'Profile', 'ChangePhone', 'BuyTokens', 'Personalize', 'Connections'])
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
   return function TabStack({

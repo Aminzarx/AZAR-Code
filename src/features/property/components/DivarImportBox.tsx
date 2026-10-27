@@ -7,6 +7,7 @@ import { AUTH_API_BASE_URL } from '@infrastructure/auth/config'
 import { DivarImportError, SyncApiClient, type DivarPost } from '@infrastructure/sync/syncApiClient'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { divarLinkIn } from '../services/divarImport'
+import { useDivarImportSwitch } from '../services/divarSwitch'
 
 type Props = {
   /** a link shared from Divar into EYVAN: read at once */
@@ -20,10 +21,12 @@ const client = new SyncApiClient(AUTH_API_BASE_URL)
  * Navid 2026-10-27 «ورود آگهی از دیوار»: on the first step of a new file, a Divar post's link (pasted, or shared from
  * Divar's own «اشتراک‌گذاری») fills the file; the broker checks it and saves. Only that one post is read.
  */
-export function DivarImportBox({ sharedLink, onImported }: Props): React.JSX.Element {
+export function DivarImportBox({ sharedLink, onImported }: Props): React.JSX.Element | null {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
+  // Amin #5795: shown only once the user turned it on in «تنظیمات ← اتصال‌ها و API‌ها»
+  const { on } = useDivarImportSwitch()
   const [link, setLink] = useState(sharedLink ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -59,12 +62,14 @@ export function DivarImportBox({ sharedLink, onImported }: Props): React.JSX.Ele
   }
 
   useEffect(() => {
-    if (sharedLink && !started.current) {
+    if (sharedLink && on === true && !started.current) {
       started.current = true
       read(sharedLink).catch(() => undefined)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedLink, session])
+  }, [sharedLink, session, on])
+
+  if (on !== true) return null
 
   if (done) {
     return (

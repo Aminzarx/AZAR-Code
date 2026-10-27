@@ -151,6 +151,15 @@ export class SyncApiClient {
     return this.post('/divar/import', { sessionToken, link })
   }
 
+  /** Amin #5795: the «ورود آگهی از دیوار» switch; turning it on records the user's consent on the server */
+  divarConsent(sessionToken: string, on: boolean): Promise<{ on: boolean; at: string }> {
+    return this.post('/divar/consent', { sessionToken, on })
+  }
+
+  divarConsentStatus(sessionToken: string): Promise<{ on: boolean; at: string | null }> {
+    return this.post('/divar/consent/status', { sessionToken })
+  }
+
   private async post<T>(path: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
     // offline (airplane mode, no network): say so at once instead of waiting on a request that cannot go out
     const network = await NetInfo.fetch().catch(() => null)

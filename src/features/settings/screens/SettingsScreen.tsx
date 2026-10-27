@@ -386,6 +386,13 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             value={`${PALETTE_LABELS[appearance.palette]} · ${APPEARANCE_LABELS[appearance.mode]}`}
             onPress={() => props.navigation.navigate('Personalize')}
           />
+          {/* Amin #5795: outside services, each off until the user turns it on */}
+          <SettingsRow
+            icon="download"
+            label="اتصال‌ها و API‌ها"
+            value="ورود آگهی از دیوار"
+            onPress={() => props.navigation.navigate('Connections')}
+          />
           <SettingsRow
             icon="bell"
             label="یادآوری‌ها و اعلان‌ها"

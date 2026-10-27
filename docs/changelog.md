@@ -2059,3 +2059,9 @@ the company site.
 - Amin #5782: the foot of Settings shows his full company logo (mark + «خیام صنعت شریف / KHAYYAM SANAT SHARIF», from
   his Drive file «KSS Full Logo.svg») in grey: one-colour SVG drawn with react-native-svg in the theme's
   onSurfaceVariant, so it reads on day and night. Replaces the small WebP mark + text line (#5715).
+- Amin #5795: «ورود آگهی از دیوار» is off until the user turns it on. Settings gets «اتصال‌ها و API‌ها» (a page like
+  «شخصی‌سازی»), with the Divar switch; turning it on shows Amin's wording verbatim and «می‌پذیرم / انصراف». The server
+  keeps every turn of the switch (user, time, on/off, the exact words agreed to; append-only table divar_consents,
+  POST /divar/consent and /divar/consent/status) and refuses /divar/import without it (403 consent_required). The
+  paste field on a new file shows only when it is on; a post shared from Divar while it is off opens the
+  «اتصال‌ها و API‌ها» page with a line saying to turn it on first.

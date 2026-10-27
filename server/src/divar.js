@@ -2,6 +2,10 @@
 // post from the public JSON Divar's own web page loads, and hand back the fields of a new file for the user to check and
 // save. No lists, no crawling, no login.
 
+// Amin #5795: what the user agrees to when turning the import on (verbatim; the app shows the same words)
+const CONSENT_TEXT =
+  'این قابلیت صرفاً برای افزودن آگهی‌های متعلق به خودتان به برنامه ایوان در نظر گرفته شده است. مسئولیت هرگونه استفاده نادرست یا سوءاستفاده از این قابلیت، بر عهده شما خواهد بود.'
+
 const PERSIAN = '۰۱۲۳۴۵۶۷۸۹'
 const ARABIC = '٠١٢٣٤٥٦٧٨٩'
 
@@ -121,12 +125,47 @@ const router = express.Router()
 router.use(rateLimit({ windowMs: 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false }))
 router.use(express.json({ limit: '4kb' }))
 
+/** The account's current choice: the latest turn of the switch, or off when it was never turned on. */
+function consentOf(userId) {
+  const db = require('./db')
+  const row = db
+    .prepare('SELECT turned_on, at FROM divar_consents WHERE user_id = ? ORDER BY at DESC, rowid DESC LIMIT 1')
+    .get(userId)
+  return { on: row?.turned_on === 1, at: row?.at ?? null }
+}
+
+// POST /divar/consent { sessionToken, on } → { on, at }  (Amin #5795: the switch in Settings; turning it on records
+// the user, the time and the words agreed to)
+router.post('/consent', (req, res) => {
+  const tokens = require('./tokens')
+  const accountId = tokens.accountOf(req)
+  if (!accountId) return fail(res, 401, 'session_revoked', 'Sign in again.')
+  if (typeof req.body?.on !== 'boolean') return fail(res, 422, 'invalid_request', 'on must be true or false.')
+  const on = req.body.on
+  const at = new Date().toISOString()
+  require('./db')
+    .prepare('INSERT INTO divar_consents (id, user_id, at, turned_on, consent_text) VALUES (?, ?, ?, ?, ?)')
+    .run(require('./ids').generateId(), accountId, at, on ? 1 : 0, on ? CONSENT_TEXT : null)
+  res.json({ on, at })
+})
+
+// POST /divar/consent/status { sessionToken } → { on, at }  (a new phone reads the account's choice)
+router.post('/consent/status', (req, res) => {
+  const accountId = require('./tokens').accountOf(req)
+  if (!accountId) return fail(res, 401, 'session_revoked', 'Sign in again.')
+  res.json(consentOf(accountId))
+})
+
 // POST /divar/import { sessionToken, link } → { post, charged }  (the user's own share or pasted link; one post only)
 router.post('/import', async (req, res, next) => {
   try {
     const tokens = require('./tokens')
     const accountId = tokens.accountOf(req)
     if (!accountId) return fail(res, 401, 'session_revoked', 'Sign in again.')
+    // Amin #5795: only after the user turned it on in Settings and agreed to the terms
+    if (!consentOf(accountId).on) {
+      return fail(res, 403, 'consent_required', 'ورود آگهی از دیوار خاموش است؛ از «تنظیمات ← اتصال‌ها و API‌ها» روشنش کنید.')
+    }
     const token = postToken(req.body?.link)
     if (!token) return fail(res, 400, 'not_divar', 'این لینکِ یک آگهیِ دیوار نیست.')
     const s = await tokens.settings()
@@ -154,4 +193,4 @@ router.post('/import', async (req, res, next) => {
   }
 })
 
-module.exports = { postToken, parsePost, number, fetchPost, router }
+module.exports = { postToken, parsePost, number, fetchPost, consentOf, CONSENT_TEXT, router }
