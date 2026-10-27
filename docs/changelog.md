@@ -2030,3 +2030,10 @@ the company site.
 - Divar import: a barter post's own words («قابل تهاتر با … زمین، خودرو، مسکونی») pre-select the barter items, so the
   barter step is not left empty; the token card lists «ورود آگهی از دیوار» in its breakdown.
 - Web dev only: the dev fetch guard no longer counts photo uploads (a saved file with 9 photos tripped it).
+
+## 2026-10-27 — 1.5.8 (part 4): black photo screen (Amin #5737), update check on every open (#5727)
+
+- Tapping a photo on a file's or contract's page opened a black screen: the full-size viewer was a horizontal pager,
+  and in the right-to-left app its pages ran from the right while the start offset counted from the left, so it opened
+  on an empty page. Now the tapped photo is shown alone, with «قبلی / بعدی» buttons and «۵ از ۹».
+- The update check runs on every return to the app (a return within 30 s excepted), not after 10 minutes away.

@@ -1,13 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import {
-  Modal,
-  Pressable,
-  ScrollView as RNScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions
-} from 'react-native'
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import { Icon, LogoPlaceholder } from '@shared/components'
 import { useTheme, type Theme } from '@shared/theme'
@@ -38,7 +30,6 @@ export function PhotoStrip({
   const filesVersion = useFilesVersion()
   const [photos, setPhotos] = useState<PhotoRecord[]>([])
   const [open, setOpen] = useState<number | null>(null)
-  const { width } = useWindowDimensions()
 
   useEffect(() => {
     let cancelled = false
@@ -80,18 +71,41 @@ export function PhotoStrip({
       </ScrollView>
       <Modal visible={open !== null} transparent animationType="fade" onRequestClose={() => setOpen(null)}>
         <View style={styles.viewer}>
-          <RNScrollView
-            horizontal
-            pagingEnabled
-            contentOffset={{ x: (open ?? 0) * width, y: 0 }}
-            showsHorizontalScrollIndicator={false}
-          >
-            {photos.map((photo) => (
-              <View key={photo.id} style={[styles.page, { width: width }]}>
-                <PhotoThumb photo={photo} style={styles.full} fit="contain" />
-              </View>
-            ))}
-          </RNScrollView>
+          {/* Amin #5737: a horizontal pager in the right-to-left app opened on an empty (black) page — its pages ran
+              from the right while the offset counted from the left. One photo at a time, with «بعدی/قبلی» and its
+              number, works the same in both directions. */}
+          {open !== null && photos[open] ? (
+            <View style={styles.page}>
+              <PhotoThumb key={photos[open].id} photo={photos[open]} style={styles.full} fit="contain" />
+            </View>
+          ) : null}
+          {photos.length > 1 && open !== null ? (
+            <View style={styles.pager}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="عکس قبلی"
+                disabled={open === 0}
+                onPress={() => setOpen((n) => (n === null ? n : Math.max(0, n - 1)))}
+                style={[styles.pagerButton, open === 0 && styles.pagerButtonOff]}
+                hitSlop={8}
+              >
+                <Icon name="back" size="sm" color="#FFFFFF" />
+              </Pressable>
+              <Text style={[theme.typography('labelMd'), styles.pagerText]}>
+                {`${toPersianDigits(String(open + 1))} از ${toPersianDigits(String(photos.length))}`}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="عکس بعدی"
+                disabled={open === photos.length - 1}
+                onPress={() => setOpen((n) => (n === null ? n : Math.min(photos.length - 1, n + 1)))}
+                style={[styles.pagerButton, open === photos.length - 1 && styles.pagerButtonOff]}
+                hitSlop={8}
+              >
+                <Icon name="chevron" size="sm" color="#FFFFFF" />
+              </Pressable>
+            </View>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="بستن عکس"
@@ -115,6 +129,26 @@ function createStyles(theme: Theme) {
     thumb: { width: 96, height: 96, borderRadius: theme.radius.medium },
     viewer: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.92)' },
     page: { flex: 1, justifyContent: 'center' },
+    pager: {
+      position: 'absolute',
+      bottom: 48,
+      start: 0,
+      end: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.space6
+    },
+    pagerButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.18)'
+    },
+    pagerButtonOff: { opacity: 0.3 },
+    pagerText: { color: '#FFFFFF' },
     full: { width: '100%', height: '80%' },
     close: {
       position: 'absolute',

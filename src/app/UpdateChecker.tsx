@@ -11,8 +11,11 @@ import {
 } from '@infrastructure/updates/appInstaller'
 import { toPersianDigits } from '@shared/utils/persianText'
 
-/** Amin #5325: check again when the app comes back after 10 minutes (was an hour, so a phone left open missed new versions) */
-const RECHECK_MS = 10 * 60 * 1000
+/**
+ * Amin #5325: check again when the app comes back (was an hour, then 10 minutes); Amin #5727: on every open — only a
+ * return within 30 s (a quick glance at another app) is not checked again.
+ */
+const RECHECK_MS = 30 * 1000
 
 type ReadyUpdate = { update: AvailableUpdate; path: string }
 
