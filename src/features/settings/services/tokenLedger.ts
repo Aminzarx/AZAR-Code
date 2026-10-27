@@ -11,7 +11,15 @@ export type TokenSummary = {
   earnedBy: { referral: number; profile: number }
   bought: number
   spent: number
-  spentBy: { files: number; applicants: number; contracts: number; phoneChange: number; deducted: number }
+  spentBy: {
+    files: number
+    applicants: number
+    contracts: number
+    phoneChange: number
+    /** Navid 2026-10-27: Divar posts read into new files */
+    divarImport: number
+    deducted: number
+  }
   /** Amin #5351: what an invite earns (kss-pricing); null = no gift */
   referralBonus: number | null
 }
@@ -37,6 +45,7 @@ export function normalizeSummary(summary: Partial<TokenSummary> | undefined): To
       applicants: summary.spentBy?.applicants ?? 0,
       contracts: summary.spentBy?.contracts ?? 0,
       phoneChange: summary.spentBy?.phoneChange ?? 0,
+      divarImport: summary.spentBy?.divarImport ?? 0,
       // Amin #5243: taken off by support (billing «کسر توکن»), with the reason kept on the server
       deducted: summary.spentBy?.deducted ?? 0
     }

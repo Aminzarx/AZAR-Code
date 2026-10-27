@@ -2021,3 +2021,12 @@ ledger reason `divar_import`, once per post per account per day.
 **Change**: «kssx.ir» under «ایوان، برنامه‌ای از خیام صنعت شریف» is replaced by the company's mark (src/assets/kss-logo.webp,
 40 px, white background removed so it reads on day and night) beside «خیام صنعت شریف»; the whole block still opens
 the company site.
+
+## 2026-10-27 — 1.5.8 (part 3): full-app check fixes (Amin #5716)
+
+- Sync: after a failed round the timed retries wait 6 s, 12 s, 24 s, 48 s, then once a minute (was every 3 s forever,
+  a full pull each time while the files had not loaded) — a server hiccup is no longer hammered by every phone. A
+  manual sync (Settings) still runs at once. Failed rounds are logged in development builds.
+- Divar import: a barter post's own words («قابل تهاتر با … زمین، خودرو، مسکونی») pre-select the barter items, so the
+  barter step is not left empty; the token card lists «ورود آگهی از دیوار» in its breakdown.
+- Web dev only: the dev fetch guard no longer counts photo uploads (a saved file with 9 photos tripped it).

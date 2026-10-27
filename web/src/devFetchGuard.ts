@@ -7,7 +7,8 @@ export function installDevFetchGuard(): void {
   const real = window.fetch.bind(window)
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-    if (url.includes('/api/')) {
+    // photo uploads come in a burst by design (one per photo of a saved file), so they are not counted
+    if (url.includes('/api/') && !url.includes('/api/sync/blob/')) {
       const now = Date.now()
       const path = new URL(url, location.href).pathname
       const times = (seen.get(path) ?? []).filter((t) => now - t < 10_000)

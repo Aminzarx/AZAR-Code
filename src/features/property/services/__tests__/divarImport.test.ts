@@ -36,7 +36,7 @@ const POST: DivarPost = {
   yearBuilt: 1405,
   floor: '۲۶ از بیشتر از ۳۰',
   features: ['آسانسور', 'پارکینگ'],
-  description: 'برج با امکانات رفاهی',
+  description: 'برج با امکانات رفاهی. قابل تهاتر و یا معاوضه با : مسکونی زمین خودرو،باغ',
   photos: []
 }
 
@@ -59,13 +59,15 @@ describe('divarToValues', () => {
     expect(v.price).toBe('3976000000')
     expect(v.area).toBe('142')
     expect(v.rooms).toBe('3')
-    expect(v.description).toBe('سال ساخت: ۱۴۰۵\nطبقه: ۲۶ از بیشتر از ۳۰\nامکانات: آسانسور، پارکینگ\n\nبرج با امکانات رفاهی')
+    expect(v.description).toBe(`سال ساخت: ۱۴۰۵\nطبقه: ۲۶ از بیشتر از ۳۰\nامکانات: آسانسور، پارکینگ\n\n${POST.description}`)
+    // the post's own words pick the barter items
+    expect(v.barterItems).toEqual(['خودرو', 'زمین', 'ملک'])
   })
 
   it('keeps what the broker had where the post says nothing', () => {
     const v = divarToValues({ ...POST, city: '', price: null, features: [], yearBuilt: null, floor: null }, EMPTY)
     expect(v.city).toBe('کرج')
     expect(v.price).toBe('')
-    expect(v.description).toBe('برج با امکانات رفاهی')
+    expect(v.description).toBe(POST.description)
   })
 })

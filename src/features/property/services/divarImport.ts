@@ -11,6 +11,20 @@ export function divarLinkIn(text: string | null | undefined): string | null {
   return match ? `https://${match[0]}` : null
 }
 
+/** Words in a Divar description that name what a barter post takes in exchange → EYVAN's barter items */
+const BARTER_WORDS: Array<[string, RegExp]> = [
+  ['طلا', /طلا|سکه/],
+  ['خودرو', /خودرو|ماشین/],
+  ['زمین', /زمین/],
+  ['ملک', /ملک|مسکونی|آپارتمان|ویلا|باغ|مغازه|واحد/]
+]
+
+/** Full-app check 2026-10-27: a barter post's own words pick the barter items, so the barter step is not left empty. */
+function barterItemsIn(text: string): string[] {
+  const offer = text.split(/تهاتر|معاوضه/).slice(1).join(' ')
+  return BARTER_WORDS.filter(([, words]) => words.test(offer)).map(([item]) => item)
+}
+
 const digits = (n: number | null): string => (typeof n === 'number' && n > 0 ? String(n) : '')
 
 /**
@@ -37,6 +51,10 @@ export function divarToValues(post: DivarPost, current: PropertyFormValues): Pro
     rooms: post.rooms != null ? String(post.rooms) : current.rooms,
     depositAmount: digits(post.deposit) || current.depositAmount,
     rentAmount: digits(post.rent) || current.rentAmount,
+    barterItems:
+      post.transactionTypes.includes('تهاتر') && current.barterItems.length === 0
+        ? barterItemsIn(post.description)
+        : current.barterItems,
     description: description || current.description
   }
 }

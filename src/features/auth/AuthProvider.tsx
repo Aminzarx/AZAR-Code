@@ -44,6 +44,8 @@ export type SyncStatus = {
 }
 
 const SYNC_EVERY_MS = 3000
+/** full-app check 2026-10-27: after a failed round the next timed one waits 6 s, 12 s, … up to a minute (not every 3 s) */
+const SYNC_BACKOFF_MAX_MS = 60_000
 
 const rnfsFiles: SyncFiles = {
   dir: RNFS.DocumentDirectoryPath,
@@ -162,6 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
    * One round: send what is waiting (it then leaves the phone), and — while the account's files have not come
    * from the server in this run (start, sign-in while offline) — bring them into the working database.
    */
+  const syncFailures = useRef(0)
+  const syncPausedUntil = useRef(0)
   const syncOnce = useCallback(
     (current: CurrentSession): Promise<number> =>
       exclusive(async () => {
@@ -178,6 +182,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
           }
           const pending = await syncService.pendingCount()
           setSync({ state: 'idle', pending, usage: await syncService.lastUsage(), loaded: true, settled: true })
+          syncFailures.current = 0
+          syncPausedUntil.current = 0
           return pending
         } catch (error) {
           if (error instanceof SessionRevokedError) {
@@ -192,6 +198,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
             setSync(IDLE_SYNC)
             return 0
           }
+          // eslint-disable-next-line no-console
+          if (__DEV__) console.warn('sync round failed', error)
+          syncFailures.current += 1
+          syncPausedUntil.current =
+            Date.now() + Math.min(SYNC_BACKOFF_MAX_MS, SYNC_EVERY_MS * 2 ** syncFailures.current)
           const pending = await syncService.pendingCount().catch(() => 0)
           setSync({
             state: error instanceof StorageFullError ? 'full' : 'offline',
@@ -211,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     if (!session || !syncService) return
     let stopped = false
     const tick = (): void => {
-      if (!stopped) syncOnce(session).catch(() => undefined)
+      if (!stopped && Date.now() >= syncPausedUntil.current) syncOnce(session).catch(() => undefined)
     }
     tick()
     const timer = setInterval(tick, SYNC_EVERY_MS)

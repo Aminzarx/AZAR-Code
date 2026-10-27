@@ -148,6 +148,10 @@ function TokenBreakdownSheet({
             <Line styles={styles} theme={theme} label="متقاضیان" value={summary.spentBy.applicants} />
             <Line styles={styles} theme={theme} label="قراردادها" value={summary.spentBy.contracts} />
             <Line styles={styles} theme={theme} label="تغییر شماره" value={summary.spentBy.phoneChange} />
+            {/* Navid 2026-10-27: Divar posts read into new files (Amin #5658: 100 each, not returned) */}
+            {summary.spentBy.divarImport > 0 ? (
+              <Line styles={styles} theme={theme} label="ورود آگهی از دیوار" value={summary.spentBy.divarImport} />
+            ) : null}
             {summary.spentBy.deducted > 0 ? (
               <Line styles={styles} theme={theme} label="کسر توسط پشتیبانی" value={summary.spentBy.deducted} />
             ) : null}
