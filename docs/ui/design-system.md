@@ -180,10 +180,22 @@ been designed yet (see §11).
 
 ## 2. Typography System
 
-RTL-first: Vazirmatn (Regular/Medium/SemiBold, bundled) is the only
-typeface actually shipped; the LTR (Geist/Inter) scale exists in
-`design-tokens.json` for parity but falls back to the system font until
-those assets are added — not needed while `isRTL` defaults to `true`.
+**Font rule (Amin #4632, #5299, #5543) — the only source is the token.**
+Two families ship: **Vazirmatn** (Farsi-Digits build; Regular / Medium /
+Bold) for all text, **IRANYekan** (Regular / Medium / Bold) for headings.
+The names live only in `src/shared/theme/tokens.ts`
+(`rtlFontFamilyByWeight`, `rtlHeadingFontFamilyByWeight`); screens get them
+through `theme.typography(<token>)`. No screen, component or style writes a
+font name. A text whose style names no font still gets Vazirmatn in its
+weight: `babel-app-font.js` swaps every `Text`/`TextInput` from
+`react-native` in `src/` for `FontText` — in the phone build
+(`babel.config.js`) **and** the web build (`web/vite.config.ts`; before
+#5543 the web build skipped it and such texts fell back to the browser's
+system font). Android's own dialogs, pickers and menus use
+`res/font/vazirmatn.ttf` (`styles.xml`). The only text outside this rule is
+the phone's own system screens (keyboard, gallery picker, install and
+permission prompts). The LTR (Geist/Inter) scale in `design-tokens.json`
+is parity only; the app is always RTL.
 
 | Token | Size | Weight | RTL line-height | Use |
 |---|---|---|---|---|

@@ -25,6 +25,8 @@ const BATCH = 200
  *   unsent changes on top;
  * - push: sends the unsent changes; what the server has leaves the phone;
  * - wipe: on sign-out, nothing of the account's files stays.
+ * Amin #5455 / #5524: the store also keeps an offline copy of the files as the server last sent them (encrypted,
+ * refreshed on every restore and push, gone on sign-out), so they open without internet after a restart.
  * `loaded` says whether the server's files are in the working database this run; until then the phone shows only
  * what was made on it offline.
  */
@@ -71,6 +73,12 @@ export class SyncService {
     return raw ? (JSON.parse(raw) as SyncUsage) : null
   }
 
+  /** Amin #5524: when the offline copy on this phone was last refreshed (null: none for this account). */
+  async offlineCopyAt(): Promise<string | null> {
+    const owner = await this.store.owner()
+    return owner ? this.store.copyAt(owner) : null
+  }
+
   /** The account this phone's files belong to. */
   owner(): Promise<string | null> {
     return this.store.owner()
@@ -84,6 +92,7 @@ export class SyncService {
     if ((await this.store.owner()) === userId) return
     await this.clearFiles()
     this.isLoaded = false
+    await this.store.clearCopy() // another account's offline copy never shows
     await this.store.setOwner(userId)
     await this.store.profileInto(this.db, userId)
     await this.store.replayInto(this.db, userId)
@@ -105,6 +114,7 @@ export class SyncService {
       usage = (await this.api.push(sessionToken, changes.slice(i, i + BATCH))).usage
     }
     await this.store.dropSent(userId, upTo)
+    await this.store.applyToCopy(userId, changes)
     usage = (await this.emptyBlobTrash(sessionToken)) ?? usage
     if (usage) await this.setState('usage', JSON.stringify(usage))
   }
@@ -196,6 +206,7 @@ export class SyncService {
     )
     // anything made on this phone and not on the server yet stays on top
     await this.store.setOwner(userId)
+    await this.store.keepCopy(userId, pulled.rows)
     await this.store.replayInto(this.db, userId)
     await this.store.rememberProfile(this.db)
     await this.setState('usage', JSON.stringify(pulled.usage))
@@ -207,6 +218,7 @@ export class SyncService {
   async wipe(): Promise<void> {
     await this.clearFiles()
     await this.store.clearQueue()
+    await this.store.clearCopy()
     await this.store.forgetProfile()
     await this.store.setOwner(null)
     await this.setState('usage', null)
@@ -223,6 +235,7 @@ export class SyncService {
    */
   async forget(): Promise<void> {
     await this.clearFiles()
+    await this.store.clearCopy()
     this.isLoaded = false
   }
 

@@ -1902,3 +1902,24 @@ uncommitted), so picking several photos from the gallery would have failed. 1.5.
 **Offline (Amin #5455)**: data already lives on the phone in the encrypted database and changes queue until the
 connection is back; proposed for 1.5.7 after his OK: a visible «بدون اینترنت» badge with the queued-change count
 and a full offline pass over every screen.
+
+## 2026-10-27 — 1.5.7 (part 1): offline view (Amin #5524), one font source (Amin #5543), one-step publish (Amin #5540)
+
+**Offline view**: the encrypted device store keeps a `copy` of the account's files as the server last sent them
+(`DeviceStore.keepCopy` on every restore, `applyToCopy` after every confirmed push, `clearCopy` on sign-out, on a
+revoked session and when another number claims the phone). `loadInto` puts the copy under the unsent changes at
+launch, so a restart without internet shows the files; new edits offline queue and sync as before.
+`OfflineFilesNotice` says «بدون اینترنت؛ آخرین نسخهٔ ذخیره‌شده (…) نمایش داده می‌شود» with the queued-change count
+whenever the phone is offline (useNetInfo). Listing photos are not in the copy yet (fetched online only).
+Reverses part of option A (#4826: "nothing of the files stays on the phone between launches") on Amin's 🤝 #5524.
+
+**Fonts**: the web build now runs the same FontText swap as the phone build (`babel-app-font.js`, shared by
+`babel.config.js` and `web/vite.config.ts`); before, texts with no font of their own showed in the browser's
+system font. `fontToken.test.ts` fails the build on any font name outside `theme/tokens.ts`. design-system.md §2
+states the rule. Also found: the web build was blank since 1.5.4 (`require('../../package.json')` in appVersion.ts;
+browsers have no `require`); now an import. Not live (app.kssx.ir is not enabled), so no user saw it.
+
+**Publishing**: `scripts/publish-apk.sh <version> <apk> "<notes>"` uploads the install file, links
+kssx.ir/dl/eyvan.apk AND rewrites update.json in one step (backups first, sha256 checked on both URLs), so every
+installed copy offers the update within 10 minutes. 1.5.6 was not in update.json because it was not published yet
+(waiting for Amin's OK), not because of a fault.

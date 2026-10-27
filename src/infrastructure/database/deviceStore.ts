@@ -9,6 +9,8 @@ import { PHOTO_TABLES } from './migrations/0021_photos'
  */
 export const KEPT_PROFILE_KEYS = ['display_name', 'agency_name'] as const
 const PROFILE_META = 'profile'
+/** Amin #5455 / #5524: when the offline copy was last refreshed from the server (ISO) */
+const COPY_AT_META = 'copy_at'
 
 /** A file row as it is now, or null when it was deleted. */
 export type QueuedChange = { t: string; k: string; row: Record<string, unknown> | null }
@@ -58,6 +60,11 @@ export class DeviceStore {
       )`
     )
     await this.store.execute('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY NOT NULL, value TEXT)')
+    // Amin #5455 / #5524: the account's files as the server last sent them, so they open offline (encrypted like
+    // everything here, refreshed on every restore, gone on sign-out)
+    await this.store.execute(
+      'CREATE TABLE IF NOT EXISTS copy (owner TEXT NOT NULL, tbl TEXT NOT NULL, row_key TEXT NOT NULL, row_json TEXT NOT NULL, PRIMARY KEY (tbl, row_key))'
+    )
     const created = await this.getMeta('created')
     if (created) return false
     await this.setMeta('created', new Date().toISOString())
@@ -112,9 +119,64 @@ export class DeviceStore {
         const result = await this.store.execute('SELECT row_json FROM device_rows WHERE tbl = ?', [table])
         for (const r of result.rows) await this.writeRow(db, table, JSON.parse(String(r.row_json)))
       }
+      if (owner) await this.writeCopy(db, owner)
       if (owner) await this.writeProfile(db, owner)
       if (owner) await this.writeQueued(db, owner)
     })
+  }
+
+  /** Amin #5524: replaces the offline copy with the files the server just sent. */
+  async keepCopy(owner: string, rows: QueuedChange[]): Promise<void> {
+    await this.store.transaction(async (tx) => {
+      await tx.execute('DELETE FROM copy')
+      for (const change of rows) {
+        if (!change.row) continue
+        await tx.execute('INSERT OR REPLACE INTO copy (owner, tbl, row_key, row_json) VALUES (?, ?, ?, ?)', [
+          owner,
+          change.t,
+          change.k,
+          JSON.stringify(change.row)
+        ])
+      }
+    })
+    await this.setMeta(COPY_AT_META, new Date().toISOString())
+  }
+
+  /** Changes the server confirmed go into the offline copy too, so a restart offline shows them. */
+  async applyToCopy(owner: string, changes: QueuedChange[]): Promise<void> {
+    await this.store.transaction(async (tx) => {
+      for (const change of changes) {
+        if (change.row) {
+          await tx.execute('INSERT OR REPLACE INTO copy (owner, tbl, row_key, row_json) VALUES (?, ?, ?, ?)', [
+            owner,
+            change.t,
+            change.k,
+            JSON.stringify(change.row)
+          ])
+        } else {
+          await tx.execute('DELETE FROM copy WHERE tbl = ? AND row_key = ?', [change.t, change.k])
+        }
+      }
+    })
+  }
+
+  /** When the offline copy was last refreshed; null when the phone holds none for this account. */
+  async copyAt(owner: string): Promise<string | null> {
+    const result = await this.store.execute('SELECT COUNT(*) AS n FROM copy WHERE owner = ?', [owner])
+    if (!Number(result.rows[0]?.n ?? 0)) return null
+    return this.getMeta(COPY_AT_META)
+  }
+
+  /** Puts the account's offline copy into the working database (under the unsent changes). */
+  async copyInto(working: DB, owner: string): Promise<void> {
+    const db = unwrap(working)
+    await applying(db, () => this.writeCopy(db, owner))
+  }
+
+  /** Sign-out, or another phone took the number: the offline copy leaves the phone. */
+  async clearCopy(): Promise<void> {
+    await this.store.execute('DELETE FROM copy')
+    await this.setMeta(COPY_AT_META, null)
   }
 
   /** Keeps the account's name and agency as they are now in the working database (after a restore, an edit). */
@@ -303,6 +365,18 @@ export class DeviceStore {
         value,
         new Date().toISOString()
       ])
+    }
+  }
+
+  private async writeCopy(db: DB, owner: string): Promise<void> {
+    const result = await this.store.execute('SELECT tbl, row_key, row_json FROM copy WHERE owner = ?', [owner])
+    const byTable = new Map<string, Record<string, unknown>[]>()
+    for (const r of result.rows) {
+      const table = String(r.tbl)
+      byTable.set(table, [...(byTable.get(table) ?? []), JSON.parse(String(r.row_json))])
+    }
+    for (const table of FILE_TABLE_ORDER) {
+      for (const row of byTable.get(table) ?? []) await this.writeRow(db, table, row)
     }
   }
 

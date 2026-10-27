@@ -38,6 +38,8 @@ export type SyncStatus = {
   loaded: boolean
   /** the first round after start or sign-in has finished (loaded, or found the phone offline) */
   settled: boolean
+  /** Amin #5524: when the offline copy shown (not loaded this run) was last refreshed from the server */
+  copyAt?: string | null
 }
 
 const SYNC_EVERY_MS = 3000
@@ -194,7 +196,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
             pending,
             usage: await syncService.lastUsage().catch(() => null),
             loaded: syncService.loaded,
-            settled: true
+            settled: true,
+            copyAt: await syncService.offlineCopyAt().catch(() => null)
           })
           return pending
         }
@@ -309,7 +312,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
           await syncService.restore(result.sessionToken, result.userId)
           setSync({ ...IDLE_SYNC, loaded: true, settled: true, usage: await syncService.lastUsage() })
         } catch {
-          setSync({ ...IDLE_SYNC, state: 'offline', settled: true }) // the sync round tries again
+          // the sync round tries again; meanwhile the offline copy (if any) shows (Amin #5524)
+          const copyAt = await syncService.offlineCopyAt().catch(() => null)
+          setSync({ ...IDLE_SYNC, state: 'offline', settled: true, copyAt })
         }
       })
     }

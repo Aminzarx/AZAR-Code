@@ -2,6 +2,9 @@
 // src/shims (same exports, browser underneath); everything else is the phone app's own code.
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+// Amin #5543: the phone build's font rule (babel-app-font.js) on the web too — react-native-web's own Text is the system font
+import { createRequire } from 'node:module'
+const appFontText = createRequire(import.meta.url)('../babel-app-font.js')
 import path from 'node:path'
 import { transformWithEsbuild, type Plugin } from 'vite'
 
@@ -42,7 +45,7 @@ const rootModule = (p: string) => path.join(root, 'node_modules', p)
 const extensions = ['.web.tsx', '.web.ts', '.web.js', '.tsx', '.ts', '.js', '.jsx', '.json']
 
 export default defineConfig(({ mode }) => ({
-  plugins: [jsxInNodeModules(), requireAssets(), react()],
+  plugins: [jsxInNodeModules(), requireAssets(), react({ babel: { plugins: [appFontText] } })],
   define: {
     __DEV__: JSON.stringify(mode !== 'production'),
     global: 'globalThis',

@@ -164,7 +164,7 @@ describe('SyncService, option A (Amin #4826)', () => {
     expect(await queuedOnDisk(disk)).toBe(0)
   })
 
-  it('keeps nothing of the files on the phone between launches; they come from the server', async () => {
+  it('Amin #5524: what the server has opens on the next launch from the encrypted offline copy, then is refreshed', async () => {
     const first = await launch(server)
     await first.sync.claim(USER)
     await addProperty(first.db, 'p1', 'آپارتمان')
@@ -172,7 +172,8 @@ describe('SyncService, option A (Amin #4826)', () => {
     first.db.close()
 
     const next = await launch(server, fakeFiles(), first.disk)
-    expect(await count(next.db, 'properties')).toBe(0) // nothing came from the disk
+    expect(await count(next.db, 'properties')).toBe(1) // from the offline copy
+    expect(await next.sync.offlineCopyAt()).not.toBeNull()
     expect(next.sync.loaded).toBe(false)
     await next.sync.restore(TOKEN, USER)
     expect(next.sync.loaded).toBe(true)
@@ -180,7 +181,7 @@ describe('SyncService, option A (Amin #4826)', () => {
     expect(await queuedOnDisk(next.disk)).toBe(0)
   })
 
-  it('offline: only what was made offline shows; online it goes to the server and leaves the phone', async () => {
+  it('offline: the copy and what was made offline show; online it goes to the server and leaves the phone', async () => {
     const first = await launch(server)
     await first.sync.claim(USER)
     await addProperty(first.db, 'p1', 'قبلی')
@@ -195,8 +196,8 @@ describe('SyncService, option A (Amin #4826)', () => {
     offline.db.close() // the app is closed while still offline
 
     const again = await launch(server, fakeFiles(), first.disk)
-    const titles = await again.db.execute('SELECT title FROM properties')
-    expect(titles.rows.map((r) => r.title)).toEqual(['آفلاین'])
+    const titles = await again.db.execute('SELECT title FROM properties ORDER BY id')
+    expect(titles.rows.map((r) => r.title)).toEqual(['قبلی', 'آفلاین'])
 
     server.offline = false
     await again.sync.push(TOKEN, USER)
@@ -314,6 +315,8 @@ describe('SyncService, option A (Amin #4826)', () => {
     expect(await count(db, 'properties')).toBe(0)
     expect(await count(db, 'contacts')).toBe(0)
     expect(await queuedOnDisk(disk)).toBe(0)
+    expect(await count(disk, 'copy')).toBe(0) // Amin #5524: the offline copy goes with sign-out
+    expect(await sync.offlineCopyAt()).toBeNull()
     expect(await sync.owner()).toBeNull()
     expect(server.rows.has('properties/p1')).toBe(true)
     expect(await count(db, 'lost_reasons')).toBeGreaterThan(0)
@@ -332,6 +335,25 @@ describe('SyncService, option A (Amin #4826)', () => {
 
     await sync.claim(USER)
     expect(await count(db, 'properties')).toBe(1)
+  })
+
+  it('Amin #5524: a deleted file leaves the offline copy; another number on the phone never sees the copy', async () => {
+    const first = await launch(server)
+    await first.sync.claim(USER)
+    await addProperty(first.db, 'p1', 'یک')
+    await addProperty(first.db, 'p2', 'دو')
+    await first.sync.push(TOKEN, USER)
+    await first.db.execute("DELETE FROM properties WHERE id = 'p1'")
+    await first.sync.push(TOKEN, USER)
+    first.db.close()
+
+    const next = await launch(server, fakeFiles(), first.disk)
+    const titles = await next.db.execute('SELECT title FROM properties')
+    expect(titles.rows.map((r) => r.title)).toEqual(['دو'])
+
+    await next.sync.claim(OTHER)
+    expect(await count(next.db, 'properties')).toBe(0)
+    expect(await count(next.disk, 'copy')).toBe(0)
   })
 
   it('a revoked session keeps unsent changes queued', async () => {
