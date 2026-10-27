@@ -19,7 +19,7 @@ type Props = {
 
 /**
  * Amin #5062: the «عکس‌ها» step of a new property file or contract. Photos come from the camera or the gallery,
- * are made WebP (long side 1600, quality 80, no location data) in memory (see usePhotoAdder), and can be reordered (the first is the
+ * are made WebP (long side 1280, quality 72, no location data) in memory (see usePhotoAdder), and can be reordered (the first is the
  * main photo) or removed. The line on top says how many there are; tokens are counted only when the file is saved
  * (Amin #5108), so none are shown here. Empty places show the faded EYVAN logo (#5107).
  */

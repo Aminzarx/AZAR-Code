@@ -1668,6 +1668,9 @@ kss-pricing 0.38.1.
   are measured squares; the note under them is gone (Amin #5416).
 - «منطقه» beside the city on one row for files and applicants; the applicant's city moved to «چه می‌خواهد». Description
   and note fields are two lines tall (`TextInput multiline`) (Amin #5416).
+- Photos are made at most 1280 px on the long side at WebP quality 72 (was 1600/80), so they take fewer tokens
+  (Amin #5433). Checked on the server: Amin's file ae6354e7 held 10 real WebP photos (700–1200 px wide, 1,138,502 B)
+  and was charged once, 144.678 tokens = (photos + record) / 1000 × 0.127; nothing was charged twice.
 - «یادآوری‌ها» is «اعلان‌ها»: KSS announcements (server `/announcements`) on top, coloured by tone, × dismisses one for
   good; the reminders follow (Amin #5370).
 - Home: name from the profile and updated after Settings, avatar opens the profile, no follow-ups list; Settings: no

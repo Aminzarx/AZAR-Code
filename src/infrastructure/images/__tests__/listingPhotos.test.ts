@@ -22,11 +22,11 @@ describe('listing photos (Amin #5062)', () => {
     photos = require('../listingPhotos') as typeof import('../listingPhotos')
   })
 
-  it('every picture becomes a WebP with a long side of at most 1600 px at quality 80, converted in memory', async () => {
-    expect(photos.PHOTO_MAX_SIDE).toBe(1600)
-    expect(photos.PHOTO_QUALITY).toBe(80)
+  it('every picture becomes a WebP with a long side of at most 1280 px at quality 72 (Amin #5433), converted in memory', async () => {
+    expect(photos.PHOTO_MAX_SIDE).toBe(1280)
+    expect(photos.PHOTO_QUALITY).toBe(72)
     await photos.convertPhoto('content://media/1')
-    expect(native.toWebpData).toHaveBeenCalledWith('content://media/1', 1600, 80)
+    expect(native.toWebpData).toHaveBeenCalledWith('content://media/1', 1280, 72)
   })
 
   it('gallery (Amin #5416): several at once in the photo picker, never more than the room left', async () => {

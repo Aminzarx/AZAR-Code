@@ -1,11 +1,12 @@
 import { chooseImages, convertImage } from './webImage.web'
 
 /**
- * EYVAN web (#5183): listingPhotos.ts for the browser. Same rules (Amin #5062): long side at most 1600 px, quality
- * 80, converted in memory only, EXIF dropped. The camera is the phone's own (the file chooser's «take photo»).
+ * EYVAN web (#5183): listingPhotos.ts for the browser. Same rules (Amin #5062): long side at most 1280 px (Amin #5433), quality
+ * 72, converted in memory only, EXIF dropped. The camera is the phone's own (the file chooser's «take photo»).
  */
-export const PHOTO_MAX_SIDE = 1600
-export const PHOTO_QUALITY = 80
+// Amin #5433: 1280 px at quality 72 (was 1600/80): smaller photos, so they cost fewer tokens
+export const PHOTO_MAX_SIDE = 1280
+export const PHOTO_QUALITY = 72
 /** at most this many photos per file or contract */
 export const MAX_PHOTOS = 10
 

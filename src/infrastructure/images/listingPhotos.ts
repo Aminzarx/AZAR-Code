@@ -2,12 +2,13 @@ import { NativeModules, PermissionsAndroid, Platform } from 'react-native'
 
 /**
  * Amin #5062: photos of a property file or a contract. Every picture, from the camera or the gallery, becomes a
- * WebP whose long side is at most 1600 px at quality 80. It is converted in memory (nothing is written to the
+ * WebP whose long side is at most 1280 px at quality 72. It is converted in memory (nothing is written to the
  * phone: option A) and re-encoding drops all EXIF data, the GPS position included. Its size is what it costs in
  * storage tokens.
  */
-export const PHOTO_MAX_SIDE = 1600
-export const PHOTO_QUALITY = 80
+// Amin #5433: 1280 px at quality 72 (was 1600/80): smaller photos, so they cost fewer tokens
+export const PHOTO_MAX_SIDE = 1280
+export const PHOTO_QUALITY = 72
 /** at most this many photos per file or contract */
 export const MAX_PHOTOS = 10
 
