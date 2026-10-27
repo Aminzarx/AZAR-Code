@@ -165,7 +165,7 @@ describe('SettingsScreen', () => {
     )
 
     // Amin #5715: the company logo and name instead of the site address
-    expect(await findByText('خیام صنعت شریف')).toBeTruthy()
+    expect(await findByLabelText('خیام صنعت شریف')).toBeTruthy()
     fireEvent.press(await findByLabelText('ایوان، برنامه‌ای از خیام صنعت شریف؛ ورود به وبسایت'))
     expect(openURL).toHaveBeenCalledWith('https://kssx.ir')
   })

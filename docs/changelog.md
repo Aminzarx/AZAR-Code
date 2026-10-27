@@ -2056,3 +2056,6 @@ the company site.
 - The first time Home opens between 01:00 and 04:00 on a day, one random line stands in for the greeting for that
   visit: «گرگ‌ها در شب شکار می‌کنند!» / «هنوز توی میدونی؟» / «شب بخیر؟ هنوز زوده!» / «بیداری؟ ایوانم بیداره!».
   The day it was shown is kept on the phone, so it appears once a night.
+- Amin #5782: the foot of Settings shows his full company logo (mark + «خیام صنعت شریف / KHAYYAM SANAT SHARIF», from
+  his Drive file «KSS Full Logo.svg») in grey: one-colour SVG drawn with react-native-svg in the theme's
+  onSurfaceVariant, so it reads on day and night. Replaces the small WebP mark + text line (#5715).

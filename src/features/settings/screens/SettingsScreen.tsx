@@ -47,8 +47,8 @@ import { photoUri } from '@infrastructure/images/profilePhoto'
 import type { SupportContacts } from '@infrastructure/auth/httpAuthApiClient'
 import { ValidationFailureError } from '@core/auth/errors'
 
-// Amin #5715: the company's mark at the foot of Settings (WebP, transparent: reads on day and night backgrounds)
-const companyLogo = require('../../../assets/kss-logo.webp')
+import { SvgXml } from 'react-native-svg'
+import { KSS_LOGO_ASPECT, KSS_LOGO_SVG } from '../../../assets/kssLogo'
 
 const APP_DOWNLOAD_URL = 'https://kssx.ir/fa/solutions/apps' // Amin #5135: the download lives on kssx.ir's apps page
 
@@ -442,9 +442,14 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           style={styles.madeBy}
         >
           <Text style={[theme.typography('bodySm'), styles.madeByText]}>ایوان، برنامه‌ای از</Text>
-          <View style={styles.companyRow}>
-            <Image source={companyLogo} style={styles.companyLogo} resizeMode="contain" />
-            <Text style={[theme.typography('titleSm'), styles.companyName]}>خیام صنعت شریف</Text>
+          {/* Amin #5782: his full logo, in the theme's grey; it carries the company name itself */}
+          <View accessible accessibilityLabel="خیام صنعت شریف" testID="company-logo">
+            <SvgXml
+              xml={KSS_LOGO_SVG}
+              width={COMPANY_LOGO_WIDTH}
+              height={COMPANY_LOGO_WIDTH / KSS_LOGO_ASPECT}
+              color={theme.colors.onSurfaceVariant}
+            />
           </View>
         </Pressable>
         <Text style={[theme.typography('labelSm'), styles.version]}>
@@ -506,6 +511,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
 }
 
 const COMPANY_SITE_URL = 'https://kssx.ir'
+const COMPANY_LOGO_WIDTH = 180
 
 const APPEARANCE_LABELS: Record<AppearanceMode, string> = { light: 'روشن', dark: 'تیره', system: 'هماهنگ با گوشی' }
 
@@ -640,18 +646,6 @@ function createStyles(theme: Theme) {
     madeByText: {
       color: theme.colors.onSurfaceVariant,
       textAlign: 'center' // rtl-allow: centred page footer
-    },
-    companyRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.space2
-    },
-    companyLogo: {
-      width: 40,
-      height: 40
-    },
-    companyName: {
-      color: theme.colors.onSurface
     },
     safeArea: {
       flex: 1,
