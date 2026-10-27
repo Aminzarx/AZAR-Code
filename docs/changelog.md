@@ -1997,3 +1997,21 @@ looks like a random logout. Reminder cards' left corners have radius 2 (#5634).
 **Affected modules**: features/auth (AuthProvider, signedOutNotice, WelcomeScreen), reminder/ReminderListItem.
 
 **Migration requirements**: None.
+
+## 2026-10-27 — 1.5.8 (part 1): «ورود آگهی از دیوار» (Navid's order)
+
+**Change**: A Divar post becomes a new file. In Divar, «اشتراک‌گذاری» → ایوان (EYVAN is now a share target for text:
+`AzarShareModule` + an `ACTION_SEND text/plain` filter), or paste the post's link in the new box on the first step of
+«فایل ملکی تازه». The server (`POST /divar/import`, `server/src/divar.js`) reads only that one post from the public
+JSON Divar's own web page loads (`api.divar.ir/v8/posts-v2/web/<token>`): title, type, sale price or deposit/rent,
+area, rooms, city, district, description, amenities, year built, floor and photo addresses. The form is filled
+(year, floor and amenities lead the description), the photos are downloaded on the phone and converted to WebP as
+always; the broker checks and saves.
+
+**Rules**: no crawling, no lists, no login; one post cached an hour; 30 imports per account per hour + 20 requests per
+minute per address; 8 s timeout; clear Persian errors (not a Divar link, post gone, Divar not answering, tokens short).
+Price = kss-pricing `eyvan_divar_import_tokens`; empty = the import is off (Amin #4302, no fallback). Charged as
+ledger reason `divar_import`, once per post per account per day.
+
+**Tests**: `server/test/divar.test.js` (parser on Navid's #5653 post), `server/test/divarImport.test.js` (route),
+`src/features/property/services/__tests__/divarImport.test.ts` (form mapping).

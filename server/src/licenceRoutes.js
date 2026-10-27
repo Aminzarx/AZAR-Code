@@ -80,6 +80,8 @@ async function appPrices() {
         tokenAllowance: num('eyvan_token_allowance'),
         tokensPerKb: num('eyvan_tokens_per_kb'),
         phoneChangeTokens: num('eyvan_phone_change_tokens'),
+        // Navid 2026-10-27: tokens per Divar post read in; empty = the import is off (Amin #4302, no fallback)
+        divarImportTokens: num('eyvan_divar_import_tokens'),
         referralBonus: num('eyvan_referral_bonus'),
         profileBonus: num('eyvan_profile_bonus'),
         dailyBonusCap: num('eyvan_daily_bonus_cap'),

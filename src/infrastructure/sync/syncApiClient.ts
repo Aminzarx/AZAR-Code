@@ -49,6 +49,37 @@ type ErrorBody = { error?: { code?: string; message?: string } }
  * AZAR-SYNC-001: the account's files on the KSS server (server/src/syncRoutes.js).
  * Every call carries the session token; the server keeps rows and photos per account, encrypted.
  */
+/** Navid 2026-10-27: why a Divar post could not be read in; `message` is the server's Persian sentence */
+export class DivarImportError extends Error {
+  constructor(
+    readonly code: string,
+    message: string
+  ) {
+    super(message)
+    this.name = 'DivarImportError'
+  }
+}
+
+/** Navid 2026-10-27 «ورود آگهی از دیوار»: one post as the server read it (missing parts are null/empty) */
+export type DivarPost = {
+  token: string | null
+  title: string
+  propertyType: string
+  transactionTypes: string[]
+  city: string
+  region: string
+  price: number | null
+  deposit: number | null
+  rent: number | null
+  area: number | null
+  rooms: number | null
+  yearBuilt: number | null
+  floor: string | null
+  features: string[]
+  description: string
+  photos: string[]
+}
+
 export class SyncApiClient {
   constructor(private readonly baseUrl: string) {}
 
@@ -115,6 +146,11 @@ export class SyncApiClient {
     return this.post('/tokens/purchases', { sessionToken })
   }
 
+  /** Navid 2026-10-27: the one shared/pasted Divar post, read by the server into the fields of a new file */
+  divarImport(sessionToken: string, link: string): Promise<{ post: DivarPost; charged: number }> {
+    return this.post('/divar/import', { sessionToken, link })
+  }
+
   private async post<T>(path: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
     // offline (airplane mode, no network): say so at once instead of waiting on a request that cannot go out
     const network = await NetInfo.fetch().catch(() => null)
@@ -146,6 +182,9 @@ export class SyncApiClient {
     }
     const parsed = (await response.json().catch(() => ({}))) as ErrorBody
     if (response.status === 401) throw new SessionRevokedError()
+    if (path === '/divar/import' && parsed.error?.code) {
+      throw new DivarImportError(parsed.error.code, parsed.error.message ?? '')
+    }
     // Amin #5052: the token ledger refuses a change that does not fit (tokens_short); same «full» state for the user
     if (parsed.error?.code === 'storage_full' || parsed.error?.code === 'tokens_short') throw new StorageFullError()
     // Amin #5245: a purchase step the server refuses with a reason the screen can say in words

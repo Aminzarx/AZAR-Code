@@ -1,4 +1,5 @@
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native'
+import RNFS from 'react-native-fs'
 
 /**
  * Amin #5062: photos of a property file or a contract. Every picture, from the camera or the gallery, becomes a
@@ -49,6 +50,26 @@ export async function pickPhotos(room: number): Promise<ConvertedPhoto[]> {
     }
   }
   if (failure !== null && photos.length === 0) throw failure
+  return photos
+}
+
+/**
+ * Navid 2026-10-27 «ورود آگهی از دیوار»: a post's pictures (Divar's own picture addresses), each downloaded to the
+ * app's cache only for as long as it takes to convert it, then removed. A picture that fails is skipped.
+ */
+export async function importPhotos(urls: readonly string[], room: number): Promise<ConvertedPhoto[]> {
+  const photos: ConvertedPhoto[] = []
+  for (const [n, url] of urls.slice(0, Math.max(0, room)).entries()) {
+    const path = `${RNFS.CachesDirectoryPath}/divar-${Date.now()}-${n}`
+    try {
+      const { statusCode } = await RNFS.downloadFile({ fromUrl: url, toFile: path, readTimeout: 15000 }).promise
+      if (statusCode === 200) photos.push(await convertPhoto(`file://${path}`))
+    } catch {
+      // skipped
+    } finally {
+      await RNFS.unlink(path).catch(() => undefined)
+    }
+  }
   return photos
 }
 

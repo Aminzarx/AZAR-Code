@@ -37,7 +37,8 @@ export type MainStackParamList = {
   // cards link straight to a plain filtered list via these, independent
   // of the Files tab's segmented-control entry point.
   PropertyList: undefined
-  CreateProperty: undefined
+  /** Navid 2026-10-27: a Divar link shared into EYVAN opens a new file filled from that post */
+  CreateProperty: { divarLink?: string } | undefined
   PropertyDetail: { propertyId: string }
   ApplicantList: undefined
   CreateApplicant: undefined

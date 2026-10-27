@@ -18,7 +18,11 @@ import {
 import { PropertyValidationError } from '../services/PropertyValidationError'
 import { validatePropertyForm } from '../services/propertyValidation'
 import { PhotoEditor } from '@features/photos/components/PhotoEditor'
-import { PhotoAddButton, usePhotoAdder } from '@features/photos/components/PhotoAddButton'
+import { asEditorPhoto, PhotoAddButton, usePhotoAdder } from '@features/photos/components/PhotoAddButton'
+import { importPhotos, MAX_PHOTOS } from '@infrastructure/images/listingPhotos'
+import type { DivarPost } from '@infrastructure/sync/syncApiClient'
+import { DivarImportBox } from '../components/DivarImportBox'
+import { divarToValues } from '../services/divarImport'
 import { usePhotoRepository } from '@features/photos/hooks/usePhotoRepository'
 import type { EditorPhoto } from '@features/photos/photoList'
 import type { PropertyFormErrors, PropertyFormValues } from '../types'
@@ -63,7 +67,7 @@ const REQUIRED = 'این مورد لازم است.'
  * save link in the header. The city starts as the city of the broker's
  * last file. Saving and validation are unchanged (PropertyService).
  */
-export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
+export function CreatePropertyScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
@@ -123,6 +127,15 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
     if (onStep.city && !values.city.trim()) onStep.city = REQUIRED
     if (onStep.address && !values.address.trim()) onStep.address = REQUIRED
     return onStep
+  }
+
+  /** Navid 2026-10-27: a Divar post fills the form and adds its photos (the broker checks, then saves) */
+  async function handleDivarPost(post: DivarPost): Promise<void> {
+    setValues((current) => divarToValues(post, current))
+    setErrors({})
+    setIsDirty(true)
+    const added = await importPhotos(post.photos, MAX_PHOTOS - photos.length)
+    if (added.length > 0) setPhotos((current) => [...current, ...added.map(asEditorPhoto)].slice(0, MAX_PHOTOS))
   }
 
   function handleNext(): void {
@@ -242,7 +255,12 @@ export function CreatePropertyScreen({ navigation }: Props): React.JSX.Element {
           }}
         />
       ) : (
-        <PropertyForm values={values} errors={errors} onChange={handleChange} step={step} />
+        <>
+          {stepIndex === 0 ? (
+            <DivarImportBox sharedLink={route?.params?.divarLink} onImported={handleDivarPost} />
+          ) : null}
+          <PropertyForm values={values} errors={errors} onChange={handleChange} step={step} />
+        </>
       )}
       <ConfirmDialog {...unsavedChangesDialogProps} />
     </FormScreenContainer>

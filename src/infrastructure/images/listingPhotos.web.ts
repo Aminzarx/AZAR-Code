@@ -22,6 +22,19 @@ export async function convertPhoto(source: string): Promise<ConvertedPhoto> {
   return fromBlob(await (await fetch(source)).blob())
 }
 
+/** Navid 2026-10-27: a Divar post's pictures; one the browser may not read is skipped. */
+export async function importPhotos(urls: readonly string[], room: number): Promise<ConvertedPhoto[]> {
+  const photos: ConvertedPhoto[] = []
+  for (const url of urls.slice(0, Math.max(0, room))) {
+    try {
+      photos.push(await convertPhoto(url))
+    } catch {
+      // skipped
+    }
+  }
+  return photos
+}
+
 /** Pictures chosen from the phone's gallery, converted; [] when the chooser is closed. */
 export async function pickPhotos(room: number): Promise<ConvertedPhoto[]> {
   if (room <= 0) return []

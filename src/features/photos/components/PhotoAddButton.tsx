@@ -13,7 +13,7 @@ import {
 import type { EditorPhoto } from '../photoList'
 
 let nextKey = 0
-function asEditorPhoto(photo: ConvertedPhoto): EditorPhoto {
+export function asEditorPhoto(photo: ConvertedPhoto): EditorPhoto {
   nextKey += 1
   return {
     key: `new-${Date.now()}-${nextKey}`,

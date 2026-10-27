@@ -1,5 +1,6 @@
 package com.azarapp
 
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -20,6 +21,14 @@ class MainActivity : ReactActivity() {
     super.onCreate(null)
     // Amin #5199: no preview of the app in the app switcher, Settings included (where screenshots are allowed)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) setRecentsScreenshotEnabled(false)
+    AzarShareModule.keep(intent)
+  }
+
+  /** Navid 2026-10-27: a Divar link shared while EYVAN is already open (singleTask) */
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    AzarShareModule.keep(intent)
   }
 
   /** Amin #5055: «هماهنگ با گوشی» — the bars follow the phone when it switches between day and night */

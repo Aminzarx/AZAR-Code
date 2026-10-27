@@ -38,6 +38,12 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="eyvan" android:host="paid" />
         </intent-filter>
+        <!-- Navid 2026-10-27 «ورود آگهی از دیوار»: Divar → اشتراک‌گذاری → ایوان (AzarShareModule) -->
+        <intent-filter android:label="ورود به ایوان">
+            <action android:name="android.intent.action.SEND" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="text/plain" />
+        </intent-filter>
       </activity>
       <provider
         android:name=".AzarUpdateFileProvider"

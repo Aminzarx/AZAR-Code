@@ -1,0 +1,1176 @@
+{
+ "sections": [
+  {
+   "section_name": "BREADCRUMB",
+   "widgets": [
+    {
+     "widget_type": "BREADCRUMB",
+     "data": {
+      "@type": "type.googleapis.com/widgets.BreadcrumbData",
+      "parent_items": [
+       {
+        "title": "املاک",
+        "action": {
+         "type": "OPEN_POSTLIST_PAGE_GRPC",
+         "payload": {
+          "@type": "type.googleapis.com/widgets.OpenPostListPageGRPCPayload",
+          "search_data": {
+           "form_data": {
+            "data": {
+             "category": {
+              "str": {
+               "value": "real-estate"
+              }
+             }
+            }
+           }
+          },
+          "source_view": "CATEGORY_BREAD_CRUMB",
+          "source_view_str": "CATEGORY_BREAD_CRUMB"
+         }
+        }
+       },
+       {
+        "title": "فروش مسکونی",
+        "action": {
+         "type": "OPEN_POSTLIST_PAGE_GRPC",
+         "payload": {
+          "@type": "type.googleapis.com/widgets.OpenPostListPageGRPCPayload",
+          "search_data": {
+           "form_data": {
+            "data": {
+             "category": {
+              "str": {
+               "value": "residential-sell"
+              }
+             }
+            }
+           }
+          },
+          "source_view": "CATEGORY_BREAD_CRUMB",
+          "source_view_str": "CATEGORY_BREAD_CRUMB"
+         }
+        }
+       },
+       {
+        "title": "فروش آپارتمان",
+        "action": {
+         "type": "OPEN_POSTLIST_PAGE_GRPC",
+         "payload": {
+          "@type": "type.googleapis.com/widgets.OpenPostListPageGRPCPayload",
+          "search_data": {
+           "form_data": {
+            "data": {
+             "category": {
+              "str": {
+               "value": "apartment-sell"
+              }
+             }
+            }
+           }
+          },
+          "source_view": "CATEGORY_BREAD_CRUMB",
+          "source_view_str": "CATEGORY_BREAD_CRUMB"
+         }
+        }
+       }
+      ],
+      "current_page_title": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر",
+      "padded": true
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "TITLE",
+   "widgets": [
+    {
+     "widget_type": "LEGEND_TITLE_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.LegendTitleRowData",
+      "title": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر",
+      "high_level_heading": true,
+      "padding": "NO_PADDING"
+     }
+    },
+    {
+     "widget_type": "EXPANDABLE_SECTION",
+     "data": {
+      "@type": "type.googleapis.com/widgets.ExpandableSectionData",
+      "widget_list": [
+       {
+        "widget_type": "DESCRIPTION_ROW",
+        "data": {
+         "@type": "type.googleapis.com/widgets.DescriptionRowData",
+         "text": "انتشار آگهی: ۴ آبان ۱۴۰۵، ۱۱:۲۵\nآخرین به\u200cروز\u200cرسانی: ۵ آبان ۱۴۰۵، ۰۷:۵۲",
+         "is_primary": true,
+         "small": true,
+         "text_alignment": "RIGHT"
+        }
+       }
+      ],
+      "title": "دیروز در تهران، دریاچه شهدای خلیج فارس، خ کناررو دریاچه",
+      "icon": {}
+     }
+    },
+    {
+     "widget_type": "SELECTOR_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.SelectorRowData",
+      "title": "زنگ خطرهای قبل از معامله",
+      "action": {
+       "type": "OPEN_PAGE",
+       "payload": {
+        "@type": "type.googleapis.com/widgets.OpenPagePayload",
+        "request_http_method": "POST",
+        "request_data": {
+         "@type": "type.googleapis.com/post_api_v2.GetFraudAlertPageRequest.Data",
+         "category": "apartment-sell"
+        },
+        "specification": {
+         "@type": "type.googleapis.com/widgets.OpenPagePayload.SimplePageSpecification",
+         "navigation_button": "BACK"
+        },
+        "is_modal": true,
+        "rest_request_path": "/v8/postview/fraud-alert",
+        "grpc_request_path": "/post_api_v2.PostApi/GetFraudAlertPage"
+       }
+      },
+      "has_divider": true,
+      "icon": {
+       "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/warning.png",
+       "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/warning.png",
+       "icon_name": "WARNING",
+       "icon_color": "ICON_SECONDARY"
+      },
+      "has_arrow": true,
+      "last_notification_date": "0001-01-01T00:00:00Z"
+     },
+     "action_log": {
+      "server_side_info": {
+       "info": {
+        "@type": "type.googleapis.com/action_log.PostWarningInfo",
+        "post_token": "gaffwOpk"
+       },
+       "item_type": {
+        "type": "POST_WARNING"
+       }
+      },
+      "enabled": true
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "DESCRIPTION",
+   "widgets": [
+    {
+     "widget_type": "TITLE_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.TitleRowData",
+      "text": "توضیحات",
+      "text_color": "TEXT_PRIMARY",
+      "text_type": "SECONDARY"
+     }
+    },
+    {
+     "widget_type": "DESCRIPTION_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.DescriptionRowData",
+      "text": "خوش سلیقه ها و سخت پسندان \nبرج با امکانات رفاهی و تفریحی خاص ۱۴۲ متر سه خواب شیک و خوش نقشه \nسالن پرده خور ویو ابدی\n✔️قابل تهاتر و یا معاوضه با :\nمسکونی زمین خودرو،باغ،ویلا(دارای سندتک استخر،سونا،جکوزی،روف،سینما،هایپر\n\n\n ⚠️توجه                                 توجه⚠️\n❌جهت جلوگیری از هر گونه سواستفاده و یا کلاهبرداری لطفا به قسمت افزونه ها توجه کنید!\nدر این قسمت, افزونه هایی همچون: کارمند رسمی تعاونی، خرید بدون واسطه، کدرهگیری, قدرالسهم و…. لحاظ شده.\nامیدواریم با این روش بتوانیم روند خریدتان را ایمن و هموار سازیم❌\n\nکارمند رسمی تعاونی راستگو",
+      "is_primary": true,
+      "text_alignment": "RIGHT"
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "IMAGE",
+   "widgets": [
+    {
+     "widget_type": "IMAGE_CAROUSEL",
+     "data": {
+      "@type": "type.googleapis.com/widgets.ImageCarouselData",
+      "items": [
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/videos/thumbnails/thumbnail/07837afe-fc10-4fba-b92e-cd1d017bf405.jpg",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار"
+        },
+        "video_url": "https://video1.divarcdn.com/static/videos/post/0/07837afe-fc10-4fba-b92e-cd1d017bf405/video.mp4",
+        "action_log": {
+         "server_side_info": {
+          "info": {
+           "@type": "type.googleapis.com/action_log.PostVideoInfo",
+           "post_token": "gaffwOpk",
+           "video_url": "https://video1.divarcdn.com/static/videos/post/0/07837afe-fc10-4fba-b92e-cd1d017bf405/video.mp4",
+           "index_in_slider": 1
+          },
+          "item_type": {
+           "type": "POST_VIDEO"
+          }
+         },
+         "enabled": true
+        },
+        "seo": {
+         "name": "۱۴۲متر_دریاچه\u200c چیتگر_فول امکانات_تهاتر",
+         "upload_date": "2026-10-26T07:55:06.434835Z"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/KrXLeB54e1OhIb5tLXeqng/7c918bd3-c5e3-448f-b276-f8385f9a4d04.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/8VtYJ9TYaaR199iijBHwig/7c918bd3-c5e3-448f-b276-f8385f9a4d04.webp"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/VXhCpHDTHBwbGzj2bxTTKQ/f48e1f0b-6969-4eae-8900-e130610b955c.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/nQcE7No5iQ4AhISM6Eg10A/f48e1f0b-6969-4eae-8900-e130610b955c.webp"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/riXCAHvehZ5UP3KuxKV75Q/92c5eac5-ee9c-490f-9011-4bfbf53faf68.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/9w9ooSTDc9SDniRbyU0RAQ/92c5eac5-ee9c-490f-9011-4bfbf53faf68.webp"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/uyO6CLO1-VFL2Fy4QFWoZg/14ba55d4-f2e1-4339-8629-f02d0d7a0cd2.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/ynTvN_xvgsoIwW0wZ6nSjQ/14ba55d4-f2e1-4339-8629-f02d0d7a0cd2.webp"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/in6sVfayxOHv27BEWDR9wQ/2d34ce5a-6452-4523-a842-d80f348b4884.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/YEOufkOyVdiafmpfnEyTeQ/2d34ce5a-6452-4523-a842-d80f348b4884.webp"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/QikQEmEtxj1GhUYf_IV8-w/35e5b122-877e-477d-a4fc-952f4abd4e49.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/Nau-i_SpO5nMD9NXVL-eZg/35e5b122-877e-477d-a4fc-952f4abd4e49.webp"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/2h-xQ8RBIFMIZwoac7ZDMA/164e012f-fa3e-4d5f-9216-36445be4cd83.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/iAb5WkwX5QVA5dPJnyOcJA/164e012f-fa3e-4d5f-9216-36445be4cd83.webp"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/AL50ZsoNP4oznBsKED1XEQ/a7ebbbbe-26bf-4f93-8c1f-f47f96eccc3c.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/-XYrlPkyG8asehZlp6NIFQ/a7ebbbbe-26bf-4f93-8c1f-f47f96eccc3c.webp"
+        }
+       },
+       {
+        "image": {
+         "url": "https://s100.divarcdn.com/static/photo/neda/webp_post/MpWxE6X5JQFDwaxQZAd1Fg/cc20bf32-f790-4ea0-a614-227956ace5f5.webp",
+         "alt": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر|فروش آپارتمان|تهران, دریاچه شهدای خلیج فارس|دیوار",
+         "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/Wvcb622WFGj67tRAwsVz3Q/cc20bf32-f790-4ea0-a614-227956ace5f5.webp"
+        }
+       }
+      ],
+      "image_aspect_ratio": {
+       "dynamic_aspect_ratio": {
+        "height": 3,
+        "width": 4
+       }
+      },
+      "has_preview": true,
+      "has_thumbnails": true,
+      "show_tooltip": true,
+      "tooltip_data": {
+       "icon": {
+        "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/white_primary/v1/fullscreen.png",
+        "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/white_primary/v1/fullscreen.png",
+        "icon_name": "FULLSCREEN",
+        "icon_color": "WHITE_PRIMARY"
+       },
+       "text": "عکس\u200cها: تزئینی"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "LIST_DATA",
+   "widgets": [
+    {
+     "widget_type": "GROUP_INFO_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.GroupInfoRow",
+      "items": [
+       {
+        "title": "متراژ",
+        "value": "۱۴۲"
+       },
+       {
+        "title": "ساخت",
+        "value": "۱۴۰۵"
+       },
+       {
+        "title": "اتاق",
+        "value": "۳"
+       }
+      ],
+      "has_divider": true
+     }
+    },
+    {
+     "widget_type": "UNEXPANDABLE_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+      "title": "تصویر\u200cها برای همین ملک است؟",
+      "value": "خیر",
+      "has_divider": true
+     }
+    },
+    {
+     "widget_type": "UNEXPANDABLE_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+      "title": "قیمت کل",
+      "value": "\u200f۳,۹۷۶,۰۰۰,۰۰۰ تومان",
+      "has_divider": true
+     }
+    },
+    {
+     "widget_type": "UNEXPANDABLE_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+      "title": "قیمت هر متر",
+      "value": "\u200f۲۸,۰۰۰,۰۰۰ تومان",
+      "has_divider": true
+     }
+    },
+    {
+     "widget_type": "UNEXPANDABLE_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+      "title": "طبقه",
+      "value": "۲۶ از بیشتر از ۳۰",
+      "has_divider": true
+     }
+    },
+    {
+     "widget_type": "SECTION_TITLE_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.SectionTitleRowData",
+      "title": "ویژگی\u200cها و امکانات",
+      "title_color": "TEXT_PRIMARY",
+      "padding": "ALT"
+     }
+    },
+    {
+     "widget_type": "GROUP_FEATURE_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.GroupFeatureRow",
+      "items": [
+       {
+        "title": "آسانسور",
+        "icon": {
+         "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/elevator.png",
+         "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/elevator.png",
+         "icon_name": "ELEVATOR",
+         "icon_color": "ICON_SECONDARY"
+        },
+        "available": true
+       },
+       {
+        "title": "پارکینگ",
+        "icon": {
+         "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/parking.png",
+         "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/parking.png",
+         "icon_name": "PARKING",
+         "icon_color": "ICON_SECONDARY"
+        },
+        "available": true
+       },
+       {
+        "title": "انباری",
+        "icon": {
+         "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/cabinet.png",
+         "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/cabinet.png",
+         "icon_name": "CABINET",
+         "icon_color": "ICON_SECONDARY"
+        },
+        "available": true
+       }
+      ],
+      "has_divider": true
+     }
+    },
+    {
+     "widget_type": "SELECTOR_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.SelectorRowData",
+      "title": "سایر ویژگی\u200cها و امکانات",
+      "action": {
+       "type": "LOAD_MODAL_PAGE",
+       "payload": {
+        "@type": "type.googleapis.com/widgets.LoadModalPagePayload",
+        "modal_page": {
+         "title": "ویژگی\u200cها و امکانات",
+         "widget_list": [
+          {
+           "widget_type": "TITLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.TitleRowData",
+            "text": "ویژگی\u200cها",
+            "has_divider": true,
+            "text_color": "TEXT_PRIMARY"
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "تعداد واحد در طبقه",
+            "value": "۸",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "تعداد کل طبقات ساختمان",
+            "value": "بیشتر از ۳۰",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "جهت ساختمان",
+            "value": "جنوبی",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "سند",
+            "value": "تک\u200cبرگ",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "نوع آشپزخانه",
+            "value": "جزیره",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "نمای ساختمان",
+            "value": "ترکیبی",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "وضعیت سکونت",
+            "value": "تخلیه",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "تعداد سرویس بهداشتی",
+            "value": "۲",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "تعداد پارکینگ",
+            "value": "۲",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "تعداد حمام",
+            "value": "۱",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "UNEXPANDABLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.UnexpandableRowData",
+            "title": "قابل معاوضه",
+            "value": "دارد",
+            "has_divider": true
+           }
+          },
+          {
+           "widget_type": "TITLE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.TitleRowData",
+            "text": "امکانات",
+            "has_divider": true,
+            "text_color": "TEXT_PRIMARY"
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "آسانسور",
+            "has_divider": true,
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/elevator.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/elevator.png",
+             "icon_name": "ELEVATOR",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "پارکینگ",
+            "has_divider": true,
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/parking.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/parking.png",
+             "icon_name": "PARKING",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "انباری",
+            "has_divider": true,
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/cabinet.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/cabinet.png",
+             "icon_name": "CABINET",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "بالکن دارد",
+            "has_divider": true,
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/balcony.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/balcony.png",
+             "icon_name": "BALCONY",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "جنس کف سنگ",
+            "has_divider": true,
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/texture.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/texture.png",
+             "icon_name": "TEXTURE",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "سرویس بهداشتی ایرانی و فرنگی",
+            "has_divider": true,
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/wc.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/wc.png",
+             "icon_name": "WC",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "سرمایش داکت اسپلیت",
+            "has_divider": true,
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/snowflake.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/snowflake.png",
+             "icon_name": "SNOWFLAKE",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "گرمایش داکت اسپلیت",
+            "has_divider": true,
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/sunny.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/sunny.png",
+             "icon_name": "SUNNY",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          },
+          {
+           "widget_type": "FEATURE_ROW",
+           "data": {
+            "@type": "type.googleapis.com/widgets.FeatureRowData",
+            "title": "تأمین\u200cکننده آب گرم پکیج",
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/thermometer.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/thermometer.png",
+             "icon_name": "THERMOMETER",
+             "icon_color": "ICON_SECONDARY"
+            }
+           }
+          }
+         ]
+        }
+       }
+      },
+      "has_divider": true,
+      "icon": {},
+      "has_arrow": true,
+      "last_notification_date": "0001-01-01T00:00:00Z",
+      "fullwidth": true
+     },
+     "action_log": {
+      "server_side_info": {
+       "info": {
+        "@type": "type.googleapis.com/action_log.ViewPostFeaturesInfo",
+        "post_token": "gaffwOpk"
+       },
+       "item_type": {
+        "type": "VIEW_POST_FEATURES"
+       }
+      },
+      "enabled": true
+     }
+    },
+    {
+     "widget_type": "SELECTOR_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.SelectorRowData",
+      "title": "بررسی و کارشناسی",
+      "action": {
+       "type": "OPEN_PAGE",
+       "payload": {
+        "@type": "type.googleapis.com/widgets.OpenPagePayload",
+        "request_http_method": "POST",
+        "request_data": {
+         "@type": "type.googleapis.com/service_providers.GetServiceProvidersPageRequest.RequestData",
+         "source_v2": "DEMAND_POST",
+         "filter": {
+          "service_types": [
+           "REPORT_INSPECTION"
+          ],
+          "city_id": 1,
+          "category": "apartment-sell",
+          "post_token": "gaffwOpk",
+          "touchpoint": "DEMAND_POST"
+         },
+         "action_data_builder": {
+          "conversation_id": "gaffwOpk",
+          "post_token": "gaffwOpk",
+          "touchpoint": "DEMAND_POST",
+          "source": "DEMAND_POST",
+          "lead_source": "DEMAND"
+         },
+         "display_data": {
+          "page_title": "بررسی و کارشناسی"
+         },
+         "trace_id": "c55e2a02-a9aa-4428-ad96-886a6903ce11",
+         "source": "DEMAND_POST",
+         "lead_source": "DEMAND"
+        },
+        "specification": {
+         "@type": "type.googleapis.com/widgets.OpenPagePayload.SimplePageSpecification"
+        },
+        "is_modal": true,
+        "rest_request_path": "/v8/open-platform/service-providers",
+        "grpc_request_path": "/service_providers.ServiceProviders/GetServiceProvidersPage"
+       }
+      },
+      "has_divider": true,
+      "icon": {
+       "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/article-magnifier.png",
+       "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/article-magnifier.png",
+       "icon_name": "ARTICLE_MAGNIFIER",
+       "icon_color": "ICON_SECONDARY"
+      },
+      "has_arrow": true,
+      "last_notification_date": "0001-01-01T00:00:00Z"
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "TAGS",
+   "widgets": [
+    {
+     "widget_type": "WRAPPER_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.WrapperRowData",
+      "chip_list": {
+       "chips": [
+        {
+         "text": "فروش آپارتمان",
+         "type": "ACTION",
+         "action": {
+          "type": "OPEN_POSTLIST_PAGE_GRPC",
+          "payload": {
+           "@type": "type.googleapis.com/widgets.OpenPostListPageGRPCPayload",
+           "search_data": {
+            "form_data": {
+             "data": {
+              "category": {
+               "str": {
+                "value": "apartment-sell"
+               }
+              }
+             }
+            }
+           },
+           "source_view": "CATEGORY_BREAD_CRUMB",
+           "source_view_str": "CATEGORY_BREAD_CRUMB"
+          }
+         }
+        },
+        {
+         "text": "فروش آپارتمان در دریاچه شهدای خلیج فارس",
+         "type": "ACTION",
+         "action": {
+          "type": "OPEN_POSTLIST_PAGE_GRPC",
+          "payload": {
+           "@type": "type.googleapis.com/widgets.OpenPostListPageGRPCPayload",
+           "search_data": {
+            "form_data": {
+             "data": {
+              "category": {
+               "str": {
+                "value": "apartment-sell"
+               }
+              },
+              "districts": {
+               "repeated_string": {
+                "value": [
+                 "1031"
+                ]
+               }
+              }
+             }
+            }
+           },
+           "source_view": "CATEGORY_BREAD_CRUMB",
+           "source_view_str": "CATEGORY_BREAD_CRUMB"
+          }
+         }
+        }
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "MAP",
+   "widgets": [
+    {
+     "widget_type": "MAP_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.MapRowData",
+      "location": {
+       "type": "FUZZY",
+       "fuzzy_data": {
+        "point": {
+         "latitude": 35.749409443023566,
+         "longitude": 51.213150729738068
+        },
+        "radius": 500
+       }
+      },
+      "image_url": "https://mapimage.divarcdn.com/v8/mapimage?encrypted_data=MTIzNDU2Nzg5MTIzXIfjHjeyyKzuQsEcwqRmQPpLW6aC3sfK9uOyEejI7zrkmg==&is_nearby=true"
+     },
+     "action_log": {
+      "server_side_info": {
+       "info": {
+        "@type": "type.googleapis.com/action_log.MapInfo",
+        "post_token": "gaffwOpk"
+       },
+       "item_type": {
+        "type": "MAP"
+       }
+      },
+      "enabled": true
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "NOTE",
+   "widgets": [
+    {
+     "widget_type": "NOTE",
+     "data": {
+      "@type": "type.googleapis.com/widgets.NoteData",
+      "title": "یادداشت من",
+      "button_title": "ویرایش یادداشت",
+      "post_token": "gaffwOpk",
+      "icon_button": {
+       "icon": {
+        "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/more_vert.png",
+        "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/more_vert.png",
+        "icon_name": "MORE_VERT",
+        "icon_color": "ICON_SECONDARY"
+       },
+       "action": {
+        "type": "LOAD_MENU",
+        "payload": {
+         "@type": "type.googleapis.com/widgets.LoadMenuPayload",
+         "menu": {
+          "items": [
+           {
+            "text": "ویرایش یادداشت",
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/edit.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/edit.png",
+             "icon_name": "EDIT",
+             "icon_color": "ICON_SECONDARY"
+            },
+            "action": {
+             "type": "NOTE",
+             "payload": {
+              "@type": "type.googleapis.com/widgets.NotePayload",
+              "post_token": "gaffwOpk",
+              "max_character_count": 256
+             }
+            },
+            "alignment": "RIGHT"
+           },
+           {
+            "text": "حذف یادداشت",
+            "icon": {
+             "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_primary/v1/trash_o.png",
+             "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_primary/v1/trash_o.png",
+             "icon_name": "TRASH_O",
+             "icon_color": "ICON_PRIMARY"
+            },
+            "action": {
+             "type": "MAKE_NETWORK_CALL",
+             "payload": {
+              "@type": "type.googleapis.com/widgets.MakeNetworkCallPayload",
+              "grpc_request_path": "/yaad_v2.YaadV2/DeleteNoteV2",
+              "rest_request_path": "/yaad/delete-note-v2",
+              "request_data": {
+               "@type": "type.googleapis.com/yaad_v2.DeleteNoteV2Request.RequestData",
+               "token": "gaffwOpk"
+              },
+              "needs_auth": true
+             }
+            },
+            "alignment": "RIGHT",
+            "state": "STATE_NEGATIVE"
+           }
+          ],
+          "banner": {}
+         },
+         "display_type": "LOAD_MENU_DISPLAY_TYPE_BOTTOM_SHEET"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "STATIC",
+   "widgets": [
+    {
+     "widget_type": "SELECTOR_ROW",
+     "data": {
+      "@type": "type.googleapis.com/widgets.SelectorRowData",
+      "title": "گزارش آگهی",
+      "action": {
+       "type": "OPEN_FORM_PAGE",
+       "payload": {
+        "@type": "type.googleapis.com/widgets.OpenFormPagePayload",
+        "grpc_servicer": "/post_quality.PostQualityFeedback/GetFeedbackForm",
+        "request_data": {
+         "@type": "type.googleapis.com/post_quality.GetFeedbackFormRequest.RequestData",
+         "post_token": "gaffwOpk"
+        },
+        "rest_request_path": "/v8/post-quality/feedback-form"
+       }
+      },
+      "has_divider": true,
+      "icon": {
+       "image_url_dark": "https://s100.divarcdn.com/static/imgs/widget-icons/dark/icon_secondary/v1/report.png",
+       "image_url_light": "https://s100.divarcdn.com/static/imgs/widget-icons/light/icon_secondary/v1/report.png",
+       "icon_name": "REPORT",
+       "icon_color": "ICON_SECONDARY"
+      },
+      "last_notification_date": "0001-01-01T00:00:00Z"
+     }
+    }
+   ]
+  },
+  {
+   "section_name": "BUSINESS_SECTION",
+   "widgets": [
+    {
+     "widget_type": "LAZY_SECTION",
+     "data": {
+      "@type": "type.googleapis.com/widgets.LazySectionData",
+      "rest_request_path": "/v8/premium-user/post-page/business-data/gaffwOpk/lazy",
+      "grpc_request_path": "/premium_panel.PremiumPanel/GetPostBusinessLazyWidgets",
+      "request_data": {
+       "@type": "type.googleapis.com/premium_panel.GetPostBusinessLazyWidgetsRequest.RequestData",
+       "post_token": "gaffwOpk",
+       "hashed_post_owner_user_id": "031bbf1052c157e4e7aafa4eeb6a03f722eb9fecc419dbb14217f3e1335ec26d",
+       "post_business_type": "premium-panel"
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "share": {
+  "title": "۱۴۲متر_دریاچه\u200c چیتگر_فول امکانات_تهاتر",
+  "web_url": "https://divar.ir/v/gaffwOpk"
+ },
+ "seo": {
+  "title": "فروش ۱۴۲متر_دریاچه\u200c چیتگر_فول امکانات_تهاتر در تهران - ۴ آبان ۱۴۰۵",
+  "description": "آگهی ۱۴۲متر_دریاچه\u200c چیتگر_فول امکانات_تهاتر در دیوار تهران",
+  "android_package_name": "ir.divar",
+  "android_app_url": "android-app://ir.divar/http/v/۱۴۲متر_دریاچه\u200c چیتگر_فول امکانات_تهاتر/gaffwOpk/",
+  "web_info": {
+   "title": "۱۴۲متر_دریاچه\u200c چیتگر_فول امکانات_تهاتر",
+   "district_persian": "دریاچه شهدای خلیج فارس",
+   "city_persian": "تهران",
+   "category_slug_persian": "فروش آپارتمان"
+  },
+  "unavailable_after": "2026-11-26T11:25:06.435482",
+  "bread_crumb": [
+   {
+    "name": "فروش آپارتمان",
+    "search_data": {
+     "form_data": {
+      "data": {
+       "category": {
+        "str": {
+         "value": "apartment-sell"
+        }
+       },
+       "districts": {
+        "repeated_string": {
+         "value": [
+          "1031"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   {
+    "name": "فروش مسکونی",
+    "search_data": {
+     "form_data": {
+      "data": {
+       "districts": {
+        "repeated_string": {
+         "value": [
+          "1031"
+         ]
+        }
+       },
+       "category": {
+        "str": {
+         "value": "residential-sell"
+        }
+       }
+      }
+     }
+    }
+   },
+   {
+    "name": "املاک",
+    "search_data": {
+     "form_data": {
+      "data": {
+       "districts": {
+        "repeated_string": {
+         "value": [
+          "1031"
+         ]
+        }
+       },
+       "category": {
+        "str": {
+         "value": "real-estate"
+        }
+       }
+      }
+     }
+    }
+   },
+   {
+    "name": "دریاچه شهدای خلیج فارس",
+    "search_data": {
+     "form_data": {
+      "data": {
+       "districts": {
+        "repeated_string": {
+         "value": [
+          "1031"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   {
+    "name": "1",
+    "search_data": {
+     "form_data": {}
+    }
+   },
+   {
+    "name": "دیوار"
+   }
+  ],
+  "post_seo_schema": {
+   "description": "خوش سلیقه ها و سخت پسندان \nبرج با امکانات رفاهی و تفریحی خاص ۱۴۲ متر سه خواب شیک و خوش نقشه \nسالن پرده خور ویو ابدی\n✔️قابل تهاتر و یا معاوضه با :\nمسکونی زمین خودرو،باغ،ویلا(دارای سندتک استخر،سونا،جکوزی،روف،سینما،هایپر\n\n\n ⚠️توجه                                 توجه⚠️\n❌جهت جلوگیری از هر گونه سواستفاده و یا کلاهبرداری لطفا به قسمت افزونه ها توجه کنید!\nدر این قسمت, افزونه هایی همچون: کارمند رسمی تعاونی، خرید بدون واسطه، کدرهگیری, قدرالسهم و…. لحاظ شده.\nامیدواریم با این روش بتوانیم روند خریدتان را ایمن و هموار سازیم❌\n\nکارمند رسمی تعاونی راستگو",
+   "geo": {
+    "@type": "GeoCoordinates",
+    "address": "تهران, دریاچه شهدای خلیج فارس",
+    "latitude": "35.749408672476",
+    "longitude": "51.213149365267"
+   },
+   "web_info": {
+    "district_persian": "دریاچه شهدای خلیج فارس",
+    "category_slug_persian": "فروش آپارتمان",
+    "title": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر",
+    "city_persian": "تهران"
+   },
+   "image": "https://s100.divarcdn.com/static/photo/neda/webp_post/KrXLeB54e1OhIb5tLXeqng/7c918bd3-c5e3-448f-b276-f8385f9a4d04.webp",
+   "floorSize": {
+    "@type": "QuantitativeValue",
+    "value": "142",
+    "unitCode": "MTK"
+   },
+   "@type": "Apartment",
+   "name": "۱۴۲متر/دریاچه\u200c چیتگر/فول امکانات/تهاتر",
+   "numberOfRooms": "سه",
+   "accommodationCategory": "فروش آپارتمان",
+   "@context": "https://schema.org",
+   "url": "https://divar.ir/v/۱۴۲متر-دریاچه-چیتگر-فول-امکانات-تهاتر/gaffwOpk"
+  },
+  "image_url": "https://s100.divarcdn.com/static/photo/neda/post/9HuQTS4UgBOtpJs3ebBcOQ/7c918bd3-c5e3-448f-b276-f8385f9a4d04.jpg"
+ },
+ "contact": {
+  "chat_enabled": true,
+  "action_log": {
+   "server_side_info": {
+    "info": {
+     "@type": "type.googleapis.com/action_log.ContactInfoInfo",
+     "post_token": "gaffwOpk",
+     "method_name": "GetContactWeb",
+     "contact_uuid": "0513bf7d-de82-4b76-b79d-5eea5b6ee792"
+    },
+    "item_type": {
+     "type": "CONTACT_INFO"
+    }
+   },
+   "enabled": true
+  },
+  "contact_uuid": "0513bf7d-de82-4b76-b79d-5eea5b6ee792",
+  "chat_action_log": {
+   "server_side_info": {
+    "info": {
+     "@type": "type.googleapis.com/action_log.ContactMethodInfo",
+     "post_token": "gaffwOpk",
+     "contact_method": "CHAT"
+    },
+    "item_type": {
+     "type": "CONTACT_METHOD"
+    }
+   },
+   "enabled": true
+  }
+ },
+ "webengage": {
+  "credit": 0,
+  "brand_model": "",
+  "token": "gaffwOpk",
+  "cat_1": "real-estate",
+  "district": "chitgar-lake",
+  "status": "",
+  "business_type": "premium-panel",
+  "rent": 0,
+  "gender": "",
+  "originality": "",
+  "cat_3": "apartment-sell",
+  "source_view": "",
+  "business_ref": "IUhSDlWt_UkcyJyUN",
+  "image_count": 9,
+  "category": "apartment-sell",
+  "city": "tehran",
+  "price": 3976000000,
+  "cat_2": "residential-sell"
+ },
+ "analytics": {
+  "cat1": "real-estate",
+  "cat2": "residential-sell",
+  "cat3": "apartment-sell",
+  "city": "tehran"
+ },
+ "city": {
+  "city_id": "1",
+  "name": "تهران",
+  "parent_id": "904",
+  "second_slug": "tehran"
+ }
+}

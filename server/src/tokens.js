@@ -30,6 +30,7 @@ const REASONS = [
   'photo_spend', // before #5108; removed by the opening rebuild
   'photo_refund',
   'phone_change',
+  'divar_import', // Navid 2026-10-27: one Divar post read into a new file (eyvan_divar_import_tokens)
   'referral_bonus',
   'profile_bonus',
   'pack_bought'
@@ -265,10 +266,11 @@ function summaryOf(accountId, s) {
     applicants: used('applicant'),
     contracts: used('contract'),
     phoneChange: round(-sum(['phone_change'])),
+    divarImport: round(-sum(['divar_import'])),
     deducted: round(-sum(['admin_deduct']))
   }
   const spent = round(
-    spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange + spentBy.deducted
+    spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange + spentBy.divarImport + spentBy.deducted
   )
   const granted = sum(['admin_grant'])
   const earned = round(sum(BONUS_REASONS) + granted)
@@ -329,6 +331,7 @@ module.exports = {
   summaryOf,
   post,
   balanceOf,
+  accountOf,
   bytesToTokens,
   checkBonuses,
   referralSignedUp,

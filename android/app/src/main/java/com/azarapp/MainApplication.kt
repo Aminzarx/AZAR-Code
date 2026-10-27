@@ -21,6 +21,7 @@ class MainApplication : Application(), ReactApplication {
           add(AzarImagePackage())
           add(AzarAppearancePackage())
           add(AzarScreenPackage())
+          add(AzarSharePackage())
         },
     )
   }

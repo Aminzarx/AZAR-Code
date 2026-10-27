@@ -23,6 +23,7 @@ import {
   SummaryTiles
 } from './components/HomeSections'
 import type { DashboardStat } from './types'
+import { useSharedDivarLink } from '@features/property/hooks/useSharedDivarLink'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
 
@@ -36,6 +37,8 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { session } = useAuth()
+  // Navid 2026-10-27: Divar → اشتراک‌گذاری → ایوان opens a new file from that post
+  useSharedDivarLink(navigation)
   const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
   // Amin #5412: the name comes with the profile, which reloads whenever Home is back in view
   const { profile } = useProfile()
