@@ -139,7 +139,10 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.surface,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.outlineVariant,
-      borderStartWidth: 4
+      borderStartWidth: 4,
+      // Amin #5634: the left corners only slightly rounded
+      borderTopLeftRadius: 2,
+      borderBottomLeftRadius: 2
     },
     cardDone: {
       backgroundColor: theme.colors.background
