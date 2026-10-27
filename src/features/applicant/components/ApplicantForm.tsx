@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import {
   AutocompleteInput,
+  BarterPicker,
   Checkbox,
   ChoiceChips,
   FormRow,
@@ -35,7 +36,10 @@ export type ApplicantFormStep = 1 | 2 | 3
 export const APPLICANT_FIELD_STEP: Record<keyof ApplicantFormValues, ApplicantFormStep> = {
   fullName: 1,
   phoneNumber: 1,
-  city: 1,
+  city: 2,
+  region: 2,
+  barterItems: 2,
+  barterOtherDescription: 2,
   preferredTransactionType: 2,
   preferredPropertyType: 2,
   minBudget: 2,
@@ -92,15 +96,6 @@ export function ApplicantForm({ values, errors, onChange, step }: Props): React.
             keyboardType="phone-pad"
             errorMessage={errors.phoneNumber}
           />
-          <AutocompleteInput
-            label="شهر"
-            required
-            value={values.city}
-            onChangeValue={(value) => onChange('city', value)}
-            suggestions={IRANIAN_CITIES}
-            placeholder="تهران"
-            errorMessage={errors.city}
-          />
         </>
       ) : null}
 
@@ -122,6 +117,35 @@ export function ApplicantForm({ values, errors, onChange, step }: Props): React.
             errorMessage={errors.preferredPropertyType}
             allowOther
           />
+          {/* Amin #5416: where they want it — city and district on one row (the city left the first step) */}
+          <FormRow>
+            <AutocompleteInput
+              label="شهر"
+              required
+              value={values.city}
+              onChangeValue={(value) => onChange('city', value)}
+              suggestions={IRANIAN_CITIES}
+              placeholder="تهران"
+              errorMessage={errors.city}
+            />
+            <TextInput
+              label="منطقه"
+              value={values.region ?? ''}
+              onChangeText={(value) => onChange('region', value)}
+              placeholder="مثلاً ونک"
+              errorMessage={errors.region}
+            />
+          </FormRow>
+          {modes.includes('تهاتر') ? (
+            <BarterPicker
+              items={values.barterItems ?? []}
+              other={values.barterOtherDescription ?? ''}
+              onItemsChange={(items) => onChange('barterItems', items)}
+              onOtherChange={(text) => onChange('barterOtherDescription', text)}
+              itemsError={errors.barterItems}
+              otherError={errors.barterOtherDescription}
+            />
+          ) : null}
           {showRentFields ? (
             <>
               <FormRow>
@@ -204,6 +228,7 @@ export function ApplicantForm({ values, errors, onChange, step }: Props): React.
           />
           <TextInput
             label="توضیحات"
+            multiline
             value={values.description}
             onChangeText={(value) => onChange('description', value)}
             placeholder="مثلاً محله‌های دلخواه، طبقه، پارکینگ"

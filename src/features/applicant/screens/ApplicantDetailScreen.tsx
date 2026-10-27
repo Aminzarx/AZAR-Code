@@ -40,6 +40,9 @@ function toFormValues(applicant: Applicant): ApplicantFormValues {
     preferredTransactionType: applicant.preferredTransactionType ?? '',
     preferredPropertyType: applicant.preferredPropertyType ?? '',
     city: applicant.city,
+    region: applicant.region ?? '',
+    barterItems: applicant.barterItems ?? [],
+    barterOtherDescription: applicant.barterOtherDescription ?? '',
     minBudget: applicant.minBudget === null ? '' : String(applicant.minBudget),
     maxBudget: applicant.maxBudget === null ? '' : String(applicant.maxBudget),
     minArea: applicant.minArea === null ? '' : String(applicant.minArea),
@@ -175,7 +178,7 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
         [applicant.preferredTransactionType, applicant.preferredPropertyType]
           .filter(Boolean)
           .join(' '),
-        applicant.city
+        [applicant.city, applicant.region].filter(Boolean).join('، ')
       ]
         .filter(Boolean)
         .join(' · ')
@@ -317,6 +320,16 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
             ) : null}
             {applicant.isConvertible ? (
               <DetailRow label="قابل تبدیل" value="بله" theme={theme} styles={styles} />
+            ) : null}
+            {applicant.barterItems && applicant.barterItems.length > 0 ? (
+              <DetailRow
+                label="مورد تهاتر"
+                value={applicant.barterItems
+                  .map((item) => (item === 'سایر' && applicant.barterOtherDescription ? applicant.barterOtherDescription : item))
+                  .join('، ')}
+                theme={theme}
+                styles={styles}
+              />
             ) : null}
             {applicant.description ? (
               <DetailRow

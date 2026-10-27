@@ -9,6 +9,11 @@ export type ApplicantFormValues = {
   preferredTransactionType: string
   preferredPropertyType: string
   city: string
+  /** Amin #5416: the district, beside the city */
+  region?: string
+  /** Amin #5408: what a barter applicant offers, like a barter file */
+  barterItems?: string[]
+  barterOtherDescription?: string
   minBudget: string
   maxBudget: string
   minArea: string

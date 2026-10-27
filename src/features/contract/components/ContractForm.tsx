@@ -63,6 +63,7 @@ export function ContractForm({ values, errors, onChange }: Props): React.JSX.Ele
       />
       <TextInput
         label="یادداشت"
+        multiline
         value={values.notes}
         onChangeText={(value) => onChange('notes', value)}
         placeholder="توضیحات تکمیلی (اختیاری)"

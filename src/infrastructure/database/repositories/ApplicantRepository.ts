@@ -1,9 +1,10 @@
 import type { DB } from '@op-engineering/op-sqlite'
 import { likeAllTerms } from '../../../shared/utils/persianText'
+import { parseBarterItems } from './PropertyRepository'
 
 // Amin #5368: an applicant is found by name, phone, city, wanted deal and property kind, description and any budget
 const APPLICANT_SEARCH_COLUMNS = [
-  'full_name', 'phone_number', 'city', 'description', 'applicant_type', 'preferred_transaction_type',
+  'full_name', 'phone_number', 'city', 'region', 'barter_items', 'barter_other_description', 'description', 'applicant_type', 'preferred_transaction_type',
   'preferred_property_type', 'CAST(min_budget AS TEXT)', 'CAST(max_budget AS TEXT)',
   'CAST(deposit_amount AS TEXT)', 'CAST(rent_amount AS TEXT)',
 ] as const
@@ -20,6 +21,11 @@ export type ApplicantRecord = {
   preferredTransactionType: string | null
   preferredPropertyType: string | null
   city: string
+  /** Amin #5416: the district, beside the city */
+  region?: string | null
+  /** Amin #5408: what a barter applicant offers (the barter file's categories) and the free text of «سایر» */
+  barterItems?: string[]
+  barterOtherDescription?: string | null
   minBudget: number | null
   maxBudget: number | null
   minArea: number | null
@@ -44,6 +50,11 @@ export type CreateApplicantRecord = {
   preferredTransactionType: string | null
   preferredPropertyType: string | null
   city: string
+  /** Amin #5416: the district, beside the city */
+  region?: string | null
+  /** Amin #5408: what a barter applicant offers (the barter file's categories) and the free text of «سایر» */
+  barterItems?: string[]
+  barterOtherDescription?: string | null
   minBudget: number | null
   maxBudget: number | null
   minArea: number | null
@@ -63,6 +74,11 @@ export type UpdateApplicantRecord = {
   preferredTransactionType: string | null
   preferredPropertyType: string | null
   city: string
+  /** Amin #5416: the district, beside the city */
+  region?: string | null
+  /** Amin #5408: what a barter applicant offers (the barter file's categories) and the free text of «سایر» */
+  barterItems?: string[]
+  barterOtherDescription?: string | null
   minBudget: number | null
   maxBudget: number | null
   minArea: number | null
@@ -86,6 +102,9 @@ function toApplicant(row: Record<string, unknown>): ApplicantRecord {
     preferredTransactionType: row.preferred_transaction_type as string | null,
     preferredPropertyType: row.preferred_property_type as string | null,
     city: row.city as string,
+    region: (row.region as string | null) ?? null,
+    barterItems: parseBarterItems(row.barter_items),
+    barterOtherDescription: (row.barter_other_description as string | null) ?? null,
     minBudget: row.min_budget as number | null,
     maxBudget: row.max_budget as number | null,
     minArea: row.min_area as number | null,
@@ -109,9 +128,9 @@ export class ApplicantRepository {
     await this.db.execute(
       `INSERT INTO applicants
         (id, user_id, full_name, phone_number, email, applicant_type, preferred_transaction_type,
-         preferred_property_type, city, min_budget, max_budget, min_area, max_area, rooms,
+         preferred_property_type, city, region, barter_items, barter_other_description, min_budget, max_budget, min_area, max_area, rooms,
          deposit_amount, rent_amount, is_convertible, description, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
       [
         applicant.id,
         applicant.userId,
@@ -122,6 +141,9 @@ export class ApplicantRepository {
         applicant.preferredTransactionType,
         applicant.preferredPropertyType,
         applicant.city,
+        applicant.region || null,
+        applicant.barterItems && applicant.barterItems.length > 0 ? JSON.stringify(applicant.barterItems) : null,
+        applicant.barterOtherDescription || null,
         applicant.minBudget,
         applicant.maxBudget,
         applicant.minArea,
@@ -189,6 +211,7 @@ export class ApplicantRepository {
       `UPDATE applicants
        SET full_name = ?, phone_number = ?, email = ?, applicant_type = ?,
            preferred_transaction_type = ?, preferred_property_type = ?, city = ?,
+           region = ?, barter_items = ?, barter_other_description = ?,
            min_budget = ?, max_budget = ?, min_area = ?, max_area = ?, rooms = ?,
            deposit_amount = ?, rent_amount = ?, is_convertible = ?,
            description = ?, status = ?, updated_at = ?
@@ -201,6 +224,9 @@ export class ApplicantRepository {
         applicant.preferredTransactionType,
         applicant.preferredPropertyType,
         applicant.city,
+        applicant.region || null,
+        applicant.barterItems && applicant.barterItems.length > 0 ? JSON.stringify(applicant.barterItems) : null,
+        applicant.barterOtherDescription || null,
         applicant.minBudget,
         applicant.maxBudget,
         applicant.minArea,

@@ -86,6 +86,7 @@ export function DealNotesSection({
               <Text style={[theme.typography('titleMd'), styles.dialogTitle]}>یادداشت</Text>
               <TextInput
                 label="یادداشت"
+                multiline
                 value={draft}
                 onChangeText={setDraft}
                 placeholder="یادداشت این معامله"

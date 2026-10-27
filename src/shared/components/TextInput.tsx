@@ -33,6 +33,8 @@ type Props = {
   /** Amin #5349: a field that reformats what is typed (MoneyInput) keeps the caret where the user is */
   selection?: { start: number; end: number }
   onSelectionChange?: (event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => void
+  /** Amin #5416: a description or note field — two lines tall from the start, grows as it is filled */
+  multiline?: boolean
 }
 
 /** design-system.md §7.2 — label above field, focus/error/disabled states. */
@@ -54,7 +56,8 @@ export function TextInput({
   returnKeyType,
   onSubmitEditing,
   selection,
-  onSelectionChange
+  onSelectionChange,
+  multiline
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const [isFocused, setIsFocused] = useState(false)
@@ -75,6 +78,7 @@ export function TextInput({
           styles.input,
           hasError ? styles.inputError : isFocused ? styles.inputFocused : styles.inputDefault,
           disabled && styles.inputDisabled,
+          multiline && styles.inputMultiline,
           // web (#5183): the textAlign prop below is Android's; the browser reads the style, where typography put 'left'
           Platform.OS === 'web' && { textAlign: theme.isRTL ? 'right' : 'left' } // rtl-allow: web inputs do not swap
         ]}
@@ -99,6 +103,8 @@ export function TextInput({
         onSubmitEditing={onSubmitEditing}
         selection={selection}
         onSelectionChange={onSelectionChange}
+        multiline={multiline}
+        textAlignVertical={multiline ? 'top' : undefined}
         textAlign={theme.isRTL ? 'right' : 'left'} // rtl-allow: TextInput: Android does not swap, so right is physical right
       />
       {hasError ? (
@@ -133,6 +139,10 @@ function createStyles(theme: Theme) {
       paddingHorizontal: theme.component.textField.paddingX,
       color: theme.colors.onSurface,
       backgroundColor: theme.colors.field
+    },
+    // two lines of bodyMd plus the field's padding
+    inputMultiline: {
+      minHeight: theme.touchTargetMinimum + 28
     },
     inputDefault: {
       borderWidth: 1,

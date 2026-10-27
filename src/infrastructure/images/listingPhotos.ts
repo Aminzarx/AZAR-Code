@@ -1,5 +1,4 @@
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native'
-import { pick, types, errorCodes, isErrorWithCode } from '@react-native-documents/picker'
 
 /**
  * Amin #5062: photos of a property file or a contract. Every picture, from the camera or the gallery, becomes a
@@ -17,6 +16,7 @@ export type ConvertedPhoto = { base64: string; bytes: number; width: number; hei
 type AzarImagePhotos = {
   toWebpData(source: string, maxSide: number, quality: number): Promise<ConvertedPhoto>
   takePhoto(): Promise<{ uri: string; path: string } | null>
+  pickImages(max: number): Promise<string[]>
   removeShot(path: string): Promise<boolean>
 }
 
@@ -35,16 +35,11 @@ export function convertPhoto(source: string): Promise<ConvertedPhoto> {
 /** Pictures chosen from the phone's gallery, converted; [] when the picker is closed. */
 export async function pickPhotos(room: number): Promise<ConvertedPhoto[]> {
   if (room <= 0) return []
-  let picked: Awaited<ReturnType<typeof pick>>
-  try {
-    picked = await pick({ mode: 'open', type: [types.images], allowMultiSelection: room > 1 })
-  } catch (error) {
-    if (isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED) return []
-    throw error
-  }
+  // Amin #5416: the phone's photo picker, several pictures in one go (up to the room left)
+  const picked = await native().pickImages(room)
   const photos: ConvertedPhoto[] = []
-  for (const file of picked.slice(0, room)) {
-    photos.push(await convertPhoto(file.uri))
+  for (const uri of picked.slice(0, room)) {
+    photos.push(await convertPhoto(uri))
   }
   return photos
 }

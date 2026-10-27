@@ -27,6 +27,10 @@ export function PhotoEditor({ photos, onChange, noun, adder }: Props): React.JSX
   const theme = useTheme()
   const styles = createStyles(theme)
   const { busy, error } = adder
+  // Amin #5416: three square tiles a row, sized from the row's measured width (a % width alone came out uneven)
+  const [gridWidth, setGridWidth] = useState(0)
+  const side = gridWidth > 0 ? Math.floor((gridWidth - 2 * theme.spacing.space3) / 3) : 0
+  const cell = side > 0 ? { width: side, height: side } : styles.cell
 
   return (
     <View style={styles.wrapper}>
@@ -38,9 +42,9 @@ export function PhotoEditor({ photos, onChange, noun, adder }: Props): React.JSX
       {busy ? <ActivityIndicator color={theme.colors.primary} /> : null}
       {error ? <Text style={[theme.typography('bodySm'), styles.error]}>{error}</Text> : null}
 
-      <View style={styles.grid}>
+      <View style={styles.grid} onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
         {photos.map((photo, index) => (
-          <View key={photo.key} style={styles.cell}>
+          <View key={photo.key} style={cell}>
             <PhotoThumb photo={photo} style={styles.thumb} />
             {index === 0 ? (
               <View style={styles.mainBadge}>
@@ -81,12 +85,9 @@ export function PhotoEditor({ photos, onChange, noun, adder }: Props): React.JSX
           </View>
         ))}
         {photos.length === 0
-          ? [0, 1, 2].map((slot) => <LogoPlaceholder key={slot} style={[styles.cell, styles.placeholder]} />)
+          ? [0, 1, 2].map((slot) => <LogoPlaceholder key={slot} style={[cell, styles.placeholder]} />)
           : null}
       </View>
-      <Text style={[theme.typography('bodySm'), styles.hint]}>
-        عکس‌ها بدون مکان و مشخصات گوشی ذخیره می‌شوند؛ اولین عکس، عکس اصلی است.
-      </Text>
     </View>
   )
 }
@@ -174,7 +175,6 @@ function createStyles(theme: Theme) {
       transform: [{ scaleX: theme.isRTL ? -1 : 1 }]
     },
     moveLater: { transform: [{ scaleX: theme.isRTL ? 1 : -1 }] },
-    moveOff: { opacity: 0.35 },
-    hint: { color: theme.colors.onSurfaceVariant, alignSelf: theme.isRTL ? 'flex-start' : 'flex-end' }
+    moveOff: { opacity: 0.35 }
   })
 }

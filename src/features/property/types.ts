@@ -8,6 +8,8 @@ export type PropertyFormValues = {
   propertyType: string
   transactionType: string
   city: string
+  /** Amin #5416: the district, beside the city */
+  region?: string
   address: string
   price: string
   area: string

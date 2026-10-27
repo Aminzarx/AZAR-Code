@@ -16,6 +16,7 @@ export type ValidatedPropertyInput = {
   propertyType: string | null
   transactionType: string | null
   city: string
+  region: string | null
   address: string
   price: number | null
   area: number | null
@@ -142,6 +143,7 @@ export function validatePropertyForm(
       propertyType: values.propertyType.trim() || null,
       transactionType: joinDealKinds(kinds) || null,
       city: values.city.trim(),
+      region: (values.region ?? '').trim() || null,
       address: values.address.trim(),
       price,
       area,

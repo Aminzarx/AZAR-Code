@@ -22,6 +22,10 @@ import { moneyLine } from '@shared/utils/shortMoney'
 import { SuggestedApplicantsSection } from '@features/matching/components/SuggestedApplicantsSection'
 import { useUnsavedChangesGuard } from '@shared/hooks/useUnsavedChangesGuard'
 import { PhotoStrip } from '@features/photos/components/PhotoStrip'
+import { PhotoEditor } from '@features/photos/components/PhotoEditor'
+import { PhotoAddButton } from '@features/photos/components/PhotoAddButton'
+import { useEditablePhotos } from '@features/photos/hooks/useEditablePhotos'
+import { useAuth } from '@features/auth/AuthProvider'
 import { usePropertyDetail } from '../hooks/usePropertyDetail'
 import { usePropertyService } from '../hooks/usePropertyService'
 import { usePropertyActivity } from '../hooks/usePropertyActivity'
@@ -40,6 +44,7 @@ function toFormValues(property: Property): PropertyFormValues {
     propertyType: property.propertyType ?? '',
     transactionType: property.transactionType ?? '',
     city: property.city,
+    region: property.region ?? '',
     address: property.address,
     price: property.price === null ? '' : String(property.price),
     area: property.area === null ? '' : String(property.area),
@@ -74,6 +79,9 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   const { property, isLoading, error, refetch } = usePropertyDetail(propertyId)
   const activity = usePropertyActivity(propertyId)
   const service = usePropertyService()
+  const { session } = useAuth()
+  // Amin #5352: the photos can be removed, reordered or added on the «ویرایش» page too
+  const editPhotos = useEditablePhotos('property', property?.id)
   const [isEditing, setIsEditing] = useState(false)
   const [values, setValues] = useState<PropertyFormValues | null>(null)
   const [errors, setErrors] = useState<PropertyFormErrors>({})
@@ -96,6 +104,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
     setValues(toFormValues(property))
     setErrors({})
     setSubmitError(null)
+    editPhotos.load().catch(() => undefined)
     setIsEditing(true)
   }
 
@@ -118,6 +127,9 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
     setIsSubmitting(true)
     try {
       await service.updateProperty(property.id, values, property.status)
+      if (session) {
+        await editPhotos.save(session.userId)
+      }
       setIsEditing(false)
       refetch()
     } catch (caughtError) {
@@ -207,6 +219,8 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
             <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
           ) : null}
           <PropertyForm values={values} errors={errors} onChange={handleChange} />
+          <PhotoEditor photos={editPhotos.photos} noun="فایل" onChange={editPhotos.setPhotos} adder={editPhotos.adder} />
+          <PhotoAddButton adder={editPhotos.adder} />
         </>
       ) : (
         <>
@@ -230,10 +244,10 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
               {property.title}
             </MarqueeText>
             <Text style={[theme.typography('bodyMd'), styles.location]}>
-              {[property.city, property.address].filter(Boolean).join('، ')}
+              {[property.city, property.region, property.address].filter(Boolean).join('، ')}
             </Text>
             {/* Amin #5062: the file's photos (the main one first) */}
-            <PhotoStrip subjectType="property" subjectId={property.id} />
+            <PhotoStrip subjectType="property" subjectId={property.id} refreshKey={editPhotos.version} />
 
             {headlinePrice ? (
               <View style={styles.headlineStats}>

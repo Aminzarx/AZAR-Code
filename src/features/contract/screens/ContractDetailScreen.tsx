@@ -17,6 +17,10 @@ import {
 } from '@shared/components'
 import { formatJalaliDate, gregorianIsoToJalali } from '@shared/utils/jalaliDate'
 import { PhotoStrip } from '@features/photos/components/PhotoStrip'
+import { PhotoEditor } from '@features/photos/components/PhotoEditor'
+import { PhotoAddButton } from '@features/photos/components/PhotoAddButton'
+import { useEditablePhotos } from '@features/photos/hooks/useEditablePhotos'
+import { useAuth } from '@features/auth/AuthProvider'
 import { useContractDetail } from '../hooks/useContractDetail'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
@@ -53,6 +57,9 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
   const { contractId } = route.params
   const { contract, isLoading, error, refetch } = useContractDetail(contractId)
   const service = useContractService()
+  const { session } = useAuth()
+  // Amin #5352: the photos can be removed, reordered or added on the «ویرایش» page too
+  const editPhotos = useEditablePhotos('contract', contract?.id)
   const [isEditing, setIsEditing] = useState(false)
   const [values, setValues] = useState<ContractFormValues | null>(null)
   const [errors, setErrors] = useState<ContractFormErrors>({})
@@ -84,6 +91,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
     setValues(toFormValues(contract))
     setErrors({})
     setSubmitError(null)
+    editPhotos.load().catch(() => undefined)
     setIsEditing(true)
   }
 
@@ -106,6 +114,9 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
     setIsSubmitting(true)
     try {
       await service.updateContract(contract.id, values, contract.status)
+      if (session) {
+        await editPhotos.save(session.userId)
+      }
       setIsEditing(false)
       refetch()
     } catch (caughtError) {
@@ -183,6 +194,8 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
             <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
           ) : null}
           <ContractForm values={values} errors={errors} onChange={handleChange} />
+          <PhotoEditor photos={editPhotos.photos} noun="قرارداد" onChange={editPhotos.setPhotos} adder={editPhotos.adder} />
+          <PhotoAddButton adder={editPhotos.adder} />
         </>
       ) : (
         // design-system.md §0.2/§17.4 — one Card for the whole record,
@@ -200,7 +213,7 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
           </View>
 
           {/* Amin #5062: the contract's photos */}
-          <PhotoStrip subjectType="contract" subjectId={contract.id} />
+          <PhotoStrip subjectType="contract" subjectId={contract.id} refreshKey={editPhotos.version} />
 
           <LinkRow
             label="ملک"

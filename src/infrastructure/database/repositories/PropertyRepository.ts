@@ -6,7 +6,7 @@ import { likeAllTerms } from '../../../shared/utils/persianText'
 // Amin #5368: a file is found by its deal type, kind, price (any of the three amounts), city, address, description,
 // barter items and owner's name
 const PROPERTY_SEARCH_COLUMNS = [
-  'p.title', 'p.city', 'p.address', 'p.description', 'p.transaction_type', 'p.property_type',
+  'p.title', 'p.city', 'p.region', 'p.address', 'p.description', 'p.transaction_type', 'p.property_type',
   'CAST(p.price AS TEXT)', 'CAST(p.deposit_amount AS TEXT)', 'CAST(p.rent_amount AS TEXT)',
   'p.barter_items', 'p.barter_other_description', 'c.full_name',
 ] as const
@@ -46,6 +46,8 @@ export type PropertyRecord = {
   transactionType: string | null
   city: string
   address: string
+  /** Amin #5416: the district, beside the city */
+  region?: string | null
   price: number | null
   area: number | null
   rooms: number | null
@@ -77,6 +79,8 @@ export type CreatePropertyRecord = {
   transactionType: string | null
   city: string
   address: string
+  /** Amin #5416: the district, beside the city */
+  region?: string | null
   price: number | null
   area: number | null
   rooms: number | null
@@ -95,6 +99,8 @@ export type UpdatePropertyRecord = {
   transactionType: string | null
   city: string
   address: string
+  /** Amin #5416: the district, beside the city */
+  region?: string | null
   price: number | null
   area: number | null
   rooms: number | null
@@ -109,7 +115,7 @@ export type UpdatePropertyRecord = {
   status: PropertyStatus
 }
 
-function parseBarterItems(raw: unknown): string[] {
+export function parseBarterItems(raw: unknown): string[] {
   if (typeof raw !== 'string' || raw.length === 0) {
     return []
   }
@@ -132,6 +138,7 @@ function toProperty(row: Record<string, unknown>): PropertyRecord {
     transactionType: row.transaction_type as string | null,
     city: row.city as string,
     address: row.address as string,
+    region: (row.region as string | null) ?? null,
     price: row.price as number | null,
     area: row.area as number | null,
     rooms: row.rooms as number | null,
@@ -206,10 +213,10 @@ export class PropertyRepository {
       : null
     await this.db.execute(
       `INSERT INTO properties
-        (id, owner_id, title, property_type, transaction_type, city, address, price, area, rooms,
+        (id, owner_id, title, property_type, transaction_type, city, region, address, price, area, rooms,
          deposit_amount, rent_amount, is_convertible, barter_items, barter_other_description,
          description, owner_contact_id, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
       [
         property.id,
         property.ownerId,
@@ -217,6 +224,7 @@ export class PropertyRepository {
         property.propertyType,
         property.transactionType,
         property.city,
+        property.region || null,
         property.address,
         property.price,
         property.area,
@@ -309,7 +317,7 @@ export class PropertyRepository {
     }
     await this.db.execute(
       `UPDATE properties
-       SET title = ?, property_type = ?, transaction_type = ?, city = ?, address = ?,
+       SET title = ?, property_type = ?, transaction_type = ?, city = ?, region = ?, address = ?,
            price = ?, area = ?, rooms = ?, deposit_amount = ?, rent_amount = ?, is_convertible = ?,
            barter_items = ?, barter_other_description = ?,
            description = ?, status = ?, updated_at = ?
@@ -319,6 +327,7 @@ export class PropertyRepository {
         property.propertyType,
         property.transactionType,
         property.city,
+        property.region || null,
         property.address,
         property.price,
         property.area,

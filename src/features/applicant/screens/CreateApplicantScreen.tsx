@@ -73,6 +73,13 @@ export function CreateApplicantScreen({ navigation }: Props): React.JSX.Element 
       const stepErrors: ApplicantFormErrors = {}
       if (!values.fullName.trim()) stepErrors.fullName = REQUIRED
       if (!values.phoneNumber.trim()) stepErrors.phoneNumber = REQUIRED
+      setErrors(stepErrors)
+      if (Object.keys(stepErrors).length > 0) {
+        return
+      }
+    } else if (step === 2) {
+      // Amin #5416: the city is asked on «چه می‌خواهد», beside the district
+      const stepErrors: ApplicantFormErrors = {}
       if (!values.city.trim()) stepErrors.city = REQUIRED
       setErrors(stepErrors)
       if (Object.keys(stepErrors).length > 0) {

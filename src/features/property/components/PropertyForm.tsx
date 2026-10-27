@@ -6,6 +6,7 @@ import { useTheme, type Theme } from '@shared/theme'
 import {
   AutocompleteInput,
   Checkbox,
+  FormRow,
   ChoiceChips,
   MoneyInput,
   MultiChoiceChips,
@@ -57,6 +58,7 @@ export function stepOfField(field: keyof PropertyFormValues, values: PropertyFor
     case 'transactionType':
     case 'propertyType':
     case 'city':
+    case 'region':
     case 'address':
       return 'place'
     case 'area':
@@ -127,15 +129,25 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
             errorMessage={errors.propertyType}
             allowOther
           />
-          <AutocompleteInput
-            label="شهر"
-            required
-            value={values.city}
-            onChangeValue={(value) => onChange('city', value)}
-            suggestions={IRANIAN_CITIES}
-            placeholder="تهران"
-            errorMessage={errors.city}
-          />
+          {/* Amin #5416: city and district on one row */}
+          <FormRow>
+            <AutocompleteInput
+              label="شهر"
+              required
+              value={values.city}
+              onChangeValue={(value) => onChange('city', value)}
+              suggestions={IRANIAN_CITIES}
+              placeholder="تهران"
+              errorMessage={errors.city}
+            />
+            <TextInput
+              label="منطقه"
+              value={values.region ?? ''}
+              onChangeText={(value) => onChange('region', value)}
+              placeholder="مثلاً ونک"
+              errorMessage={errors.region}
+            />
+          </FormRow>
           <TextInput
             label="آدرس"
             required
@@ -225,6 +237,7 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
           {values.barterItems.includes('سایر') ? (
             <TextInput
               label="توضیح مورد تهاتر"
+              multiline
               required
               value={values.barterOtherDescription}
               onChangeText={(value) => onChange('barterOtherDescription', value)}
@@ -265,6 +278,7 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
           />
           <TextInput
             label="یادداشت دربارهٔ مالک"
+            multiline
             value={values.ownerNotes ?? ''}
             onChangeText={(value) => onChange('ownerNotes', value)}
             placeholder="مثلاً عصرها تماس بگیرید، کلید نزد سرایدار"
@@ -286,6 +300,7 @@ export function PropertyForm({ values, errors, onChange, step }: Props): React.J
           />
           <TextInput
             label="توضیحات"
+            multiline
             value={values.description}
             onChangeText={(value) => onChange('description', value)}
             placeholder="مثلاً نورگیر، بازسازی‌شده، سند تک‌برگ"

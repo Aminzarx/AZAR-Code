@@ -7,6 +7,10 @@ import { usePropertyService } from '../../hooks/usePropertyService'
 import { usePropertyActivity } from '../../hooks/usePropertyActivity'
 import type { Property } from '../../types'
 
+jest.mock('@features/auth/AuthProvider', () => ({
+  useAuth: () => ({ session: { userId: 'u1' } })
+}))
+jest.mock('@features/photos/hooks/usePhotoRepository', () => ({ usePhotoRepository: () => null }))
 jest.mock('../../hooks/usePropertyDetail')
 jest.mock('../../hooks/usePropertyService')
 jest.mock('../../hooks/usePropertyActivity')

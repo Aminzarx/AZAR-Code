@@ -1,18 +1,10 @@
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native'
 
-jest.mock('@react-native-documents/picker', () => ({
-  pick: jest.fn(),
-  types: { images: 'image/*' },
-  errorCodes: { OPERATION_CANCELED: 'OPERATION_CANCELED' },
-  isErrorWithCode: (e: { code?: string }) => Boolean(e && e.code)
-}))
-
-let picker: { pick: jest.Mock }
-
 const native = {
   toWebpData: jest.fn(),
   takePhoto: jest.fn(),
-  removeShot: jest.fn()
+  removeShot: jest.fn(),
+  pickImages: jest.fn()
 }
 
 describe('listing photos (Amin #5062)', () => {
@@ -25,8 +17,7 @@ describe('listing photos (Amin #5062)', () => {
     native.toWebpData.mockReset().mockResolvedValue({ base64: 'UklG', bytes: 120_000, width: 1600, height: 1200 })
     native.takePhoto.mockReset()
     native.removeShot.mockReset().mockResolvedValue(true)
-    picker = require('@react-native-documents/picker') as { pick: jest.Mock }
-    picker.pick.mockReset()
+    native.pickImages.mockReset()
     jest.spyOn(PermissionsAndroid, 'request').mockResolvedValue(PermissionsAndroid.RESULTS.GRANTED)
     photos = require('../listingPhotos') as typeof import('../listingPhotos')
   })
@@ -38,16 +29,16 @@ describe('listing photos (Amin #5062)', () => {
     expect(native.toWebpData).toHaveBeenCalledWith('content://media/1', 1600, 80)
   })
 
-  it('gallery: several at once, never more than the room left', async () => {
-    picker.pick.mockResolvedValue([{ uri: 'content://a' }, { uri: 'content://b' }, { uri: 'content://c' }])
+  it('gallery (Amin #5416): several at once in the photo picker, never more than the room left', async () => {
+    native.pickImages.mockResolvedValue(['content://a', 'content://b', 'content://c'])
     const added = await photos.pickPhotos(2)
-    expect(picker.pick).toHaveBeenCalledWith(expect.objectContaining({ allowMultiSelection: true }))
+    expect(native.pickImages).toHaveBeenCalledWith(2)
     expect(added).toHaveLength(2)
     expect(native.toWebpData.mock.calls.map((c) => c[0])).toEqual(['content://a', 'content://b'])
   })
 
   it('gallery closed = nothing added', async () => {
-    picker.pick.mockRejectedValue({ code: 'OPERATION_CANCELED' })
+    native.pickImages.mockResolvedValue([])
     expect(await photos.pickPhotos(3)).toEqual([])
   })
 

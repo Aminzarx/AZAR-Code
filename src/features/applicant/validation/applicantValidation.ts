@@ -7,6 +7,9 @@ export type ValidatedApplicantInput = {
   preferredTransactionType: string | null
   preferredPropertyType: string | null
   city: string
+  region: string | null
+  barterItems: string[]
+  barterOtherDescription: string | null
   minBudget: number | null
   maxBudget: number | null
   minArea: number | null
@@ -104,6 +107,16 @@ export function validateApplicantForm(
     }
   }
 
+  // Amin #5408: a barter applicant names what they offer, like a barter file
+  const barterItems = modes.includes('تهاتر') ? (values.barterItems ?? []) : []
+  if (modes.includes('تهاتر') && barterItems.length === 0) {
+    errors.barterItems = 'دست‌کم یک مورد تهاتر را انتخاب کنید.'
+  }
+  const barterOther = (values.barterOtherDescription ?? '').trim()
+  if (barterItems.includes('سایر') && barterOther.length === 0) {
+    errors.barterOtherDescription = 'برای گزینه «سایر» توضیح مورد تهاتر را وارد کنید.'
+  }
+
   if (Object.keys(errors).length > 0) {
     return { input: null, errors }
   }
@@ -115,6 +128,9 @@ export function validateApplicantForm(
       preferredTransactionType: values.preferredTransactionType.trim() || null,
       preferredPropertyType: values.preferredPropertyType.trim() || null,
       city: values.city.trim(),
+      region: (values.region ?? '').trim() || null,
+      barterItems,
+      barterOtherDescription: barterItems.includes('سایر') ? barterOther : null,
       minBudget,
       maxBudget,
       minArea,

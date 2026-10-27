@@ -6,6 +6,10 @@ import { useContractDetail } from '../../hooks/useContractDetail'
 import { useContractService } from '../../hooks/useContractService'
 import type { ContractWithDetails } from '../../types'
 
+jest.mock('@features/auth/AuthProvider', () => ({
+  useAuth: () => ({ session: { userId: 'u1' } })
+}))
+jest.mock('@features/photos/hooks/usePhotoRepository', () => ({ usePhotoRepository: () => null }))
 jest.mock('../../hooks/useContractDetail')
 jest.mock('../../hooks/useContractService')
 

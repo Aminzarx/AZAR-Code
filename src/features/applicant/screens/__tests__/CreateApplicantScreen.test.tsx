@@ -57,10 +57,10 @@ describe('CreateApplicantScreen', () => {
       withTheme(<CreateApplicantScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    // step 1 asks for the name, number and city before going on
+    // step 1 asks for the name and number before going on (the city is on step 2, Amin #5416)
     await waitFor(() => fireEvent.press(getByText('ادامه: چه می‌خواهد')))
 
-    expect((await findAllByText('این مورد لازم است.')).length).toBe(3)
+    expect((await findAllByText('این مورد لازم است.')).length).toBe(2)
     expect(mockCreateApplicant).not.toHaveBeenCalled()
     expect(mockReplace).not.toHaveBeenCalled()
   })
@@ -74,8 +74,8 @@ describe('CreateApplicantScreen', () => {
 
     await waitFor(() => fireEvent.changeText(getByLabelText('نام و نام خانوادگی'), 'علی رضایی'))
     await waitFor(() => fireEvent.changeText(getByLabelText('شماره تماس'), '09121234567'))
-    await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
     await waitFor(() => fireEvent.press(getByText('ادامه: چه می‌خواهد')))
+    await waitFor(() => fireEvent.changeText(getByLabelText('شهر'), 'تهران'))
     await waitFor(() => fireEvent.press(getByText('ادامه: متراژ و توضیحات')))
     await waitFor(() => fireEvent.press(getByText('ذخیرهٔ متقاضی')))
 

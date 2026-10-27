@@ -97,6 +97,7 @@ export function ReminderForm({ values, errors, onChange }: Props): React.JSX.Ele
       </FormRow>
       <TextInput
         label="توضیحات"
+        multiline
         value={values.description}
         onChangeText={(value) => onChange('description', value)}
         placeholder="توضیحات تکمیلی (اختیاری)"
