@@ -1,13 +1,9 @@
 import type { DB } from '@op-engineering/op-sqlite'
 
 /**
- * Storage tokens (Amin #4164, decided 2026-10-22): each account has 50 MB of
- * storage, shown as tokens: 1 KB = 0.127 token, 1 MB = 1000 KB, so the whole
- * allowance is 6,350 tokens. A file uses the tokens of the data and pictures it
- * holds; deleting it gives them back.
+ * The size of what the user keeps on the phone (Amin #4164). Tokens are not worked out here: the rate per KB is set
+ * in kss-pricing and only the server turns bytes into tokens (Amin #5446, #4302: no hard-coded price in the app).
  */
-export const TOKENS_PER_KB = 0.127
-export const STORAGE_TOKEN_ALLOWANCE = 6350
 
 /** Tables holding what the user entered (computed tables like matches and logs are not counted). */
 export const USER_DATA_TABLES = [
@@ -28,10 +24,6 @@ export const USER_DATA_TABLES = [
   'activities'
 ] as const
 
-export function bytesToTokens(bytes: number): number {
-  return (bytes / 1000) * TOKENS_PER_KB
-}
-
 /** UTF-8 byte length (Persian letters take 2 bytes). */
 export function utf8Length(text: string): number {
   let bytes = 0
@@ -49,10 +41,6 @@ export function utf8Length(text: string): number {
 
 export type StorageUsage = {
   bytes: number
-  tokens: number
-  allowance: number
-  /** 0…1 */
-  share: number
 }
 
 /**
@@ -86,17 +74,5 @@ export async function measureStorageUsage(db: DB, extraBytes = 0): Promise<Stora
     }
   }
   bytes += await photoBytes(db)
-  const tokens = bytesToTokens(bytes)
-  return {
-    bytes,
-    tokens,
-    allowance: STORAGE_TOKEN_ALLOWANCE,
-    share: Math.min(1, tokens / STORAGE_TOKEN_ALLOWANCE)
-  }
-}
-
-/** «۱۲٫۴» style: one decimal, at least 0.1 when anything is stored. */
-export function roundTokens(tokens: number): number {
-  if (tokens <= 0) return 0
-  return Math.max(0.1, Math.round(tokens * 10) / 10)
+  return { bytes }
 }

@@ -23,7 +23,7 @@ class FakeServer {
   pushes = 0
 
   private usage(): SyncUsage {
-    return { bytes: this.rows.size, quotaBytes: 50_000_000, tokens: 0 }
+    return { bytes: this.rows.size, quotaBytes: 50_000_000 }
   }
 
   private check(): void {

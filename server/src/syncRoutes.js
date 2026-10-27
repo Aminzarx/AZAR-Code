@@ -10,10 +10,9 @@ const tokens = require('./tokens')
 // number's account. The phone sends each change as soon as it is online (push) and a phone that signs in
 // gets everything back (pull). Rows and photos are encrypted at rest with AES-256-GCM (key in
 // AZAR_SYNC_KEY, outside the repo). The space an account uses is counted as storage tokens:
-// 50 MB = 6,350 tokens (1 KB = 0.127 token, Amin #4164); a push that would go over it is refused.
+// tokens per KB come from kss-pricing (tokens.js; Amin #4302/#5446); without them the 50 MB quota applies.
 
 const QUOTA_BYTES = Number(process.env.AZAR_SYNC_QUOTA_BYTES) || 50 * 1000 * 1000
-const TOKENS_PER_KB = 0.127
 const BLOB_DIR = process.env.AZAR_SYNC_BLOB_DIR || path.join(path.dirname(db.name), 'blobs')
 const MAX_BLOB_BYTES = 3 * 1000 * 1000
 const TABLE = /^[a-z_]{1,40}$/
@@ -107,7 +106,7 @@ function usageOf(accountId) {
   const rows = db.prepare('SELECT COALESCE(SUM(bytes), 0) AS b FROM sync_rows WHERE account_id = ?').get(accountId).b
   const blobs = db.prepare('SELECT COALESCE(SUM(bytes), 0) AS b FROM sync_blobs WHERE account_id = ?').get(accountId).b
   const bytes = rows + blobs
-  return { bytes, quotaBytes: QUOTA_BYTES, tokens: Math.round((bytes / 1000) * TOKENS_PER_KB * 10) / 10 }
+  return { bytes, quotaBytes: QUOTA_BYTES }
 }
 
 function blobPath(accountId, hash) {

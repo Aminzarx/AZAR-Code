@@ -1,6 +1,6 @@
 import { open } from '@op-engineering/op-sqlite'
 import { runMigrations } from '@infrastructure/database/migrationRunner'
-import { measureStorageUsage, bytesToTokens } from '@features/settings/services/storageTokens'
+import { measureStorageUsage } from '@features/settings/services/storageTokens'
 import { movePhoto } from '../photoList'
 
 describe('photo list (Amin #5062)', () => {
@@ -29,7 +29,6 @@ describe('photo list (Amin #5062)', () => {
     const added = after.bytes - before.bytes
     expect(added).toBeGreaterThanOrEqual(300_000)
     expect(added).toBeLessThan(300_400)
-    expect(after.tokens - before.tokens).toBeCloseTo(bytesToTokens(added), 5)
     db.close()
   })
 })

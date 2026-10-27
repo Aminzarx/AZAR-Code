@@ -15,7 +15,7 @@ const REQUEST_TIMEOUT_MS = 8000
 
 /** One change sent to the server: the row as the phone has it now, or null when it was deleted. */
 export type SyncChange = { t: string; k: string; row: Record<string, unknown> | null }
-export type SyncUsage = { bytes: number; quotaBytes: number; tokens: number }
+export type SyncUsage = { bytes: number; quotaBytes: number }
 export type PullResult = { rows: SyncChange[]; blobs: string[]; usage: SyncUsage }
 
 /** The session is no longer valid: another phone signed in with this number, or the account is gone. */
