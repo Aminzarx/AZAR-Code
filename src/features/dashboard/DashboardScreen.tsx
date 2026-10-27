@@ -14,6 +14,7 @@ import { useProfile } from '@features/settings/hooks/useProfile'
 import { photoUri } from '@infrastructure/images/profilePhoto'
 import { getTimeBasedGreeting } from '@shared/utils/greeting'
 import { useDashboardData } from './hooks/useDashboardData'
+import { useNightLine } from './hooks/useNightLine'
 import {
   FirstStepsCard,
   HomeAddButtons,
@@ -52,6 +53,8 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const hasApplicant = count('applicants') > 0
   const isNewAccount = Boolean(data) && !hasProperty && !hasApplicant
   const greeting = isNewAccount ? 'خوش آمدید' : getTimeBasedGreeting()
+  // Amin #5749: once a night, between 01:00 and 04:00, a line of its own instead of the greeting
+  const nightLine = useNightLine()
 
   const addProperty = () => navigateAcrossTabs(navigation, 'CreateProperty', undefined)
   const addApplicant = () => navigateAcrossTabs(navigation, 'CreateApplicant', undefined)
@@ -98,8 +101,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
                 adjustsFontSizeToFit
                 minimumFontScale={0.7}
               >
-                {greeting}
-                {displayName ? `، ${displayName}` : ''}
+                {nightLine && !isNewAccount ? nightLine : `${greeting}${displayName ? `، ${displayName}` : ''}`}
               </Text>
               {isNewAccount ? (
                 <Text style={[theme.typography('bodySm'), styles.subGreeting]}>

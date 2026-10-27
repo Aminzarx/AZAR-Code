@@ -2049,3 +2049,10 @@ the company site.
   why (typical: the whole name typed in «نام» and «نام خانوادگی» left empty, or the keyboard's ✓ tapped, which did
   nothing). Now the button always answers: what is missing shows in red under the field; a whole name in «نام» with
   an empty last name is split at its first space; the keyboard's ✓ on either name field continues too.
+
+## 2026-10-27 — 1.5.10: home greeting (Amin #5749)
+
+- Home's top line: «سلام، [نام]» from 05:00 to 18:00, «شب بخیر، [نام]» otherwise (was صبح/عصر/شب بخیر).
+- The first time Home opens between 01:00 and 04:00 on a day, one random line stands in for the greeting for that
+  visit: «گرگ‌ها در شب شکار می‌کنند!» / «هنوز توی میدونی؟» / «شب بخیر؟ هنوز زوده!» / «بیداری؟ ایوانم بیداره!».
+  The day it was shown is kept on the phone, so it appears once a night.
