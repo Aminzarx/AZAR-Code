@@ -37,6 +37,22 @@ describe('listing photos (Amin #5062)', () => {
     expect(native.toWebpData.mock.calls.map((c) => c[0])).toEqual(['content://a', 'content://b'])
   })
 
+  it('gallery (Amin #5599): a picture that cannot be read is skipped, the others are still added', async () => {
+    native.pickImages.mockResolvedValue(['content://a', 'content://b'])
+    native.toWebpData
+      .mockRejectedValueOnce(Object.assign(new Error('denied'), { code: 'no_access' }))
+      .mockResolvedValueOnce({ base64: 'UklG', bytes: 90_000, width: 1280, height: 960 })
+    expect(await photos.pickPhotos(5)).toHaveLength(1)
+  })
+
+  it('gallery (Amin #5599): when none can be read, the reason comes back as a code', async () => {
+    native.pickImages.mockResolvedValue(['content://a'])
+    native.toWebpData.mockRejectedValue(Object.assign(new Error('denied'), { code: 'no_access' }))
+    const failure = await photos.pickPhotos(5).catch((error: unknown) => error)
+    expect(photos.photoErrorCode(failure)).toBe('no_access')
+    expect(photos.photoErrorCode(new Error('plain'))).toBe('unknown')
+  })
+
   it('gallery closed = nothing added', async () => {
     native.pickImages.mockResolvedValue([])
     expect(await photos.pickPhotos(3)).toEqual([])

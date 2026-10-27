@@ -44,6 +44,12 @@ export class CameraPermissionError extends Error {
   }
 }
 
+/** Amin #5599: the reason behind a failed add, as on the phone. */
+export function photoErrorCode(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code
+  return typeof code === 'string' && code.length > 0 ? code : 'unknown'
+}
+
 /** How a stored photo is shown: from its bytes (the browser reads WebP and JPEG alike). */
 export function photoDataUri(base64: string): string {
   return `data:image/webp;base64,${base64}`

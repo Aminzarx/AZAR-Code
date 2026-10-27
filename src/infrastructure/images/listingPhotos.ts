@@ -39,10 +39,26 @@ export async function pickPhotos(room: number): Promise<ConvertedPhoto[]> {
   // Amin #5416: the phone's photo picker, several pictures in one go (up to the room left)
   const picked = await native().pickImages(room)
   const photos: ConvertedPhoto[] = []
+  let failure: unknown = null
+  // Amin #5599: a picture the phone will not hand over is skipped; the rest are still added
   for (const uri of picked.slice(0, room)) {
-    photos.push(await convertPhoto(uri))
+    try {
+      photos.push(await convertPhoto(uri))
+    } catch (error) {
+      failure = error
+    }
   }
+  if (failure !== null && photos.length === 0) throw failure
   return photos
+}
+
+/**
+ * Amin #5599: the native reason behind a failed add (no_access, not_found, too_big, convert_failed, no_gallery …), shown
+ * in small print so a report from a phone says what went wrong.
+ */
+export function photoErrorCode(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code
+  return typeof code === 'string' && code.length > 0 ? code : 'unknown'
 }
 
 /** A new shot from the camera, converted; the camera's own temporary file is deleted at once. null = closed. */

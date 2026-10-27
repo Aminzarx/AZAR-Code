@@ -5,6 +5,7 @@ import { useTheme, type Theme } from '@shared/theme'
 import {
   CameraPermissionError,
   MAX_PHOTOS,
+  photoErrorCode,
   pickPhotos,
   takePhoto,
   type ConvertedPhoto
@@ -51,7 +52,7 @@ export function usePhotoAdder(photos: readonly EditorPhoto[], onChange: (photos:
       setError(
         caught instanceof CameraPermissionError
           ? 'برای عکس گرفتن، اجازهٔ دوربین را بدهید.'
-          : 'افزودن عکس انجام نشد. دوباره تلاش کنید.'
+          : `افزودن عکس انجام نشد. دوباره تلاش کنید. (کد: ${photoErrorCode(caught)})`
       )
     } finally {
       setBusy(false)

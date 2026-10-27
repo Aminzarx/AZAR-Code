@@ -1,9 +1,11 @@
 package com.azarapp
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
@@ -88,7 +90,9 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
 
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     resolver.openInputStream(uri).use { BitmapFactory.decodeStream(it, null, bounds) }
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    // Amin #5599: what BitmapFactory cannot read (some phones' HEIF/HEIC shots) goes through ImageDecoder, which also
+    // turns the picture upright by itself
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return decodedByImageDecoder(uri, maxSide)
     var sample = 1
     while (max(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxSide) sample *= 2
     val decoded = resolver.openInputStream(uri).use {
@@ -118,6 +122,19 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
     val turned = Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
     if (turned !== decoded) decoded.recycle()
     return turned
+  }
+
+  private fun decodedByImageDecoder(uri: Uri, maxSide: Int): Bitmap? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+    val source = ImageDecoder.createSource(reactApplicationContext.contentResolver, uri)
+    return ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+      decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+      val longSide = max(info.size.width, info.size.height)
+      if (longSide > maxSide) {
+        val scale = maxSide.toFloat() / longSide
+        decoder.setTargetSize((info.size.width * scale).toInt().coerceAtLeast(1), (info.size.height * scale).toInt().coerceAtLeast(1))
+      }
+    }
   }
 
   private fun writeWebp(bitmap: Bitmap, quality: Int, out: OutputStream) {
@@ -172,7 +189,13 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
         )
         bitmap.recycle()
         promise.resolve(result)
-      } catch (e: Exception) {
+      } catch (e: SecurityException) {
+        promise.reject("no_access", e.message ?: "The picture could not be read.", e)
+      } catch (e: java.io.FileNotFoundException) {
+        promise.reject("not_found", e.message ?: "The picture was not found.", e)
+      } catch (e: OutOfMemoryError) {
+        promise.reject("too_big", "The picture is too big.", e)
+      } catch (e: Throwable) {
         promise.reject("convert_failed", e.message ?: "Could not convert the picture.", e)
       }
     }.start()
@@ -186,10 +209,12 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
       promise.reject("no_activity", "The app is not in front.")
       return
     }
-    if (cameraPromise != null) {
-      promise.reject("busy", "The camera is already open.")
-      return
-    }
+    // Amin #5599: a camera answer that never came back (the phone closed the app's page meanwhile) must not block
+    // every later shot: the old wait ends empty and this one goes on
+    cameraPromise?.resolve(null)
+    cameraPromise = null
+    cameraShot?.delete()
+    cameraShot = null
     try {
       val dir = File(reactApplicationContext.cacheDir, "camera").apply { mkdirs() }
       val shot = File(dir, "shot-${System.currentTimeMillis()}.jpg")
@@ -210,7 +235,7 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
 
   /**
    * Amin #5416: several pictures at once from the gallery, at most `max`. Android 13+ shows its own photo picker
-   * (one tap per picture, a count on the button); older phones get the gallery with multi-select. Resolves the
+   * (one tap per picture, a count on the button); older phones get the document picker with multi-select. Resolves the
    * pictures' addresses ([] when closed).
    */
   @ReactMethod
@@ -220,26 +245,32 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
       promise.reject("no_activity", "The app is not in front.")
       return
     }
-    if (pickPromise != null) {
-      promise.reject("busy", "The gallery is already open.")
-      return
-    }
+    // Amin #5599: same for a gallery answer that never came back
+    pickPromise?.resolve(Arguments.createArray())
+    pickPromise = null
     try {
-      val intent = if (Build.VERSION.SDK_INT >= 33) {
-        Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+      pickPromise = promise
+      if (Build.VERSION.SDK_INT >= 33) {
+        val limit = try { minOf(max, MediaStore.getPickImagesMaxLimit()) } catch (_: Throwable) { max }
+        val photoPicker = Intent(MediaStore.ACTION_PICK_IMAGES).apply {
           type = "image/*"
-          val limit = minOf(max, MediaStore.getPickImagesMaxLimit())
           if (limit > 1) putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, limit)
         }
-      } else {
-        Intent(Intent.ACTION_GET_CONTENT).apply {
-          type = "image/*"
-          addCategory(Intent.CATEGORY_OPENABLE)
-          putExtra(Intent.EXTRA_ALLOW_MULTIPLE, max > 1)
+        try {
+          activity.startActivityForResult(photoPicker, PICK_REQUEST)
+          return
+        } catch (_: ActivityNotFoundException) {
+          // a phone without the system photo picker: the document picker below
         }
       }
-      pickPromise = promise
-      activity.startActivityForResult(intent, PICK_REQUEST)
+      // Amin #5599: the document picker (what 1.5.5 used, and it worked on every phone) instead of the gallery app's
+      // GET_CONTENT, whose answers some gallery apps give without the right to read them
+      val documents = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        type = "image/*"
+        addCategory(Intent.CATEGORY_OPENABLE)
+        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, max > 1)
+      }
+      activity.startActivityForResult(documents, PICK_REQUEST)
     } catch (e: Exception) {
       pickPromise = null
       promise.reject("no_gallery", e.message ?: "Could not open the gallery.", e)

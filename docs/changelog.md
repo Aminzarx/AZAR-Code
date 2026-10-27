@@ -1936,3 +1936,28 @@ installed copy offers the update within 10 minutes. 1.5.6 was not in update.json
   member's referrer. One field takes the inviter's code OR mobile (09…, Persian digits too); own number refused.
 - **#5565**: the name comes first: Welcome → name → number → code → invite page (a new account keeps the name).
 - versionCode 14.
+
+---
+
+## 2026-10-27 — 1.5.7 (part 3): photo add on real phones (Amin #5587, #5599)
+
+**Change**: «افزودن عکس انجام نشد» on Amin's phone with 1.5.6. The emulator (Android 14) added photos from the
+gallery and the camera with the same file, and the server saw no upload, so the failure is on the phone before any
+upload. Account history shows Amin's photos uploaded fine on 1.5.5, which used the document picker. 1.5.6 sends phones
+below Android 13 to the gallery app (GET_CONTENT), whose answers some gallery apps give without the right to read them.
+Fixes in `AzarImageModule.kt`:
+- below Android 13, and wherever the system photo picker is missing, the document picker (ACTION_OPEN_DOCUMENT, what
+  1.5.5 used) instead of GET_CONTENT;
+- a picture BitmapFactory cannot read (some HEIF/HEIC shots) goes through ImageDecoder;
+- reading errors come back as codes (`no_access`, `not_found`, `too_big`, `convert_failed`); out of memory no longer
+  closes the app;
+- a gallery or camera answer that never came back no longer blocks every later try with «busy»;
+- `getPickImagesMaxLimit` is guarded.
+In JS, a picture that cannot be read is skipped and the rest are added (`pickPhotos`). The message now ends with
+«(کد: …)», so the next report from a phone names the cause (`photoErrorCode`).
+
+**Affected modules**: android AzarImageModule, infrastructure/images/listingPhotos(.web), features/photos/PhotoAddButton.
+
+**Migration requirements**: None.
+
+**Tests**: listingPhotos.test.ts: a skipped unreadable picture; the code of a failure.
