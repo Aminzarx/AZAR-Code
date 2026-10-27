@@ -1649,6 +1649,44 @@ kss-pricing 0.38.1.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
 
+## 2026-10-27 — 1.5.6 (part 2): search, advanced search, contracts, photos, district, announcements
+
+**Change**:
+- Search (Amin #5368): files and applicants match every typed word against deal type, property kind, city, district,
+  address, description, barter items, owner/applicant name, phone and every amount; Persian digits and thousands
+  separators are accepted (`searchTerms`/`likeAllTerms`). In the search box a number longer than five digits is
+  grouped in threes, a shorter one or a phone number stays plain (`formatSearchNumbers`). Contracts are searched by
+  tracking code, amount and note too.
+- Advanced search (the filter sheet, now «جست‌وجوی پیشرفته»): city, bedrooms, floor area and price-or-deposit for
+  files; city and bedrooms for applicants, beside the existing deal type, kind, budget and status.
+- A search with no hits shows «موردی یافت نشد» with «پاک کردن جست‌وجو», never «nothing saved yet» (Amin #5407).
+- «قرارداد تازه» on the contracts list opens the contract form (it opened the deals list); the file and the applicant
+  are picked there with a searchable `RecordPicker` (Amin #5408). A barter applicant names what they offer
+  (`BarterPicker`, same categories as a barter file).
+- Photos can be removed, reordered and added on a file's and a contract's edit page (`useEditablePhotos`, Amin #5352).
+  The gallery is Android's photo picker with several pictures at once, up to 10 (`AzarImage.pickImages`); photo tiles
+  are measured squares; the note under them is gone (Amin #5416).
+- «منطقه» beside the city on one row for files and applicants; the applicant's city moved to «چه می‌خواهد». Description
+  and note fields are two lines tall (`TextInput multiline`) (Amin #5416).
+- «یادآوری‌ها» is «اعلان‌ها»: KSS announcements (server `/announcements`) on top, coloured by tone, × dismisses one for
+  good; the reminders follow (Amin #5370).
+- Home: name from the profile and updated after Settings, avatar opens the profile, no follow-ups list; Settings: no
+  phone under the name, invite card and token card show the 150-token gift; smoother tab slide; a new reminder shows
+  at once; smaller checkbox; no duplicate follow-up in an applicant's activity (Amin #5406, #5409–#5415, #5417, #5351).
+
+**Reason**: Amin #5351, #5352, #5368, #5370, #5406–#5417 (brain order for 1.5.6).
+
+**Affected modules**: list screens, `PropertyRepository`, `ApplicantRepository`, `persianText`, `ListToolbar`,
+`CreateContractScreen`, `ContractListScreen`, `RecordPicker`, `BarterPicker`, `PhotoEditor`, `useEditablePhotos`,
+`listingPhotos` + `AzarImageModule.kt`, `TextInput`, forms, `ReminderListScreen`, `AnnouncementCard`,
+`useAnnouncements`, `AuthProvider`, `syncApiClient`; server `tokens.js` (summary `referralBonus`), `exportAccount.js`.
+
+**Migration requirements**: 0022 adds `region` to properties and applicants and `barter_items`/
+`barter_other_description` to applicants (all NULL on old rows; sync copies every column).
+
+**Tests**: jest in CI (repositories, persianText, CreateApplicant/CreateContract/detail screens, AnnouncementCard,
+listingPhotos, migrations); server `node --test`.
+
 ## 2026-10-27 — 1.5.6: money fields keep the caret, name step, sign-up by the inviter's mobile
 
 **Change**:
