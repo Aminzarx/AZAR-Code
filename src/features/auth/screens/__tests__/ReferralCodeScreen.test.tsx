@@ -35,7 +35,8 @@ describe('ReferralCodeScreen', () => {
       syncNow: jest.fn(),
       loadPhoto: jest.fn(),
       getTokenLedger: jest.fn(),
-      tokenPurchase: null
+      tokenPurchase: null,
+      announcements: null,
     })
   })
 

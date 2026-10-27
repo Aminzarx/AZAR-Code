@@ -147,6 +147,11 @@ export class SyncService {
     return this.api
   }
 
+  /** Amin #5370: KSS announcements (list and dismiss), straight to the server */
+  get announcements(): Pick<SyncApiClient, 'announcements' | 'dismissAnnouncement'> {
+    return this.api
+  }
+
   /** Asks the server how much space the account uses (for the tokens card). */
   async refreshUsage(sessionToken: string): Promise<SyncUsage> {
     const { usage } = await this.api.usage(sessionToken)

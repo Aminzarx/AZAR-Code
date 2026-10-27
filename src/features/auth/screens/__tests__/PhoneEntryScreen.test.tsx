@@ -31,7 +31,8 @@ describe('PhoneEntryScreen (v3.0.0 one-page sign-in, Amin #4205)', () => {
       syncNow: jest.fn(),
       loadPhoto: jest.fn(),
       getTokenLedger: jest.fn(),
-      tokenPurchase: null
+      tokenPurchase: null,
+      announcements: null,
     })
   })
 

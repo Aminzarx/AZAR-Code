@@ -18,6 +18,8 @@ import { useReminderService } from '../hooks/useReminderService'
 import { useReminderContexts } from '../hooks/useReminderContexts'
 import { ReminderListItem } from '../components/ReminderListItem'
 import { ReminderAttentionHeader } from '../components/ReminderAttentionHeader'
+import { AnnouncementCard } from '../components/AnnouncementCard'
+import { useAnnouncements } from '../hooks/useAnnouncements'
 import { countReminderAttention, groupRemindersByTime } from '../utils/reminderGrouping'
 import type { Reminder } from '../types'
 
@@ -30,6 +32,20 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
   const userId = session?.userId ?? ''
   const { reminders, isLoading, error, refetch } = useReminders(userId)
   const service = useReminderService()
+  // Amin #5370: «یادآوری‌ها» became «اعلان‌ها»: KSS announcements on top, then the reminders
+  const { announcements, dismiss } = useAnnouncements()
+  const announcementCards =
+    announcements.length > 0 ? (
+      <View style={styles.announcements}>
+        {announcements.map((announcement) => (
+          <AnnouncementCard
+            key={announcement.id}
+            announcement={announcement}
+            onDismiss={() => dismiss(announcement.id)}
+          />
+        ))}
+      </View>
+    ) : null
   const { resolve: resolveContext } = useReminderContexts(userId)
   const del = useUndoableDelete({
     noun: 'یادآوری',
@@ -57,7 +73,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScreenHeaderBar onBack={() => navigation.goBack()} title="یادآوری‌ها" section="reminder" />
+      <ScreenHeaderBar onBack={() => navigation.goBack()} title="اعلان‌ها" section="reminder" />
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.centeredSection}>
@@ -74,6 +90,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
           </View>
         ) : reminders && reminders.length === 0 ? (
           <View style={styles.centeredSection}>
+            {announcementCards}
             <EmptyState
               title="هنوز یادآوری‌ای ثبت نشده"
               description="یادآوری‌های خود را از داشبورد یا صفحه پیگیری اضافه کنید."
@@ -88,10 +105,13 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
             contentContainerStyle={styles.list}
             stickySectionHeadersEnabled={false}
             ListHeaderComponent={
-              <ReminderAttentionHeader
-                overdueCount={attention.overdueCount}
-                dueTodayCount={attention.dueTodayCount}
-              />
+              <>
+                {announcementCards}
+                <ReminderAttentionHeader
+                  overdueCount={attention.overdueCount}
+                  dueTodayCount={attention.dueTodayCount}
+                />
+              </>
             }
             renderSectionHeader={({ section }) => (
               <Text style={[theme.typography('titleSm'), styles.sectionHeader]}>
@@ -135,6 +155,11 @@ function createStyles(theme: Theme) {
     },
     list: {
       gap: theme.spacing.space3
+    },
+    announcements: {
+      alignSelf: 'stretch',
+      gap: theme.spacing.space3,
+      marginBottom: theme.spacing.space4
     },
     sectionHeader: {
       color: theme.colors.onSurface,

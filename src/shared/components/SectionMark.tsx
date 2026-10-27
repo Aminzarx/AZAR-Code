@@ -49,7 +49,7 @@ const ROUTE_LABEL: Record<string, string> = {
   ContractList: 'قراردادها',
   ContractDetail: 'قرارداد',
   CreateContract: 'قرارداد تازه',
-  ReminderList: 'یادآوری‌ها',
+  ReminderList: 'اعلان‌ها',
   ReminderDetail: 'یادآوری',
   CreateReminder: 'یادآوری تازه',
   Settings: 'تنظیمات'

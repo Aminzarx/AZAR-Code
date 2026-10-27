@@ -19,6 +19,15 @@ export type SyncUsage = { bytes: number; quotaBytes: number; tokens: number }
 export type PullResult = { rows: SyncChange[]; blobs: string[]; usage: SyncUsage }
 
 /** The session is no longer valid: another phone signed in with this number, or the account is gone. */
+/** Amin #5370: a note from KSS to the app's users; its tone picks the colour */
+export type Announcement = {
+  id: string
+  title: string
+  body: string
+  tone: 'info' | 'success' | 'warning' | 'danger'
+  createdAt: string
+}
+
 export class SessionRevokedError extends Error {
   constructor() {
     super('session_revoked')
@@ -70,6 +79,16 @@ export class SyncApiClient {
   /** Amin #5052: the account's token ledger (summary + latest rows) */
   tokenLedger(sessionToken: string): Promise<TokenLedger> {
     return this.post('/tokens/ledger', { sessionToken })
+  }
+
+  /** Amin #5370: KSS announcements this account has not dismissed, newest first */
+  announcements(sessionToken: string): Promise<{ announcements: Announcement[] }> {
+    return this.post('/announcements', { sessionToken })
+  }
+
+  /** Amin #5370: × on an announcement — it is not shown to this account again */
+  dismissAnnouncement(sessionToken: string, id: string): Promise<unknown> {
+    return this.post(`/announcements/${encodeURIComponent(id)}/dismiss`, { sessionToken })
   }
 
   /** Amin #5245: the price for `tokens` (or only whether buying is open) */
