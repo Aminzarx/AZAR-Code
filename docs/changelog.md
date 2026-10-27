@@ -2065,3 +2065,5 @@ the company site.
   POST /divar/consent and /divar/consent/status) and refuses /divar/import without it (403 consent_required). The
   paste field on a new file shows only when it is on; a post shared from Divar while it is off opens the
   «اتصال‌ها و API‌ها» page with a line saying to turn it on first.
+- Amin #5806: the logo is grayscale, not one flat grey — each original colour becomes its own grey by luminance, so
+  the K keeps its shading; darker tones on the light theme, lighter ones (same order) on the dark theme.
