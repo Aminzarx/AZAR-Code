@@ -60,11 +60,72 @@ export function formatSearchNumbers(text: string): string {
 }
 
 /** One `(a LIKE ? OR b LIKE ? …)` group per search word, joined by AND, with its bound patterns. */
-export function likeAllTerms(columns: readonly string[], query: string): { sql: string; params: string[] } {
-  const terms = searchTerms(query)
-  const sql = terms.map(() => `(${columns.map((column) => `${column} LIKE ?`).join(' OR ')})`).join(' AND ')
-  const params = terms.flatMap((term) => columns.map(() => `%${term}%`))
-  return { sql, params }
+const ROOM_WORDS = ['خوابه', 'خواب', 'اتاقه', 'اتاق']
+const AREA_WORDS = ['مترمربع', 'متری', 'متر']
+
+/**
+ * Amin #5557: a number with its unit is a field, not loose text — «۳ خوابه» / «3خوابه» / «۳ اتاق» is three rooms,
+ * «۱۲۰ متری» is 120 m². The rest stays words (digits and ی/ک already normalised by `searchTerms`).
+ */
+export function parseSearch(query: string): { terms: string[]; rooms: number | null; area: number | null } {
+  // «3خوابه» → «3 خوابه» (longest unit first, so «خوابه» is not cut to «خواب»)
+  const spaced = searchTerms(query)
+    .join(' ')
+    .replace(/(\d)(مترمربع|متری|متر|خوابه|خواب|اتاقه|اتاق)/g, '$1 $2')
+  const words = spaced.split(/\s+/).filter(Boolean)
+  const terms: string[] = []
+  let rooms: number | null = null
+  let area: number | null = null
+  for (let i = 0; i < words.length; i++) {
+    const next = words[i + 1]
+    if (/^\d+$/.test(words[i]) && next) {
+      if (ROOM_WORDS.includes(next)) {
+        rooms = Number(words[i])
+        i++
+        continue
+      }
+      if (AREA_WORDS.includes(next)) {
+        area = Number(words[i])
+        i++
+        continue
+      }
+    }
+    terms.push(words[i])
+  }
+  return { terms, rooms, area }
+}
+
+/** Where a list keeps rooms and area: one area column, or a wanted range (an applicant's min/max). */
+export type SearchFields = { rooms?: string; area?: string | { min: string; max: string } }
+
+/**
+ * Every word must match one of `columns` (substring); with `fields`, «N خوابه» and «N متری» match the rooms and area
+ * themselves (Amin #5557) instead of any column that holds the digit.
+ */
+export function likeAllTerms(
+  columns: readonly string[],
+  query: string,
+  fields: SearchFields = {}
+): { sql: string; params: Array<string | number> } {
+  const parsed = fields.rooms || fields.area ? parseSearch(query) : { terms: searchTerms(query), rooms: null, area: null }
+  const parts = parsed.terms.map(() => `(${columns.map((column) => `${column} LIKE ?`).join(' OR ')})`)
+  const params: Array<string | number> = parsed.terms.flatMap((term) => columns.map(() => `%${term}%`))
+  if (parsed.rooms !== null && fields.rooms) {
+    parts.push(`${fields.rooms} = ?`)
+    params.push(parsed.rooms)
+  } else if (parsed.rooms !== null) {
+    parts.push(`(${columns.map((column) => `${column} LIKE ?`).join(' OR ')})`)
+    params.push(...columns.map(() => `%${parsed.rooms}%`))
+  }
+  if (parsed.area !== null && typeof fields.area === 'string') {
+    // a little either side: «۱۰۰ متری» also finds 95–105 m²
+    parts.push(`${fields.area} BETWEEN ? AND ?`)
+    params.push(parsed.area * 0.95, parsed.area * 1.05)
+  } else if (parsed.area !== null && fields.area && typeof fields.area === 'object') {
+    parts.push(`(COALESCE(${fields.area.min}, 0) <= ? AND COALESCE(${fields.area.max}, 1e12) >= ?)`)
+    params.push(parsed.area, parsed.area)
+  }
+  return { sql: parts.join(' AND '), params }
 }
 
 export function normalizePersianText(input: string): string {

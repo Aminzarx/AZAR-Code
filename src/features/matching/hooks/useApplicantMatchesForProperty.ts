@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useApplicantService } from '@features/applicant/hooks/useApplicantService'
 import type { Property } from '@features/property/types'
 import type { ApplicantMatch } from '../types'
@@ -18,6 +18,8 @@ export function useApplicantMatchesForProperty(
   const applicantService = useApplicantService()
   const [matches, setMatches] = useState<ApplicantMatch[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // Amin #5561: once there is something on screen, a refresh keeps it there (no spinner swap, no jump)
+  const hasLoaded = useRef(false)
   const [error, setError] = useState<Error | null>(null)
   const [attempt, setAttempt] = useState(0)
 
@@ -26,7 +28,7 @@ export function useApplicantMatchesForProperty(
       return
     }
     let cancelled = false
-    setIsLoading(true)
+    if (!hasLoaded.current) setIsLoading(true)
     setError(null)
 
     applicantService
@@ -34,12 +36,14 @@ export function useApplicantMatchesForProperty(
       .then((applicants) => {
         if (!cancelled) {
           setMatches(findApplicantMatchesForProperty(property, applicants))
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })
       .catch((caughtError: unknown) => {
         if (!cancelled) {
           setError(caughtError instanceof Error ? caughtError : new Error('خطای نامشخص'))
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })

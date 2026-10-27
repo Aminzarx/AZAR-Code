@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { useFilesVersion } from '@shared/hooks/useFilesVersion'
 import { fetchDashboardData } from '../services/dashboardDataService'
@@ -14,6 +14,8 @@ type DashboardDataState = {
 export function useDashboardData(ownerId: string): DashboardDataState {
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // Amin #5561: once there is something on screen, a refresh keeps it there (no spinner swap, no jump)
+  const hasLoaded = useRef(false)
   const [error, setError] = useState<Error | null>(null)
   // option A (Amin #4826): re-read when the account's files arrive from the server while Home is open
   const filesVersion = useFilesVersion()
@@ -21,19 +23,21 @@ export function useDashboardData(ownerId: string): DashboardDataState {
   const load = useCallback(() => {
     void filesVersion // a new version of the files means a new read
     let cancelled = false
-    setIsLoading(true)
+    if (!hasLoaded.current) setIsLoading(true)
     setError(null)
 
     fetchDashboardData(ownerId)
       .then((result) => {
         if (!cancelled) {
           setData(result)
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })
       .catch((caughtError: unknown) => {
         if (!cancelled) {
           setError(caughtError instanceof Error ? caughtError : new Error('خطای نامشخص'))
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })

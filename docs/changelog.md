@@ -1923,3 +1923,16 @@ browsers have no `require`); now an import. Not live (app.kssx.ir is not enabled
 kssx.ir/dl/eyvan.apk AND rewrites update.json in one step (backups first, sha256 checked on both URLs), so every
 installed copy offers the update within 10 minutes. 1.5.6 was not in update.json because it was not published yet
 (waiting for Amin's OK), not because of a fault.
+
+## 2026-10-27 — 1.5.7 (part 2): Amin #5554, #5557, #5561, #5563, #5565
+
+- **#5554**: the «به ازای هر دعوت، … توکن ظرفیت بیشتر» line under the token bar is gone (TokenCard).
+- **#5557**: advanced search is a full page (FilterSheet → full-screen Modal; the sheet's responder stopped its body
+  scrolling). Search reads «N خوابه / N اتاق» as rooms = N and «N متری» as area (±5%; an applicant's wanted range
+  must hold it) — `parseSearch` / `likeAllTerms(columns, query, fields)`; «3خوابه» without a space works too.
+- **#5561**: list and detail hooks keep what is on screen while they refresh (`hasLoaded` ref): no spinner swap, so
+  cards no longer jump when a tab comes back.
+- **#5563**: the invite page no longer fills a code from the clipboard — that is how Amin's own code became a new
+  member's referrer. One field takes the inviter's code OR mobile (09…, Persian digits too); own number refused.
+- **#5565**: the name comes first: Welcome → name → number → code → invite page (a new account keeps the name).
+- versionCode 14.

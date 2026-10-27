@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { getDatabase } from '@infrastructure/database/connection'
 import {
   DealRepository,
@@ -28,6 +28,8 @@ export function useApplicantActivity(applicantId: string): UseApplicantActivityR
   const [deals, setDeals] = useState<DealRecord[] | null>(null)
   const [reminders, setReminders] = useState<ReminderRecord[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // Amin #5561: once there is something on screen, a refresh keeps it there (no spinner swap, no jump)
+  const hasLoaded = useRef(false)
   const [error, setError] = useState<Error | null>(null)
   const [attempt, setAttempt] = useState(0)
 
@@ -36,7 +38,7 @@ export function useApplicantActivity(applicantId: string): UseApplicantActivityR
       return
     }
     let cancelled = false
-    setIsLoading(true)
+    if (!hasLoaded.current) setIsLoading(true)
     setError(null)
 
     getDatabase()
@@ -50,12 +52,14 @@ export function useApplicantActivity(applicantId: string): UseApplicantActivityR
         if (!cancelled) {
           setDeals(dealResult)
           setReminders(reminderResult)
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })
       .catch((caughtError: unknown) => {
         if (!cancelled) {
           setError(caughtError instanceof Error ? caughtError : new Error('خطای نامشخص'))
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })

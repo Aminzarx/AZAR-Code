@@ -14,6 +14,8 @@ export function useReminders(userId: string): UseRemindersResult {
   const service = useReminderService()
   const [reminders, setReminders] = useState<Reminder[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // Amin #5561: once there is something on screen, a refresh keeps it there (no spinner swap, no jump)
+  const hasLoaded = useRef(false)
   const [error, setError] = useState<Error | null>(null)
   const [attempt, setAttempt] = useState(0)
 
@@ -22,7 +24,7 @@ export function useReminders(userId: string): UseRemindersResult {
       return
     }
     let cancelled = false
-    setIsLoading(true)
+    if (!hasLoaded.current) setIsLoading(true)
     setError(null)
 
     service
@@ -30,12 +32,14 @@ export function useReminders(userId: string): UseRemindersResult {
       .then((result) => {
         if (!cancelled) {
           setReminders(result)
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })
       .catch((caughtError: unknown) => {
         if (!cancelled) {
           setError(caughtError instanceof Error ? caughtError : new Error('خطای نامشخص'))
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })

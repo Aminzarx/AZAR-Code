@@ -13,7 +13,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'OtpVerification'>
 export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const { phoneNumber } = route.params
+  const { phoneNumber, displayName, agencyName } = route.params
 
   return (
     <AuthScreenContainer>
@@ -25,7 +25,7 @@ export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.E
       </View>
       <OtpCodePanel
         phoneNumber={phoneNumber}
-        onNeedsReferral={(phone) => navigation.navigate('RegisterName', { phoneNumber: phone })}
+        onNeedsReferral={(phone) => navigation.navigate('ReferralCode', { phoneNumber: phone, displayName, agencyName })}
       />
     </AuthScreenContainer>
   )

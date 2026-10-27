@@ -184,8 +184,9 @@ export class ApplicantRepository {
    * are cast to text).
    */
   async search(userId: string, query: string): Promise<ApplicantRecord[]> {
-    const match = likeAllTerms(APPLICANT_SEARCH_COLUMNS, query)
-    if (match.params.length === 0) {
+    // Amin #5557: «۳ خوابه» is the wanted rooms; «۱۰۰ متری» falls in the wanted area range
+    const match = likeAllTerms(APPLICANT_SEARCH_COLUMNS, query, { rooms: 'rooms', area: { min: 'min_area', max: 'max_area' } })
+    if (!match.sql) {
       return this.getAll(userId)
     }
     const result = await this.db.execute(

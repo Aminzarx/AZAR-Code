@@ -68,12 +68,7 @@ export function TokenCard({ summary, fresh, buy, onBuy, onReceipts }: Props): Re
           <View style={styles.track} accessibilityLabel={`${Math.round(share * 100)} درصد مصرف شده`}>
             <View style={[styles.fill, { backgroundColor: fill, width: `${Math.max(summary.spent > 0 ? 1.5 : 0, share * 100)}%` }]} />
           </View>
-          {/* Amin #5351: the invite gift, under the bar */}
-          {summary.referralBonus ? (
-            <Text style={[theme.typography('labelSm'), styles.muted]}>
-              {`به ازای هر دعوت، ${formatTokenAmount(summary.referralBonus)} توکن ظرفیت بیشتر دریافت کنید.`}
-            </Text>
-          ) : null}
+          {/* Amin #5554: no invite-gift line under the bar (was #5351) */}
           {level !== 'ok' ? (
             <Text style={[theme.typography('labelSm'), level === 'danger' ? styles.danger : styles.warn]}>
               {level === 'danger' ? 'توکن‌ها تقریباً تمام شده است.' : 'کمتر از ۳۰٪ توکن‌ها مانده است.'}

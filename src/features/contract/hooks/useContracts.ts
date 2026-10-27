@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import type { ContractWithDetails } from '../types'
 import { useContractService } from './useContractService'
 
@@ -13,6 +13,8 @@ export function useContracts(userId: string): UseContractsResult {
   const service = useContractService()
   const [contracts, setContracts] = useState<ContractWithDetails[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // Amin #5561: once there is something on screen, a refresh keeps it there (no spinner swap, no jump)
+  const hasLoaded = useRef(false)
   const [error, setError] = useState<Error | null>(null)
   const [attempt, setAttempt] = useState(0)
 
@@ -21,7 +23,7 @@ export function useContracts(userId: string): UseContractsResult {
       return
     }
     let cancelled = false
-    setIsLoading(true)
+    if (!hasLoaded.current) setIsLoading(true)
     setError(null)
 
     service
@@ -29,12 +31,14 @@ export function useContracts(userId: string): UseContractsResult {
       .then((result) => {
         if (!cancelled) {
           setContracts(result)
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })
       .catch((caughtError: unknown) => {
         if (!cancelled) {
           setError(caughtError instanceof Error ? caughtError : new Error('خطای نامشخص'))
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })

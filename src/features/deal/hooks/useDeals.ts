@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import type { DealWithDetails } from '../types'
 import { useDealService } from './useDealService'
 
@@ -13,6 +13,8 @@ export function useDeals(userId: string): UseDealsResult {
   const service = useDealService()
   const [deals, setDeals] = useState<DealWithDetails[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // Amin #5561: once there is something on screen, a refresh keeps it there (no spinner swap, no jump)
+  const hasLoaded = useRef(false)
   const [error, setError] = useState<Error | null>(null)
   const [attempt, setAttempt] = useState(0)
 
@@ -21,7 +23,7 @@ export function useDeals(userId: string): UseDealsResult {
       return
     }
     let cancelled = false
-    setIsLoading(true)
+    if (!hasLoaded.current) setIsLoading(true)
     setError(null)
 
     service
@@ -29,12 +31,14 @@ export function useDeals(userId: string): UseDealsResult {
       .then((result) => {
         if (!cancelled) {
           setDeals(result)
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })
       .catch((caughtError: unknown) => {
         if (!cancelled) {
           setError(caughtError instanceof Error ? caughtError : new Error('خطای نامشخص'))
+          hasLoaded.current = true
           setIsLoading(false)
         }
       })

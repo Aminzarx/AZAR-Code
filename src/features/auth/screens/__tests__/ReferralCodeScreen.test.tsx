@@ -10,6 +10,8 @@ jest.mock('@features/auth/AuthProvider')
 const mockedUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
 const mockRegister = jest.fn()
 
+const FIELD = 'کد معرف یا شمارهٔ موبایل معرف'
+
 const routeProp = {
   key: 'ReferralCode',
   name: 'ReferralCode' as const,
@@ -53,7 +55,7 @@ describe('ReferralCodeScreen', () => {
       nativeEvent: { codeStringValue: 'abcd1234', codeFormat: 'qr' }
     })
 
-    expect(getByLabelText('کد معرف').props.value).toBe('ABCD1234')
+    expect(getByLabelText(FIELD).props.value).toBe('ABCD1234')
   })
 
   it('submits the uppercased referral code on تکمیل ثبت‌نام', async () => {
@@ -62,7 +64,7 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
-    await fireEvent.changeText(getByLabelText('کد معرف'), 'abcd1234')
+    await fireEvent.changeText(getByLabelText(FIELD), 'abcd1234')
     await fireEvent.press(getByText('ورود به برنامه'))
 
     await waitFor(() =>
@@ -79,7 +81,7 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
-    await fireEvent.changeText(getByLabelText('کد معرف'), 'AMINZX')
+    await fireEvent.changeText(getByLabelText(FIELD), 'AMINZX')
     await fireEvent.press(getByText('ورود به برنامه'))
 
     await waitFor(() =>
@@ -93,22 +95,38 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
-    await fireEvent.changeText(getByLabelText('کد معرف'), 'AMIN')
+    await fireEvent.changeText(getByLabelText(FIELD), 'AMIN')
     await fireEvent.press(getByText('ورود به برنامه'))
 
     expect(mockRegister).not.toHaveBeenCalled()
   })
 
-  it('opens the inviter-mobile page from «کد دعوت ندارید؟» (Amin #5344)', async () => {
-    const navigate = jest.fn()
-    const { getByText } = await render(
-      withTheme(<ReferralCodeScreen navigation={{ navigate } as never} route={routeProp} />)
+  it("takes the inviter's mobile (Persian digits too) in the same field (Amin #5563)", async () => {
+    mockRegister.mockResolvedValue(undefined)
+    const { getByLabelText, getByText } = await render(
+      withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
-    await fireEvent.press(getByText('کد دعوت ندارید؟'))
-    expect(navigate).toHaveBeenCalledWith('InviterPhone', {
-      phoneNumber: '+989121234567',
-      displayName: 'علی رضایی',
-      agencyName: undefined
-    })
+    await fireEvent.changeText(getByLabelText(FIELD), '۰۹۱۲۷۷۷۸۸۹۹')
+    await fireEvent.press(getByText('ورود به برنامه'))
+    await waitFor(() =>
+      expect(mockRegister).toHaveBeenCalledWith('+989121234567', '09127778899', expect.anything())
+    )
+  })
+
+  it('never fills a code by itself, whatever is on the clipboard (Amin #5563)', async () => {
+    const { getByLabelText } = await render(
+      withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
+    )
+    expect(getByLabelText(FIELD).props.value).toBe('')
+  })
+
+  it("refuses the new member's own number as the inviter", async () => {
+    const { getByLabelText, getByText } = await render(
+      withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
+    )
+    await fireEvent.changeText(getByLabelText(FIELD), '09121234567')
+    await fireEvent.press(getByText('ورود به برنامه'))
+    expect(mockRegister).not.toHaveBeenCalled()
+    expect(getByText('شمارهٔ خودتان را نمی‌توانید وارد کنید.')).toBeTruthy()
   })
 })

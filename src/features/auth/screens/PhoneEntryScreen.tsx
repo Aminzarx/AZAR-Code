@@ -29,10 +29,12 @@ export function localMobileDigits(text: string): string {
  * number is locked and only «ویرایش شماره» is active; tapping it drops the
  * code that was sent and unlocks the number for a new one.
  */
-export function PhoneEntryScreen({ navigation }: Props): React.JSX.Element {
+export function PhoneEntryScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { sendOtp } = useAuth()
+  // Amin #5565: the name asked on the page before
+  const names = { displayName: route.params?.displayName, agencyName: route.params?.agencyName }
   const [phoneNumber, setPhoneNumber] = useState('')
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -107,7 +109,7 @@ export function PhoneEntryScreen({ navigation }: Props): React.JSX.Element {
           <OtpCodePanel
             key={sentTo}
             phoneNumber={sentTo}
-            onNeedsReferral={(phone) => navigation.navigate('ReferralCode', { phoneNumber: phone })}
+            onNeedsReferral={(phone) => navigation.navigate('ReferralCode', { phoneNumber: phone, ...names })}
             autoFocus
           />
         ) : (

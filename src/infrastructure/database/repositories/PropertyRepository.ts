@@ -269,8 +269,9 @@ export class PropertyRepository {
    * are cast to text, so "500" also finds a price that holds it).
    */
   async findAllByOwner(ownerId: string, search?: string): Promise<PropertyRecord[]> {
-    const match = likeAllTerms(PROPERTY_SEARCH_COLUMNS, search ?? '')
-    if (match.params.length > 0) {
+    // Amin #5557: «۳ خوابه» / «۱۰۰ متری» search the rooms and the area themselves
+    const match = likeAllTerms(PROPERTY_SEARCH_COLUMNS, search ?? '', { rooms: 'p.rooms', area: 'p.area' })
+    if (match.sql) {
       const result = await this.db.execute(
         `${SELECT_WITH_OWNER}
          WHERE p.owner_id = ? AND ${match.sql}

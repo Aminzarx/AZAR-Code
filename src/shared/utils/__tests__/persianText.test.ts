@@ -3,6 +3,7 @@ import {
   formatSearchNumbers,
   levenshteinDistance,
   likeAllTerms,
+  parseSearch,
   searchTerms,
   normalizePersianText,
   suggestMatches,
@@ -92,5 +93,25 @@ describe('formatSearchNumbers (Amin #5368)', () => {
     expect(formatSearchNumbers('۱۲۰۰۰')).toBe('۱۲۰۰۰')
     expect(formatSearchNumbers('۱۲٬۰۰۰')).toBe('۱۲۰۰۰')
     expect(formatSearchNumbers('09121234567')).toBe('09121234567')
+  })
+})
+
+describe('parseSearch (Amin #5557)', () => {
+  it('reads «N خوابه» as rooms and «N متری» as area, in any digits and spacing', () => {
+    expect(parseSearch('۳ خوابه ونک')).toEqual({ terms: ['ونک'], rooms: 3, area: null })
+    expect(parseSearch('3خوابه')).toEqual({ terms: [], rooms: 3, area: null })
+    expect(parseSearch('٢ اتاق ۱۲۰متری')).toEqual({ terms: [], rooms: 2, area: 120 })
+    expect(parseSearch('كرج 500')).toEqual({ terms: ['کرج', '500'], rooms: null, area: null })
+  })
+
+  it('turns rooms and area into their own conditions', () => {
+    expect(likeAllTerms(['a'], '3 خوابه x', { rooms: 'r', area: 'ar' })).toEqual({
+      sql: '(a LIKE ?) AND r = ?',
+      params: ['%x%', 3]
+    })
+    expect(likeAllTerms(['a'], '100 متری', { area: { min: 'mn', max: 'mx' } })).toEqual({
+      sql: '(COALESCE(mn, 0) <= ? AND COALESCE(mx, 1e12) >= ?)',
+      params: [100, 100]
+    })
   })
 })

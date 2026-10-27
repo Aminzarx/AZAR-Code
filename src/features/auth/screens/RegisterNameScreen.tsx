@@ -8,11 +8,13 @@ import { AuthScreenContainer } from '@features/auth/AuthScreenContainer'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'RegisterName'>
 
-/** Amin #5348: right after the number is confirmed, a new member gives first and last name (and the agency, optional). */
-export function RegisterNameScreen({ navigation, route }: Props): React.JSX.Element {
+/**
+ * Amin #5348 / #5565: first page after «شروع کنید» — first and last name (and the agency, optional), then the number
+ * and its code. A new account gets this name; an existing one signs in with its own.
+ */
+export function RegisterNameScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const { phoneNumber } = route.params
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [agency, setAgency] = useState('')
@@ -20,8 +22,7 @@ export function RegisterNameScreen({ navigation, route }: Props): React.JSX.Elem
 
   function handleContinue(): void {
     if (!canContinue) return
-    navigation.navigate('ReferralCode', {
-      phoneNumber,
+    navigation.navigate('PhoneEntry', {
       displayName: `${firstName.trim()} ${lastName.trim()}`,
       agencyName: agency.trim() || undefined
     })
@@ -31,7 +32,7 @@ export function RegisterNameScreen({ navigation, route }: Props): React.JSX.Elem
     <AuthScreenContainer>
       <View style={styles.header}>
         <Text style={[theme.typography('titleMd'), styles.headerTitle]}>معرفی خودتان</Text>
-        <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>فقط یک بار؛ بعد مستقیم وارد برنامه می‌شوید.</Text>
+        <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>برای شروع، نام خود را بنویسید؛ بعد شمارهٔ موبایل.</Text>
       </View>
       <View style={styles.form}>
         <TextInput label="نام" required value={firstName} onChangeText={setFirstName} placeholder="مثلاً علی" autoFocus />
