@@ -47,6 +47,9 @@ import { photoUri } from '@infrastructure/images/profilePhoto'
 import type { SupportContacts } from '@infrastructure/auth/httpAuthApiClient'
 import { ValidationFailureError } from '@core/auth/errors'
 
+// Amin #5715: the company's mark at the foot of Settings (WebP, transparent: reads on day and night backgrounds)
+const companyLogo = require('../../../assets/kss-logo.webp')
+
 const APP_DOWNLOAD_URL = 'https://kssx.ir/fa/solutions/apps' // Amin #5135: the download lives on kssx.ir's apps page
 
 /** «۱۲٫۴» — Persian digits, Persian decimal and thousands marks */
@@ -429,17 +432,20 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           <Text style={[theme.typography('labelSm'), styles.deleteAccountText]}>حذف حساب کاربری</Text>
         </Pressable>
 
-        {/* v1.4.0 (Amin #4324): whose app this is, linked to the company site */}
+        {/* v1.4.0 (Amin #4324): whose app this is, linked to the company site; Amin #5715: the company logo instead of the address */}
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="ایوان، برنامه‌ای از خیام صنعت شریف؛ ورود به وبسایت kssx.ir"
+          accessibilityLabel="ایوان، برنامه‌ای از خیام صنعت شریف؛ ورود به وبسایت"
           onPress={() => {
             Linking.openURL(COMPANY_SITE_URL).catch(() => undefined)
           }}
           style={styles.madeBy}
         >
-          <Text style={[theme.typography('bodySm'), styles.madeByText]}>ایوان، برنامه‌ای از خیام صنعت شریف</Text>
-          <Text style={[theme.typography('labelMd'), styles.madeByLink]}>kssx.ir</Text>
+          <Text style={[theme.typography('bodySm'), styles.madeByText]}>ایوان، برنامه‌ای از</Text>
+          <View style={styles.companyRow}>
+            <Image source={companyLogo} style={styles.companyLogo} resizeMode="contain" />
+            <Text style={[theme.typography('titleSm'), styles.companyName]}>خیام صنعت شریف</Text>
+          </View>
         </Pressable>
         <Text style={[theme.typography('labelSm'), styles.version]}>
           {`ایوان · نسخهٔ ${toPersianDigits(APP_VERSION)}`}
@@ -635,9 +641,17 @@ function createStyles(theme: Theme) {
       color: theme.colors.onSurfaceVariant,
       textAlign: 'center' // rtl-allow: centred page footer
     },
-    madeByLink: {
-      color: theme.colors.primary,
-      textDecorationLine: 'underline'
+    companyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2
+    },
+    companyLogo: {
+      width: 40,
+      height: 40
+    },
+    companyName: {
+      color: theme.colors.onSurface
     },
     safeArea: {
       flex: 1,

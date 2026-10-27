@@ -158,14 +158,15 @@ describe('SettingsScreen', () => {
   })
 
   // v1.4.0 (Amin #4324)
-  it('says whose app this is and opens the company site', async () => {
+  it('says whose app this is with the company logo and opens the company site', async () => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
     const { findByText, findByLabelText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    expect(await findByText('ایوان، برنامه‌ای از خیام صنعت شریف')).toBeTruthy()
-    fireEvent.press(await findByLabelText('ایوان، برنامه‌ای از خیام صنعت شریف؛ ورود به وبسایت kssx.ir'))
+    // Amin #5715: the company logo and name instead of the site address
+    expect(await findByText('خیام صنعت شریف')).toBeTruthy()
+    fireEvent.press(await findByLabelText('ایوان، برنامه‌ای از خیام صنعت شریف؛ ورود به وبسایت'))
     expect(openURL).toHaveBeenCalledWith('https://kssx.ir')
   })
 

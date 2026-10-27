@@ -2015,3 +2015,9 @@ ledger reason `divar_import`, once per post per account per day.
 
 **Tests**: `server/test/divar.test.js` (parser on Navid's #5653 post), `server/test/divarImport.test.js` (route),
 `src/features/property/services/__tests__/divarImport.test.ts` (form mapping).
+
+## 2026-10-27 — 1.5.8 (part 2): company logo at the foot of Settings (Amin #5715)
+
+**Change**: «kssx.ir» under «ایوان، برنامه‌ای از خیام صنعت شریف» is replaced by the company's mark (src/assets/kss-logo.webp,
+40 px, white background removed so it reads on day and night) beside «خیام صنعت شریف»; the whole block still opens
+the company site.
