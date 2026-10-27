@@ -41,10 +41,26 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
 
   private var cameraPromise: Promise? = null
   private var cameraShot: File? = null
+  private var pickPromise: Promise? = null
 
   init {
     reactContext.addActivityEventListener(object : BaseActivityEventListener() {
       override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == PICK_REQUEST) {
+          val promise = pickPromise ?: return
+          pickPromise = null
+          val uris = Arguments.createArray()
+          if (resultCode == Activity.RESULT_OK && data != null) {
+            val clip = data.clipData
+            if (clip != null) {
+              for (i in 0 until clip.itemCount) uris.pushString(clip.getItemAt(i).uri.toString())
+            } else {
+              data.data?.let { uris.pushString(it.toString()) }
+            }
+          }
+          promise.resolve(uris)
+          return
+        }
         if (requestCode != CAMERA_REQUEST) return
         val promise = cameraPromise ?: return
         val shot = cameraShot
@@ -192,6 +208,44 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  /**
+   * Amin #5416: several pictures at once from the gallery, at most `max`. Android 13+ shows its own photo picker
+   * (one tap per picture, a count on the button); older phones get the gallery with multi-select. Resolves the
+   * pictures' addresses ([] when closed).
+   */
+  @ReactMethod
+  fun pickImages(max: Int, promise: Promise) {
+    val activity = reactApplicationContext.currentActivity
+    if (activity == null) {
+      promise.reject("no_activity", "The app is not in front.")
+      return
+    }
+    if (pickPromise != null) {
+      promise.reject("busy", "The gallery is already open.")
+      return
+    }
+    try {
+      val intent = if (Build.VERSION.SDK_INT >= 33) {
+        Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+          type = "image/*"
+          val limit = minOf(max, MediaStore.getPickImagesMaxLimit())
+          if (limit > 1) putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, limit)
+        }
+      } else {
+        Intent(Intent.ACTION_GET_CONTENT).apply {
+          type = "image/*"
+          addCategory(Intent.CATEGORY_OPENABLE)
+          putExtra(Intent.EXTRA_ALLOW_MULTIPLE, max > 1)
+        }
+      }
+      pickPromise = promise
+      activity.startActivityForResult(intent, PICK_REQUEST)
+    } catch (e: Exception) {
+      pickPromise = null
+      promise.reject("no_gallery", e.message ?: "Could not open the gallery.", e)
+    }
+  }
+
   /** Deletes a temporary camera shot (only inside the app's cache/camera folder). */
   @ReactMethod
   fun removeShot(path: String, promise: Promise) {
@@ -209,5 +263,6 @@ class AzarImageModule(reactContext: ReactApplicationContext) :
 
   private companion object {
     const val CAMERA_REQUEST = 5062
+    const val PICK_REQUEST = 5416
   }
 }
