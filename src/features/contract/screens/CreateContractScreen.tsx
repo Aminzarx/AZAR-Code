@@ -1,15 +1,18 @@
-import React, { useRef, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, ChipGroup, FormScreenContainer } from '@shared/components'
+import { Button, ChipGroup, FormScreenContainer, RecordPicker } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { PhotoEditor } from '@features/photos/components/PhotoEditor'
 import { PhotoAddButton, usePhotoAdder } from '@features/photos/components/PhotoAddButton'
 import { usePhotoRepository } from '@features/photos/hooks/usePhotoRepository'
 import type { EditorPhoto } from '@features/photos/photoList'
+import { useProperties } from '@features/property/hooks/useProperties'
+import { useApplicants } from '@features/applicant/hooks/useApplicants'
+import { formatIranPhoneNumberForDisplay } from '@shared/utils/iranPhoneNumber'
 import { useContractService } from '../hooks/useContractService'
 import { ContractForm } from '../components/ContractForm'
 import { ContractValidationError } from '../validation/ContractValidationError'
@@ -46,7 +49,44 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   const styles = createStyles(theme)
   const { session } = useAuth()
   const service = useContractService()
-  const { propertyId, applicantId, dealId } = route.params
+  const params = route.params ?? {}
+  const dealId = params.dealId
+  // Amin #5408: «قرارداد تازه» from the contracts list opens this form directly; the file and the applicant (the
+  // parties) are then picked here. From a deal they come with it.
+  const pickParties = !params.propertyId || !params.applicantId
+  const [propertyId, setPropertyId] = useState<string | null>(params.propertyId ?? null)
+  const [applicantId, setApplicantId] = useState<string | null>(params.applicantId ?? null)
+  const [partyErrors, setPartyErrors] = useState<{ property?: string; applicant?: string }>({})
+  const userId = pickParties ? (session?.userId ?? '') : ''
+  const { properties } = useProperties(userId, '')
+  const { applicants } = useApplicants(userId, '')
+  const propertyOptions = useMemo(
+    () =>
+      (properties ?? []).map((property) => ({
+        id: property.id,
+        title: property.title,
+        subtitle: [property.transactionType, property.city, property.region].filter(Boolean).join('، ')
+      })),
+    [properties]
+  )
+  const applicantOptions = useMemo(
+    () =>
+      (applicants ?? []).map((applicant) => ({
+        id: applicant.id,
+        title: applicant.fullName,
+        subtitle: formatIranPhoneNumberForDisplay(applicant.phoneNumber)
+      })),
+    [applicants]
+  )
+
+  function checkParties(): boolean {
+    const missing = {
+      property: propertyId ? undefined : 'فایل ملک قرارداد را انتخاب کنید.',
+      applicant: applicantId ? undefined : 'طرف قرارداد (متقاضی) را انتخاب کنید.'
+    }
+    setPartyErrors(missing)
+    return !missing.property && !missing.applicant
+  }
   const [values, setValues] = useState<ContractFormValues>(EMPTY_VALUES)
   const [errors, setErrors] = useState<ContractFormErrors>({})
   const [reminderOffset, setReminderOffset] = useState<ReminderOffset>('0')
@@ -74,7 +114,8 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
   function handleNext(): void {
     const checked = validateContractForm(values)
     setErrors(checked.errors ?? {})
-    if (checked.errors) return
+    const partiesOk = checkParties()
+    if (checked.errors || !partiesOk) return
     setStep(2)
   }
 
@@ -88,6 +129,11 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
 
   async function handleSubmit(): Promise<void> {
     if (!service || !session || isSubmittingRef.current) {
+      return
+    }
+    if (!propertyId || !applicantId) {
+      setStep(1)
+      checkParties()
       return
     }
     isSubmittingRef.current = true
@@ -167,6 +213,36 @@ export function CreateContractScreen({ navigation, route }: Props): React.JSX.El
       ) : null}
       {step === 1 ? (
         <>
+          {pickParties ? (
+            <View style={styles.parties}>
+              <RecordPicker
+                label="فایل ملک"
+                required
+                placeholder="انتخاب فایل"
+                options={propertyOptions}
+                value={propertyId}
+                onChange={(id) => {
+                  setPropertyId(id)
+                  setPartyErrors((current) => ({ ...current, property: undefined }))
+                }}
+                errorMessage={partyErrors.property}
+                emptyText="هنوز فایلی ثبت نشده"
+              />
+              <RecordPicker
+                label="طرف قرارداد (متقاضی)"
+                required
+                placeholder="انتخاب متقاضی"
+                options={applicantOptions}
+                value={applicantId}
+                onChange={(id) => {
+                  setApplicantId(id)
+                  setPartyErrors((current) => ({ ...current, applicant: undefined }))
+                }}
+                errorMessage={partyErrors.applicant}
+                emptyText="هنوز متقاضی‌ای ثبت نشده"
+              />
+            </View>
+          ) : null}
           <ContractForm values={values} errors={errors} onChange={handleChange} />
           {hasRenewalReminder(values.type) ? (
             <View style={styles.reminderSection}>
@@ -194,6 +270,10 @@ function createStyles(theme: Theme) {
     submitError: {
       color: theme.colors.error,
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
+    },
+    parties: {
+      gap: theme.spacing.space5,
+      marginBottom: theme.spacing.space5
     },
     reminderSection: {
       marginTop: theme.spacing.space5

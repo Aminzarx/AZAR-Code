@@ -15,6 +15,12 @@ jest.mock('@features/auth/AuthProvider', () => ({
 }))
 
 jest.mock('../../hooks/useContractService')
+jest.mock('@features/property/hooks/useProperties', () => ({
+  useProperties: () => ({ properties: [], isLoading: false, error: null, refetch: jest.fn() })
+}))
+jest.mock('@features/applicant/hooks/useApplicants', () => ({
+  useApplicants: () => ({ applicants: [], isLoading: false, error: null, refetch: jest.fn() })
+}))
 jest.mock('@features/photos/hooks/usePhotoRepository', () => ({ usePhotoRepository: () => null }))
 
 const NEXT = 'ادامه: عکس‌ها'
@@ -93,5 +99,19 @@ describe('CreateContractScreen', () => {
     await waitFor(() =>
       expect(mockReplace).toHaveBeenCalledWith('ContractDetail', { contractId: 'con-1' })
     )
+  })
+
+  it('Amin #5408: opened from the contracts list, it asks for the file and the applicant first', async () => {
+    const { getByText, findByText } = await render(
+      withTheme(
+        <CreateContractScreen
+          navigation={navigationProp}
+          route={{ ...routeProp, params: undefined } as unknown as typeof routeProp}
+        />
+      )
+    )
+    await waitFor(() => fireEvent.press(getByText('ادامه: عکس‌ها')))
+    expect(await findByText('فایل ملک قرارداد را انتخاب کنید.')).toBeTruthy()
+    expect(await findByText('طرف قرارداد (متقاضی) را انتخاب کنید.')).toBeTruthy()
   })
 })

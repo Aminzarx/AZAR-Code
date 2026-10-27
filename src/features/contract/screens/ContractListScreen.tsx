@@ -5,7 +5,6 @@ import { ScrollView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
-import { navigateAcrossTabs } from '@navigation/crossTabNavigate'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import {
@@ -16,7 +15,7 @@ import {
   LoadingIndicator,
   TextInput
 } from '@shared/components'
-import { toPersianDigits } from '@shared/utils/persianText'
+import { searchTerms, toPersianDigits } from '@shared/utils/persianText'
 import { formatJalaliDate, gregorianIsoToJalali } from '@shared/utils/jalaliDate'
 import { useUndoableDelete } from '@shared/hooks/useUndoableDelete'
 import { useContracts } from '../hooks/useContracts'
@@ -63,15 +62,23 @@ function renewalDate(endDate: string): string {
 }
 
 function matchesSearch(contract: ContractWithDetails, query: string): boolean {
-  const normalized = query.trim().toLowerCase()
-  if (!normalized) {
+  const terms = searchTerms(query)
+  if (terms.length === 0) {
     return true
   }
-  const haystack = [contract.property?.title, contract.applicant?.fullName, contract.type]
+  // Amin #5368: also the tracking code, amount and note
+  const haystack = [
+    contract.property?.title,
+    contract.applicant?.fullName,
+    contract.type,
+    contract.trackingCode,
+    contract.amount === null ? null : String(contract.amount),
+    contract.notes
+  ]
     .filter((value): value is string => Boolean(value))
     .join(' ')
     .toLowerCase()
-  return haystack.includes(normalized)
+  return terms.every((term) => haystack.includes(term.toLowerCase()))
 }
 
 export function ContractListScreen({ navigation }: Props): React.JSX.Element {
@@ -199,9 +206,9 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
           <View style={styles.centeredSection}>
             <EmptyState
               title="هنوز قراردادی ثبت نشده"
-              description="قراردادها را از صفحه پیگیری ایجاد کنید."
-              actionLabel="مشاهده پیگیری‌ها"
-              onAction={() => navigateAcrossTabs(navigation, 'DealList', undefined)}
+              description="با «قرارداد تازه» اولین قرارداد را ثبت کنید."
+              actionLabel="قرارداد تازه"
+              onAction={() => navigation.navigate('CreateContract', undefined)}
             />
           </View>
         ) : search.trim().length > 0 && (filteredContracts?.length ?? 0) === 0 ? (
@@ -254,7 +261,7 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
         <FloatingActionButton
           accessibilityLabel="قرارداد تازه"
           label="قرارداد تازه"
-          onPress={() => navigation.navigate('DealList')}
+          onPress={() => navigation.navigate('CreateContract', undefined)}
         />
       </View>
       {del.ui}

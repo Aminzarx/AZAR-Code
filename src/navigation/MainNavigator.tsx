@@ -51,7 +51,8 @@ export type MainStackParamList = {
     | undefined
   ReminderDetail: { reminderId: string }
   ContractList: undefined
-  CreateContract: { propertyId: string; applicantId: string; dealId?: string }
+  // Amin #5408: no params = a contract started from the contracts list; the parties are picked on the form
+  CreateContract: { propertyId?: string; applicantId?: string; dealId?: string } | undefined
   ContractDetail: { contractId: string }
   Settings: undefined
   Profile: undefined
