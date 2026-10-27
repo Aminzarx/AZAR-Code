@@ -27,6 +27,7 @@ describe('validatePropertyForm', () => {
       propertyType: 'آپارتمان',
       transactionType: 'فروش',
       city: 'تهران',
+      region: null,
       address: 'خیابان ولیعصر',
       price: 5000000000,
       area: 120,

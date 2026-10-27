@@ -166,7 +166,7 @@ function createStyles(theme: Theme) {
       color: theme.colors.onSurface
     },
     list: { flexGrow: 0 },
-    empty: { color: theme.colors.onSurfaceVariant, textAlign: 'center', paddingVertical: theme.spacing.space5 },
+    empty: { color: theme.colors.onSurfaceVariant, textAlign: 'center', paddingVertical: theme.spacing.space5 }, // rtl-allow: centred, no side
     row: {
       paddingVertical: theme.spacing.space3,
       paddingHorizontal: theme.spacing.space3,

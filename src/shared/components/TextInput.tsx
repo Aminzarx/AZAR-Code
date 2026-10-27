@@ -104,7 +104,7 @@ export function TextInput({
         selection={selection}
         onSelectionChange={onSelectionChange}
         multiline={multiline}
-        textAlignVertical={multiline ? 'top' : undefined}
+        textAlignVertical={multiline ? 'top' : undefined} // rtl-allow: vertical only
         textAlign={theme.isRTL ? 'right' : 'left'} // rtl-allow: TextInput: Android does not swap, so right is physical right
       />
       {hasError ? (
