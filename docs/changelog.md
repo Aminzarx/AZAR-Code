@@ -1649,6 +1649,33 @@ kss-pricing 0.38.1.
 
 **Tests**: `BuyTokensScreen.test.tsx` (4), `SettingsScreen.test.tsx` (+3), `tokenLedger.test.ts`.
 
+## 2026-10-27 — 1.5.6: money fields keep the caret, name step, sign-up by the inviter's mobile
+
+**Change**:
+- Money fields (MoneyInput) put the thousands separators back after every key, which replaced the whole text and
+  dropped the caret at the start when a digit in the middle was deleted (Amin #5349). The caret is now found from what
+  changed, kept by the count of digits before it and set back through `selection`; deleting a separator deletes the
+  digit before it. `TextInput` passes `selection`/`onSelectionChange` through. Other fields were checked on the
+  emulator (typing and deleting in the middle keep the caret).
+- After the number is confirmed, a new member first gives first name and last name (+ agency, optional) on
+  `RegisterNameScreen` (Amin #5348); the invite page now holds only the code, the QR scan and a «کد دعوت ندارید؟» link.
+- «کد دعوت ندارید؟» opens `InviterPhoneScreen`: the mobile number of the colleague who invited them (Persian digits
+  accepted, own number refused). The server's `/auth/register` accepts a mobile in the code field, finds that member
+  (stored as +98… or 09…), records them as referrer and stores their code as `used_referral_code`; an unknown number is
+  `invalid_inviter_phone` (Amin #5344).
+- #5341 (hint and caret on the left in «دعوت با پیامک») was the alignment fixed in 1.5.5.
+
+**Reason**: Amin #5341, #5344, #5348, #5349 (brain order for 1.5.6).
+
+**Affected modules**: `MoneyInput`, `TextInput`, `RegisterNameScreen` (new, + test), `InviterPhoneScreen` (new, + test),
+`ReferralCodeScreen` (+ test), `OtpVerificationScreen` (+ test), `AuthNavigator`, `PhoneEntryScreen` (exports),
+`errors`, `httpAuthApiClient`, `validationText`; server `authRoutes.js` (+ `test/inviterPhone.test.js`); version 1.5.6 /
+versionCode 13.
+
+**Migration requirements**: none (server change is additive).
+
+**Tests**: jest in CI; `node --test test/inviterPhone.test.js`; emulator.
+
 ## 2026-10-26 — 1.5.5: fields start on the right; applicants with several deal modes
 
 **Change**:

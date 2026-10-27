@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { TextInput } from './TextInput'
@@ -59,8 +59,35 @@ export function MoneyInput({
   const theme = useTheme()
   const styles = createStyles(theme)
 
+  // Amin #5349: the separators are put back after every key, so the whole text is replaced and Android used to drop
+  // the caret at the start. The caret is found from what changed, kept by counting the digits before it, and set back.
+  const shown = formatWithSeparators(value)
+  const pending = useRef<number | null>(null)
+  const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined)
+
   function handleChangeText(text: string): void {
-    const rawDigits = toEnglishDigits(text).replace(/\D/g, '')
+    // the edit sits between the part both texts start with and the part both end with; the caret is after it
+    let suffix = 0
+    const room = Math.min(text.length, shown.length)
+    let prefix = 0
+    while (prefix < room && text[prefix] === shown[prefix]) prefix++
+    while (suffix < room - prefix && text[text.length - 1 - suffix] === shown[shown.length - 1 - suffix]) suffix++
+    const caretInTyped = text.length - suffix
+    const typed = toEnglishDigits(text)
+    let rawDigits = typed.replace(/\D/g, '')
+    let digitsBefore = typed.slice(0, caretInTyped).replace(/\D/g, '').length
+    if (rawDigits === value && text.length < shown.length && digitsBefore > 0) {
+      // only a separator was deleted: delete the digit before it instead
+      rawDigits = value.slice(0, digitsBefore - 1) + value.slice(digitsBefore)
+      digitsBefore -= 1
+    }
+    const next = formatWithSeparators(rawDigits)
+    let at = 0
+    for (let seen = 0; at < next.length && seen < digitsBefore; at++) {
+      if (next[at] !== '٬') seen++
+    }
+    pending.current = at
+    setSelection({ start: at, end: at })
     onChangeValue(rawDigits)
   }
 
@@ -76,8 +103,17 @@ export function MoneyInput({
       <TextInput
         label={label}
         required={required}
-        value={formatWithSeparators(value)}
+        value={shown}
         onChangeText={handleChangeText}
+        selection={selection}
+        onSelectionChange={(event) => {
+          const end = event.nativeEvent.selection.end
+          const wanted = pending.current
+          pending.current = null
+          // the caret Android puts mid-edit is skipped once; after that the user's own taps move it freely
+          if (wanted !== null && end !== wanted) return
+          setSelection(undefined)
+        }}
         placeholder={placeholder}
         // v3.0.0 (Amin #4180): the amount in words under the field
         helperText={helperText ?? (amountInWords(value) || undefined)}

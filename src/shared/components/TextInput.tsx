@@ -5,7 +5,9 @@ import {
   Text,
   TextInput as RNTextInput,
   View,
-  type KeyboardTypeOptions
+  type KeyboardTypeOptions,
+  type NativeSyntheticEvent,
+  type TextInputSelectionChangeEventData
 } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 
@@ -28,6 +30,9 @@ type Props = {
   /** the keyboard's action key: «done» with onSubmitEditing lets the last field send the form (emulator test 2026-10-24) */
   returnKeyType?: 'done' | 'next'
   onSubmitEditing?: () => void
+  /** Amin #5349: a field that reformats what is typed (MoneyInput) keeps the caret where the user is */
+  selection?: { start: number; end: number }
+  onSelectionChange?: (event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => void
 }
 
 /** design-system.md §7.2 — label above field, focus/error/disabled states. */
@@ -47,7 +52,9 @@ export function TextInput({
   onFocus,
   onBlur,
   returnKeyType,
-  onSubmitEditing
+  onSubmitEditing,
+  selection,
+  onSelectionChange
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const [isFocused, setIsFocused] = useState(false)
@@ -90,6 +97,8 @@ export function TextInput({
         secureTextEntry={secureTextEntry}
         returnKeyType={returnKeyType}
         onSubmitEditing={onSubmitEditing}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
         textAlign={theme.isRTL ? 'right' : 'left'} // rtl-allow: TextInput: Android does not swap, so right is physical right
       />
       {hasError ? (

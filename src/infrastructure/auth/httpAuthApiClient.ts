@@ -24,6 +24,8 @@ const VALIDATION_CODES = new Set([
   'invalid_otp',
   'otp_expired',
   'invalid_referral_code',
+  // Amin #5344: the inviter's mobile is not a member
+  'invalid_inviter_phone',
   'self_referral',
   'phone_moved',
   'same_phone_number',

@@ -10,6 +10,7 @@ const TEXT: Record<ValidationFailureError['code'], string> = {
   invalid_otp: 'کد درست نیست. دوباره نگاه کنید.',
   otp_expired: 'زمان کد تمام شده است. کد تازه بگیرید.',
   invalid_referral_code: 'کد معرف درست نیست.',
+  invalid_inviter_phone: 'این شماره در ایوان پیدا نشد؛ شمارهٔ همکاری را بنویسید که خودش ایوان دارد.',
   self_referral: 'کد معرف خودتان را نمی‌توانید وارد کنید.',
   phone_moved: 'این حساب به شمارهٔ دیگری منتقل شده است؛ با شمارهٔ تازه وارد شوید.',
   same_phone_number: 'این همان شمارهٔ فعلی شماست.',

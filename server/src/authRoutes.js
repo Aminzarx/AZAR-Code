@@ -86,6 +86,15 @@ function findUserByReferralCode(referralCode) {
   return db.prepare('SELECT * FROM users WHERE referral_code = ? AND deleted_at IS NULL').get(referralCode)
 }
 
+// Amin #5344: a new member without a code can name the colleague who invited them by mobile number instead
+function findUserByMobile(mobile) {
+  const local = sms.iranMobile(mobile)
+  if (!local) return null
+  return db
+    .prepare('SELECT * FROM users WHERE phone_number IN (?, ?) AND deleted_at IS NULL')
+    .get('+98' + local.slice(1), local)
+}
+
 function referralCodeTaken(referralCode) {
   return !!db.prepare('SELECT 1 FROM users WHERE referral_code = ?').get(referralCode)
 }
@@ -171,6 +180,9 @@ router.post('/register', registerLimiter, (req, res) => {
   const phoneNumber = typeof req.body?.phoneNumber === 'string' ? req.body.phoneNumber : ''
   const rawReferralCode = typeof req.body?.referralCode === 'string' ? req.body.referralCode : ''
   const referralCode = rawReferralCode.trim().toUpperCase()
+  // the code field may hold the inviter's mobile instead (Amin #5344); digits only, Persian/Arabic ones allowed
+  const asDigits = rawReferralCode.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+  const inviterMobile = /^\+?[\d\s-]{10,14}$/.test(asDigits.trim()) ? sms.iranMobile(asDigits) : null
 
   const otpState = db.prepare('SELECT * FROM otp_requests WHERE phone_number = ?').get(phoneNumber)
   if (!otpState?.verified) {
@@ -180,11 +192,15 @@ router.post('/register', registerLimiter, (req, res) => {
   // The mother code always resolves to the bootstrap account as referrer,
   // regardless of that account's own actual referral_code — see
   // MASTER_REFERRAL_CODE's own comment.
-  const referrer =
-    referralCode === MASTER_REFERRAL_CODE
+  const referrer = inviterMobile
+    ? findUserByMobile(inviterMobile)
+    : referralCode === MASTER_REFERRAL_CODE
       ? db.prepare('SELECT * FROM users WHERE id = ?').get('bootstrap-seed-user')
       : findUserByReferralCode(referralCode)
   if (!referrer) {
+    if (inviterMobile) {
+      return fail(res, 422, 'invalid_inviter_phone', 'No member with this mobile number was found.')
+    }
     return fail(res, 422, 'invalid_referral_code', 'This referral code was not found.')
   }
   // Checked before the duplicate-phone check: a referral code resolving to
@@ -212,7 +228,7 @@ router.post('/register', registerLimiter, (req, res) => {
     // Recorded alongside the phone number by explicit product request —
     // the code actually typed at registration (AMINZX or a real user's own
     // code), not the new code minted for this account above.
-    used_referral_code: referralCode,
+    used_referral_code: inviterMobile ? referrer.referral_code : referralCode,
     created_at: new Date().toISOString()
   }
 

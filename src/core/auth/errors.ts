@@ -28,6 +28,7 @@ export class ValidationFailureError extends Error {
       | 'invalid_otp'
       | 'otp_expired'
       | 'invalid_referral_code'
+      | 'invalid_inviter_phone'
       | 'self_referral'
       | 'phone_moved'
       | 'same_phone_number'

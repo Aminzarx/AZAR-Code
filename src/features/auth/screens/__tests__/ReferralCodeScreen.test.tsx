@@ -13,7 +13,7 @@ const mockRegister = jest.fn()
 const routeProp = {
   key: 'ReferralCode',
   name: 'ReferralCode' as const,
-  params: { phoneNumber: '+989121234567' }
+  params: { phoneNumber: '+989121234567', displayName: 'علی رضایی' }
 }
 
 describe('ReferralCodeScreen', () => {
@@ -61,7 +61,6 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
-    await fireEvent.changeText(getByLabelText('نام و نام خانوادگی *'), 'علی رضایی')
     await fireEvent.changeText(getByLabelText('کد معرف'), 'abcd1234')
     await fireEvent.press(getByText('ورود به برنامه'))
 
@@ -79,7 +78,6 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
-    await fireEvent.changeText(getByLabelText('نام و نام خانوادگی *'), 'علی رضایی')
     await fireEvent.changeText(getByLabelText('کد معرف'), 'AMINZX')
     await fireEvent.press(getByText('ورود به برنامه'))
 
@@ -94,10 +92,22 @@ describe('ReferralCodeScreen', () => {
       withTheme(<ReferralCodeScreen navigation={{} as never} route={routeProp} />)
     )
 
-    await fireEvent.changeText(getByLabelText('نام و نام خانوادگی *'), 'علی رضایی')
     await fireEvent.changeText(getByLabelText('کد معرف'), 'AMIN')
     await fireEvent.press(getByText('ورود به برنامه'))
 
     expect(mockRegister).not.toHaveBeenCalled()
+  })
+
+  it('opens the inviter-mobile page from «کد دعوت ندارید؟» (Amin #5344)', async () => {
+    const navigate = jest.fn()
+    const { getByText } = await render(
+      withTheme(<ReferralCodeScreen navigation={{ navigate } as never} route={routeProp} />)
+    )
+    await fireEvent.press(getByText('کد دعوت ندارید؟'))
+    expect(navigate).toHaveBeenCalledWith('InviterPhone', {
+      phoneNumber: '+989121234567',
+      displayName: 'علی رضایی',
+      agencyName: undefined
+    })
   })
 })

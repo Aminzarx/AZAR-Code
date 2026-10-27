@@ -4,12 +4,17 @@ import { WelcomeScreen } from '@features/auth/screens/WelcomeScreen'
 import { PhoneEntryScreen } from '@features/auth/screens/PhoneEntryScreen'
 import { OtpVerificationScreen } from '@features/auth/screens/OtpVerificationScreen'
 import { ReferralCodeScreen } from '@features/auth/screens/ReferralCodeScreen'
+import { RegisterNameScreen } from '@features/auth/screens/RegisterNameScreen'
+import { InviterPhoneScreen } from '@features/auth/screens/InviterPhoneScreen'
 
 export type AuthStackParamList = {
   Welcome: undefined
   PhoneEntry: undefined
   OtpVerification: { phoneNumber: string }
-  ReferralCode: { phoneNumber: string }
+  // Amin #5348/#5344: name first, then the invite code or the inviter's mobile
+  RegisterName: { phoneNumber: string }
+  ReferralCode: { phoneNumber: string; displayName?: string; agencyName?: string }
+  InviterPhone: { phoneNumber: string; displayName?: string; agencyName?: string }
 }
 
 const Stack = createNativeStackNavigator<AuthStackParamList>()
@@ -31,7 +36,9 @@ export function AuthNavigator(): React.JSX.Element {
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
       <Stack.Screen name="OtpVerification" component={OtpVerificationScreen} />
+      <Stack.Screen name="RegisterName" component={RegisterNameScreen} />
       <Stack.Screen name="ReferralCode" component={ReferralCodeScreen} />
+      <Stack.Screen name="InviterPhone" component={InviterPhoneScreen} />
     </Stack.Navigator>
   )
 }

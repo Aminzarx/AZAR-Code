@@ -14,17 +14,16 @@ const CODE_SHAPE = /^[A-HJ-NP-Z2-9]{6,8}$/
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ReferralCode'>
 
-export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
+export function ReferralCodeScreen({ navigation, route }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const { phoneNumber } = route.params
+  // Amin #5348: the name was asked on the page before
+  const { phoneNumber, displayName, agencyName } = route.params
   const { register } = useAuth()
   const [referralCode, setReferralCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isScannerVisible, setIsScannerVisible] = useState(false)
-  const [fullName, setFullName] = useState('')
-  const [agency, setAgency] = useState('')
   const [fromInvite, setFromInvite] = useState(false)
 
   // v1.4.0 (Amin #4311): the invite page copies the inviter's code; if it
@@ -57,7 +56,7 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
 
   // The normal generated code is 8 characters, but the mother referral code (AMINZX) is only 6 — this only guards
   // against an obviously-incomplete entry, not a fixed length.
-  const canSubmit = referralCode.length >= 6 && fullName.trim().length >= 2
+  const canSubmit = referralCode.length >= 6
 
   async function handleSubmit(): Promise<void> {
     setError(null)
@@ -67,10 +66,7 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
       // AuthNavigator to MainNavigator as soon as useAuth().session is
       // set (register() below sets it) — see navigation/RootNavigator.tsx.
       // the name and agency are saved by register() once the phone holds this account's files
-      await register(phoneNumber, referralCode.toUpperCase(), {
-        displayName: fullName.trim() || undefined,
-        agencyName: agency.trim() || undefined
-      })
+      await register(phoneNumber, referralCode.toUpperCase(), { displayName, agencyName })
     } catch (caughtError) {
       if (caughtError instanceof ValidationFailureError) {
         setError(validationText(caughtError))
@@ -91,18 +87,6 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
         </Text>
       </View>
       <View style={styles.form}>
-        <TextInput
-          label="نام و نام خانوادگی *"
-          value={fullName}
-          onChangeText={setFullName}
-          placeholder="مثلاً علی رضایی"
-        />
-        <TextInput
-          label="نام مشاور املاک (اختیاری)"
-          value={agency}
-          onChangeText={setAgency}
-          placeholder="مثلاً املاک پارسه"
-        />
         <TextInput
           label="کد معرف"
           value={referralCode}
@@ -142,6 +126,14 @@ export function ReferralCodeScreen({ route }: Props): React.JSX.Element {
           loading={isSubmitting}
           disabled={!canSubmit}
         />
+        {/* Amin #5344: without a code, the inviter's mobile number does the same */}
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => navigation.navigate('InviterPhone', { phoneNumber, displayName, agencyName })}
+          style={styles.noCode}
+        >
+          <Text style={[theme.typography('labelMd'), styles.noCodeLabel]}>کد دعوت ندارید؟</Text>
+        </Pressable>
       </View>
 
       <QrCodeScanner
@@ -193,6 +185,15 @@ function createStyles(theme: Theme) {
     },
     scanButtonLabel: {
       color: theme.colors.secondary
+    },
+    noCode: {
+      alignSelf: 'center',
+      minHeight: theme.touchTargetMinimum,
+      justifyContent: 'center'
+    },
+    noCodeLabel: {
+      color: theme.colors.primary,
+      textDecorationLine: 'underline'
     }
   })
 }

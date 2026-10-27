@@ -15,8 +15,8 @@ import { canonicalizeIranPhoneNumber } from '@shared/utils/iranPhoneNumber'
 type Props = NativeStackScreenProps<AuthStackParamList, 'PhoneEntry'>
 
 /** Amin #5302: exactly 11 digits, 09xxxxxxxxx; Persian and Arabic digits count, anything else is dropped */
-const LOCAL_MOBILE = /^09\d{9}$/
-function localMobileDigits(text: string): string {
+export const LOCAL_MOBILE = /^09\d{9}$/
+export function localMobileDigits(text: string): string {
   return text
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
