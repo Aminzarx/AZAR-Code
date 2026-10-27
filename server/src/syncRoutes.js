@@ -91,6 +91,7 @@ function accountOf(req) {
     (typeof req.body?.sessionToken === 'string' && req.body.sessionToken) || req.get('x-session-token') || ''
   if (!token) return null
   const session = db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(token)
+  if (session) require('./presence').seen(session.user_id) // Amin #5454: last seen
   if (!session) return null
   // Amin #5369: «آخرین ورود» = the last time the app was used, kept to the hour
   const now = new Date()

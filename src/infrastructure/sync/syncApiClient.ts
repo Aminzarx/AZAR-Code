@@ -81,6 +81,11 @@ export class SyncApiClient {
     return this.post('/tokens/ledger', { sessionToken })
   }
 
+  /** Amin #5454: «the app is open» — the server keeps the time as last seen */
+  presence(sessionToken: string): Promise<unknown> {
+    return this.post('/presence', { sessionToken })
+  }
+
   /** Amin #5370: KSS announcements this account has not dismissed, newest first */
   announcements(sessionToken: string): Promise<{ announcements: Announcement[] }> {
     return this.post('/announcements', { sessionToken })

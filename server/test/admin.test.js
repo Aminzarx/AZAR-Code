@@ -55,6 +55,7 @@ before(async () => {
   app.use('/tokens', tokens.router)
   app.use('/admin', admin.router)
   app.use('/announcements', require('../src/announcements').router)
+  app.use('/presence', require('../src/presence').router)
   await new Promise((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve)
   })
@@ -352,3 +353,18 @@ test('«آخرین ورود» (Amin #5369): set at sign-up', async () => {
   assert.ok(row.lastLoginAt ?? row.user?.lastLoginAt)
 })
 
+test('online (Amin #5454): POST /presence and any signed-in call set lastSeenAt, kept to the minute', async () => {
+  const a = await account()
+  db.prepare('UPDATE users SET last_seen_at = NULL WHERE id = ?').run(a.userId)
+  assert.equal((await post('/presence', { sessionToken: a.sessionToken })).status, 200)
+  const first = (await call('GET', `/users/${a.userId}`)).body
+  const seenAt = first.lastSeenAt ?? first.user?.lastSeenAt
+  assert.ok(seenAt && Date.now() - Date.parse(seenAt) < 5000)
+  // a second call within the minute does not write again
+  await post('/presence', { sessionToken: a.sessionToken })
+  assert.equal(db.prepare('SELECT last_seen_at FROM users WHERE id = ?').get(a.userId).last_seen_at, seenAt)
+  assert.equal((await post('/presence', { sessionToken: 'nope' })).status, 401)
+  const list = (await call('GET', '/users')).body
+  const rows = list.users ?? list.items ?? list
+  assert.ok(Array.isArray(rows) && rows.some((r) => 'lastSeenAt' in r))
+})

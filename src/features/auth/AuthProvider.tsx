@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import RNFS from 'react-native-fs'
+import { AppState } from 'react-native'
 import { getDatabase, getDeviceStore } from '@infrastructure/database/connection'
 import { bumpFilesVersion } from '@infrastructure/sync/filesVersion'
 import { UserRepository } from '@infrastructure/database/repositories/UserRepository'
@@ -215,6 +216,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     }
   }, [session, syncService, syncOnce])
 
+  // Amin #5454: «I am open» to the server every 2 minutes while the app is on screen (who is online, in billing)
+  useEffect(() => {
+    if (!session || !syncService) return
+    const ping = (): void => {
+      if (AppState.currentState === 'active') syncService.presence(session.sessionToken).catch(() => undefined)
+    }
+    ping()
+    const timer = setInterval(ping, PRESENCE_EVERY_MS)
+    const change = AppState.addEventListener('change', (state) => {
+      if (state === 'active') ping()
+    })
+    return () => {
+      clearInterval(timer)
+      change.remove()
+    }
+  }, [session, syncService])
+
   // Its own callback too: inside the memo below it changed with every 3-second sync tick, and Settings asked the
   // server for the ledger each time (seen on the web build, 2026-10-25)
   const getTokenLedger = useCallback(
@@ -372,6 +390,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     </AuthContext.Provider>
   )
 }
+
+const PRESENCE_EVERY_MS = 2 * 60 * 1000
 
 const IDLE_SYNC: SyncStatus = { state: 'idle', pending: 0, usage: null, loaded: false, settled: false }
 

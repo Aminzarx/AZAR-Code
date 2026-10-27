@@ -147,6 +147,11 @@ export class SyncService {
     return this.api
   }
 
+  /** Amin #5454: tells the server the app is open (last seen, kept to the minute there) */
+  presence(sessionToken: string): Promise<unknown> {
+    return this.api.presence(sessionToken)
+  }
+
   /** Amin #5370: KSS announcements (list and dismiss), straight to the server */
   get announcements(): Pick<SyncApiClient, 'announcements' | 'dismissAnnouncement'> {
     return this.api

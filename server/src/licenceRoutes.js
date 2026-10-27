@@ -142,6 +142,7 @@ router.post('/status', async (req, res, next) => {
     if (!KEY) return fail(res, 503, 'licence_unavailable', 'Licences are not configured.')
     const token = typeof req.body?.sessionToken === 'string' ? req.body.sessionToken : ''
     const session = token ? db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(token) : null
+    if (session) require('./presence').seen(session.user_id) // Amin #5454: last seen
     if (!session) return fail(res, 401, 'session_revoked', 'Sign in again.')
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(session.user_id)
     const licence = await licenceOf(user)

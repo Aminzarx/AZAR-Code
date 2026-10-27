@@ -119,6 +119,7 @@ async function summaryRow(user, s) {
     archivedAt: user.archived_at ?? null,
     createdAt: user.created_at,
     lastLoginAt: user.last_login_at ?? null,
+    lastSeenAt: user.last_seen_at ?? null, // Amin #5454: online = seen in the last few minutes
     tokens: t ? { balance: t.balance, allowance: t.allowance, spent: t.spent } : null,
     licence: await licenceView(user),
     counts: countsOf(user.id)
@@ -236,7 +237,7 @@ router.get('/users/:id', async (req, res, next) => {
       deleteAfter: user.delete_after ?? null,
       createdAt: user.created_at,
       lastLoginAt: user.last_login_at ?? null,
-      lastSeenAt: null,
+      lastSeenAt: user.last_seen_at ?? null, // Amin #5454: online = seen in the last few minutes
       activeMinutes: null,
       tokens: t ? { ...t, granted: t.earnedBy.granted } : null,
       licence: await licenceView(user),

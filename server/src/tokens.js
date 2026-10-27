@@ -248,6 +248,7 @@ function fail(res, status, code, message) {
 function accountOf(req) {
   const token = typeof req.body?.sessionToken === 'string' ? req.body.sessionToken : ''
   const session = token ? db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(token) : null
+  if (session) require('./presence').seen(session.user_id) // Amin #5454: last seen
   return session ? session.user_id : null
 }
 
