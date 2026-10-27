@@ -14,6 +14,11 @@ export type SyncFiles = {
 }
 
 const PHOTO_KEY = 'profile_photo'
+
+/** Amin #5040: the profile photo is not kept on the phone, so it stays out of the offline copy too */
+function withoutPhoto<T extends { t: string; k: string }>(changes: T[]): T[] {
+  return changes.filter((c) => !(c.t === 'application_settings' && c.k === PHOTO_KEY))
+}
 const BLOB_PREFIX = 'blob:'
 const BATCH = 200
 
@@ -114,7 +119,7 @@ export class SyncService {
       usage = (await this.api.push(sessionToken, changes.slice(i, i + BATCH))).usage
     }
     await this.store.dropSent(userId, upTo)
-    await this.store.applyToCopy(userId, changes)
+    await this.store.applyToCopy(userId, withoutPhoto(changes))
     usage = (await this.emptyBlobTrash(sessionToken)) ?? usage
     if (usage) await this.setState('usage', JSON.stringify(usage))
   }
@@ -206,7 +211,7 @@ export class SyncService {
     )
     // anything made on this phone and not on the server yet stays on top
     await this.store.setOwner(userId)
-    await this.store.keepCopy(userId, pulled.rows)
+    await this.store.keepCopy(userId, withoutPhoto(pulled.rows))
     await this.store.replayInto(this.db, userId)
     await this.store.rememberProfile(this.db)
     await this.setState('usage', JSON.stringify(pulled.usage))

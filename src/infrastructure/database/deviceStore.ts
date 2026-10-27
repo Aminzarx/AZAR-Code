@@ -158,6 +158,7 @@ export class DeviceStore {
         }
       }
     })
+    if (changes.length > 0) await this.setMeta(COPY_AT_META, new Date().toISOString())
   }
 
   /** When the offline copy was last refreshed; null when the phone holds none for this account. */
