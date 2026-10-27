@@ -1888,3 +1888,17 @@ ship as one version.
 **Migration requirements**: none.
 
 **Tests**: `DealDetailScreen.test.tsx` (advance uses «پیشرفت», checks the next-stage line).
+
+## 2026-10-27 — 1.5.6 (part 3): online / last seen (Amin #5454); the gallery picker's native side
+
+**Change**: `users.last_seen_at` (server/src/presence.js) is bumped at most once a minute on any signed-in call
+(sync, tokens, licence, announcements, purchase) and by `POST /presence`, which the app sends every 2 minutes while
+it is on screen (AuthProvider). `GET /admin/users` returns `lastSeenAt` (ISO or null); billing shows «آنلاین» for
+the last 5 minutes. Nothing else about the visit is stored.
+
+**Fix**: the 1.5.6 build sent as #5536 lacked `AzarImageModule.pickImages` (the Kotlin side of #5416 was left
+uncommitted), so picking several photos from the gallery would have failed. 1.5.6 is rebuilt with it.
+
+**Offline (Amin #5455)**: data already lives on the phone in the encrypted database and changes queue until the
+connection is back; proposed for 1.5.7 after his OK: a visible «بدون اینترنت» badge with the queued-change count
+and a full offline pass over every screen.
