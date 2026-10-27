@@ -58,6 +58,8 @@ export function ReminderListItem({
           accessibilityLabel={`علامت‌گذاری ${reminder.title} به‌عنوان انجام‌شده`}
           accessibilityState={{ checked: reminder.isDone }}
           onPress={onToggleDone}
+          // Amin #5414: a smaller box; the touch area stays finger-sized
+          hitSlop={10}
           style={[styles.checkbox, reminder.isDone && styles.checkboxDone]}
         >
           {reminder.isDone ? <Text style={styles.checkmark}>✓</Text> : null}
@@ -99,10 +101,10 @@ function createStyles(theme: Theme) {
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end'
     },
     checkbox: {
-      width: theme.touchTargetMinimum,
-      height: theme.touchTargetMinimum,
-      borderRadius: theme.radius.medium,
-      borderWidth: 1,
+      width: 26,
+      height: 26,
+      borderRadius: theme.radius.small,
+      borderWidth: 1.5,
       borderColor: theme.colors.outline,
       alignItems: 'center',
       justifyContent: 'center'
@@ -112,7 +114,9 @@ function createStyles(theme: Theme) {
       borderColor: theme.colors.primary
     },
     checkmark: {
-      color: theme.colors.onPrimary
+      color: theme.colors.onPrimary,
+      fontSize: 14,
+      lineHeight: 18
     }
   })
 }

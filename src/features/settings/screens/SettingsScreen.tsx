@@ -41,7 +41,7 @@ import { SettingsRow } from '../components/SettingsRow'
 import { OptionsSheet, type SheetOption } from '../components/OptionsSheet'
 import { useProfile } from '../hooks/useProfile'
 import { TokenCard } from '../components/TokenCard'
-import { normalizeSummary, tokenLevel, usedShare, type TokenSummary } from '../services/tokenLedger'
+import { formatTokenAmount, normalizeSummary, tokenLevel, usedShare, type TokenSummary } from '../services/tokenLedger'
 import { closedReasonText } from '../services/tokenPurchase'
 import { photoUri } from '@infrastructure/images/profilePhoto'
 import type { SupportContacts } from '@infrastructure/auth/httpAuthApiClient'
@@ -288,10 +288,10 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             <MarqueeText style={[theme.typography('titleMd'), styles.value]}>
               {displayName || 'نام ثبت نشده'}
             </MarqueeText>
-            <Text style={[theme.typography('bodySm'), styles.phone]}>
-              {phoneNumber ? toPersianDigits(formatIranPhoneNumberForDisplay(phoneNumber)) : '-'}
-              {profile.agencyName ? ` · ${profile.agencyName}` : ''}
-            </Text>
+            {/* Amin #5410: under the name only the agency, no number */}
+            {profile.agencyName ? (
+              <Text style={[theme.typography('bodySm'), styles.phone]}>{profile.agencyName}</Text>
+            ) : null}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -310,7 +310,12 @@ export function SettingsScreen(props: Props): React.JSX.Element {
 
         {session?.referralCode ? (
           <View style={styles.inviteCard}>
-            <Text style={[theme.typography('titleSm'), styles.inviteTitle]}>همکارانتان را دعوت کنید</Text>
+            <Text style={[theme.typography('titleSm'), styles.inviteTitle]}>
+              {/* Amin #5351: the gift in the card's title */}
+              {tokens.summary?.referralBonus
+                ? `همکارانتان را دعوت کنید؛ ${formatTokenAmount(tokens.summary.referralBonus)} توکن هدیه بگیرید`
+                : 'همکارانتان را دعوت کنید'}
+            </Text>
             <Text style={[theme.typography('bodySm'), styles.inviteLead]}>
               {copied ? 'کد معرف کپی شد.' : 'کد شما برای ثبت‌نام همکاران'}
             </Text>

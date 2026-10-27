@@ -274,6 +274,8 @@ function summaryOf(accountId, s) {
   const bought = sum(['pack_bought'])
   return {
     balance: Math.max(0, balanceOf(accountId, s)),
+    // Amin #5351: what each invite earns, shown in Settings (null/0 = no gift)
+    referralBonus: s.referralBonus ?? null,
     allowance: s.tokenAllowance,
     earned,
     earnedBy: { referral: sum(['referral_bonus']), profile: sum(['profile_bonus']), granted },

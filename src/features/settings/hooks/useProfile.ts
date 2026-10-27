@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import RNFS from 'react-native-fs'
 import { getDatabase } from '@infrastructure/database/connection'
@@ -34,7 +34,7 @@ export function useProfile(options: { withStorage?: boolean } = {}): {
   storage: StorageUsage | null
   reload: () => Promise<void>
 } {
-  const { session } = useAuth()
+  const { session, sync } = useAuth()
   const [profile, setProfile] = useState<Profile>(EMPTY)
   const [storage, setStorage] = useState<StorageUsage | null>(null)
   const withStorage = options.withStorage === true
@@ -65,6 +65,13 @@ export function useProfile(options: { withStorage?: boolean } = {}): {
       reload().catch(() => undefined)
     }, [reload])
   )
+
+  // Amin #5409: after sign-in the photo arrives with the first sync; Home shows it as soon as that round is done
+  const syncRound = `${sync.settled}:${sync.loaded}:${sync.state}`
+  useEffect(() => {
+    if (sync.state === 'idle') reload().catch(() => undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncRound])
 
   return { profile, storage, reload }
 }

@@ -66,6 +66,27 @@ type PropertyFilters = {
   propertyType: string | null
   priceFrom: string
   priceTo: string
+  // Amin #5368: the advanced search also narrows by city, bedrooms and floor area
+  city: string | null
+  rooms: string | null
+  areaFrom: string
+  areaTo: string
+}
+
+/** Bedroom choices; «۴+» takes four or more. */
+const ROOM_OPTIONS = ['1', '2', '3', '4'].map((value) => ({
+  value,
+  label: value === '4' ? '۴ و بیشتر' : toPersianDigits(value)
+}))
+
+function matchesRooms(rooms: number | null, wanted: string | null): boolean {
+  if (!wanted) {
+    return true
+  }
+  if (rooms === null) {
+    return false
+  }
+  return wanted === '4' ? rooms >= 4 : rooms === Number(wanted)
 }
 
 const NO_FILTERS: PropertyFilters = {
@@ -73,7 +94,11 @@ const NO_FILTERS: PropertyFilters = {
   transaction: null,
   propertyType: null,
   priceFrom: '',
-  priceTo: ''
+  priceTo: '',
+  city: null,
+  rooms: null,
+  areaFrom: '',
+  areaTo: ''
 }
 
 function matchesFilters(property: Property, filters: PropertyFilters): boolean {
@@ -87,26 +112,35 @@ function matchesFilters(property: Property, filters: PropertyFilters): boolean {
   if (filters.propertyType && property.propertyType !== filters.propertyType) {
     return false
   }
-  const from = parseRangeValue(filters.priceFrom)
-  const to = parseRangeValue(filters.priceTo)
-  if (from !== null || to !== null) {
-    if (property.price === null) {
-      return false
-    }
-    if (from !== null && property.price < from * BILLION) {
-      return false
-    }
-    if (to !== null && property.price > to * BILLION) {
-      return false
-    }
+  if (filters.city && property.city.trim() !== filters.city) {
+    return false
   }
-  return true
+  if (!matchesRooms(property.rooms, filters.rooms)) {
+    return false
+  }
+  // a rent file has no price; its deposit stands in for it
+  const price = property.price ?? property.depositAmount
+  if (!inRange(price, parseRangeValue(filters.priceFrom), parseRangeValue(filters.priceTo), BILLION)) {
+    return false
+  }
+  return inRange(property.area, parseRangeValue(filters.areaFrom), parseRangeValue(filters.areaTo), 1)
+}
+
+function inRange(value: number | null, from: number | null, to: number | null, unit: number): boolean {
+  if (from === null && to === null) {
+    return true
+  }
+  if (value === null) {
+    return false
+  }
+  return (from === null || value >= from * unit) && (to === null || value <= to * unit)
 }
 
 function countFilters(filters: PropertyFilters): number {
   return (
-    [filters.status, filters.transaction, filters.propertyType].filter(Boolean).length +
-    (filters.priceFrom || filters.priceTo ? 1 : 0)
+    [filters.status, filters.transaction, filters.propertyType, filters.city, filters.rooms].filter(Boolean).length +
+    (filters.priceFrom || filters.priceTo ? 1 : 0) +
+    (filters.areaFrom || filters.areaTo ? 1 : 0)
   )
 }
 
@@ -162,6 +196,13 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
       properties,
     [properties, applied, del.hidden]
   )
+  const cityOptions = useMemo(
+    () =>
+      [...new Set((properties ?? []).map((property) => property.city.trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'fa'))
+        .map((city) => ({ value: city, label: city })),
+    [properties]
+  )
   const draftCount = useMemo(
     () => properties?.filter((property) => matchesFilters(property, draft)).length ?? 0,
     [properties, draft]
@@ -200,6 +241,21 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
       label: `${toPersianDigits(applied.priceFrom || '0')} تا ${toPersianDigits(applied.priceTo || '…')} میلیارد`,
       onRemove: () => setApplied((current) => ({ ...current, priceFrom: '', priceTo: '' }))
     },
+    applied.city && {
+      key: 'city',
+      label: applied.city,
+      onRemove: () => setApplied((current) => ({ ...current, city: null }))
+    },
+    applied.rooms && {
+      key: 'rooms',
+      label: `${ROOM_OPTIONS.find((option) => option.value === applied.rooms)?.label ?? ''} خواب`,
+      onRemove: () => setApplied((current) => ({ ...current, rooms: null }))
+    },
+    (applied.areaFrom || applied.areaTo) && {
+      key: 'area',
+      label: `${toPersianDigits(applied.areaFrom || '0')} تا ${toPersianDigits(applied.areaTo || '…')} متر`,
+      onRemove: () => setApplied((current) => ({ ...current, areaFrom: '', areaTo: '' }))
+    },
     applied.status && {
       key: 'status',
       label: STATUS_OPTIONS.find((option) => option.value === applied.status)?.label ?? '',
@@ -236,6 +292,16 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
               description={error.message}
               retryLabel="تلاش مجدد"
               onRetry={refetch}
+            />
+          </View>
+        ) : search.trim().length > 0 && (filteredProperties?.length ?? 0) === 0 ? (
+          // Amin #5407: a search with no hits says so, never «nothing saved yet»
+          <View style={styles.centeredSection}>
+            <EmptyState
+              title="موردی یافت نشد"
+              description="عبارت دیگری بنویسید یا جست‌وجو را پاک کنید."
+              actionLabel="پاک کردن جست‌وجو"
+              onAction={() => setSearch('')}
             />
           </View>
         ) : properties && properties.length === 0 ? (
@@ -296,7 +362,7 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
 
       <FilterSheet
         visible={isFilterVisible}
-        title="فیلتر املاک"
+        title="جست‌وجوی پیشرفته"
         hasActiveFilters={countFilters(draft) > 0}
         applyLabel={`نمایش ${toPersianDigits(String(draftCount))} فایل`}
         onApply={applyFilters}
@@ -315,8 +381,28 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
           value={draft.propertyType}
           onChange={(propertyType) => setDraft((current) => ({ ...current, propertyType }))}
         />
+        {cityOptions.length > 1 ? (
+          <ChipGroup
+            label="شهر"
+            options={cityOptions}
+            value={draft.city}
+            onChange={(city) => setDraft((current) => ({ ...current, city }))}
+          />
+        ) : null}
+        <ChipGroup
+          label="تعداد خواب"
+          options={ROOM_OPTIONS}
+          value={draft.rooms}
+          onChange={(rooms) => setDraft((current) => ({ ...current, rooms }))}
+        />
         <RangeFilter
-          label="قیمت (میلیارد تومان)"
+          label="متراژ (متر)"
+          from={draft.areaFrom}
+          to={draft.areaTo}
+          onChange={(areaFrom, areaTo) => setDraft((current) => ({ ...current, areaFrom, areaTo }))}
+        />
+        <RangeFilter
+          label="قیمت یا ودیعه (میلیارد تومان)"
           from={draft.priceFrom}
           to={draft.priceTo}
           onChange={(priceFrom, priceTo) =>

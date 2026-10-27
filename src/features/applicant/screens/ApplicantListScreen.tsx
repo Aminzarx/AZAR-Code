@@ -58,14 +58,25 @@ type ApplicantFilters = {
   propertyType: string | null
   budgetFrom: string
   budgetTo: string
+  // Amin #5368: the advanced search also narrows by city and bedrooms
+  city: string | null
+  rooms: string | null
 }
+
+/** Bedroom choices; «۴+» takes four or more. */
+const ROOM_OPTIONS = ['1', '2', '3', '4'].map((value) => ({
+  value,
+  label: value === '4' ? '۴ و بیشتر' : toPersianDigits(value)
+}))
 
 const NO_FILTERS: ApplicantFilters = {
   status: null,
   transaction: null,
   propertyType: null,
   budgetFrom: '',
-  budgetTo: ''
+  budgetTo: '',
+  city: null,
+  rooms: null
 }
 
 /** A budget filter keeps applicants whose own budget range overlaps it. */
@@ -79,6 +90,17 @@ function matchesFilters(applicant: Applicant, filters: ApplicantFilters): boolea
   }
   if (filters.propertyType && applicant.preferredPropertyType !== filters.propertyType) {
     return false
+  }
+  if (filters.city && applicant.city.trim() !== filters.city) {
+    return false
+  }
+  if (filters.rooms) {
+    if (applicant.rooms === null) {
+      return false
+    }
+    if (filters.rooms === '4' ? applicant.rooms < 4 : applicant.rooms !== Number(filters.rooms)) {
+      return false
+    }
   }
   const from = parseRangeValue(filters.budgetFrom)
   const to = parseRangeValue(filters.budgetTo)
@@ -100,7 +122,7 @@ function matchesFilters(applicant: Applicant, filters: ApplicantFilters): boolea
 
 function countFilters(filters: ApplicantFilters): number {
   return (
-    [filters.status, filters.transaction, filters.propertyType].filter(Boolean).length +
+    [filters.status, filters.transaction, filters.propertyType, filters.city, filters.rooms].filter(Boolean).length +
     (filters.budgetFrom || filters.budgetTo ? 1 : 0)
   )
 }
@@ -159,6 +181,13 @@ export function ApplicantListScreen({
       applicants,
     [applicants, applied, del.hidden]
   )
+  const cityOptions = useMemo(
+    () =>
+      [...new Set((applicants ?? []).map((applicant) => applicant.city.trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'fa'))
+        .map((city) => ({ value: city, label: city })),
+    [applicants]
+  )
   const draftCount = useMemo(
     () => applicants?.filter((applicant) => matchesFilters(applicant, draft)).length ?? 0,
     [applicants, draft]
@@ -197,6 +226,16 @@ export function ApplicantListScreen({
       label: `بودجه ${toPersianDigits(applied.budgetFrom || '0')} تا ${toPersianDigits(applied.budgetTo || '…')} میلیارد`,
       onRemove: () => setApplied((current) => ({ ...current, budgetFrom: '', budgetTo: '' }))
     },
+    applied.city && {
+      key: 'city',
+      label: applied.city,
+      onRemove: () => setApplied((current) => ({ ...current, city: null }))
+    },
+    applied.rooms && {
+      key: 'rooms',
+      label: `${ROOM_OPTIONS.find((option) => option.value === applied.rooms)?.label ?? ''} خواب`,
+      onRemove: () => setApplied((current) => ({ ...current, rooms: null }))
+    },
     applied.status && {
       key: 'status',
       label: STATUS_OPTIONS.find((option) => option.value === applied.status)?.label ?? '',
@@ -231,6 +270,16 @@ export function ApplicantListScreen({
               description={error.message}
               retryLabel="تلاش مجدد"
               onRetry={refetch}
+            />
+          </View>
+        ) : search.trim().length > 0 && (filteredApplicants?.length ?? 0) === 0 ? (
+          // Amin #5407: a search with no hits says so, never «nothing saved yet»
+          <View style={styles.centeredSection}>
+            <EmptyState
+              title="موردی یافت نشد"
+              description="عبارت دیگری بنویسید یا جست‌وجو را پاک کنید."
+              actionLabel="پاک کردن جست‌وجو"
+              onAction={() => setSearch('')}
             />
           </View>
         ) : applicants && applicants.length === 0 ? (
@@ -291,7 +340,7 @@ export function ApplicantListScreen({
 
       <FilterSheet
         visible={isFilterVisible}
-        title="فیلتر متقاضیان"
+        title="جست‌وجوی پیشرفته"
         hasActiveFilters={countFilters(draft) > 0}
         applyLabel={`نمایش ${toPersianDigits(String(draftCount))} متقاضی`}
         onApply={applyFilters}
@@ -309,6 +358,20 @@ export function ApplicantListScreen({
           options={TYPE_OPTIONS}
           value={draft.propertyType}
           onChange={(propertyType) => setDraft((current) => ({ ...current, propertyType }))}
+        />
+        {cityOptions.length > 1 ? (
+          <ChipGroup
+            label="شهر"
+            options={cityOptions}
+            value={draft.city}
+            onChange={(city) => setDraft((current) => ({ ...current, city }))}
+          />
+        ) : null}
+        <ChipGroup
+          label="تعداد خواب"
+          options={ROOM_OPTIONS}
+          value={draft.rooms}
+          onChange={(rooms) => setDraft((current) => ({ ...current, rooms }))}
         />
         <RangeFilter
           label="بودجه (میلیارد تومان)"

@@ -1,4 +1,12 @@
 import type { DB } from '@op-engineering/op-sqlite'
+import { likeAllTerms } from '../../../shared/utils/persianText'
+
+// Amin #5368: an applicant is found by name, phone, city, wanted deal and property kind, description and any budget
+const APPLICANT_SEARCH_COLUMNS = [
+  'full_name', 'phone_number', 'city', 'description', 'applicant_type', 'preferred_transaction_type',
+  'preferred_property_type', 'CAST(min_budget AS TEXT)', 'CAST(max_budget AS TEXT)',
+  'CAST(deposit_amount AS TEXT)', 'CAST(rent_amount AS TEXT)',
+] as const
 
 export type ApplicantStatus = 'active' | 'archived'
 
@@ -150,20 +158,19 @@ export class ApplicantRepository {
   }
 
   /**
-   * design-system.md §7.2.2 — matches against full name, city, phone
-   * number, and budget (min/max, cast to text since they're stored as
-   * plain-digit numbers) — simple substring.
+   * design-system.md §7.2.2 — every word of `query` must match one of APPLICANT_SEARCH_COLUMNS (substring; budgets
+   * are cast to text).
    */
   async search(userId: string, query: string): Promise<ApplicantRecord[]> {
-    const pattern = `%${query.trim()}%`
+    const match = likeAllTerms(APPLICANT_SEARCH_COLUMNS, query)
+    if (match.params.length === 0) {
+      return this.getAll(userId)
+    }
     const result = await this.db.execute(
       `SELECT * FROM applicants
-       WHERE user_id = ? AND (
-         full_name LIKE ? OR city LIKE ? OR phone_number LIKE ?
-         OR CAST(min_budget AS TEXT) LIKE ? OR CAST(max_budget AS TEXT) LIKE ?
-       )
+       WHERE user_id = ? AND ${match.sql}
        ORDER BY created_at DESC, rowid DESC`,
-      [userId, pattern, pattern, pattern, pattern, pattern]
+      [userId, ...match.params]
     )
     return result.rows.map(toApplicant)
   }

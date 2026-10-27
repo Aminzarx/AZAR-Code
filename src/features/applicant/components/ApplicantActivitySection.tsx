@@ -83,8 +83,15 @@ export function ApplicantActivitySection({
 }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const activity = deals && reminders ? toActivity(deals, reminders) : []
   const nextFollowUp = reminders ? pickNextFollowUp(reminders, new Date()) : null
+  // Amin #5406: the follow-up shown in its own card above is not listed a second time below
+  const activity =
+    deals && reminders
+      ? toActivity(
+          deals,
+          reminders.filter((reminder) => reminder.id !== nextFollowUp?.id)
+        )
+      : []
   const isOverdue = nextFollowUp ? new Date(nextFollowUp.remindAt).getTime() <= Date.now() : false
 
   return (
@@ -120,7 +127,7 @@ export function ApplicantActivitySection({
           onRetry={onRetry}
         />
       ) : activity.length === 0 ? (
-        <EmptyState
+        nextFollowUp ? null : <EmptyState
           compact
           title="هنوز فعالیتی ثبت نشده"
           description="معامله یا یادآوری مرتبط با این متقاضی اینجا نمایش داده می‌شود."

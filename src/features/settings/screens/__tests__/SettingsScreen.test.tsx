@@ -148,12 +148,13 @@ describe('SettingsScreen', () => {
     expect((await findByLabelText('کد معرف شما')).props.children).toBe('AZARSEED')
   })
 
-  it('shows the phone number once loaded', async () => {
-    const { findByText } = await render(
+  it('shows no phone number under the name (Amin #5410)', async () => {
+    const { findByLabelText, queryByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
 
-    expect(await findByText('۰۹۱۲۱۲۳۴۵۶۷')).toBeTruthy()
+    await findByLabelText('کد معرف شما')
+    expect(queryByText('۰۹۱۲۱۲۳۴۵۶۷')).toBeNull()
   })
 
   // v1.4.0 (Amin #4324)

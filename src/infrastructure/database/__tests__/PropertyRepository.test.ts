@@ -211,6 +211,32 @@ describe('PropertyRepository', () => {
     expect(results[0]?.id).toBe('prop-1')
   })
 
+  it('Amin #5368: finds a price typed with Persian digits and separators, and needs every word to match', async () => {
+    await repository.create({
+      id: 'prop-a',
+      ownerId: OWNER_ID,
+      title: 'آپارتمان',
+      propertyType: null,
+      transactionType: 'فروش',
+      city: 'تهران',
+      address: 'ونک',
+      price: 1500000,
+      area: null,
+      rooms: null,
+      depositAmount: null,
+      rentAmount: null,
+      isConvertible: false,
+      barterItems: [],
+      barterOtherDescription: null,
+      description: 'نورگیر عالی'
+    })
+
+    expect((await repository.findAllByOwner(OWNER_ID, '۱٬۵۰۰٬۰۰۰')).map((p) => p.id)).toEqual(['prop-a'])
+    expect((await repository.findAllByOwner(OWNER_ID, 'فروش تهران')).map((p) => p.id)).toEqual(['prop-a'])
+    expect((await repository.findAllByOwner(OWNER_ID, 'نورگیر')).map((p) => p.id)).toEqual(['prop-a'])
+    expect(await repository.findAllByOwner(OWNER_ID, 'فروش شیراز')).toHaveLength(0)
+  })
+
   it('filters by search text against barter items and their free-text description', async () => {
     await repository.create({
       id: 'prop-1',

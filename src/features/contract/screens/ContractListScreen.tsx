@@ -204,6 +204,16 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
               onAction={() => navigateAcrossTabs(navigation, 'DealList', undefined)}
             />
           </View>
+        ) : search.trim().length > 0 && (filteredContracts?.length ?? 0) === 0 ? (
+          // Amin #5407: a search with no hits says so, never «nothing saved yet»
+          <View style={styles.centeredSection}>
+            <EmptyState
+              title="موردی یافت نشد"
+              description="عبارت دیگری بنویسید یا جست‌وجو را پاک کنید."
+              actionLabel="پاک کردن جست‌وجو"
+              onAction={() => setSearch('')}
+            />
+          </View>
         ) : filteredContracts && filteredContracts.length === 0 ? (
           <View style={styles.centeredSection}>
             <EmptyState

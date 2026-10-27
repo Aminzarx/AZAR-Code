@@ -1,6 +1,15 @@
 import type { DB } from '@op-engineering/op-sqlite'
 import { PhotoRepository } from './PhotoRepository'
 import { ContactRepository } from './ContactRepository'
+import { likeAllTerms } from '../../../shared/utils/persianText'
+
+// Amin #5368: a file is found by its deal type, kind, price (any of the three amounts), city, address, description,
+// barter items and owner's name
+const PROPERTY_SEARCH_COLUMNS = [
+  'p.title', 'p.city', 'p.address', 'p.description', 'p.transaction_type', 'p.property_type',
+  'CAST(p.price AS TEXT)', 'CAST(p.deposit_amount AS TEXT)', 'CAST(p.rent_amount AS TEXT)',
+  'p.barter_items', 'p.barter_other_description', 'c.full_name',
+] as const
 
 export type PropertyStatus = 'active' | 'archived'
 
@@ -248,24 +257,17 @@ export class PropertyRepository {
   }
 
   /**
-   * design-system.md §7.2.2 — `search` matches against title, city,
-   * address, and price (simple substring, case-insensitive via SQLite's
-   * default LIKE collation; price is cast to text since it's stored as
-   * a plain-digit number, so a search like "500" also finds it inside a
-   * price value).
+   * design-system.md §7.2.2 — every word of `search` must match one of PROPERTY_SEARCH_COLUMNS (substring; amounts
+   * are cast to text, so "500" also finds a price that holds it).
    */
   async findAllByOwner(ownerId: string, search?: string): Promise<PropertyRecord[]> {
-    if (search && search.trim().length > 0) {
-      const pattern = `%${search.trim()}%`
+    const match = likeAllTerms(PROPERTY_SEARCH_COLUMNS, search ?? '')
+    if (match.params.length > 0) {
       const result = await this.db.execute(
         `${SELECT_WITH_OWNER}
-         WHERE p.owner_id = ? AND (
-           p.title LIKE ? OR p.city LIKE ? OR p.address LIKE ? OR CAST(p.price AS TEXT) LIKE ?
-           OR p.barter_items LIKE ? OR p.barter_other_description LIKE ?
-           OR c.full_name LIKE ?
-         )
+         WHERE p.owner_id = ? AND ${match.sql}
          ORDER BY p.created_at DESC, p.rowid DESC`,
-        [ownerId, pattern, pattern, pattern, pattern, pattern, pattern, pattern]
+        [ownerId, ...match.params]
       )
       return result.rows.map(toProperty)
     }

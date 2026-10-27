@@ -1,6 +1,9 @@
 import {
   findClosestMatch,
+  formatSearchNumbers,
   levenshteinDistance,
+  likeAllTerms,
+  searchTerms,
   normalizePersianText,
   suggestMatches,
   toEnglishDigits
@@ -67,5 +70,27 @@ describe('suggestMatches', () => {
 
   it('returns all candidates when input is empty', () => {
     expect(suggestMatches('', ['تهران', 'مشهد'])).toEqual(['تهران', 'مشهد'])
+  })
+})
+
+describe('searchTerms (Amin #5368)', () => {
+  it('splits words, makes digits ASCII and drops thousands separators', () => {
+    expect(searchTerms(' فروش  ۱٬۵۰۰,۰۰۰ ')).toEqual(['فروش', '1500000'])
+  })
+
+  it('builds one OR group per word', () => {
+    expect(likeAllTerms(['a', 'b'], 'x y')).toEqual({
+      sql: '(a LIKE ? OR b LIKE ?) AND (a LIKE ? OR b LIKE ?)',
+      params: ['%x%', '%x%', '%y%', '%y%'],
+    })
+  })
+})
+
+describe('formatSearchNumbers (Amin #5368)', () => {
+  it('groups only numbers longer than five digits, never a phone number', () => {
+    expect(formatSearchNumbers('فروش 1500000')).toBe('فروش ۱٬۵۰۰٬۰۰۰')
+    expect(formatSearchNumbers('۱۲۰۰۰')).toBe('۱۲۰۰۰')
+    expect(formatSearchNumbers('۱۲٬۰۰۰')).toBe('۱۲۰۰۰')
+    expect(formatSearchNumbers('09121234567')).toBe('09121234567')
   })
 })

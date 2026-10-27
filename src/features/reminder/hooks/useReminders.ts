@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import type { Reminder } from '../types'
 import { useReminderService } from './useReminderService'
 
@@ -45,6 +46,15 @@ export function useReminders(userId: string): UseRemindersResult {
   }, [service, userId, attempt])
 
   const refetch = useCallback(() => setAttempt((current) => current + 1), [])
+
+  // Amin #5413: back from «یادآوری تازه», the new one is in the list at once
+  const seen = useRef(false)
+  useFocusEffect(
+    useCallback(() => {
+      if (seen.current) refetch()
+      seen.current = true
+    }, [refetch])
+  )
 
   return { reminders, isLoading, error, refetch }
 }

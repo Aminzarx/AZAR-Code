@@ -12,6 +12,8 @@ export type TokenSummary = {
   bought: number
   spent: number
   spentBy: { files: number; applicants: number; contracts: number; phoneChange: number; deducted: number }
+  /** Amin #5351: what an invite earns (kss-pricing); null = no gift */
+  referralBonus: number | null
 }
 
 export type TokenLedger = {
@@ -28,6 +30,7 @@ export function normalizeSummary(summary: Partial<TokenSummary> | undefined): To
     earned: summary.earned ?? 0,
     earnedBy: { referral: summary.earnedBy?.referral ?? 0, profile: summary.earnedBy?.profile ?? 0 },
     bought: summary.bought ?? 0,
+    referralBonus: typeof summary.referralBonus === 'number' ? summary.referralBonus : null,
     spent: summary.spent ?? 0,
     spentBy: {
       files: summary.spentBy?.files ?? 0,

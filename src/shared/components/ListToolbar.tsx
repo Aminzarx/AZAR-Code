@@ -3,7 +3,7 @@ import { Pressable, TextInput as RNTextInput, StyleSheet, Text, View } from 'rea
 import { ScrollView } from 'react-native-gesture-handler'
 import { useLicence } from '../licence/LicenceContext'
 import { useTheme, type Theme } from '@shared/theme'
-import { toPersianDigits } from '@shared/utils/persianText'
+import { formatSearchNumbers, toPersianDigits } from '@shared/utils/persianText'
 import { Icon } from './Icon'
 
 export type ActiveFilterChip = {
@@ -70,7 +70,7 @@ export function ListToolbar({
           <Icon name="search" size="sm" color={theme.colors.onSurfaceVariant} />
           <RNTextInput
             value={search}
-            onChangeText={onSearchChange}
+            onChangeText={(text) => onSearchChange(formatSearchNumbers(text))}
             placeholder={searchPlaceholder}
             placeholderTextColor={theme.colors.placeholder}
             accessibilityLabel="جستجو"

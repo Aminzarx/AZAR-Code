@@ -1,5 +1,4 @@
 import React from 'react'
-import { Linking } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { fireEvent, render } from '@testing-library/react-native'
 import { withTheme } from '@shared/components/testHelpers'
@@ -120,11 +119,9 @@ describe('DashboardScreen (v1.3.0 home)', () => {
     expect(mockNavigate).toHaveBeenCalledWith('Matching')
   })
 
-  it("lists today's follow-ups, opens one, and calls from its phone button", async () => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
+  it("keeps today's follow-ups off Home (Amin #5417); the bell opens «اعلان‌ها», the photo opens the profile", async () => {
     mockedFetchDashboardData.mockResolvedValue(
       homeData({
-        hasOverdue: true,
         followUps: [
           {
             id: 'rem-1',
@@ -138,24 +135,15 @@ describe('DashboardScreen (v1.3.0 home)', () => {
       })
     )
 
-    const { findByLabelText, getByLabelText } = await renderDashboard()
+    const { findByText, getByLabelText, queryByText } = await renderDashboard()
 
-    await fireEvent.press(await findByLabelText('بازدید آپارتمان سعادت‌آباد'))
-    expect(mockNavigate).toHaveBeenCalledWith('ReminderDetail', { reminderId: 'rem-1' })
-
-    await fireEvent.press(getByLabelText('تماس با آقای رضایی'))
-    expect(openURL).toHaveBeenCalledWith('tel:09121234567')
-    openURL.mockRestore()
-  })
-
-  it('says so when nothing is due today, and the bell opens reminders', async () => {
-    mockedFetchDashboardData.mockResolvedValue(homeData())
-
-    const { findByText, getByLabelText } = await renderDashboard()
-
-    expect(await findByText('برای امروز پیگیری‌ای ثبت نشده است.')).toBeTruthy()
-    await fireEvent.press(getByLabelText('یادآوری‌ها'))
+    expect(await findByText('خلاصه')).toBeTruthy()
+    expect(queryByText('پیگیری‌های امروز')).toBeNull()
+    expect(queryByText('بازدید آپارتمان سعادت‌آباد')).toBeNull()
+    await fireEvent.press(getByLabelText('اعلان‌ها'))
     expect(mockNavigate).toHaveBeenCalledWith('ReminderList', undefined)
+    await fireEvent.press(getByLabelText('مشاهده پروفایل'))
+    expect(mockNavigate).toHaveBeenCalledWith('Profile', undefined)
   })
 
   it('shows the first-steps checklist on a new account', async () => {

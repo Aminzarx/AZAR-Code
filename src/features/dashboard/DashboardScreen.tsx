@@ -12,12 +12,10 @@ import { useTheme, type Theme } from '@shared/theme'
 import { Avatar, ErrorState, LoadingIndicator, LogoPlaceholder } from '@shared/components'
 import { useProfile } from '@features/settings/hooks/useProfile'
 import { photoUri } from '@infrastructure/images/profilePhoto'
-import { useDisplayName } from '@shared/hooks/useDisplayName'
 import { getTimeBasedGreeting } from '@shared/utils/greeting'
 import { useDashboardData } from './hooks/useDashboardData'
 import {
   FirstStepsCard,
-  FollowUpList,
   HomeAddButtons,
   MatchBanner,
   RoundIconButton,
@@ -39,8 +37,9 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const styles = createStyles(theme)
   const { session } = useAuth()
   const { data, isLoading, error, refetch } = useDashboardData(session?.userId ?? '')
-  const { displayName } = useDisplayName()
+  // Amin #5412: the name comes with the profile, which reloads whenever Home is back in view
   const { profile } = useProfile()
+  const displayName = profile.displayName
   const ownPhoto = photoUri(profile.photoPath)
   // Amin #4906: after the licence ends Home keeps the follow-ups and the summary; adding and matching wait
   const { canEdit } = useLicence()
@@ -76,9 +75,10 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
       <ScrollView contentContainerStyle={styles.content} accessibilityLabel="خانه">
         <View style={styles.header}>
           <Pressable
-            onPress={() => navigateAcrossTabs(navigation, 'Settings', undefined)}
+            // Amin #5415: the profile page itself; «back» returns to Home
+            onPress={() => navigation.navigate('Profile', undefined)}
             accessibilityRole="button"
-            accessibilityLabel="مشاهده پروفایل و تنظیمات"
+            accessibilityLabel="مشاهده پروفایل"
             style={styles.headerLeading}
           >
             {/* Amin #5107: the profile photo, or the faded EYVAN logo until there is one */}
@@ -107,7 +107,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           </Pressable>
           <RoundIconButton
             icon="bell"
-            accessibilityLabel="یادآوری‌ها"
+            accessibilityLabel="اعلان‌ها"
             showDot={data?.hasOverdue}
             onPress={() => navigation.navigate('ReminderList', undefined)}
           />
@@ -149,18 +149,7 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
 
             {!isNewAccount ? (
               <>
-                <View style={styles.section}>
-                  <SectionHeader
-                    title="پیگیری‌های امروز"
-                    actionLabel="همه"
-                    onAction={() => navigation.navigate('ReminderList', undefined)}
-                  />
-                  <FollowUpList
-                    followUps={data.followUps}
-                    onSelect={(reminderId) => navigation.navigate('ReminderDetail', { reminderId })}
-                  />
-                </View>
-
+                {/* Amin #5417: today's follow-ups are no longer on Home; they live in «اعلان‌ها» */}
                 <View style={styles.section}>
                   <SectionHeader title="خلاصه" />
                   <SummaryTiles stats={data.stats} onSelect={openStat} />

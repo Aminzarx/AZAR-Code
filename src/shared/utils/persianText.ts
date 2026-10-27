@@ -32,6 +32,41 @@ export function toEnglishDigits(input: string): string {
   })
 }
 
+/**
+ * Amin #5368: splits a list search into words, each matched on its own (all must hit), with the digits made ASCII
+ * and the thousands separators dropped, so «۱٬۵۰۰٬۰۰۰ فروش» finds a 1500000 sale. Used as LIKE patterns in SQL.
+ */
+export function searchTerms(query: string): string[] {
+  return toEnglishDigits(query)
+    .replace(/ي/g, 'ی')
+    .replace(/ك/g, 'ک')
+    .replace(/(\d)[,٬،](?=\d)/g, '$1')
+    .split(/\s+/)
+    .filter((term) => term.length > 0)
+}
+
+/**
+ * Amin #5368: in a search box a number longer than five digits is grouped in threes like a price (۱٬۵۰۰٬۰۰۰); a
+ * shorter one, or one led by 0 (a phone number), stays plain. `searchTerms` drops the separators again.
+ */
+export function formatSearchNumbers(text: string): string {
+  return text.replace(/[0-9۰-۹٠-٩][0-9۰-۹٠-٩٬,]*/g, (run) => {
+    const digits = toEnglishDigits(run).replace(/[٬,]/g, '')
+    if (digits.length <= 5 || digits.startsWith('0')) {
+      return run.replace(/[٬,]/g, '')
+    }
+    return toPersianDigits(digits.replace(/\B(?=(\d{3})+(?!\d))/g, '٬'))
+  })
+}
+
+/** One `(a LIKE ? OR b LIKE ? …)` group per search word, joined by AND, with its bound patterns. */
+export function likeAllTerms(columns: readonly string[], query: string): { sql: string; params: string[] } {
+  const terms = searchTerms(query)
+  const sql = terms.map(() => `(${columns.map((column) => `${column} LIKE ?`).join(' OR ')})`).join(' AND ')
+  const params = terms.flatMap((term) => columns.map(() => `%${term}%`))
+  return { sql, params }
+}
+
 export function normalizePersianText(input: string): string {
   return input
     .replace(/ي/g, 'ی') // Arabic Yeh -> Persian Yeh (ي -> ی)

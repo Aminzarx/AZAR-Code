@@ -60,7 +60,10 @@ type Props = DefaultNavigatorOptions<
   TabRouterOptions
 
 /** a slide between tabs, after a tap or a released swipe */
-const SLIDE_MS = 240
+// Amin #5411: slower and eased at both ends; a jump across several tabs takes a little longer, never a snap
+const SLIDE_MS = 340
+const SLIDE_EASING = Easing.bezier(0.25, 0.1, 0.25, 1)
+const slideMs = (steps: number) => Math.min(560, SLIDE_MS + Math.max(0, steps - 1) * 70)
 /** past the first or the last tab the page still moves a little under the finger, then springs back */
 const EDGE_RESISTANCE = 0.25
 
@@ -118,11 +121,14 @@ function SwipeTabNavigator({
   const childState = focusedRoute.state as { key?: string; index?: number } | undefined
   const atRoot = !childState || (childState.index ?? 0) === 0
 
+  const lastIndex = useRef(state.index)
   useEffect(() => {
+    const steps = Math.abs(state.index - lastIndex.current)
+    lastIndex.current = state.index
     Animated.timing(offset, {
       toValue: base(state.index),
-      duration: SLIDE_MS,
-      easing: Easing.out(Easing.cubic),
+      duration: slideMs(steps),
+      easing: SLIDE_EASING,
       useNativeDriver: true
     }).start()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,7 +164,7 @@ function SwipeTabNavigator({
         Animated.timing(offset, {
           toValue: base(index),
           duration: SLIDE_MS,
-          easing: Easing.out(Easing.cubic),
+          easing: SLIDE_EASING,
           useNativeDriver: true
         }).start()
       }
