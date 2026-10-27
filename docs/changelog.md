@@ -2037,3 +2037,11 @@ the company site.
   and in the right-to-left app its pages ran from the right while the start offset counted from the left, so it opened
   on an empty page. Now the tapped photo is shown alone, with «قبلی / بعدی» buttons and «۵ از ۹».
 - The update check runs on every return to the app (a return within 30 s excepted), not after 10 minutes away.
+
+## 2026-10-27 — 1.5.9: sign-in asks the number first (Amin #5745)
+
+- «شروع کنید» opens the number page (was the name page, #5565). After the code, a number that has an account signs in
+  at once: no name page. Only a number with no account goes on to «معرفی خودتان» (first/last name, agency optional),
+  then the invite page.
+- Whether an account exists is told only after the code is confirmed (the server's existing «no account» answer to
+  sign-in), so nobody can try numbers to learn who has an account. No server change.

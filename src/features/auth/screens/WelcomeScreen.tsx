@@ -66,7 +66,7 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
             <Text style={[theme.typography('bodySm'), styles.noticeText]}>{notice}</Text>
           </View>
         ) : null}
-        <Button label="شروع کنید" onPress={() => navigation.navigate('RegisterName') /* Amin #5565: name first */} />
+        <Button label="شروع کنید" onPress={() => navigation.navigate('PhoneEntry') /* Amin #5745: number first */} />
       </View>
     </SafeAreaView>
   )

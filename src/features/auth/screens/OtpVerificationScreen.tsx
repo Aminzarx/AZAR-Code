@@ -25,7 +25,11 @@ export function OtpVerificationScreen({ navigation, route }: Props): React.JSX.E
       </View>
       <OtpCodePanel
         phoneNumber={phoneNumber}
-        onNeedsReferral={(phone) => navigation.navigate('ReferralCode', { phoneNumber: phone, displayName, agencyName })}
+        onNeedsReferral={(phone) =>
+          displayName
+            ? navigation.navigate('ReferralCode', { phoneNumber: phone, displayName, agencyName })
+            : navigation.navigate('RegisterName', { phoneNumber: phone })
+        }
       />
     </AuthScreenContainer>
   )

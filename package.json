@@ -1,6 +1,6 @@
 {
   "name": "azar-crm",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "private": true,
   "description": "AZAR CRM — offline-first mobile real-estate CRM (React Native)",
   "engines": {

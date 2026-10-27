@@ -9,10 +9,10 @@ import { InviterPhoneScreen } from '@features/auth/screens/InviterPhoneScreen'
 
 export type AuthStackParamList = {
   Welcome: undefined
-  // Amin #5565: the name comes first, before the number; it rides along to the invite page (a new account)
+  // Amin #5745: the number comes first; only a number with no account goes on to the name page, then the invite
   PhoneEntry: { displayName?: string; agencyName?: string } | undefined
   OtpVerification: { phoneNumber: string; displayName?: string; agencyName?: string }
-  RegisterName: undefined
+  RegisterName: { phoneNumber: string }
   ReferralCode: { phoneNumber: string; displayName?: string; agencyName?: string }
   InviterPhone: { phoneNumber: string; displayName?: string; agencyName?: string }
 }

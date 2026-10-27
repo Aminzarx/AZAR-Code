@@ -33,8 +33,12 @@ export function PhoneEntryScreen({ navigation, route }: Props): React.JSX.Elemen
   const theme = useTheme()
   const styles = createStyles(theme)
   const { sendOtp } = useAuth()
-  // Amin #5565: the name asked on the page before
+  // Amin #5745: a number with an account signs in at once; one without goes to the name page (old links may still carry a name)
   const names = { displayName: route.params?.displayName, agencyName: route.params?.agencyName }
+  function needsAccount(phone: string): void {
+    if (names.displayName) navigation.navigate('ReferralCode', { phoneNumber: phone, ...names })
+    else navigation.navigate('RegisterName', { phoneNumber: phone })
+  }
   const [phoneNumber, setPhoneNumber] = useState('')
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -109,7 +113,7 @@ export function PhoneEntryScreen({ navigation, route }: Props): React.JSX.Elemen
           <OtpCodePanel
             key={sentTo}
             phoneNumber={sentTo}
-            onNeedsReferral={(phone) => navigation.navigate('ReferralCode', { phoneNumber: phone, ...names })}
+            onNeedsReferral={needsAccount}
             autoFocus
           />
         ) : (
