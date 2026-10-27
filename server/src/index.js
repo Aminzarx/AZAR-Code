@@ -8,6 +8,7 @@ const licence = require('./licenceRoutes')
 const tokens = require('./tokens')
 const admin = require('./adminRoutes')
 const purchases = require('./purchaseRoutes')
+const announcements = require('./announcements')
 
 const PORT = Number(process.env.PORT) || 8787
 // Explicit, not left to Node's default — nginx on the VPS host proxies to
@@ -38,6 +39,8 @@ app.use('/licence', licence.router)
 app.use('/tokens', tokens.router)
 // Amin #5197: the billing panel's admin API — same machine + admin key only (adminRoutes.js); nginx never forwards /admin
 app.use('/admin', admin.router)
+// Amin #5370: KSS announcements in the app's «اعلان‌ها»
+app.use('/announcements', announcements.router)
 app.use(invites.page)
 
 app.use((_req, res) => {

@@ -10,6 +10,8 @@ const PHONE_NUMBER_PATTERN = /^\+?[1-9]\d{7,14}$/
 // KSS (Amin #4117): the sign-in code is a real one-time code sent by SMS through KSS's Kavenegar account (the
 // verify/lookup API with the «otp» template, as kssx.ir), replacing the fixed code. The code is kept only as a hash.
 const sms = require('./sms')
+// loaded on use: tokens.js reaches licenceRoutes, which is loaded after this file
+const tokens = () => require('./tokens')
 const OTP_TTL_MS = 3 * 60 * 1000 // a code is good for 3 minutes
 const OTP_RESEND_MS = 60 * 1000 // a new code at most once a minute per number (sooner = the last code still stands)
 const OTP_MAX_PER_HOUR = 5 // codes sent to one number per hour
@@ -245,6 +247,8 @@ router.post('/register', registerLimiter, (req, res) => {
     db.prepare(
       'INSERT INTO users (id, phone_number, referral_code, used_referral_code, created_at) VALUES (?, ?, ?, ?, ?)'
     ).run(user.id, user.phone_number, user.referral_code, user.used_referral_code, user.created_at)
+    // Amin #5369: signing up is a sign-in too («آخرین ورود» in sales management)
+    db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?').run(user.created_at, user.id)
     // Immutable by construction (ADR-009's referral reuse policy): no
     // update/delete statement for this table exists anywhere in this file.
     db.prepare(
@@ -263,6 +267,8 @@ router.post('/register', registerLimiter, (req, res) => {
     db.prepare('DELETE FROM otp_requests WHERE phone_number = ?').run(phoneNumber)
   })()
 
+  // Amin #5351: the inviter's gift as soon as this colleague is in
+  tokens().referralSignedUp(user.id).catch(() => undefined)
   res.status(201).json({ userId: user.id, referralCode: user.referral_code, sessionToken })
 })
 
@@ -287,6 +293,7 @@ router.post('/login', registerLimiter, (req, res) => {
       return fail(res, 422, 'invalid_phone_number', 'No account found for this number.')
     }
     user = createUser(phoneNumber, open.referrer, open.referrer.referral_code, open.invite.code)
+    tokens().referralSignedUp(user.id).catch(() => undefined)
   }
 
   // Amin #5197: an account a KSS admin locked or deleted does not sign in

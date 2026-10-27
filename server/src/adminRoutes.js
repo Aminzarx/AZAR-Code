@@ -639,4 +639,22 @@ function purgeDue(now = Date.now()) {
   return due.map((u) => u.id)
 }
 
+// Amin #5370: announcements to the app, written in sales management
+const announcements = require('./announcements')
+router.get('/announcements', (req, res) => {
+  audit(req, 'announcements_list')
+  res.json({ announcements: announcements.listLive(), tones: announcements.TONES })
+})
+router.post('/announcements', (req, res) => {
+  const out = announcements.create(req.body || {}, req.actor)
+  if (out.error) return fail(res, 422, `invalid_${out.error}`, `Check the ${out.error}.`)
+  audit(req, 'announcement_create', null, `${out.announcement.id} ${out.announcement.tone} ${out.announcement.title}`)
+  res.status(201).json(out.announcement)
+})
+router.delete('/announcements/:id', (req, res) => {
+  if (!announcements.remove(String(req.params.id))) return fail(res, 404, 'not_found', 'No such announcement.')
+  audit(req, 'announcement_delete', null, String(req.params.id))
+  res.status(204).end()
+})
+
 module.exports = { router, purgeDue }

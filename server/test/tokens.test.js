@@ -187,23 +187,19 @@ test('the balance never goes below zero: a save that does not fit is refused who
   assert.ok((await ledger(a)).summary.balance >= 0)
 })
 
-test('referral bonus: only once the invited colleague is active (first file on the server), only once, within the daily cap', async () => {
+test('referral bonus (Amin #5351): paid to the inviter at sign-up, only once, within a set daily cap', async () => {
   setApps({ eyvan_referral_bonus: 10, eyvan_daily_bonus_cap: 15 })
   const a = await account()
   const b = await account(a.referralCode)
-  const c = await account(a.referralCode)
-
-  // b signs up and sends only settings: not active yet
-  await push(b, [{ t: 'application_settings', k: 'display_name', row: { key: 'display_name', value: 'B' } }])
-  assert.equal((await ledger(a)).summary.earned, 0)
-
-  // b's first file reaches the server: a earns once
+  await new Promise((r) => setTimeout(r, 50))
+  assert.equal((await ledger(a)).summary.earned, 10)
+  // pushes do not pay it again
   await push(b, [{ t: 'properties', k: 'p1', row: sized(500) }])
-  await push(b, [{ t: 'applicants', k: 'x1', row: sized(500) }])
   assert.equal((await ledger(a)).summary.earned, 10)
 
-  // c is active the same day, but 10 more would pass the cap of 15: not paid today
-  await push(c, [{ t: 'properties', k: 'p1', row: sized(500) }])
+  // c signs up the same day, but 10 more would pass the cap of 15: not paid today
+  const c = await account(a.referralCode)
+  await new Promise((r) => setTimeout(r, 50))
   assert.equal((await ledger(a)).summary.earned, 10)
   // the next day (yesterday's bonus moved back a day), c's next push pays it
   db.prepare("UPDATE token_ledger SET at = '2020-01-01T00:00:00.000Z' WHERE account_id = ? AND reason = 'referral_bonus'").run(a.userId)
@@ -211,17 +207,19 @@ test('referral bonus: only once the invited colleague is active (first file on t
   assert.equal((await ledger(a)).summary.earned, 20)
 })
 
-test('no daily cap set = no bonus at all; bonuses stay off until their number is set', async () => {
+test('no daily cap set = no daily limit; an empty bonus number pays nothing', async () => {
   setApps({ eyvan_referral_bonus: 10 })
   const a = await account()
-  const b = await account(a.referralCode)
-  await push(b, [{ t: 'properties', k: 'p1', row: sized(500) }])
-  assert.equal((await ledger(a)).summary.earned, 0)
+  await account(a.referralCode)
+  await account(a.referralCode)
+  await new Promise((r) => setTimeout(r, 50))
+  assert.equal((await ledger(a)).summary.earned, 20)
 
   setApps({ eyvan_referral_bonus: null, eyvan_daily_bonus_cap: 100 })
-  const c = await account(a.referralCode)
-  await push(c, [{ t: 'properties', k: 'p1', row: sized(500) }])
-  assert.equal((await ledger(a)).summary.earned, 0)
+  const z = await account()
+  await account(z.referralCode)
+  await new Promise((r) => setTimeout(r, 50))
+  assert.equal((await ledger(z)).summary.earned, 0)
 })
 
 test('profile bonus: once, when the name, agency and photo are all on the server', async () => {
@@ -239,10 +237,12 @@ test('profile bonus: once, when the name, agency and photo are all on the server
 })
 
 test('no referral bonus for a deleted referrer', async () => {
-  setApps({ eyvan_referral_bonus: 10, eyvan_daily_bonus_cap: 100 })
+  // the gift is off at sign-up, turned on after the inviter deleted the account: the retry on push pays nothing
+  setApps({ eyvan_referral_bonus: null, eyvan_daily_bonus_cap: 100 })
   const a = await account()
   const b = await account(a.referralCode)
   db.prepare("UPDATE users SET deleted_at = '2026-10-24' WHERE id = ?").run(a.userId)
+  setApps({ eyvan_referral_bonus: 10, eyvan_daily_bonus_cap: 100 })
   await push(b, [{ t: 'properties', k: 'p1', row: sized(500) }])
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM token_ledger WHERE reason = 'referral_bonus' AND account_id = ?").get(a.userId).n, 0)
 })

@@ -92,7 +92,15 @@ function accountOf(req) {
     (typeof req.body?.sessionToken === 'string' && req.body.sessionToken) || req.get('x-session-token') || ''
   if (!token) return null
   const session = db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(token)
-  return session ? session.user_id : null
+  if (!session) return null
+  // Amin #5369: «آخرین ورود» = the last time the app was used, kept to the hour
+  const now = new Date()
+  db.prepare('UPDATE users SET last_login_at = ? WHERE id = ? AND (last_login_at IS NULL OR last_login_at < ?)').run(
+    now.toISOString(),
+    session.user_id,
+    new Date(now.getTime() - 60 * 60 * 1000).toISOString()
+  )
+  return session.user_id
 }
 
 function usageOf(accountId) {

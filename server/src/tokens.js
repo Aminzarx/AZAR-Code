@@ -13,9 +13,9 @@ const { appPrices } = require('./licenceRoutes')
 //   as the data, the change against what that record was already charged: a bigger record spends, a smaller or deleted
 //   one gives back, a push sent again changes nothing. Photo uploads, drafts and every other table cost nothing.
 // - A save that would take the balance below zero is refused (tokens_short); the phone keeps it queued.
-// - Bonuses (referral: once, when the invited colleague's first file reaches the server; profile: once, when the name,
-//   agency and photo are all on the server) only while the daily cap is set and not reached; a bonus that does not fit
-//   today is paid on a later push.
+// - Bonuses (referral: once, as soon as the invited colleague has signed up — Amin #5351; profile: once, when the name,
+//   agency and photo are all on the server). An empty bonus number pays nothing; an empty daily cap means no daily limit
+//   (Amin #5351: the 150-token invite gift must be paid); a bonus over a set cap is paid on a later push.
 
 const REASONS = [
   'admin_grant', // Amin #5197: tokens a KSS admin gave from the billing panel (counted with the gifts)
@@ -48,7 +48,6 @@ const RECORD_REASONS = ['file', 'applicant', 'contract'].flatMap((k) => [`${k}_s
 /** photos.subject_type → the record table */
 const PHOTO_SUBJECTS = { property: 'properties', contract: 'contracts' }
 /** a file reaching the server = the colleague is active (owner or applicant file) */
-const FILE_TABLES = ['properties', 'applicants', 'owner_files', 'applicant_files']
 const PROFILE_KEYS = ['display_name', 'agency_name', 'profile_photo']
 
 db.exec(`
@@ -187,7 +186,7 @@ function dayStart(now = Date.now()) {
 }
 
 function bonusRoom(accountId, s, now = Date.now()) {
-  if (s.dailyBonusCap == null) return 0
+  if (s.dailyBonusCap == null) return Infinity
   const today = db
     .prepare(
       `SELECT COALESCE(SUM(amount), 0) AS b FROM token_ledger
@@ -209,19 +208,8 @@ function payBonus(accountId, reason, amount, idemKey, ref, s) {
 async function checkBonuses(accountId) {
   const s = await settings()
   if (!s) return
-  // referral: this account is active once one of its files is on the server; its referrer earns, if still an account
-  const link = db
-    .prepare(
-      `SELECT r.referrer_user_id AS referrer FROM referral_relationships r JOIN users u ON u.id = r.referrer_user_id
-       WHERE r.referred_user_id = ? AND u.deleted_at IS NULL`
-    )
-    .get(accountId)
-  if (link) {
-    const hasFile = db
-      .prepare(`SELECT 1 FROM sync_rows WHERE account_id = ? AND tbl IN (${FILE_TABLES.map(() => '?').join(', ')}) LIMIT 1`)
-      .get(accountId, ...FILE_TABLES)
-    if (hasFile) payBonus(link.referrer, 'referral_bonus', s.referralBonus, `referral:${accountId}`, accountId, s)
-  }
+  // referral: paid at sign-up (referralSignedUp); a push retries one that did not fit a set daily cap
+  payReferral(accountId, s)
   // profile: name, agency and photo all on the server
   const keys = db
     .prepare(`SELECT row_key FROM sync_rows WHERE account_id = ? AND tbl = 'application_settings' AND row_key IN (?, ?, ?)`)
@@ -230,6 +218,23 @@ async function checkBonuses(accountId) {
   if (PROFILE_KEYS.every((k) => keys.includes(k))) {
     payBonus(accountId, 'profile_bonus', s.profileBonus, `profile:${accountId}`, null, s)
   }
+}
+
+/** Amin #5351: the inviter earns the referral bonus once the invited colleague has signed in, if still an account. */
+function payReferral(accountId, s) {
+  const link = db
+    .prepare(
+      `SELECT r.referrer_user_id AS referrer FROM referral_relationships r JOIN users u ON u.id = r.referrer_user_id
+       WHERE r.referred_user_id = ? AND u.deleted_at IS NULL`
+    )
+    .get(accountId)
+  return link ? payBonus(link.referrer, 'referral_bonus', s.referralBonus, `referral:${accountId}`, accountId, s) : false
+}
+
+/** Called right after a sign-up (by code, by the inviter's mobile or by an SMS invite). */
+async function referralSignedUp(accountId) {
+  const s = await settings()
+  if (s) payReferral(accountId, s)
 }
 
 function deleteLedger(accountId) {
@@ -323,6 +328,7 @@ module.exports = {
   balanceOf,
   bytesToTokens,
   checkBonuses,
+  referralSignedUp,
   deleteLedger,
   dayStart,
   RECORD_KINDS,

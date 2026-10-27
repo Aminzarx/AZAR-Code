@@ -54,6 +54,7 @@ before(async () => {
   app.use('/licence', licence.router)
   app.use('/tokens', tokens.router)
   app.use('/admin', admin.router)
+  app.use('/announcements', require('../src/announcements').router)
   await new Promise((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve)
   })
@@ -328,3 +329,26 @@ test('«حذف موقت»: archive frees the number; a new account signs up on i
   const parent = db.prepare('SELECT referrer_user_id FROM referral_relationships WHERE referred_user_id = ?').get(fresh.body.userId)
   assert.equal(parent.referrer_user_id, oldParent)
 })
+
+test('announcements (Amin #5370): written by admin, shown to the app until deleted or dismissed', async () => {
+  const a = await account()
+  assert.equal((await call('POST', '/announcements', { title: 'x', body: 'y', tone: 'pink' })).status, 422)
+  const made = await call('POST', '/announcements', { title: 'خبر', body: 'متن خبر', tone: 'warning' })
+  assert.equal(made.status, 201)
+  const other = await call('POST', '/announcements', { title: 'دوم', body: 'متن', tone: 'info' })
+  const seen = async () => (await post('/announcements', { sessionToken: a.sessionToken })).body.announcements.map((n) => n.id)
+  assert.deepEqual((await seen()).sort(), [made.body.id, other.body.id].sort())
+  assert.equal((await post(`/announcements/${made.body.id}/dismiss`, { sessionToken: a.sessionToken })).status, 204)
+  assert.deepEqual(await seen(), [other.body.id])
+  assert.equal((await call('DELETE', `/announcements/${other.body.id}`)).status, 204)
+  assert.deepEqual(await seen(), [])
+  assert.equal((await post('/announcements', {})).status, 401)
+  assert.equal((await call('GET', '/announcements')).body.announcements.length, 1)
+})
+
+test('«آخرین ورود» (Amin #5369): set at sign-up', async () => {
+  const a = await account()
+  const row = (await call('GET', `/users/${a.userId}`)).body
+  assert.ok(row.lastLoginAt ?? row.user?.lastLoginAt)
+})
+
