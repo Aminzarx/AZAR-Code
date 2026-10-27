@@ -88,7 +88,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5190,
     fs: { allow: [root] },
-    // the live azar-auth, as app.kssx.ir/api reaches it
-    proxy: { '/api': { target: 'https://api.zarandix.ir', changeOrigin: true, rewrite: (p) => p.replace(/^\/api/, '') } }
+    // the live azar-auth, as app.kssx.ir/api reaches it; EYVAN_API_TARGET points a local test at a local azar-auth
+    proxy: { '/api': { target: process.env.EYVAN_API_TARGET || 'https://api.zarandix.ir', changeOrigin: true, rewrite: (p) => p.replace(/^\/api/, '') } }
   }
 }))
