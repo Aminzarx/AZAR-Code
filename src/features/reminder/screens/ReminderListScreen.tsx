@@ -6,7 +6,6 @@ import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
 import { useTheme, type Theme } from '@shared/theme'
 import {
-  EmptyState,
   ErrorState,
   FloatingActionButton,
   LoadingIndicator,
@@ -66,10 +65,15 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
 
   const visibleReminders = (reminders ?? []).filter((reminder) => !del.hidden.has(reminder.id))
   const attention = countReminderAttention(visibleReminders)
-  const sections = groupRemindersByTime(visibleReminders).map((group) => ({
+  const groups = groupRemindersByTime(visibleReminders)
+  const sections = groups.map((group) => ({
     title: group.label,
     data: group.reminders
   }))
+  // Amin #5608: with nothing for today only a grey line says so (no big empty-state block)
+  const noneToday = !groups.some((group) => group.key === 'today') ? (
+    <Text style={[theme.typography('bodyMd'), styles.noneToday]}>امروز یادآوری‌ای ندارید</Text>
+  ) : null
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -89,14 +93,9 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
             />
           </View>
         ) : reminders && reminders.length === 0 ? (
-          <View style={styles.centeredSection}>
+          <View style={styles.emptyList}>
             {announcementCards}
-            <EmptyState
-              title="هنوز یادآوری‌ای ثبت نشده"
-              description="یادآوری‌های خود را از داشبورد یا صفحه پیگیری اضافه کنید."
-              actionLabel="افزودن یادآوری"
-              onAction={() => navigation.navigate('CreateReminder', undefined)}
-            />
+            {noneToday}
           </View>
         ) : (
           <SectionList
@@ -111,6 +110,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
                   overdueCount={attention.overdueCount}
                   dueTodayCount={attention.dueTodayCount}
                 />
+                {noneToday}
               </>
             }
             renderSectionHeader={({ section }) => (
@@ -130,7 +130,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
           />
         )}
 
-        {reminders && reminders.length > 0 ? (
+        {reminders ? (
           <FloatingActionButton
             accessibilityLabel="افزودن یادآوری"
             onPress={() => navigation.navigate('CreateReminder', undefined)}
@@ -166,6 +166,14 @@ function createStyles(theme: Theme) {
       alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
       marginTop: theme.layout.sectionSpacing,
       marginBottom: theme.spacing.space2
+    },
+    emptyList: {
+      alignSelf: 'stretch'
+    },
+    noneToday: {
+      color: theme.colors.onSurfaceVariant,
+      alignSelf: theme.isRTL ? 'flex-start' : 'flex-end',
+      marginTop: theme.spacing.space2
     },
     centeredSection: {
       flex: 1,

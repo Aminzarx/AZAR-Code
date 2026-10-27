@@ -51,4 +51,34 @@ describe('ReminderListItem', () => {
     fireEvent.press(getByLabelText('علامت‌گذاری تماس با متقاضی به‌عنوان انجام‌شده'))
     expect(onToggleDone).toHaveBeenCalledTimes(1)
   })
+
+  it('says its kind and marks a passed open one «عقب‌افتاده» (Amin #5608)', async () => {
+    const { getByText } = await render(
+      withTheme(
+        <ReminderListItem
+          reminder={{ ...REMINDER, reminderType: 'call' }}
+          now={new Date('2026-09-02T00:00:00.000Z')}
+          onPress={jest.fn()}
+          onToggleDone={jest.fn()}
+        />
+      )
+    )
+    expect(getByText('تماس')).toBeTruthy()
+    expect(getByText('عقب‌افتاده')).toBeTruthy()
+  })
+
+  it('a done one says «انجام شد» and is never overdue', async () => {
+    const { getByText, queryByText } = await render(
+      withTheme(
+        <ReminderListItem
+          reminder={{ ...REMINDER, isDone: true }}
+          now={new Date('2026-09-02T00:00:00.000Z')}
+          onPress={jest.fn()}
+          onToggleDone={jest.fn()}
+        />
+      )
+    )
+    expect(getByText('انجام شد')).toBeTruthy()
+    expect(queryByText('عقب‌افتاده')).toBeNull()
+  })
 })

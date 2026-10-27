@@ -57,7 +57,7 @@ describe('ReminderListScreen', () => {
     mockedUseReminderContexts.mockReturnValue({ isLoading: false, resolve: () => null })
   })
 
-  it('shows the empty state when there are no reminders', async () => {
+  it('shows only a grey line when there are no reminders (Amin #5608), and the add button', async () => {
     mockedUseReminders.mockReturnValue({
       reminders: [],
       isLoading: false,
@@ -65,10 +65,11 @@ describe('ReminderListScreen', () => {
       refetch: jest.fn()
     })
 
-    const { findByText } = await render(
+    const { findByText, getByLabelText } = await render(
       withTheme(<ReminderListScreen navigation={navigationProp} route={routeProp} />)
     )
-    expect(await findByText('هنوز یادآوری‌ای ثبت نشده')).toBeTruthy()
+    expect(await findByText('امروز یادآوری‌ای ندارید')).toBeTruthy()
+    expect(getByLabelText('افزودن یادآوری')).toBeTruthy()
   })
 
   it('shows an error state with retry', async () => {
@@ -155,6 +156,8 @@ describe('ReminderListScreen', () => {
     )
 
     expect(await findByText('بعداً')).toBeTruthy()
+    // nothing today → the grey line above the later ones (Amin #5608)
+    expect(await findByText('امروز یادآوری‌ای ندارید')).toBeTruthy()
   })
 
   it('shows the overdue and due-today attention header when there is something to flag', async () => {

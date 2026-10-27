@@ -1961,3 +1961,23 @@ In JS, a picture that cannot be read is skipped and the rest are added (`pickPho
 **Migration requirements**: None.
 
 **Tests**: listingPhotos.test.ts: a skipped unreadable picture; the code of a failure.
+
+---
+
+## 2026-10-27 — 1.5.7 (part 4): notifications page design (Amin #5608)
+
+**Change**: Amin found the notifications page plain. Each reminder is now a card:
+- a coloured edge and round icon by kind (تماس = info/phone, بازدید = success/building, یادآوری = primary/bell, all
+  from design tokens), and the kind's name;
+- a clock beside the time;
+- an open reminder has a dot and a bold title; a passed open one turns red with «عقب‌افتاده»; a done one fades, is
+  struck through and says «انجام شد».
+With no reminders for today, the page shows only a grey line «امروز یادآوری‌ای ندارید» (above any later ones). The old
+empty-state block is gone, and the add button is always shown.
+
+**Affected modules**: features/reminder/components/ReminderListItem, features/reminder/screens/ReminderListScreen.
+
+**Migration requirements**: None.
+
+**Tests**: ReminderListItem (kind label, overdue, done); ReminderListScreen (grey line when empty and when nothing is
+today, add button when empty).
