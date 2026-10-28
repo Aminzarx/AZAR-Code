@@ -20,3 +20,7 @@
   .form-grid .one-row.four { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .form-grid .one-row .kss-label { font-size: var(--fs-xs); white-space: nowrap; }
 }
+/* Amin #5965/#5966: title · deal kind, and property type · city · area, each on one row */
+.form-grid .title-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3); align-items: start; }
+.form-grid .one-row.place { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 640px) { .form-grid .title-row { grid-template-columns: minmax(0, 1fr); } }

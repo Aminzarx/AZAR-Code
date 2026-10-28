@@ -237,13 +237,19 @@ function NewFileModal({ onClose, onMade }: { onClose: () => void; onMade: (id: s
     <Modal title="فایل تازهٔ دفتر" sub="فایل به نام دفتر ثبت می‌شود و ۳۰ روز اعتبار دارد" onClose={onClose} size="wide" locked={busy}
       footer={<><Btn onClick={onClose} disabled={busy}>انصراف</Btn><Btn variant="primary" busy={busy} disabled={!f.title?.trim() || !f.region?.trim()} onClick={() => void save()}>ثبت فایل</Btn></>}>
       <div className="form-grid">
-        <div className="span2"><Field label="عنوان فایل" required hint="مثلاً آپارتمان ۱۲۰ متری ونک"><input className="kss-input" value={f.title ?? ''} onChange={set('title')} autoFocus /></Field></div>
-        <Field label="نوع معامله" required>
-          <Segmented label="نوع معامله" value={f.kind!} onChange={(v) => setF((x) => ({ ...x, kind: v }))} options={KINDS.map((k) => ({ value: k, label: k }))} />
-        </Field>
-        <Field label="نوع ملک"><input className="kss-input" value={f.propertyType ?? ''} onChange={set('propertyType')} placeholder="آپارتمان، ویلایی، مغازه…" /></Field>
-        <Field label="شهر"><input className="kss-input" value={f.city ?? ''} onChange={set('city')} /></Field>
-        <Field label="منطقه" required><input className="kss-input" value={f.region ?? ''} onChange={set('region')} placeholder="مثلاً ونک" /></Field>
+        {/* Amin #5965: title and deal kind on one row */}
+        <div className="span2 title-row">
+          <Field label="عنوان فایل" required hint="مثلاً آپارتمان ۱۲۰ متری ونک"><input className="kss-input" value={f.title ?? ''} onChange={set('title')} autoFocus /></Field>
+          <Field label="نوع معامله" required>
+            <Segmented label="نوع معامله" value={f.kind!} onChange={(v) => setF((x) => ({ ...x, kind: v }))} options={KINDS.map((k) => ({ value: k, label: k }))} />
+          </Field>
+        </div>
+        {/* Amin #5966: property type, city and area on one row */}
+        <div className="span2 one-row place">
+          <Field label="نوع ملک"><input className="kss-input" value={f.propertyType ?? ''} onChange={set('propertyType')} placeholder="آپارتمان…" /></Field>
+          <Field label="شهر"><input className="kss-input" value={f.city ?? ''} onChange={set('city')} /></Field>
+          <Field label="منطقه" required><input className="kss-input" value={f.region ?? ''} onChange={set('region')} placeholder="مثلاً ونک" /></Field>
+        </div>
         <div className="span2"><Field label="آدرس دقیق" hint="به‌طور پیش‌فرض برای مشاوران فرستاده نمی‌شود"><input className="kss-input" value={f.address ?? ''} onChange={set('address')} /></Field></div>
         {/* Amin #5964: price, area and rooms on one row (on a phone too, as long as they fit) */}
         <div className={'span2 one-row' + (rent ? ' four' : '')}>
