@@ -675,6 +675,14 @@ for (const [verb, fn] of [['approve', office.approveRequest], ['reject', office.
     res.json(out)
   })
 }
+// Amin #5970: the /app card shows only for accounts whose office panel is on (kssx.ir site asks by the signed-in phone)
+router.get('/office-portal', (req, res) => {
+  const raw = String(req.query.phone || '')
+  if (!/^(09\d{9}|\+989\d{9})$/.test(raw)) return fail(res, 422, 'invalid_phone_number', 'Give phone as 09xxxxxxxxx.')
+  const local = raw.startsWith('+98') ? '0' + raw.slice(3) : raw
+  const user = db.prepare('SELECT id FROM users WHERE phone_number IN (?, ?) AND deleted_at IS NULL').get(local, '+98' + local.slice(1))
+  res.json({ portal: !!user && office.portalOn(user.id) })
+})
 router.get('/office-activity', (req, res) => {
   audit(req, 'office_activity')
   res.json({ offices: office.officeActivity() })
