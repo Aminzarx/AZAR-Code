@@ -6,6 +6,24 @@ entries exist even before any code ships.
 
 ---
 
+## Office dashboard 0.1.0 (Amin #5659/#5664/#5909/#5913/#5934) — built locally, not deployed
+
+- `office/`: the real-estate office manager's own web dashboard (its own address and login), made from the IRIS
+  panel's components and tokens (copied from Agent-live/panel: ui/kit, icons, styles). Overview: 4 KPIs, each
+  with its source and period (new files today, advisers linked, files sent, files expiring in 7 days); new files
+  over 14 days; advisers' open deals by stage; advisers' work today; files about to expire (renew for 30 days);
+  sharing rules; the office's files with search, kind filter and multi-select «ارسال به مشاوران».
+- «فایل تازه» (#5934): at the top and above the files table; the full form; after saving, the send dialog opens
+  with the office's sharing rules (exact address and owner's name/phone off by default).
+- Server `/office` (azar-auth, `officeRoutes.js`): the dashboard's sign-in uses the phone code but its own
+  session, so the manager's phone stays signed in (the app's /auth/login keeps one phone per account). Office
+  files live only on the server, sealed with the sync key. Advisers join with a one-time 8-digit code plus a
+  word (7 days) and read only the files sent to them, only the allowed fields (`/office/adviser/*`); one office
+  per adviser; unlinking or archiving removes access at once. Advisers' activity is counted from the copy
+  their phone already keeps on the server (counts only).
+- Not yet: the adviser's screens in the app (join with code, office files online) — next app release.
+
+
 ## 1.5.13 — deleting a file/applicant: reminders go, contracts stay with the names (Amin #5864)
 
 - Deleting a file or an applicant deletes its reminders; its contracts stay and keep its name as text (`contracts.property_label` / `applicant_label`, set on delete), shown in the contract list and detail («… (حذف شده)» there).

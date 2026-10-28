@@ -11,6 +11,7 @@ const purchases = require('./purchaseRoutes')
 const announcements = require('./announcements')
 const presence = require('./presence')
 const divar = require('./divar')
+const office = require('./officeRoutes')
 
 const PORT = Number(process.env.PORT) || 8787
 // Explicit, not left to Node's default — nginx on the VPS host proxies to
@@ -47,6 +48,8 @@ app.use('/admin', admin.router)
 app.use('/announcements', announcements.router)
 // Amin #5454: the app's «I am open» every 2 minutes (who is online, in billing)
 app.use('/presence', presence.router)
+// Amin #5659/#5913/#5934: the real-estate office dashboard (manager on the web, advisers in the app)
+app.use('/office', office.router)
 app.use(invites.page)
 
 app.use((_req, res) => {

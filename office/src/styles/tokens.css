@@ -1,0 +1,132 @@
+/* AVA's tokens: copied from IRIS (messaging/web/src/styles/tokens.css) so both products share one skin, KSS UI 1.3 (token file 1.6.2, 2026-10-10: KSS-UI-CHG-007 Theme v1.2, the workspace look, Amin mgmt #325; CHG-007C light sidebar, #371).
+   Recorded in docs/AVA-UI-001. Copy again when IRIS's copy changes; never point AVA at IRIS's files. */
+/* Design tokens: KSS UI Design System v1.3 (v1.1 CANONICAL since 2026-10-05, v1.2 = KSS-UI-CHG-002 approved by Amin 2026-10-05, v1.3 = KSS-UI-CHG-003 approved 2026-10-06; KSS-UI-TOKEN-001, KSS-UI-VISUAL-001).
+   The values come from the GENERATED token file kss-tokens.css (a copy of design-system/tokens/kss-tokens.css,
+   KSS-UI-TOKEN-SOURCE-001; never edit it by hand: copy it again when the design system changes, DEC-021/023).
+   The short names below are what the components use; each points at a SEMANTIC token, never at a raw value
+   (TOKEN-001 §52, §55). Product extensions (not in the token file) are marked EXT and recorded in MSG-UI-001. */
+@import 'vazirmatn/Vazirmatn-Variable-font-face.css';
+@import './kss-tokens.css';
+
+:root {
+  --font: var(--kss-kit-font, var(--kss-font-family-sans));   /* UI polish 2398 (kit 2398, tokens 1.7.0): IRANYekan 400/500/700, Vazirmatn behind it.
+     Never var(--kss-font-family-marketing): it ends in Tahoma, so without the licensed files Windows stopped there (helper MUST, as ARGO/ATLAS/MIDAS/IRIS R5) */
+  --font-title: "IRANYekan", var(--kss-font-family-heading);
+  --mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;   /* technical identifiers only (VISUAL-001 §24) */
+
+  /* type: sizes from the scale, line heights from the named text styles (VISUAL-001 §93) */
+  --fs-xs: var(--kss-font-size-xs); --fs-sm: var(--kss-font-size-sm); --fs-md: var(--kss-font-size-md);
+  --fs-body: var(--kss-font-size-base); --fs-lg: var(--kss-font-size-lg); --fs-xl: var(--kss-font-size-xl);
+  --fs-2xl: var(--kss-font-size-2xl); --fs-3xl: var(--kss-font-size-3xl);
+  --lh-caption: 18px; --lh-label: 20px; --lh-button: 20px; --lh-small: 22px; --lh-h4: 24px; --lh-h3: 26px; --lh-h2: 30px; --lh-h1: 36px;
+  --lh-ui: 24px; --lh-text: 1.85; --lh-long: 2.0;   /* EXT: Persian running text needs taller lines than UI text (KSS-UI-CR-MSG-002) */
+
+  --s1: var(--kss-space-1); --s2: var(--kss-space-2); --s3: var(--kss-space-3); --s4: var(--kss-space-4); --s5: var(--kss-space-5);
+  --s6: var(--kss-space-6); --s8: var(--kss-space-8); --s10: var(--kss-space-10); --s12: var(--kss-space-12);
+
+  /* radius by role (CHG-007): controls and inputs 12, cards 16, modals and panels 24, nav items 12, buttons a pill */
+  --r-sm: var(--kss-radius-sm); --r: var(--kss-radius-control); --r-lg: var(--kss-radius-card); --r-modal: var(--kss-radius-modal);
+  --r-full: var(--kss-radius-pill); --r-btn: var(--kss-button-radius); --r-nav: var(--kss-radius-nav-item);
+
+  /* AVA pin: CHG-007's layout part (sidebar 240, paddings, type sizes) is out of this change's scope (Kssx.ir 2026-10-10:
+     colours and styles only); the sidebar keeps 1.5.0's 256 until a layout change is approved */
+  --sidebar: 256px; --sidebar-rail: var(--kss-sidebar-width-collapsed); --topbar: var(--kss-header-height);
+  --content-max: none;   /* LAYOUT-001 §13/§67: data-heavy pages stay fluid (KSS-UI-OPEN-001 on a maximum width is still open) */
+  --form-max: 880px;
+  --row: var(--kss-table-row-height-standard); --row-compact: var(--kss-table-row-height-compact);
+  --ctl: var(--kss-control-height-md); --ctl-sm: var(--kss-control-height-sm); --ctl-lg: var(--kss-control-height-lg);
+  --ctl-input: var(--kss-input-height); --ctl-touch: var(--kss-control-height-touch);
+
+  --bg: var(--kss-color-surface-page); --surface: var(--kss-color-surface-default); --surface-2: var(--kss-color-surface-subtle);
+  --surface-3: var(--kss-neutral-200); --surface-raised: var(--kss-color-surface-raised);
+  --line: var(--kss-color-border-default); --line-strong: var(--kss-color-border-strong);   /* KSS 1.2 (TOKEN-AMD-002): #E9EEF4 */
+  /* D-P88 (MSG-REQ-A51, Amin: no high-contrast borders): one soft border for inputs, selects, dropdowns, buttons and the
+     composer; focus is the strong state. Proposed to KSS as CHG-004 (amends DEC-022's 3:1 input boundary). */
+  --line-input: var(--kss-color-border-control); --line-hover: var(--kss-color-border-control-hover);   /* D-P88 is in the token file since 1.5.0 */
+  --btn-line: var(--kss-color-border-control); --btn-fg: var(--kss-color-text-button-secondary);
+  --composer-line: var(--kss-composer-border);
+  --fg: var(--kss-color-text-primary); --fg-2: var(--kss-color-text-secondary); --fg-3: var(--kss-color-text-tertiary); --fg-disabled: var(--kss-color-text-disabled);
+  --accent: var(--kss-color-action-primary); --accent-hover: var(--kss-color-action-primary-hover); --accent-fg: var(--kss-color-text-inverse);   /* ink since CHG-007 */
+  /* CHG-007 roles, navy since CHG-007D (tokens 1.6.3, Amin #1047): links, focus and indicators in navy-700 (12.3:1 on white),
+     the accent fill navy-700 with white on it (12.3:1), the selected surface the navy wash (navy-700 on it 10.9:1) */
+  --link: var(--kss-color-text-link); --focus-color: var(--kss-color-border-focus); --selected: var(--kss-color-surface-selected);
+  --brand: var(--kss-color-accent); --brand-text: var(--kss-color-accent-text); --on-brand: var(--kss-color-text-on-accent);
+  --series-1: var(--kss-color-dataviz-series-1); --series-1-soft: color-mix(in srgb, var(--kss-color-dataviz-series-1) 28%, var(--kss-color-surface-default));
+  --accent-soft: var(--kss-color-status-info-subtle); --accent-line: var(--kss-color-status-info-border); --accent-text: var(--kss-color-status-info-text);
+  --ok: var(--kss-color-status-success); --ok-soft: var(--kss-color-status-success-subtle); --ok-line: var(--kss-color-status-success-border); --ok-text: var(--kss-color-status-success-text);
+  --warn: var(--kss-color-status-warning); --warn-soft: var(--kss-color-status-warning-subtle); --warn-line: var(--kss-color-status-warning-border); --warn-text: var(--kss-color-status-warning-text);
+  --bad: var(--kss-color-status-error); --bad-soft: var(--kss-color-status-error-subtle); --bad-line: var(--kss-color-status-error-border); --bad-text: var(--kss-color-status-error-text);
+  --crit: var(--kss-color-status-critical); --crit-soft: var(--kss-color-status-critical-subtle); --crit-line: var(--kss-color-status-critical-border); --crit-text: var(--kss-color-status-critical-text);
+  --neutral-text: var(--kss-color-status-neutral-text);
+  --focus: var(--kss-focus-ring);
+  --shadow-sm: var(--kss-elevation-1); --shadow-pop: var(--kss-elevation-2); --shadow-modal: var(--kss-elevation-3);
+  --overlay: var(--kss-elevation-overlay);                 /* the one sanctioned transparency (VISUAL-001 §53) */
+  --ease: var(--kss-motion-ease-standard); --dur-fast: var(--kss-motion-duration-fast); --dur: var(--kss-motion-duration-normal);
+  --z-sticky: var(--kss-z-sticky); --z-drawer: var(--kss-z-drawer); --z-modal: var(--kss-z-modal); --z-popover: var(--kss-z-popover); --z-toast: var(--kss-z-toast);
+  --toast-short: 4000; --toast-long: 8000;                 /* = toast-duration-short / -long, as numbers for the code */
+
+  /* CHG-007C (tokens 1.6.1): the light sidebar. Items in secondary text (7.4:1), hover the subtle surface, the active item the
+     navy wash with navy-700 text and bar (10.9:1; CHG-007D) */
+  --sidebar-bg: var(--kss-color-surface-sidebar); --sidebar-fg: var(--kss-color-text-secondary); --sidebar-fg-2: var(--kss-color-text-sidebar-heading);
+  --sidebar-fg-strong: var(--kss-color-text-primary); --sidebar-hover: var(--kss-color-surface-subtle); --sidebar-line: var(--kss-color-border-sidebar);
+  --sidebar-active: var(--kss-color-sidebar-active-surface); --sidebar-active-fg: var(--kss-color-sidebar-active-text); --sidebar-bar: var(--kss-color-sidebar-active-indicator);   /* named in 1.6.2 */
+  --sidebar-shadow: var(--kss-shadow-sidebar);
+  /* sidebar counts: white on navy-700 (12.3:1; CHG-007D) */
+  --sidebar-count-bg: var(--kss-color-accent); --sidebar-count-fg: var(--kss-color-text-on-accent);
+}
+@media (max-width: 767px) { :root { --topbar: var(--kss-header-height-mobile); } }   /* LAYOUT-001 §10 */
+
+/* ---- per-person display preferences (MSG-REQ-A13, A15; set by ui/prefs.ts on <html>) */
+:root { --chat-scale: 1; --bubble-radius: 12px; }
+
+/* ---- dark theme: product extension KSS-UI-TOKEN-EXT-MSG-001, EXPERIMENTAL (KSS UI has no dark baseline, VISUAL-001 §83).
+   The same semantic names re-pointed; slate neutrals and the KSS functional hues on darkened backgrounds.
+   Control boundaries 3.66:1 and every status border defined (v1.1 review, 2026-10-05). */
+:root[data-theme='dark'] {
+  --bg: #0B1220; --surface: #111A2B; --surface-2: #172238; --surface-3: #1F2C45; --surface-raised: #152036;
+  --line: #1F2B42; --line-strong: #64748B; --line-input: #2E3B52; --line-hover: #46546C; --btn-line: #2E3B52; --btn-fg: #A9B6CA; --composer-line: #2E3B52;
+  --fg: #E2E8F0; --fg-2: #A9B6CA; --fg-3: #8291A8; --fg-disabled: #56657D;
+  --accent: #3B82F6; --accent-hover: #2563EB; --accent-fg: #FFFFFF;
+  --link: var(--kss-navy-300); --focus-color: var(--kss-navy-300); --selected: #182640; --brand: var(--kss-navy-500); --brand-text: var(--kss-navy-300); --on-brand: #FFFFFF;
+  /* EXT dark, navy as CHG-007D: navy-300 text/indicators 4.8-6.0:1 on the dark surfaces (4.7:1 on --selected), white on navy-500 6.2:1 */
+  --series-1: var(--kss-navy-300); --series-1-soft: #1E2D45;
+  --accent-soft: #14254A; --accent-line: #1E3A70; --accent-text: #93C5FD;
+  --ok: #22C55E; --ok-soft: #0E2A1B; --ok-line: #14532D; --ok-text: #86EFAC;
+  --warn: #F59E0B; --warn-soft: #2B1E08; --warn-line: #78350F; --warn-text: #FCD34D;
+  --bad: #EF4444; --bad-soft: #2E1215; --bad-line: #7F1D1D; --bad-text: #FCA5A5;
+  --crit: #DC2626; --crit-soft: #2E1215; --crit-line: #991B1B; --crit-text: #FECACA;
+  --neutral-text: #CBD5E1;
+  --focus: 0 0 0 2px rgba(59, 130, 246, 0.35);
+  --shadow-pop: 0 4px 12px rgba(0, 0, 0, 0.45); --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --overlay: rgba(2, 6, 23, 0.65);
+  --sidebar-bg: #070D18; --sidebar-active: #172238; --sidebar-hover: #111A2B; --sidebar-line: #172238;
+  --sidebar-fg: #CBD5E1; --sidebar-fg-2: #94A3B8; --sidebar-fg-strong: #FFFFFF; --sidebar-active-fg: #FFFFFF; --sidebar-bar: var(--kss-navy-300);
+  --sidebar-shadow: none; --sidebar-count-bg: var(--kss-navy-500); --sidebar-count-fg: #FFFFFF;   /* EXT dark: the dark sidebar, navy marks */
+  --kss-neutral-25: #131D30;
+  color-scheme: dark;
+}
+
+/* kit 2398 has no dark theme: in AVA's dark mode its colour tokens take AVA's dark values, so the kit's own CSS stays unedited */
+:root[data-theme='dark'] {
+  --kss-color-surface-page: var(--bg); --kss-color-surface-default: var(--surface); --kss-color-surface-subtle: var(--surface-2); --kss-color-surface-disabled: var(--surface-2);
+  --kss-color-text-primary: var(--fg); --kss-color-text-secondary: var(--fg-2); --kss-color-text-tertiary: var(--fg-3); --kss-color-text-disabled: var(--fg-disabled);
+  --kss-color-text-link: var(--link); --kss-color-text-inverse: #FFFFFF; --kss-color-text-button-secondary: var(--fg);
+  --kss-color-border-subtle: var(--line); --kss-color-border-default: var(--line); --kss-color-border-strong: var(--line-hover); --kss-color-border-disabled: var(--line);
+  --kss-color-border-control: var(--line-input); --kss-color-border-control-hover: var(--line-hover); --kss-color-border-focus: var(--focus-color);
+  --kss-color-border-error: var(--bad); --kss-color-border-button-secondary: var(--btn-line);
+  --kss-color-action-primary: var(--accent); --kss-color-action-primary-hover: var(--accent-hover); --kss-color-action-primary-active: var(--accent-hover);
+  --kss-color-action-secondary: var(--surface); --kss-color-action-secondary-hover: var(--surface-2);
+  --kss-color-action-danger: var(--bad); --kss-color-action-danger-hover: var(--crit);
+  --kss-color-status-success-subtle: var(--ok-soft); --kss-color-status-success-border: var(--ok-line); --kss-color-status-success-text: var(--ok-text);
+  --kss-color-status-warning-subtle: var(--warn-soft); --kss-color-status-warning-border: var(--warn-line); --kss-color-status-warning-text: var(--warn-text);
+  --kss-color-status-error-subtle: var(--bad-soft); --kss-color-status-error-border: var(--bad-line); --kss-color-status-error-text: var(--bad-text);
+  --kss-color-status-critical-subtle: var(--crit-soft); --kss-color-status-critical-border: var(--crit-line); --kss-color-status-critical-text: var(--crit-text);
+  --kss-color-status-info-subtle: var(--accent-soft); --kss-color-status-info-border: var(--accent-line); --kss-color-status-info-text: var(--accent-text);
+  --kss-color-status-neutral-subtle: var(--surface-2); --kss-color-status-neutral-border: var(--line); --kss-color-status-neutral-text: var(--neutral-text);
+  --kss-color-dataviz-series-1: var(--series-1);
+  --kss-focus-ring: 0 0 0 2px rgba(59, 130, 246, 0.35);   /* = AVA dark --focus (a literal: --focus reads this token in light mode) */
+}
+
+/* kit 2398 font switch: no core ships IRANYekan live until Navid records the licence (brain, CHG-011). A production build sets
+   <html data-kss-font="vazir"> (main.tsx) and everything is Vazirmatn, as before; the IRANYekan .woff2 files are licensed and never in git */
+:root[data-kss-font="vazir"] { --font: var(--kss-font-family-sans); --font-title: var(--kss-font-family-heading); }

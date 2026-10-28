@@ -1,0 +1,348 @@
+/* =====================================================================================================================
+   KSS UI kit 2398 (Amin #2398/#2400, brief: kss-system/briefs/UI-POLISH-2398.md). Published by WEB for every core.
+   The shared look: buttons, fields, cards, numbers (incl. the #2357 states), status chips, empty states, notices.
+
+   Load order:  kss-tokens.css (v1.7.0)  ->  kss-fonts.css  ->  kss-kit.css
+   Rules kept here:
+   - every colour, size, radius, space, shadow and duration is a --kss-* token. No hex, no px of our own.
+   - RTL first (logical properties: inline-start/end), Persian digits come from the content, never from the font.
+   - status is never colour alone: every chip has a word and an icon shape.
+   - #2357: a real zero is the number ۰; «نامشخص» / «اطلاعات کافی نیست» / «نیازمند تنظیم» / «تعریف نشده» replace the
+     number (no change arrow, no sparkline); «ناقص» keeps the number and adds the chip.
+   ===================================================================================================================== */
+
+/* ---- 0. Font switch -------------------------------------------------------------------------------------------------
+   Brief rule 2: IranYekan everywhere, falling back to Vazirmatn if the files are not there.
+   The token composites (--kss-text-*) bake in Vazirmatn, so the kit re-sets the family after each `font:`.
+   data-kss-font="vazir"  : Vazirmatn only (until the licence is on file, if the owners say so).
+   data-kss-font="titles" : KSS-UI-DEC-024: IranYekan for titles, Vazirmatn for body. */
+:root {
+  /* "IRANYekan" by name, not var(--kss-font-family-marketing): that token ends in Tahoma, so without the font files
+     Windows stopped at Tahoma and never reached Vazirmatn (MIDAS 314b12f) */
+  --kss-kit-font: "IRANYekan", var(--kss-font-family-sans);
+  --kss-kit-font-title: var(--kss-kit-font);
+}
+:root[data-kss-font="vazir"] { --kss-kit-font: var(--kss-font-family-sans); }
+:root[data-kss-font="titles"] {
+  --kss-kit-font: var(--kss-font-family-sans);
+  --kss-kit-font-title: "IRANYekan", var(--kss-font-family-sans);
+}
+
+/* ---- 1. Page base ------------------------------------------------------------------------------------------------- */
+.kss-root {
+  font: var(--kss-text-body);
+  font-family: var(--kss-kit-font);
+  color: var(--kss-color-text-primary);
+  background: var(--kss-color-surface-page);
+  letter-spacing: 0; /* never letter-space Persian */
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+.kss-root *, .kss-root *::before, .kss-root *::after { box-sizing: border-box; }
+.kss-page-title    { font: var(--kss-text-page-title);    font-family: var(--kss-kit-font-title); font-weight: var(--kss-font-weight-bold); margin: 0; }
+.kss-section-title { font: var(--kss-text-section-title); font-family: var(--kss-kit-font-title); font-weight: var(--kss-font-weight-bold); margin: 0; }
+.kss-text-secondary { color: var(--kss-color-text-secondary); }
+.kss-text-small     { font: var(--kss-text-small); font-family: var(--kss-kit-font); }
+/* Numbers that must line up (amounts in a column). Persian digits are in the text itself (CHG-008). */
+.kss-num { font-variant-numeric: tabular-nums; unicode-bidi: isolate; }
+/* Phone, card, IBAN, codes the user types: digits read left to right, the box stays right-aligned. */
+.kss-ltr { direction: ltr; unicode-bidi: isolate; text-align: right; }
+/* Text for screen readers only (e.g. the name of an actions column). */
+.kss-sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---- 2. Icons (shapes so status never depends on colour) ---------------------------------------------------------- */
+.kss-ico {
+  display: inline-block; flex: none;
+  inline-size: var(--kss-icon-sm); block-size: var(--kss-icon-sm);
+  background: currentColor;
+  -webkit-mask: var(--kss-ico) center / contain no-repeat; mask: var(--kss-ico) center / contain no-repeat;
+}
+.kss-ico--check   { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M8 12.5l2.8 2.8L16.2 9.6'/%3E%3C/svg%3E"); }
+.kss-ico--warn    { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5L2.5 20h19z'/%3E%3Cpath d='M12 10v4.5M12 17.4v.1'/%3E%3C/svg%3E"); }
+.kss-ico--error   { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M9 9l6 6M15 9l-6 6'/%3E%3C/svg%3E"); }
+.kss-ico--info    { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M12 11v5.5M12 7.6v.1'/%3E%3C/svg%3E"); }
+.kss-ico--dot     { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='5' fill='black'/%3E%3C/svg%3E"); }
+.kss-ico--unknown { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5' stroke-dasharray='3 3'/%3E%3Cpath d='M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.4M12 16.9v.1'/%3E%3C/svg%3E"); }
+.kss-ico--partial { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M12 2.5a9.5 9.5 0 0 1 0 19z' fill='black'/%3E%3C/svg%3E"); }
+.kss-ico--setting { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'/%3E%3C/svg%3E"); }
+.kss-ico--few     { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M5 19v-3M12 19V11M19 19V5' /%3E%3Cpath d='M12 19V11M19 19V5' stroke-dasharray='2 3'/%3E%3C/svg%3E"); }
+.kss-ico--plus    { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E"); }
+.kss-ico--more    { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='5' cy='12' r='2'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Ccircle cx='19' cy='12' r='2'/%3E%3C/svg%3E"); }
+.kss-ico--empty   { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 13l2.5-7.5A2 2 0 0 1 7.4 4h9.2a2 2 0 0 1 1.9 1.5L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpath d='M3 13h5l1.5 2.5h5L16 13h5'/%3E%3C/svg%3E"); }
+
+/* ---- 3. Buttons (KSS-UI-COMP-001: default / hover / active / disabled / loading; one primary per screen) ----------- */
+.kss-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--kss-icon-text-gap-md);
+  min-block-size: var(--kss-button-height); padding-block: 0; padding-inline: var(--kss-button-padding-x);
+  font: var(--kss-text-button); font-family: var(--kss-kit-font);
+  border: var(--kss-border-width-thin) solid transparent; border-radius: var(--kss-button-radius);
+  cursor: pointer; text-decoration: none; white-space: nowrap; user-select: none;
+  transition: background-color var(--kss-motion-duration-fast) var(--kss-motion-ease-standard),
+              border-color var(--kss-motion-duration-fast) var(--kss-motion-ease-standard),
+              color var(--kss-motion-duration-fast) var(--kss-motion-ease-standard);
+}
+.kss-btn:focus-visible, .kss-icon-btn:focus-visible { outline: none; box-shadow: var(--kss-focus-ring); }
+.kss-btn--primary { background: var(--kss-color-action-primary); color: var(--kss-color-text-inverse); }
+.kss-btn--primary:hover  { background: var(--kss-color-action-primary-hover); }
+.kss-btn--primary:active { background: var(--kss-color-action-primary-active); }
+.kss-btn--secondary { background: var(--kss-color-action-secondary); color: var(--kss-color-text-button-secondary); border-color: var(--kss-color-border-button-secondary); }
+.kss-btn--secondary:hover { background: var(--kss-color-action-secondary-hover); }
+.kss-btn--ghost { background: transparent; color: var(--kss-color-text-link); }
+.kss-btn--ghost:hover { background: var(--kss-color-surface-subtle); }
+.kss-btn--danger { background: var(--kss-color-action-danger); color: var(--kss-color-text-inverse); }
+.kss-btn--danger:hover { background: var(--kss-color-action-danger-hover); }
+/* ARGO 890f015: a quiet danger button for a row action that only OPENS a confirmation («جدا کردن», «باطل کردن»);
+   the confirm button itself stays --danger */
+.kss-btn--danger-quiet { background: var(--kss-color-action-secondary); color: var(--kss-color-status-error-text); border-color: var(--kss-color-status-error-border); }
+.kss-btn--danger-quiet:hover { background: var(--kss-color-status-error-subtle); }
+/* a button that reads as a link inside a sentence: no box, no padding, underlined (IRIS 237de9e, ATLAS 32fb625) */
+.kss-btn--link { font: inherit; min-block-size: 0; padding: 0; border: 0; background: none; color: var(--kss-color-text-link);
+  text-decoration: underline; text-underline-offset: 0.2em; border-radius: var(--kss-radius-control); vertical-align: baseline; }
+.kss-btn--link:hover { color: var(--kss-color-text-primary); }
+/* large: a page's single main action (sign-in, a wizard's next step); never smaller than the touch height */
+.kss-btn--lg { min-block-size: max(var(--kss-control-height-lg), var(--kss-button-height)); font-size: var(--kss-font-size-lg); padding-inline: var(--kss-space-6); }
+.kss-btn--sm { min-block-size: var(--kss-control-height-sm); padding-inline: var(--kss-space-3); }
+.kss-btn--block { display: flex; inline-size: 100%; }
+.kss-btn:disabled, .kss-btn[aria-disabled="true"] {
+  background: var(--kss-color-surface-disabled); color: var(--kss-color-text-disabled);
+  border-color: var(--kss-color-border-disabled); cursor: not-allowed;
+}
+/* Loading: keep the label (the width does not jump), add a spinner, block clicks. Set aria-busy="true" + disabled. */
+.kss-btn[aria-busy="true"] { cursor: progress; }
+.kss-btn[aria-busy="true"]::before {
+  content: ""; inline-size: var(--kss-icon-sm); block-size: var(--kss-icon-sm); border-radius: var(--kss-radius-pill);
+  border: var(--kss-border-width-strong) solid currentColor; border-inline-end-color: transparent;
+  animation: kss-spin calc(var(--kss-motion-duration-slow) * 3) linear infinite;
+}
+@keyframes kss-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .kss-btn[aria-busy="true"]::before { animation: none; border-inline-end-color: currentColor; opacity: .5; } }
+/* A row of actions: the main one first (on the right in RTL), the rest after it. Stacks full-width on a phone. */
+.kss-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--kss-space-control-gap); }
+@media (max-width: 719.98px) { .kss-actions--stack { flex-direction: column; align-items: stretch; } .kss-actions--stack > .kss-btn { inline-size: 100%; } }
+
+/* Icon-only button: always give it aria-label and title (the tooltip). */
+.kss-icon-btn {
+  display: inline-grid; place-items: center; flex: none;
+  inline-size: var(--kss-button-height); block-size: var(--kss-button-height);
+  border: var(--kss-border-width-thin) solid transparent; border-radius: var(--kss-button-radius);
+  background: transparent; color: var(--kss-color-text-secondary); cursor: pointer;
+}
+.kss-icon-btn:hover { background: var(--kss-color-surface-subtle); color: var(--kss-color-text-primary); }
+.kss-icon-btn .kss-ico { inline-size: var(--kss-icon-md); block-size: var(--kss-icon-md); }
+@media (pointer: coarse) { .kss-icon-btn { inline-size: var(--kss-touch-target-min); block-size: var(--kss-touch-target-min); } }
+
+/* ---- 4. Fields (label above, help under, error replaces help; «اختیاری» marks the optional ones) ------------------- */
+.kss-field { display: grid; gap: var(--kss-space-2); min-inline-size: 0; align-content: start; }
+.kss-form { display: grid; gap: var(--kss-space-form-field); }
+.kss-form-row { display: grid; gap: var(--kss-space-form-field); grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.kss-label { font: var(--kss-text-label); font-family: var(--kss-kit-font); color: var(--kss-color-text-primary); }
+.kss-label__opt { color: var(--kss-color-text-tertiary); font-weight: var(--kss-font-weight-regular); margin-inline-start: var(--kss-space-1); }
+.kss-input, .kss-select, .kss-textarea {
+  inline-size: 100%; min-block-size: var(--kss-input-height);
+  padding-block: var(--kss-space-2); padding-inline: var(--kss-input-padding-x);
+  font: var(--kss-text-body); font-family: var(--kss-kit-font); color: var(--kss-color-text-primary);
+  background: var(--kss-color-surface-default);
+  border: var(--kss-border-width-thin) solid var(--kss-color-border-control); border-radius: var(--kss-input-radius);
+  transition: border-color var(--kss-motion-duration-fast) var(--kss-motion-ease-standard), box-shadow var(--kss-motion-duration-fast) var(--kss-motion-ease-standard);
+}
+.kss-input::placeholder, .kss-textarea::placeholder { color: var(--kss-color-text-tertiary); opacity: 1; }
+.kss-input:hover, .kss-select:hover, .kss-textarea:hover { border-color: var(--kss-color-border-control-hover); }
+.kss-input:focus, .kss-select:focus, .kss-textarea:focus { outline: none; border-color: var(--kss-color-border-focus); box-shadow: var(--kss-focus-ring); }
+.kss-input[aria-invalid="true"], .kss-select[aria-invalid="true"], .kss-textarea[aria-invalid="true"] { border-color: var(--kss-color-border-error); }
+.kss-input:disabled, .kss-select:disabled, .kss-textarea:disabled { background-color: var(--kss-color-surface-disabled); color: var(--kss-color-text-disabled); border-color: var(--kss-color-border-disabled); cursor: not-allowed; }
+/* small controls for dense rows (filters, table cells); not for a form's main fields (IRIS 237de9e) */
+.kss-input--sm, .kss-select--sm { min-block-size: var(--kss-control-height-sm); block-size: var(--kss-control-height-sm); padding-block: 0; font-size: var(--kss-font-size-sm); }
+.kss-input[readonly] { background-color: var(--kss-color-surface-subtle); }
+.kss-textarea { min-block-size: calc(var(--kss-input-height) * 2.5); resize: vertical; line-height: inherit; }
+/* Select: the arrow is drawn on the select itself (two token-coloured gradients), so no wrapper is needed (IRIS 237de9e).
+   The old <span class="kss-select-wrap"> still works and adds nothing. The arrow sits at the inline end: left in RTL. */
+.kss-select {
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  padding-inline-end: calc(var(--kss-input-padding-x) + var(--kss-icon-sm) + var(--kss-space-2));
+  --kss-select-arrow: var(--kss-color-text-tertiary);
+  background-image: linear-gradient(45deg, transparent 50%, var(--kss-select-arrow) 50%), linear-gradient(135deg, var(--kss-select-arrow) 50%, transparent 50%);
+  background-size: calc(var(--kss-space-1) + 1px) calc(var(--kss-space-1) + 1px); background-repeat: no-repeat;
+  background-position: var(--kss-input-padding-x) 55%, calc(var(--kss-input-padding-x) + var(--kss-space-1) + 1px) 55%;
+}
+.kss-select:dir(ltr) { background-position: calc(100% - var(--kss-input-padding-x) - var(--kss-space-1) - 1px) 55%, calc(100% - var(--kss-input-padding-x)) 55%; }
+.kss-select:disabled { --kss-select-arrow: var(--kss-color-text-disabled); }
+.kss-select-wrap { display: block; }
+.kss-help  { font: var(--kss-text-caption); font-family: var(--kss-kit-font); color: var(--kss-color-text-secondary); margin: 0; }
+.kss-error { font: var(--kss-text-caption); font-family: var(--kss-kit-font); color: var(--kss-color-status-error-text); margin: 0; display: flex; gap: var(--kss-space-1); align-items: flex-start; }
+.kss-error .kss-ico { margin-block-start: calc(var(--kss-space-1) / 2); inline-size: var(--kss-icon-xs); block-size: var(--kss-icon-xs); }
+/* A field with a fixed unit/prefix (تومان, IR, ٪): the unit is text, outside the typed value. */
+.kss-input-group { display: flex; align-items: stretch; }
+/* The addon may come before or after the input; with dir="ltr" on the group (IBAN: «IR» then digits) it mirrors itself. */
+.kss-input-group > .kss-input { flex: 1; min-inline-size: 0; direction: inherit; } /* corners follow the group: put dir="ltr" on the group, not .kss-ltr on the input */
+.kss-input-group > .kss-input:not(:last-child)  { border-start-end-radius: 0; border-end-end-radius: 0; }
+.kss-input-group > .kss-input:not(:first-child) { border-start-start-radius: 0; border-end-start-radius: 0; }
+.kss-input-group__addon {
+  display: inline-flex; align-items: center; padding-inline: var(--kss-space-3);
+  font: var(--kss-text-small); font-family: var(--kss-kit-font); color: var(--kss-color-text-secondary);
+  background: var(--kss-color-surface-subtle);
+  border: var(--kss-border-width-thin) solid var(--kss-color-border-control);
+}
+.kss-input-group__addon:last-child  { border-inline-start: 0; border-start-end-radius: var(--kss-input-radius); border-end-end-radius: var(--kss-input-radius); }
+.kss-input-group__addon:first-child { border-inline-end: 0; border-start-start-radius: var(--kss-input-radius); border-end-start-radius: var(--kss-input-radius); }
+/* Checkbox / radio / switch rows: the whole row is the target. */
+.kss-check { display: flex; gap: var(--kss-space-2); align-items: flex-start; cursor: pointer; font: var(--kss-text-body); font-family: var(--kss-kit-font); }
+.kss-check input { accent-color: var(--kss-color-action-primary); inline-size: var(--kss-icon-sm); block-size: var(--kss-icon-sm); margin-block-start: var(--kss-space-1); flex: none; }
+
+/* ---- 5. Cards ------------------------------------------------------------------------------------------------------ */
+.kss-card {
+  display: flex; flex-direction: column; min-inline-size: 0;
+  background: var(--kss-color-surface-default);
+  border: var(--kss-border-width-thin) solid var(--kss-color-border-subtle); border-radius: var(--kss-radius-card);
+  box-shadow: var(--kss-elevation-1);
+}
+/* a card of free content (h2, p, table, dl) instead of __head/__body: block flow, the card padding on the card itself */
+.kss-card--flow { display: block; padding: var(--kss-space-card-padding); }
+.kss-card--flow > :first-child { margin-block-start: 0; }
+.kss-card--flow > :last-child { margin-block-end: 0; }
+.kss-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--kss-space-3); padding: var(--kss-space-card-padding); padding-block-end: 0; }
+.kss-card__title { font: var(--kss-text-heading-sm); font-family: var(--kss-kit-font-title); font-weight: var(--kss-font-weight-bold); margin: 0; color: var(--kss-color-text-primary); }
+.kss-card__sub { font: var(--kss-text-small); font-family: var(--kss-kit-font); color: var(--kss-color-text-secondary); margin: var(--kss-space-1) 0 0; }
+.kss-card__body { padding: var(--kss-space-card-padding); display: grid; gap: var(--kss-space-3); flex: 1; }
+/* ARGO 890f015: grid children may shrink (a wide table scrolls inside the card, not the page); a lone button or a
+   chip keeps its own width instead of stretching (.kss-actions stays full width so --stack still works) */
+.kss-card__body > * { min-inline-size: 0; }
+.kss-card__body > .kss-btn, .kss-card__body > .kss-chip { justify-self: start; }
+.kss-card__foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--kss-space-control-gap);
+  padding: var(--kss-space-3) var(--kss-space-card-padding);
+  border-block-start: var(--kss-border-width-thin) solid var(--kss-color-border-subtle);
+}
+/* A record shown as a card (lists under 720 px, F6): label/value pairs, two per row where they fit. */
+.kss-card__rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); gap: var(--kss-space-3) var(--kss-space-4); margin: 0; }
+.kss-card__rows > div { display: grid; gap: calc(var(--kss-space-1) / 2); min-inline-size: 0; }
+.kss-card__rows dt { font: var(--kss-text-caption); font-family: var(--kss-kit-font); color: var(--kss-color-text-secondary); }
+.kss-card__rows dd { font: var(--kss-text-data-primary); font-family: var(--kss-kit-font); font-weight: var(--kss-font-weight-medium); margin: 0; overflow-wrap: anywhere; }
+.kss-card--link { cursor: pointer; text-decoration: none; color: inherit; transition: border-color var(--kss-motion-duration-fast) var(--kss-motion-ease-standard), box-shadow var(--kss-motion-duration-fast) var(--kss-motion-ease-standard); }
+.kss-card--link:hover { border-color: var(--kss-color-border-strong); box-shadow: var(--kss-elevation-2); }
+.kss-card--link:focus-visible { outline: none; box-shadow: var(--kss-focus-ring); }
+.kss-card--subtle { background: var(--kss-color-surface-subtle); box-shadow: none; }
+.kss-grid { display: grid; gap: var(--kss-content-gap); grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+/* Numbers: two per row on a phone, four or more on a desktop. */
+.kss-grid--stats { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: var(--kss-space-3); }
+@media (min-width: 720px) { .kss-grid--stats { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--kss-content-gap); } }
+/* F6: a list is a table from 720 px up and cards below it. Render both; the page shows one. */
+@media (max-width: 719.98px) { .kss-wide-only { display: none !important; } }
+@media (min-width: 720px)    { .kss-narrow-only { display: none !important; } }
+
+/* ---- 6. Numbers (KPI) with the #2357 / CONTRACT-V4 states -----------------------------------------------------------
+   <div class="kss-stat" data-state="ok|zero|unknown|insufficient|needs_setting|undefined|incomplete"> */
+.kss-stat { display: grid; gap: var(--kss-space-1); align-content: start; min-inline-size: 0; }
+.kss-stat__label { font: var(--kss-text-small); font-family: var(--kss-kit-font); color: var(--kss-color-text-secondary); margin: 0; }
+.kss-stat__value {
+  font: var(--kss-text-page-title); font-family: var(--kss-kit-font-title); font-weight: var(--kss-font-weight-bold);
+  font-variant-numeric: tabular-nums; color: var(--kss-color-text-primary); margin: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--kss-space-2);
+}
+.kss-stat__unit { font: var(--kss-text-small); font-family: var(--kss-kit-font); color: var(--kss-color-text-secondary); }
+.kss-stat__meta { font: var(--kss-text-caption); font-family: var(--kss-kit-font); color: var(--kss-color-text-tertiary); margin: 0; display: flex; flex-wrap: wrap; gap: var(--kss-space-2); align-items: center; }
+.kss-stat__delta { display: inline-flex; align-items: center; gap: var(--kss-space-1); font-weight: var(--kss-font-weight-medium); }
+.kss-stat__delta--up   { color: var(--kss-color-status-success-text); }
+.kss-stat__delta--down { color: var(--kss-color-status-error-text); }
+.kss-stat__spark { block-size: var(--kss-space-8); color: var(--kss-color-dataviz-series-1); }
+/* A real zero is just a number: same size, same colour. Nothing to do; the class is for tests and screen readers. */
+.kss-stat[data-state="zero"] .kss-stat__value { color: var(--kss-color-text-primary); }
+/* The four "no number" states: the word replaces the number, quieter, never a fake ۰; no arrow, no sparkline. */
+.kss-stat:is([data-state="unknown"], [data-state="insufficient"], [data-state="needs_setting"], [data-state="undefined"]) .kss-stat__value {
+  font: var(--kss-text-section-title); font-family: var(--kss-kit-font-title); font-weight: var(--kss-font-weight-medium);
+  color: var(--kss-color-text-secondary);
+}
+.kss-stat:is([data-state="unknown"], [data-state="insufficient"], [data-state="needs_setting"], [data-state="undefined"]) :is(.kss-stat__delta, .kss-stat__spark, .kss-stat__unit) { display: none; }
+.kss-stat[data-state="needs_setting"] .kss-stat__value { color: var(--kss-color-status-info-text); }
+/* each word state draws its own icon before the word (no markup needed), so the four differ by shape, not only by word */
+.kss-stat:is([data-state="unknown"], [data-state="insufficient"], [data-state="needs_setting"], [data-state="undefined"]) .kss-stat__value { display: block; }
+.kss-stat:is([data-state="unknown"], [data-state="insufficient"], [data-state="needs_setting"], [data-state="undefined"]) .kss-stat__value::before {
+  content: ""; display: inline-block; vertical-align: -0.15em; margin-inline-end: var(--kss-space-1);
+  inline-size: var(--kss-icon-md); block-size: var(--kss-icon-md); background: currentColor;
+  -webkit-mask: var(--kss-ico) center / contain no-repeat; mask: var(--kss-ico) center / contain no-repeat;
+}
+.kss-stat[data-state="unknown"]       .kss-stat__value { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5' stroke-dasharray='3 3'/%3E%3Cpath d='M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.4M12 16.9v.1'/%3E%3C/svg%3E"); }
+.kss-stat[data-state="insufficient"]  .kss-stat__value { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M5 19v-3M12 19V11M19 19V5' /%3E%3Cpath d='M12 19V11M19 19V5' stroke-dasharray='2 3'/%3E%3C/svg%3E"); }
+.kss-stat[data-state="needs_setting"] .kss-stat__value { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'/%3E%3C/svg%3E"); }
+.kss-stat[data-state="undefined"]     .kss-stat__value { --kss-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='5' fill='black'/%3E%3C/svg%3E"); }
+@media (max-width: 719.98px) {
+  .kss-stat:is([data-state="unknown"], [data-state="insufficient"], [data-state="needs_setting"], [data-state="undefined"]) .kss-stat__value { font: var(--kss-text-heading-sm); font-family: var(--kss-kit-font-title); font-weight: var(--kss-font-weight-bold); }
+}
+/* a number that is waiting work (warning) or wrong (error); the meta line still says why (ATLAS 32fb625) */
+.kss-stat--warning .kss-stat__value { color: var(--kss-color-status-warning-text); }
+.kss-stat--error .kss-stat__value { color: var(--kss-color-status-error-text); }
+.kss-stat__fix { font: var(--kss-text-caption); font-family: var(--kss-kit-font); font-weight: var(--kss-font-weight-medium); color: var(--kss-color-text-link);
+  text-decoration: underline; text-underline-offset: var(--kss-space-1); text-decoration-color: var(--kss-color-border-strong); } /* the link token is dark: the underline says "link" */
+.kss-stat__fix:hover { text-decoration-color: currentColor; }
+
+/* ---- 7. Status chips (word + icon shape + colour) ---------------------------------------------------------------- */
+.kss-chip {
+  display: inline-flex; align-items: center; gap: var(--kss-space-1); flex: none;
+  min-block-size: var(--kss-badge-height); padding-inline: var(--kss-badge-padding-x);
+  font: var(--kss-text-label); font-family: var(--kss-kit-font); white-space: nowrap;
+  border: var(--kss-border-width-thin) solid var(--kss-color-status-neutral-border); border-radius: var(--kss-radius-badge);
+  background: var(--kss-color-status-neutral-subtle); color: var(--kss-color-status-neutral-text);
+  vertical-align: middle;
+}
+.kss-chip .kss-ico { inline-size: var(--kss-icon-xs); block-size: var(--kss-icon-xs); }
+.kss-chip--success  { background: var(--kss-color-status-success-subtle);  color: var(--kss-color-status-success-text);  border-color: var(--kss-color-status-success-border); }
+.kss-chip--warning  { background: var(--kss-color-status-warning-subtle);  color: var(--kss-color-status-warning-text);  border-color: var(--kss-color-status-warning-border); }
+.kss-chip--error    { background: var(--kss-color-status-error-subtle);    color: var(--kss-color-status-error-text);    border-color: var(--kss-color-status-error-border); }
+.kss-chip--critical { background: var(--kss-color-status-critical-subtle); color: var(--kss-color-status-critical-text); border-color: var(--kss-color-status-critical-border); }
+.kss-chip--info     { background: var(--kss-color-status-info-subtle);     color: var(--kss-color-status-info-text);     border-color: var(--kss-color-status-info-border); }
+.kss-chip--neutral  { /* the default */ }
+/* #2357 data-state chips: what a number is missing. Dashed edge = "no number here". */
+.kss-chip--unknown, .kss-chip--insufficient, .kss-chip--undefined { background: var(--kss-color-surface-default); border-style: dashed; }
+.kss-chip--incomplete    { background: var(--kss-color-status-warning-subtle); color: var(--kss-color-status-warning-text); border-color: var(--kss-color-status-warning-border); }
+.kss-chip--needs-setting { background: var(--kss-color-status-info-subtle);    color: var(--kss-color-status-info-text);    border-color: var(--kss-color-status-info-border); }
+/* Inside a number the chip is small and sits after the figure. */
+.kss-stat__value .kss-chip { font-family: var(--kss-kit-font); }
+
+/* ---- 8. Empty states (why it is empty + the one next step) --------------------------------------------------------- */
+.kss-empty {
+  display: grid; justify-items: center; text-align: center; gap: var(--kss-space-3);
+  padding: var(--kss-space-12) var(--kss-space-6);
+  border: var(--kss-border-width-thin) dashed var(--kss-color-border-default); border-radius: var(--kss-radius-card);
+  background: var(--kss-color-surface-default);
+}
+.kss-empty__icon { display: grid; place-items: center; inline-size: var(--kss-space-12); block-size: var(--kss-space-12); border-radius: var(--kss-radius-pill); background: var(--kss-color-surface-subtle); color: var(--kss-color-text-tertiary); }
+.kss-empty__icon .kss-ico { inline-size: var(--kss-icon-lg); block-size: var(--kss-icon-lg); }
+.kss-empty__title { font: var(--kss-text-section-title); font-family: var(--kss-kit-font-title); font-weight: var(--kss-font-weight-bold); margin: 0; }
+.kss-empty__text { font: var(--kss-text-body); font-family: var(--kss-kit-font); color: var(--kss-color-text-secondary); margin: 0; max-inline-size: 46ch; }
+.kss-empty__actions { margin-block-start: var(--kss-space-2); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--kss-space-control-gap); }
+.kss-empty--inline { padding: var(--kss-space-6) var(--kss-space-4); border: 0; background: transparent; }
+
+/* ---- 9. Notices (a sentence the person should read; confirm before anything that can't be undone) ---------------- */
+.kss-notice {
+  display: flex; gap: var(--kss-space-3); align-items: flex-start;
+  padding: var(--kss-space-3) var(--kss-space-4); border-radius: var(--kss-radius-control);
+  border: var(--kss-border-width-thin) solid var(--kss-color-status-info-border);
+  background: var(--kss-color-status-info-subtle); color: var(--kss-color-status-info-text);
+  font: var(--kss-text-small); font-family: var(--kss-kit-font);
+}
+.kss-notice .kss-ico { inline-size: var(--kss-icon-md); block-size: var(--kss-icon-md); margin-block-start: calc(var(--kss-space-1) / 2); }
+.kss-notice__title { font-weight: var(--kss-font-weight-bold); display: block; }
+.kss-notice__body { flex: 1; min-inline-size: 0; }
+/* an action at the notice's end («تلاش دوباره»); wraps under the text on a narrow screen (ATLAS 32fb625) */
+.kss-notice__actions { margin-inline-start: auto; display: flex; gap: var(--kss-space-2); flex: none; align-self: center; }
+@media (max-width: 719px) { .kss-notice:has(.kss-notice__actions) { flex-wrap: wrap; } .kss-notice__actions { inline-size: 100%; } }
+.kss-notice--neutral { border-color: var(--kss-color-border-subtle); background: var(--kss-color-surface-subtle); color: var(--kss-color-text-secondary); }
+.kss-notice--success { border-color: var(--kss-color-status-success-border); background: var(--kss-color-status-success-subtle); color: var(--kss-color-status-success-text); }
+.kss-notice--warning { border-color: var(--kss-color-status-warning-border); background: var(--kss-color-status-warning-subtle); color: var(--kss-color-status-warning-text); }
+.kss-notice--error   { border-color: var(--kss-color-status-error-border);   background: var(--kss-color-status-error-subtle);   color: var(--kss-color-status-error-text); }
+
+/* ---- 10. Loading placeholder ------------------------------------------------------------------------------------- */
+.kss-skeleton { display: block; border-radius: var(--kss-radius-sm); background: var(--kss-color-surface-subtle); min-block-size: var(--kss-space-4); animation: kss-pulse calc(var(--kss-motion-duration-slow) * 4) var(--kss-motion-ease-standard) infinite alternate; }
+@keyframes kss-pulse { from { opacity: 1; } to { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .kss-skeleton { animation: none; } }
+
+/* ---- Stacking table (ATLAS 32fb625): a simple table that becomes one block per row under 720 px.
+   Each <td data-label="header text">; the first cell is the row's title. For rich rows use F6 (.kss-wide-only/.kss-narrow-only). */
+@media (max-width: 719px) {
+  .kss-table--stack thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+  .kss-table--stack, .kss-table--stack tbody, .kss-table--stack tr, .kss-table--stack td { display: block; inline-size: 100%; }
+  .kss-table--stack tr { padding-block: var(--kss-space-3); border-block-end: var(--kss-border-width-thin) solid var(--kss-color-border-subtle); }
+  .kss-table--stack td { display: flex; justify-content: space-between; gap: var(--kss-space-3); padding-block: var(--kss-space-1); text-align: start; }
+  .kss-table--stack td::before { content: attr(data-label); color: var(--kss-color-text-secondary); font: var(--kss-text-caption); font-family: var(--kss-kit-font); flex: none; }
+  .kss-table--stack td:first-child { font-weight: var(--kss-font-weight-bold); }
+  .kss-table--stack td:first-child::before { content: none; }
+}
