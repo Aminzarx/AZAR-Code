@@ -66,6 +66,7 @@ function fail(res, status, code, message) {
 }
 const now = () => new Date().toISOString()
 const text = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
+const toLatin = (v) => v.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : NaN)
 
 /** The office behind the dashboard's session (X-Office-Token), or null. */
@@ -201,6 +202,101 @@ function overviewOf(office) {
   }
 }
 
+
+// ---------------------------------------------------------------- requests (Amin #5970) ----
+// The office panel is granted, not open: the user asks in the app (Settings › «اتصال‌ها و API‌ها»: office address,
+// union licence, landline) and sales management approves. Approving opens the office for that same account and copies
+// the account's files into it; their phone's copy on the server stays untouched, so nothing is lost and turning the
+// panel off gives the app back with everything. While the panel is on, the app shows the panel's address instead of
+// working. A cancelled request can never be approved.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS office_requests (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, address TEXT NOT NULL, union_licence INTEGER NOT NULL DEFAULT 0,
+    landline TEXT, status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
+    created_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT
+  );
+  CREATE INDEX IF NOT EXISTS office_requests_user ON office_requests(user_id, created_at);
+`)
+const NOT_APPROVED = 'پنل دفتر املاک برای این حساب فعال نیست؛ از برنامهٔ ایوان، تنظیمات › اتصال‌ها و API‌ها، درخواست بدهید.'
+const LANDLINE = /^0\d{10}$/
+const lastRequest = (userId) => db.prepare('SELECT * FROM office_requests WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1').get(userId)
+const requestView = (r) =>
+  r ? { id: r.id, status: r.status, address: r.address, unionLicence: !!r.union_licence, landline: r.landline, createdAt: r.created_at, decidedAt: r.decided_at } : null
+/** true when the account's office panel is on (its app is then off) */
+const portalOn = (userId) => lastRequest(userId)?.status === 'approved'
+
+const KIND_OF = { sale: 'فروش', rent: 'رهن و اجاره', barter: 'تهاتر' }
+/** the account's own files (its phone's copy on the server) → office files, once each */
+function importFiles(userId, officeId) {
+  const have = new Set(db.prepare('SELECT id FROM office_files WHERE office_id = ?').all(officeId).map((r) => r.id))
+  const put = db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
+  let n = 0
+  for (const { table, key, row } of require('./syncRoutes').rowsOf(userId)) {
+    if (table !== 'properties' || !row || row.status === 'archived') continue
+    const id = 'p:' + userId + ':' + key
+    if (have.has(id)) continue
+    const file = {
+      title: String(row.title || 'فایل'), kind: KIND_OF[row.transaction_type] || 'فروش', propertyType: row.property_type || '',
+      city: row.city || 'تهران', region: row.region || '', address: row.address || '', size: row.area ?? null, rooms: row.rooms ?? null,
+      price: row.price ?? null, deposit: row.deposit_amount ?? null, rent: row.rent_amount ?? null, description: row.description || '',
+      ownerName: '', ownerPhone: ''
+    }
+    put.run(id, officeId, seal(file), row.created_at || now(), now(), new Date(Date.now() + FILE_DAYS * DAY).toISOString())
+    n++
+  }
+  return n
+}
+
+/** sales management: approve → the office opens for that account, with its files */
+function approveRequest(id, actor) {
+  const r = db.prepare('SELECT * FROM office_requests WHERE id = ?').get(id)
+  if (!r) return { error: 'not_found' }
+  if (r.status !== 'pending') return { error: r.status === 'cancelled' ? 'cancelled' : 'not_pending' }
+  let imported = 0
+  db.transaction(() => {
+    db.prepare("UPDATE office_requests SET status = 'approved', decided_at = ?, decided_by = ? WHERE id = ?").run(now(), actor, id)
+    let office = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(r.user_id)
+    if (!office) {
+      const settings = Object.fromEntries(
+        require('./syncRoutes').rowsOf(r.user_id).filter((x) => x.table === 'application_settings').map((x) => [x.key, x.row?.value])
+      )
+      office = { id: generateId(), name: String(settings.agency_name || settings.display_name || 'دفتر املاک').slice(0, 80) }
+      db.prepare('INSERT INTO offices (id, owner_user_id, name, rules, created_at) VALUES (?, ?, ?, NULL, ?)').run(office.id, r.user_id, office.name, now())
+    }
+    imported = importFiles(r.user_id, office.id)
+  })()
+  return { ok: true, imported }
+}
+function rejectRequest(id, actor) {
+  const r = db.prepare('SELECT status FROM office_requests WHERE id = ?').get(id)
+  if (!r) return { error: 'not_found' }
+  if (r.status !== 'pending') return { error: r.status === 'cancelled' ? 'cancelled' : 'not_pending' }
+  db.prepare("UPDATE office_requests SET status = 'rejected', decided_at = ?, decided_by = ? WHERE id = ?").run(now(), actor, id)
+  return { ok: true }
+}
+/** sales management's list, newest first, with the account's phone and name */
+function listRequests(status) {
+  const rows = db
+    .prepare(`SELECT r.*, u.phone_number FROM office_requests r JOIN users u ON u.id = r.user_id ${status ? 'WHERE r.status = ?' : ''} ORDER BY r.created_at DESC LIMIT 500`)
+    .all(...(status ? [status] : []))
+  return rows.map((r) => ({ ...requestView(r), userId: r.user_id, phone: r.phone_number, name: displayName(r.user_id), decidedBy: r.decided_by }))
+}
+/** sales management's «فعالیت داشبوردها»: per office — files, advisers, sends, last visit */
+function officeActivity() {
+  const one = (sql, id) => db.prepare(sql).get(id)
+  return db.prepare('SELECT * FROM offices ORDER BY created_at DESC').all().map((o) => ({
+    officeId: o.id,
+    name: o.name,
+    userId: o.owner_user_id,
+    phone: one('SELECT phone_number FROM users WHERE id = ?', o.owner_user_id)?.phone_number ?? null,
+    files: one('SELECT COUNT(*) n FROM office_files WHERE office_id = ? AND archived_at IS NULL', o.id).n,
+    advisers: one('SELECT COUNT(*) n FROM office_advisers WHERE office_id = ? AND ended_at IS NULL', o.id).n,
+    sends: one('SELECT COUNT(*) n FROM office_shares WHERE office_id = ?', o.id).n,
+    lastVisit: one('SELECT MAX(created_at) at FROM office_sessions WHERE office_id = ?', o.id).at,
+    portalOn: portalOn(o.owner_user_id)
+  }))
+}
+
 const router = express.Router()
 router.use(rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: true, legacyHeaders: false }))
 router.use((req, res, next) => (key() ? next() : fail(res, 503, 'office_unavailable', 'Server storage is not configured.')))
@@ -214,6 +310,7 @@ router.post('/login', (req, res) => {
   const user = db.prepare('SELECT id, admin_status FROM users WHERE phone_number = ?').get(phoneNumber)
   if (!user) return fail(res, 422, 'no_account', 'این شماره حساب ایوان ندارد؛ اول برنامه را نصب و ثبت‌نام کنید.')
   if (user.admin_status === 'locked' || user.admin_status === 'deleted') return fail(res, 403, 'account_locked', 'این حساب بسته است.')
+  if (!portalOn(user.id)) return fail(res, 403, 'not_approved', NOT_APPROVED)
   let office = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(user.id)
   if (!office) {
     const name = text(req.body.officeName, 80)
@@ -263,6 +360,7 @@ router.post('/sso', (req, res) => {
   const user = db.prepare('SELECT id, admin_status FROM users WHERE phone_number IN (?, ?)').get(phone, '+98' + phone.slice(1))
   if (!user) return fail(res, 422, 'no_account', 'این شماره حساب ایوان ندارد؛ برنامهٔ ایوان را نصب کنید و با همین شماره ثبت‌نام کنید.')
   if (user.admin_status === 'locked' || user.admin_status === 'deleted') return fail(res, 403, 'account_locked', 'این حساب بسته است.')
+  if (!portalOn(user.id)) return fail(res, 403, 'not_approved', NOT_APPROVED)
   let office = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(user.id)
   if (!office) {
     const name = text(req.body.officeName, 80)
@@ -304,7 +402,7 @@ function openSession(office) {
 const manager = express.Router()
 manager.use((req, res, next) => {
   const office = officeOf(req)
-  if (!office) return fail(res, 401, 'session_revoked', 'دوباره وارد شوید.')
+  if (!office || !portalOn(office.owner_user_id)) return fail(res, 401, 'session_revoked', 'دوباره وارد شوید.')
   req.office = office
   next()
 })
@@ -454,7 +552,29 @@ adviser.post('/leave', (req, res) => {
   res.status(204).end()
 })
 
+
+// The app's side of the request (Amin #5970): status, send, cancel — with the app's own session
+adviser.post('/request/status', (req, res) => res.json({ request: requestView(lastRequest(req.adviserId)), portal: portalOn(req.adviserId) }))
+adviser.post('/request', (req, res) => {
+  const last = lastRequest(req.adviserId)
+  if (last && (last.status === 'pending' || last.status === 'approved')) return fail(res, 409, 'already', 'درخواست قبلاً ثبت شده است.')
+  const address = text(req.body?.address, 300)
+  const landline = toLatin(text(req.body?.landline, 20)).replace(/\D/g, '')
+  if (!address) return fail(res, 422, 'invalid_address', 'آدرس دفتر را بنویسید.')
+  if (landline && !LANDLINE.test(landline)) return fail(res, 422, 'invalid_landline', 'شمارهٔ تلفن ثابت را با پیش‌شماره بنویسید.')
+  db.prepare("INSERT INTO office_requests (id, user_id, address, union_licence, landline, status, created_at) VALUES (?, ?, ?, ?, ?, 'pending', ?)").run(
+    generateId(), req.adviserId, address, req.body?.unionLicence === true ? 1 : 0, landline || null, now()
+  )
+  res.status(201).json({ request: requestView(lastRequest(req.adviserId)), portal: false })
+})
+adviser.post('/request/cancel', (req, res) => {
+  const last = lastRequest(req.adviserId)
+  if (!last || last.status !== 'pending') return fail(res, 409, 'not_pending', 'درخواستی در انتظار نیست.')
+  db.prepare("UPDATE office_requests SET status = 'cancelled', decided_at = ? WHERE id = ?").run(now(), last.id)
+  res.json({ request: requestView(lastRequest(req.adviserId)), portal: false })
+})
+
 router.use('/adviser', adviser)
 router.use(manager)
 
-module.exports = { router }
+module.exports = { router, portalOn, listRequests, approveRequest, rejectRequest, officeActivity }

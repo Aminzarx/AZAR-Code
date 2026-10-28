@@ -658,4 +658,26 @@ router.delete('/announcements/:id', (req, res) => {
   res.status(204).end()
 })
 
+// Amin #5970: «داشبورد کاربران» in sales management — office-panel requests and the dashboards' activity
+const office = require('./officeRoutes')
+router.get('/office-requests', (req, res) => {
+  const status = ['pending', 'approved', 'rejected', 'cancelled'].includes(req.query.status) ? req.query.status : null
+  audit(req, 'office_requests_list', null, status)
+  res.json({ requests: office.listRequests(status) })
+})
+for (const [verb, fn] of [['approve', office.approveRequest], ['reject', office.rejectRequest]]) {
+  router.post(`/office-requests/:id/${verb}`, (req, res) => {
+    const out = fn(String(req.params.id), req.actor)
+    if (out.error === 'not_found') return fail(res, 404, 'not_found', 'No such request.')
+    if (out.error === 'cancelled') return fail(res, 409, 'cancelled', 'The user cancelled this request; it cannot be approved.')
+    if (out.error) return fail(res, 409, out.error, 'This request was already decided.')
+    audit(req, `office_request_${verb}`, null, `${req.params.id}${out.imported != null ? ' files=' + out.imported : ''}`)
+    res.json(out)
+  })
+}
+router.get('/office-activity', (req, res) => {
+  audit(req, 'office_activity')
+  res.json({ offices: office.officeActivity() })
+})
+
 module.exports = { router, purgeDue }

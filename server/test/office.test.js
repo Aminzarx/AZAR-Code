@@ -59,8 +59,15 @@ async function account() {
   assert.equal(res.status, 201, JSON.stringify(res.body))
   return { phoneNumber, ...res.body }
 }
+/** an approved office-panel request (Amin #5970), as sales management would approve it */
+async function approved(owner) {
+  assert.equal((await post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'تهران، ونک' })).status, 201)
+  const id = require('../src/officeRoutes').listRequests('pending').find((r) => r.userId === owner.userId).id
+  assert.equal(require('../src/officeRoutes').approveRequest(id, 'test').ok, true)
+}
 async function office(name = 'دفتر املاک پارسه') {
   const owner = await account()
+  await approved(owner)
   await post('/auth/send-otp', { phoneNumber: owner.phoneNumber })
   await post('/auth/verify-otp', { phoneNumber: owner.phoneNumber, code: '123456' })
   const res = await post('/office/login', { phoneNumber: owner.phoneNumber, officeName: name })
@@ -79,7 +86,7 @@ test('an account without an office is asked for its name; a number without an ac
   const a = await account()
   await post('/auth/send-otp', { phoneNumber: a.phoneNumber })
   await post('/auth/verify-otp', { phoneNumber: a.phoneNumber, code: '123456' })
-  assert.equal((await post('/office/login', { phoneNumber: a.phoneNumber })).body.error.code, 'no_office')
+  assert.equal((await post('/office/login', { phoneNumber: a.phoneNumber })).body.error.code, 'not_approved')
   const stranger = await verified()
   assert.equal((await post('/office/login', { phoneNumber: stranger, officeName: 'x' })).body.error.code, 'no_account')
   assert.equal((await post('/office/login', { phoneNumber: '+989129999999', officeName: 'x' })).status, 401)
@@ -160,7 +167,7 @@ test('a signed handoff from the panel opens the office once; a new account names
   const { owner, h } = await office('دفتر نمونه')
   const ok = await post('/office/sso', { h: handoff(local(owner.phoneNumber)) })
   assert.equal(ok.status, 200, JSON.stringify(ok.body))
-  assert.equal((await call('GET', '/office/overview', undefined, { 'x-office-token': ok.body.token })).body.office.name, 'دفتر نمونه')
+  assert.equal((await call('GET', '/office/overview', undefined, { 'x-office-token': ok.body.token })).body.office.name, 'دفتر املاک')
   assert.ok(h)
 
   const once = handoff(local(owner.phoneNumber))
@@ -168,13 +175,9 @@ test('a signed handoff from the panel opens the office once; a new account names
   assert.equal((await post('/office/sso', { h: once })).status, 401) // reused
 
   const fresh = await account()
-  const first = await post('/office/sso', { h: handoff(local(fresh.phoneNumber)) })
-  assert.equal(first.status, 404)
-  assert.equal(first.body.error.code, 'no_office')
-  const opened = await post('/office/sso/open', { ticket: first.body.ticket, officeName: 'دفتر تازه' })
-  assert.equal(opened.status, 200)
-  assert.equal(opened.body.office.name, 'دفتر تازه')
-  assert.equal((await post('/office/sso/open', { ticket: first.body.ticket, officeName: 'x' })).status, 401)
+  assert.equal((await post('/office/sso', { h: handoff(local(fresh.phoneNumber)) })).body.error.code, 'not_approved')
+  await approved(fresh)
+  assert.equal((await post('/office/sso', { h: handoff(local(fresh.phoneNumber)) })).status, 200)
 })
 
 test('a wrong signature, an old handoff or a number without EYVAN does not open', async () => {
@@ -183,4 +186,35 @@ test('a wrong signature, an old handoff or a number without EYVAN does not open'
   assert.equal((await post('/office/sso', { h: handoff(local(owner.phoneNumber), { age: 200 }) })).status, 401)
   assert.equal((await post('/office/sso', { h: 'garbage' })).status, 401)
   assert.equal((await post('/office/sso', { h: handoff('09121110000') })).body.error.code, 'no_account')
+})
+
+test('the office-panel request: send, cancel (never approvable), send again, approve copies the account files', async () => {
+  const user = await account()
+  const app = { sessionToken: user.sessionToken }
+  const routes = require('../src/officeRoutes')
+  assert.equal((await post('/office/adviser/request', { ...app, address: '' })).status, 422)
+  assert.equal((await post('/office/adviser/request', { ...app, address: 'ونک', landline: '123' })).status, 422)
+  const sent = await post('/office/adviser/request', { ...app, address: 'تهران، ونک، پلاک ۱', unionLicence: true, landline: '۰۲۱۸۸۷۷۶۶۵۵' })
+  assert.equal(sent.status, 201)
+  assert.equal(sent.body.request.landline, '02188776655')
+  assert.equal((await post('/office/adviser/request', { ...app, address: 'x' })).status, 409) // one at a time
+  const firstId = sent.body.request.id
+  assert.equal((await post('/office/adviser/request/cancel', app)).body.request.status, 'cancelled')
+  assert.equal(routes.approveRequest(firstId, 't').error, 'cancelled')
+  assert.equal(routes.listRequests('cancelled').some((r) => r.id === firstId), true)
+
+  // the account's own files on the server come along when approved
+  const now = new Date().toISOString()
+  await post('/sync/push', { sessionToken: user.sessionToken, changes: [
+    { t: 'properties', k: 'p1', row: { id: 'p1', title: 'آپارتمان ۸۰ متری', transaction_type: 'rent', city: 'تهران', region: 'ونک', area: 80, deposit_amount: 5e8, status: 'active', created_at: now, updated_at: now } },
+    { t: 'properties', k: 'p2', row: { id: 'p2', title: 'بایگانی', status: 'archived', created_at: now, updated_at: now } }
+  ] })
+  const again = await post('/office/adviser/request', { ...app, address: 'تهران، ونک' })
+  assert.equal(again.status, 201)
+  const out = routes.approveRequest(again.body.request.id, 't')
+  assert.equal(out.imported, 1)
+  assert.equal((await post('/office/adviser/request/status', app)).body.portal, true)
+  assert.equal(routes.officeActivity().find((o) => o.userId === user.userId).files, 1)
+  // the phone's copy is untouched
+  assert.equal((await post('/sync/pull', app)).body.rows.filter((r) => r.t === 'properties').length, 2)
 })
