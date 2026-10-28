@@ -245,9 +245,12 @@ function NewFileModal({ onClose, onMade }: { onClose: () => void; onMade: (id: s
         <Field label="شهر"><input className="kss-input" value={f.city ?? ''} onChange={set('city')} /></Field>
         <Field label="منطقه" required><input className="kss-input" value={f.region ?? ''} onChange={set('region')} placeholder="مثلاً ونک" /></Field>
         <div className="span2"><Field label="آدرس دقیق" hint="به‌طور پیش‌فرض برای مشاوران فرستاده نمی‌شود"><input className="kss-input" value={f.address ?? ''} onChange={set('address')} /></Field></div>
-        <Field label="متراژ (متر)"><input className="kss-input num" inputMode="numeric" dir="ltr" value={f.size ?? ''} onChange={set('size')} /></Field>
-        <Field label="اتاق"><input className="kss-input num" inputMode="numeric" dir="ltr" value={f.rooms ?? ''} onChange={set('rooms')} /></Field>
-        {rent ? <>{money('deposit', 'ودیعه')}{money('rent', 'اجارهٔ ماهانه')}</> : <div className="span2">{money('price', 'قیمت')}</div>}
+        {/* Amin #5964: price, area and rooms on one row (on a phone too, as long as they fit) */}
+        <div className={'span2 one-row' + (rent ? ' four' : '')}>
+          {rent ? <>{money('deposit', 'ودیعه')}{money('rent', 'اجاره')}</> : money('price', 'قیمت')}
+          <Field label="متراژ (متر)"><input className="kss-input num" inputMode="numeric" dir="ltr" value={f.size ?? ''} onChange={set('size')} /></Field>
+          <Field label="اتاق"><input className="kss-input num" inputMode="numeric" dir="ltr" value={f.rooms ?? ''} onChange={set('rooms')} /></Field>
+        </div>
         <div className="span2"><Field label="توضیحات"><textarea className="kss-input" rows={3} value={f.description ?? ''} onChange={set('description')} /></Field></div>
         <Field label="نام مالک"><input className="kss-input" value={f.ownerName ?? ''} onChange={set('ownerName')} /></Field>
         <Field label="شمارهٔ مالک" hint="به‌طور پیش‌فرض برای مشاوران فرستاده نمی‌شود"><input className="kss-input" dir="ltr" inputMode="tel" value={f.ownerPhone ?? ''} onChange={set('ownerPhone')} placeholder="09xxxxxxxxx" /></Field>
