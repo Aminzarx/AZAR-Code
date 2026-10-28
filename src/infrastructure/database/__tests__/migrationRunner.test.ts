@@ -73,7 +73,7 @@ describe('migrationRunner', () => {
   it('is idempotent — running migrations again against an up-to-date database is a no-op', async () => {
     await runMigrations(db)
     const second = await runMigrations(db)
-    expect(second).toEqual({ from: 22, to: 23 })
+    expect(second).toEqual({ from: 23, to: 23 })
   })
 
   it('enforces foreign key constraints once migrated', async () => {

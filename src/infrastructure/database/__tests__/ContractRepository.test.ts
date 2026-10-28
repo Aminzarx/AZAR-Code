@@ -164,17 +164,8 @@ describe('ContractRepository', () => {
     expect(await repository.getById('con-1')).toBeNull()
   })
 
-  it('enforces the property foreign key', async () => {
-    await expect(
-      repository.create(baseContract('con-1', { propertyId: 'nonexistent-property' }))
-    ).rejects.toThrow()
-  })
-
-  it('enforces the applicant foreign key', async () => {
-    await expect(
-      repository.create(baseContract('con-1', { applicantId: 'nonexistent-applicant' }))
-    ).rejects.toThrow()
-  })
+  // Amin #5864: a contract no longer holds the file/applicant by a database link (it outlives them), so the former
+  // «enforces the property / applicant foreign key» tests are gone; the deal link is still enforced.
 
   it('Amin #5864: deleting the file and the applicant keeps the contract with their names; reminders go', async () => {
     await repository.create(baseContract('c-kept', { dealId: null }))
