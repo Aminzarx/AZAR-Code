@@ -6,6 +6,10 @@ entries exist even before any code ships.
 
 ---
 
+## 1.5.12 — deleting a linked file or applicant says why (#5716 full check)
+
+- A file or applicant that a contract, a deal or a reminder points at cannot be deleted (foreign keys are on, no cascade). Before: the detail page said only «حذف … با مشکل مواجه شد» every time; the list's long-press delete hid the row, showed «حذف شد», swallowed the error, and the row came back on the next visit. Now the list asks first (`blockedBy` in `useUndoableDelete`) and shows «این فایل به ۲ قرارداد و ۱ یادآوری وصل است؛ برای حذف، اول آن‌ها را حذف کنید.»; the repositories refuse with `LinkedRecordsError` carrying the same sentence, which the detail pages show; any other failed delete brings the row back with «… حذف نشد». Whether deleting should also remove/unlink those items is asked of Amin.
+
 ## 1.5.11 — no new file or applicant without tokens; sign-out keeps unsent changes; names side by side (Amin #5815, #5817)
 
 - **#5815:** once 95% of the tokens are used (from the last kept token figures, so offline too), or the server has already refused a save for lack of tokens, «افزودن فایل» / «افزودن متقاضی» (every entry point, incl. a Divar share) leads to «تنظیمات» — where the buy button is — with a 4-second note «توکن کافی برای ثبت را ندارید». `withTokens` in `features/settings/services/tokenBlock.tsx`, wrapped inside `withLicence` in MainNavigator. Edits to existing files still save and stay queued.

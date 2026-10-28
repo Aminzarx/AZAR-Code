@@ -58,6 +58,10 @@ export class ApplicantService {
     return this.repository.countByUser(userId)
   }
 
+  deletionBlocker(id: string): Promise<string | null> {
+    return this.repository.deletionBlocker(id)
+  }
+
   async deleteApplicant(id: string): Promise<void> {
     return this.repository.delete(id)
   }

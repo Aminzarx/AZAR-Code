@@ -104,7 +104,9 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
   ): void {
     setValues((current) => (current ? { ...current, [field]: value } : current))
     // a field's error goes as soon as it is edited (emulator test 2026-10-24: «این مورد لازم است.» stayed under a filled field)
-    setErrors((current) => (current[field as keyof typeof current] ? { ...current, [field]: undefined } : current))
+    setErrors((current) =>
+      current[field as keyof typeof current] ? { ...current, [field]: undefined } : current
+    )
   }
 
   async function handleSubmit(): Promise<void> {
@@ -159,9 +161,14 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
     try {
       await service.deleteApplicant(applicant.id)
       navigation.goBack()
-    } catch {
+    } catch (failure) {
       setIsDeleteConfirmVisible(false)
-      setSubmitError('حذف متقاضی با مشکل مواجه شد. دوباره تلاش کنید.')
+      // #5716: linked to a contract / deal / reminder — say so (the database keeps the link)
+      setSubmitError(
+        failure instanceof Error && failure.name === 'LinkedRecordsError'
+          ? failure.message
+          : 'حذف متقاضی با مشکل مواجه شد. دوباره تلاش کنید.'
+      )
       setIsDeleting(false)
     }
   }
@@ -325,7 +332,11 @@ export function ApplicantDetailScreen({ navigation, route }: Props): React.JSX.E
               <DetailRow
                 label="مورد تهاتر"
                 value={applicant.barterItems
-                  .map((item) => (item === 'سایر' && applicant.barterOtherDescription ? applicant.barterOtherDescription : item))
+                  .map((item) =>
+                    item === 'سایر' && applicant.barterOtherDescription
+                      ? applicant.barterOtherDescription
+                      : item
+                  )
                   .join('، ')}
                 theme={theme}
                 styles={styles}

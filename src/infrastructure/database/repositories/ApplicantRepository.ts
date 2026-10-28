@@ -1,12 +1,24 @@
 import type { DB } from '@op-engineering/op-sqlite'
+import { LinkedRecordsError, linkedMessage, linkedTo } from './linkedRecords'
 import { likeAllTerms } from '../../../shared/utils/persianText'
 import { parseBarterItems } from './PropertyRepository'
 
 // Amin #5368: an applicant is found by name, phone, city, wanted deal and property kind, description and any budget
 const APPLICANT_SEARCH_COLUMNS = [
-  'full_name', 'phone_number', 'city', 'region', 'barter_items', 'barter_other_description', 'description', 'applicant_type', 'preferred_transaction_type',
-  'preferred_property_type', 'CAST(min_budget AS TEXT)', 'CAST(max_budget AS TEXT)',
-  'CAST(deposit_amount AS TEXT)', 'CAST(rent_amount AS TEXT)',
+  'full_name',
+  'phone_number',
+  'city',
+  'region',
+  'barter_items',
+  'barter_other_description',
+  'description',
+  'applicant_type',
+  'preferred_transaction_type',
+  'preferred_property_type',
+  'CAST(min_budget AS TEXT)',
+  'CAST(max_budget AS TEXT)',
+  'CAST(deposit_amount AS TEXT)',
+  'CAST(rent_amount AS TEXT)'
 ] as const
 
 export type ApplicantStatus = 'active' | 'archived'
@@ -142,7 +154,9 @@ export class ApplicantRepository {
         applicant.preferredPropertyType,
         applicant.city,
         applicant.region || null,
-        applicant.barterItems && applicant.barterItems.length > 0 ? JSON.stringify(applicant.barterItems) : null,
+        applicant.barterItems && applicant.barterItems.length > 0
+          ? JSON.stringify(applicant.barterItems)
+          : null,
         applicant.barterOtherDescription || null,
         applicant.minBudget,
         applicant.maxBudget,
@@ -185,7 +199,10 @@ export class ApplicantRepository {
    */
   async search(userId: string, query: string): Promise<ApplicantRecord[]> {
     // Amin #5557: «۳ خوابه» is the wanted rooms; «۱۰۰ متری» falls in the wanted area range
-    const match = likeAllTerms(APPLICANT_SEARCH_COLUMNS, query, { rooms: 'rooms', area: { min: 'min_area', max: 'max_area' } })
+    const match = likeAllTerms(APPLICANT_SEARCH_COLUMNS, query, {
+      rooms: 'rooms',
+      area: { min: 'min_area', max: 'max_area' }
+    })
     if (!match.sql) {
       return this.getAll(userId)
     }
@@ -226,7 +243,9 @@ export class ApplicantRepository {
         applicant.preferredPropertyType,
         applicant.city,
         applicant.region || null,
-        applicant.barterItems && applicant.barterItems.length > 0 ? JSON.stringify(applicant.barterItems) : null,
+        applicant.barterItems && applicant.barterItems.length > 0
+          ? JSON.stringify(applicant.barterItems)
+          : null,
         applicant.barterOtherDescription || null,
         applicant.minBudget,
         applicant.maxBudget,
@@ -249,7 +268,15 @@ export class ApplicantRepository {
     return updated
   }
 
+  /** #5716: what keeps it from being deleted (a contract, a deal, a reminder), as a sentence; null when nothing */
+  async deletionBlocker(id: string): Promise<string | null> {
+    const links = await linkedTo(this.db, 'applicant_id', id)
+    return links ? linkedMessage('این متقاضی', links) : null
+  }
+
   async delete(id: string): Promise<void> {
+    const blocker = await this.deletionBlocker(id)
+    if (blocker) throw new LinkedRecordsError(blocker)
     await this.db.execute('DELETE FROM applicants WHERE id = ?', [id])
   }
 }

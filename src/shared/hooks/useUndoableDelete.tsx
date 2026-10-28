@@ -12,6 +12,8 @@ type Options = {
   remove: (id: string) => Promise<void>
   /** reload the list after the delete went through */
   onDeleted?: () => void
+  /** #5716: why this one cannot be deleted (linked records), asked before the confirm; null = it can */
+  blockedBy?: (id: string) => Promise<string | null>
 }
 
 /**
@@ -24,11 +26,12 @@ type Options = {
  * Returns `hidden` (ids to leave out of the list), `onLongPress(id, title)`
  * for the rows, and `ui` to render once at the end of the screen.
  */
-export function useUndoableDelete({ noun, remove, onDeleted }: Options) {
+export function useUndoableDelete({ noun, remove, onDeleted, blockedBy }: Options) {
   const [target, setTarget] = useState<{ id: string; title: string } | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set())
   const [pending, setPending] = useState<{ id: string; title: string } | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingRef = useRef<{ id: string; title: string } | null>(null)
   const removeRef = useRef(remove)
@@ -36,13 +39,34 @@ export function useUndoableDelete({ noun, remove, onDeleted }: Options) {
   removeRef.current = remove
   deletedRef.current = onDeleted
 
-  const commit = useCallback(async (id: string) => {
-    try {
-      await removeRef.current(id)
-    } finally {
-      deletedRef.current?.()
-    }
-  }, [])
+  const commit = useCallback(
+    async (id: string) => {
+      try {
+        await removeRef.current(id)
+      } catch (error) {
+        // #5716: it did not go: the row comes back and the user is told (it used to vanish until the next visit)
+        setHidden((prev) => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+        setProblem(
+          error instanceof Error && error.name === 'LinkedRecordsError'
+            ? error.message
+            : `${noun} حذف نشد. دوباره تلاش کنید.`
+        )
+      } finally {
+        deletedRef.current?.()
+      }
+    },
+    [noun]
+  )
+
+  useEffect(() => {
+    if (!problem) return undefined
+    const t = setTimeout(() => setProblem(null), 5000)
+    return () => clearTimeout(t)
+  }, [problem])
 
   const flush = useCallback(() => {
     if (timer.current) {
@@ -98,7 +122,21 @@ export function useUndoableDelete({ noun, remove, onDeleted }: Options) {
       <RowActionSheet
         visible={Boolean(target) && !confirming}
         title={target?.title ?? ''}
-        onDelete={() => setConfirming(true)}
+        onDelete={() => {
+          const t = target
+          if (!t || !blockedBy) {
+            setConfirming(true)
+            return
+          }
+          blockedBy(t.id)
+            .then((reason) => {
+              if (reason) {
+                setTarget(null)
+                setProblem(reason)
+              } else setConfirming(true)
+            })
+            .catch(() => setConfirming(true))
+        }}
         onClose={() => setTarget(null)}
       />
       <ConfirmDialog
@@ -113,7 +151,13 @@ export function useUndoableDelete({ noun, remove, onDeleted }: Options) {
           setTarget(null)
         }}
       />
-      <Snackbar visible={Boolean(pending)} message={`${noun} حذف شد`} actionLabel="برگردان" onAction={undo} />
+      <Snackbar
+        visible={Boolean(pending)}
+        message={`${noun} حذف شد`}
+        actionLabel="برگردان"
+        onAction={undo}
+      />
+      <Snackbar visible={!pending && problem !== null} message={problem ?? ''} />
     </>
   )
 

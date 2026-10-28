@@ -53,6 +53,10 @@ export class PropertyService {
     return this.repository.countByOwner(ownerId)
   }
 
+  deletionBlocker(id: string): Promise<string | null> {
+    return this.repository.deletionBlocker(id)
+  }
+
   async deleteProperty(id: string): Promise<void> {
     return this.repository.delete(id)
   }

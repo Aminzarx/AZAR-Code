@@ -114,7 +114,9 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   ): void {
     setValues((current) => (current ? { ...current, [field]: value } : current))
     // a field's error goes as soon as it is edited (emulator test 2026-10-24: «این مورد لازم است.» stayed under a filled field)
-    setErrors((current) => (current[field as keyof typeof current] ? { ...current, [field]: undefined } : current))
+    setErrors((current) =>
+      current[field as keyof typeof current] ? { ...current, [field]: undefined } : current
+    )
   }
 
   async function handleSubmit(): Promise<void> {
@@ -172,9 +174,14 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
     try {
       await service.deleteProperty(property.id)
       navigation.goBack()
-    } catch {
+    } catch (failure) {
       setIsDeleteConfirmVisible(false)
-      setSubmitError('حذف فایل با مشکل مواجه شد. دوباره تلاش کنید.')
+      // #5716: linked to a contract / deal / reminder — say so (the database keeps the link)
+      setSubmitError(
+        failure instanceof Error && failure.name === 'LinkedRecordsError'
+          ? failure.message
+          : 'حذف فایل با مشکل مواجه شد. دوباره تلاش کنید.'
+      )
       setIsDeleting(false)
     }
   }
@@ -219,7 +226,12 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
             <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
           ) : null}
           <PropertyForm values={values} errors={errors} onChange={handleChange} />
-          <PhotoEditor photos={editPhotos.photos} noun="فایل" onChange={editPhotos.setPhotos} adder={editPhotos.adder} />
+          <PhotoEditor
+            photos={editPhotos.photos}
+            noun="فایل"
+            onChange={editPhotos.setPhotos}
+            adder={editPhotos.adder}
+          />
           <PhotoAddButton adder={editPhotos.adder} />
         </>
       ) : (
@@ -247,7 +259,11 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
               {[property.city, property.region, property.address].filter(Boolean).join('، ')}
             </Text>
             {/* Amin #5062: the file's photos (the main one first) */}
-            <PhotoStrip subjectType="property" subjectId={property.id} refreshKey={editPhotos.version} />
+            <PhotoStrip
+              subjectType="property"
+              subjectId={property.id}
+              refreshKey={editPhotos.version}
+            />
 
             {headlinePrice ? (
               <View style={styles.headlineStats}>

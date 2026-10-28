@@ -106,7 +106,10 @@ function matchesFilters(property: Property, filters: PropertyFilters): boolean {
     return false
   }
   // Amin #5240: a file may carry several kinds; it shows under each of them
-  if (filters.transaction && !parseDealKinds(property.transactionType).includes(filters.transaction as DealKind)) {
+  if (
+    filters.transaction &&
+    !parseDealKinds(property.transactionType).includes(filters.transaction as DealKind)
+  ) {
     return false
   }
   if (filters.propertyType && property.propertyType !== filters.propertyType) {
@@ -120,13 +123,25 @@ function matchesFilters(property: Property, filters: PropertyFilters): boolean {
   }
   // a rent file has no price; its deposit stands in for it
   const price = property.price ?? property.depositAmount
-  if (!inRange(price, parseRangeValue(filters.priceFrom), parseRangeValue(filters.priceTo), BILLION)) {
+  if (
+    !inRange(price, parseRangeValue(filters.priceFrom), parseRangeValue(filters.priceTo), BILLION)
+  ) {
     return false
   }
-  return inRange(property.area, parseRangeValue(filters.areaFrom), parseRangeValue(filters.areaTo), 1)
+  return inRange(
+    property.area,
+    parseRangeValue(filters.areaFrom),
+    parseRangeValue(filters.areaTo),
+    1
+  )
 }
 
-function inRange(value: number | null, from: number | null, to: number | null, unit: number): boolean {
+function inRange(
+  value: number | null,
+  from: number | null,
+  to: number | null,
+  unit: number
+): boolean {
   if (from === null && to === null) {
     return true
   }
@@ -138,7 +153,9 @@ function inRange(value: number | null, from: number | null, to: number | null, u
 
 function countFilters(filters: PropertyFilters): number {
   return (
-    [filters.status, filters.transaction, filters.propertyType, filters.city, filters.rooms].filter(Boolean).length +
+    [filters.status, filters.transaction, filters.propertyType, filters.city, filters.rooms].filter(
+      Boolean
+    ).length +
     (filters.priceFrom || filters.priceTo ? 1 : 0) +
     (filters.areaFrom || filters.areaTo ? 1 : 0)
   )
@@ -158,7 +175,9 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
       if (!propertyService) throw new Error('not ready')
       await propertyService.deleteProperty(id)
     },
-    onDeleted: refetch
+    onDeleted: refetch,
+    blockedBy: (id) =>
+      propertyService ? propertyService.deletionBlocker(id) : Promise.resolve(null)
   })
 
   useEffect(() => {
@@ -192,8 +211,9 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
 
   const filteredProperties = useMemo(
     () =>
-      properties?.filter((property) => !del.hidden.has(property.id) && matchesFilters(property, applied)) ??
-      properties,
+      properties?.filter(
+        (property) => !del.hidden.has(property.id) && matchesFilters(property, applied)
+      ) ?? properties,
     [properties, applied, del.hidden]
   )
   const cityOptions = useMemo(
@@ -266,7 +286,11 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {!embedded ? (
-        <ScreenHeaderBar onBack={() => navigation.goBack()} title="فایل‌های ملکی" section="property" />
+        <ScreenHeaderBar
+          onBack={() => navigation.goBack()}
+          title="فایل‌های ملکی"
+          section="property"
+        />
       ) : null}
       <View style={styles.content}>
         <ListToolbar

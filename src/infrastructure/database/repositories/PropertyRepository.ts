@@ -1,4 +1,5 @@
 import type { DB } from '@op-engineering/op-sqlite'
+import { LinkedRecordsError, linkedMessage, linkedTo } from './linkedRecords'
 import { PhotoRepository } from './PhotoRepository'
 import { ContactRepository } from './ContactRepository'
 import { likeAllTerms } from '../../../shared/utils/persianText'
@@ -6,9 +7,19 @@ import { likeAllTerms } from '../../../shared/utils/persianText'
 // Amin #5368: a file is found by its deal type, kind, price (any of the three amounts), city, address, description,
 // barter items and owner's name
 const PROPERTY_SEARCH_COLUMNS = [
-  'p.title', 'p.city', 'p.region', 'p.address', 'p.description', 'p.transaction_type', 'p.property_type',
-  'CAST(p.price AS TEXT)', 'CAST(p.deposit_amount AS TEXT)', 'CAST(p.rent_amount AS TEXT)',
-  'p.barter_items', 'p.barter_other_description', 'c.full_name',
+  'p.title',
+  'p.city',
+  'p.region',
+  'p.address',
+  'p.description',
+  'p.transaction_type',
+  'p.property_type',
+  'CAST(p.price AS TEXT)',
+  'CAST(p.deposit_amount AS TEXT)',
+  'CAST(p.rent_amount AS TEXT)',
+  'p.barter_items',
+  'p.barter_other_description',
+  'c.full_name'
 ] as const
 
 export type PropertyStatus = 'active' | 'archived'
@@ -270,7 +281,10 @@ export class PropertyRepository {
    */
   async findAllByOwner(ownerId: string, search?: string): Promise<PropertyRecord[]> {
     // Amin #5557: «۳ خوابه» / «۱۰۰ متری» search the rooms and the area themselves
-    const match = likeAllTerms(PROPERTY_SEARCH_COLUMNS, search ?? '', { rooms: 'p.rooms', area: 'p.area' })
+    const match = likeAllTerms(PROPERTY_SEARCH_COLUMNS, search ?? '', {
+      rooms: 'p.rooms',
+      area: 'p.area'
+    })
     if (match.sql) {
       const result = await this.db.execute(
         `${SELECT_WITH_OWNER}
@@ -300,7 +314,9 @@ export class PropertyRepository {
     const now = new Date().toISOString()
     if (property.owner !== undefined) {
       const row = (
-        await this.db.execute('SELECT owner_id, owner_contact_id FROM properties WHERE id = ?', [id])
+        await this.db.execute('SELECT owner_id, owner_contact_id FROM properties WHERE id = ?', [
+          id
+        ])
       ).rows[0]
       if (row) {
         const contactId = property.owner
@@ -351,7 +367,15 @@ export class PropertyRepository {
     return updated
   }
 
+  /** #5716: what keeps it from being deleted (a contract, a deal, a reminder), as a sentence; null when nothing */
+  async deletionBlocker(id: string): Promise<string | null> {
+    const links = await linkedTo(this.db, 'property_id', id)
+    return links ? linkedMessage('این فایل', links) : null
+  }
+
   async delete(id: string): Promise<void> {
+    const blocker = await this.deletionBlocker(id)
+    if (blocker) throw new LinkedRecordsError(blocker)
     // Amin #5062: its photos go with it (their server copies are deleted on the next push, giving the tokens back)
     await new PhotoRepository(this.db, () => '').deleteFor('property', id)
     await this.db.execute('DELETE FROM properties WHERE id = ?', [id])

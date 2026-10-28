@@ -85,7 +85,12 @@ function matchesFilters(applicant: Applicant, filters: ApplicantFilters): boolea
     return false
   }
   // Amin #5327: an applicant with several modes shows under each of them
-  if (filters.transaction && !parseApplicantKinds(applicant.preferredTransactionType).includes(filters.transaction as ApplicantKind)) {
+  if (
+    filters.transaction &&
+    !parseApplicantKinds(applicant.preferredTransactionType).includes(
+      filters.transaction as ApplicantKind
+    )
+  ) {
     return false
   }
   if (filters.propertyType && applicant.preferredPropertyType !== filters.propertyType) {
@@ -122,8 +127,9 @@ function matchesFilters(applicant: Applicant, filters: ApplicantFilters): boolea
 
 function countFilters(filters: ApplicantFilters): number {
   return (
-    [filters.status, filters.transaction, filters.propertyType, filters.city, filters.rooms].filter(Boolean).length +
-    (filters.budgetFrom || filters.budgetTo ? 1 : 0)
+    [filters.status, filters.transaction, filters.propertyType, filters.city, filters.rooms].filter(
+      Boolean
+    ).length + (filters.budgetFrom || filters.budgetTo ? 1 : 0)
   )
 }
 
@@ -145,7 +151,9 @@ export function ApplicantListScreen({
       if (!applicantService) throw new Error('not ready')
       await applicantService.deleteApplicant(id)
     },
-    onDeleted: refetch
+    onDeleted: refetch,
+    blockedBy: (id) =>
+      applicantService ? applicantService.deletionBlocker(id) : Promise.resolve(null)
   })
 
   useEffect(() => {
@@ -177,8 +185,9 @@ export function ApplicantListScreen({
 
   const filteredApplicants = useMemo(
     () =>
-      applicants?.filter((applicant) => !del.hidden.has(applicant.id) && matchesFilters(applicant, applied)) ??
-      applicants,
+      applicants?.filter(
+        (applicant) => !del.hidden.has(applicant.id) && matchesFilters(applicant, applied)
+      ) ?? applicants,
     [applicants, applied, del.hidden]
   )
   const cityOptions = useMemo(
@@ -245,7 +254,9 @@ export function ApplicantListScreen({
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      {!embedded ? <ScreenHeaderBar onBack={() => navigation.goBack()} title="متقاضیان" section="applicant" /> : null}
+      {!embedded ? (
+        <ScreenHeaderBar onBack={() => navigation.goBack()} title="متقاضیان" section="applicant" />
+      ) : null}
       <View style={styles.content}>
         <ListToolbar
           search={search}
