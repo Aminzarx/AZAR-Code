@@ -164,6 +164,7 @@ function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentTy
     }
   }): React.JSX.Element {
     const isTabFocused = useIsFocused()
+    const theme = useTheme()
     const focused = getFocusedRouteNameFromRoute(route) ?? root
     const inSettings = root === 'Settings' && isTabFocused && SETTINGS_PAGES.has(focused)
     useEffect(() => {
@@ -184,7 +185,12 @@ function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentTy
       // Amin #5186: a new page inside a section slides in from the left and slides back out to the left
       <Stack.Navigator
         initialRouteName={root}
-        screenOptions={{ headerShown: false, animation: 'slide_from_left' }}
+        // Amin #5975: a page that slides in is never white for a moment; it has the theme's background from the start
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_left',
+          contentStyle: { backgroundColor: theme.colors.background }
+        }}
       >
         <Stack.Screen name={root} component={RootScreen} />
         {SHARED_SCREENS.filter(([name]) => name !== root).map(([name, component]) => (

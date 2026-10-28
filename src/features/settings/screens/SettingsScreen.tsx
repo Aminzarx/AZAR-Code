@@ -33,7 +33,7 @@ import {
   OtpPromptDialog,
   Snackbar
 } from '@shared/components'
-import { takeTokenNotice } from '../services/tokenBlock'
+import { noteTokenSummary, takeTokenNotice } from '../services/tokenBlock'
 import { getDatabase } from '@infrastructure/database/connection'
 import {
   SessionRepository,
@@ -130,12 +130,12 @@ export function SettingsScreen(props: Props): React.JSX.Element {
   // and after each sync round
   const loadTokens = useCallback(() => {
     getTokenLedger()
-      .then((result) =>
-        setTokens({
-          summary: normalizeSummary(result?.ledger.summary),
-          fresh: result?.fresh ?? true
-        })
-      )
+      .then((result) => {
+        const summary = normalizeSummary(result?.ledger.summary)
+        // Amin #5975: the new-file / new-applicant forms open from this answer without waiting
+        noteTokenSummary(summary)
+        setTokens({ summary, fresh: result?.fresh ?? true })
+      })
       .catch(() => undefined)
   }, [getTokenLedger])
 

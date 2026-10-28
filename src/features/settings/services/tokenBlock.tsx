@@ -13,11 +13,28 @@ export const TOKENS_SHORT_NOTICE = 'توکن کافی برای ثبت را ند�
 
 let pendingNotice: string | null = null
 
+/**
+ * Amin #5975: the last answer to «is a new file or applicant blocked?», kept for the app's lifetime. The form opens
+ * at once from it (never a white page while the server is asked); the check still runs behind the open form.
+ */
+let lastBlocked: boolean | null = null
+
 /** «تنظیمات» takes the note once, when it next comes into view. */
 export function takeTokenNotice(): string | null {
   const notice = pendingNotice
   pendingNotice = null
   return notice
+}
+
+/** Every fresh token figure (the form's own check, «تنظیمات» after a purchase) updates the kept answer. */
+export function noteTokenSummary(summary: ReturnType<typeof normalizeSummary>): boolean {
+  lastBlocked = summary !== null && tokenLevel(usedShare(summary)) === 'danger'
+  return lastBlocked
+}
+
+/** for tests: forget the kept answer */
+export function resetTokenBlock(): void {
+  lastBlocked = null
 }
 
 export function withTokens<P extends object>(
@@ -26,21 +43,22 @@ export function withTokens<P extends object>(
   function Tokened(props: P): React.JSX.Element | null {
     const { getTokenLedger, sync } = useAuth()
     const navigation = useNavigation<NavigationProp<ParamListBase>>()
-    const [blocked, setBlocked] = useState<boolean | null>(sync.state === 'full' ? true : null)
+    // Amin #5975: the form is drawn straight away unless it is already known to be blocked
+    const [blocked, setBlocked] = useState<boolean>(sync.state === 'full' || lastBlocked === true)
 
+    // runs even when the kept answer blocked this open, so the next open follows a purchase made since
     useEffect(() => {
-      if (blocked !== null) return
       let alive = true
       getTokenLedger()
         .then((result) => {
-          const summary = normalizeSummary(result?.ledger.summary)
-          if (alive) setBlocked(summary !== null && tokenLevel(usedShare(summary)) === 'danger')
+          const next = noteTokenSummary(normalizeSummary(result?.ledger.summary))
+          if (alive && next) setBlocked(true)
         })
-        .catch(() => alive && setBlocked(false))
+        .catch(() => undefined)
       return () => {
         alive = false
       }
-    }, [blocked, getTokenLedger])
+    }, [getTokenLedger])
 
     useEffect(() => {
       if (!blocked) return
@@ -49,7 +67,7 @@ export function withTokens<P extends object>(
       navigateAcrossTabs(navigation, 'Settings', undefined)
     }, [blocked, navigation])
 
-    return blocked === false ? <Screen {...props} /> : null
+    return blocked ? null : <Screen {...props} />
   }
   Tokened.displayName = `withTokens(${Screen.displayName ?? Screen.name ?? 'Screen'})`
   return Tokened
