@@ -8,7 +8,7 @@ import { applyTheme } from './lib/theme';
 import { ago } from './lib/fmt';
 import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, PageHeader, SearchBox, Segmented, Skeleton, ToastProvider, useAction, useConfirm, useToast } from './ui/kit';
 import { Icon } from './ui/icons';
-import { api, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules } from './api';
+import { api, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules } from './api';
 
 /**
  * EYVAN office dashboard (Amin #5659/#5664/#5909/#5913/#5934): the real-estate office manager's own dashboard —
@@ -74,6 +74,48 @@ function Login({ onIn }: { onIn: () => void }) {
           {step === 'phone' ? 'گرفتن کد' : step === 'code' ? 'ورود' : 'ساخت دفتر و ورود'}
         </Btn>
         {step === 'code' && <button type="button" className="kss-btn kss-btn--ghost kss-btn--sm" onClick={() => { setStep('phone'); setCode(''); }}>تغییر شماره</button>}
+      </form>
+    </main>
+  );
+}
+
+// ------------------------------------------------------------- from the panel ----
+/** Amin #5967: opened from the card in kssx.ir/app with a signed handoff (?h=…); one login, no second code */
+function FromPanel({ onIn }: { onIn: () => void }) {
+  const [state, setState] = useState<{ t: 'wait' } | { t: 'name'; ticket: string } | { t: 'fail'; m: string }>({ t: 'wait' });
+  const [name, setName] = useState('');
+  const { busy, run, error } = useAction();
+  useEffect(() => {
+    const h = new URLSearchParams(location.search).get('h');
+    history.replaceState(null, '', location.pathname);
+    if (!h) { setState({ t: 'fail', m: 'داشبورد دفتر را از پنل کاربری باز کنید.' }); return; }
+    api.sso(h).then((r) => { session.set(r.token); onIn(); }, (e: Error & { code?: string; ticket?: string }) =>
+      setState(e.code === 'no_office' && e.ticket ? { t: 'name', ticket: e.ticket } : { t: 'fail', m: e.message }));
+  }, [onIn]);
+  const open = () => run(async () => {
+    if (state.t !== 'name') return;
+    const r = await api.ssoOpen(state.ticket, name.trim());
+    session.set(r.token);
+    onIn();
+  });
+  return (
+    <main className="login">
+      <form className="kss-card login-card" onSubmit={(e) => { e.preventDefault(); void open(); }}>
+        <div className="side-brand"><div className="logo"><Icon name="home" size={18} /></div><div><b>ایوان</b><small>داشبورد دفتر املاک</small></div></div>
+        {state.t === 'wait' ? <Skeleton rows={2} label="در حال ورود" /> : state.t === 'fail' ? (
+          <>
+            <Alert tone="warn">{state.m}</Alert>
+            <a className="kss-btn kss-btn--primary" href="/app">بازگشت به پنل</a>
+          </>
+        ) : (
+          <>
+            <h1 className="login-title">دفتر تازه</h1>
+            <p className="muted">برای این حساب هنوز دفتری ساخته نشده؛ نام دفتر را بنویسید.</p>
+            <Field label="نام دفتر" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً دفتر املاک پارسه" autoFocus /></Field>
+            {error && <Alert tone="bad">{error}</Alert>}
+            <Btn type="submit" variant="primary" busy={busy} disabled={!name.trim()}>ساخت دفتر</Btn>
+          </>
+        )}
       </form>
     </main>
   );
@@ -386,7 +428,7 @@ function Dashboard() {
           <a href="#sharing" className="item"><Icon name="shield" size={20} /><span>قواعد ارسال</span></a>
         </nav>
         <div className="grow" />
-        <button className="kss-btn kss-btn--ghost kss-btn--sm side-out" onClick={() => api.logout().finally(() => { session.clear(); location.reload(); })}><Icon name="logout" size={16} />خروج</button>
+        <button className="kss-btn kss-btn--ghost kss-btn--sm side-out" onClick={() => api.logout().finally(() => { session.clear(); if (IN_PANEL) location.href = '/app'; else location.reload(); })}><Icon name="logout" size={16} />خروج</button>
       </aside>
       <div className="main">
         <header className="top">
@@ -432,8 +474,10 @@ function Dashboard() {
 }
 
 function App() {
-  const [inside, setInside] = useState(!!session.get());
-  return <ToastProvider>{inside ? <Dashboard /> : <Login onIn={() => setInside(true)} />}</ToastProvider>;
+  const handed = new URLSearchParams(location.search).has('h');
+  const [inside, setInside] = useState(!handed && !!session.get());
+  const onIn = useCallback(() => setInside(true), []);
+  return <ToastProvider>{inside ? <Dashboard /> : IN_PANEL || handed ? <FromPanel onIn={onIn} /> : <Login onIn={onIn} />}</ToastProvider>;
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

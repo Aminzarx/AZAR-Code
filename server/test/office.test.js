@@ -11,6 +11,7 @@ process.env.AZAR_DB_PATH = path.join(dir, 'auth.db')
 process.env.AZAR_FIXED_OTP_CODE = '123456'
 process.env.AZAR_SYNC_KEY = crypto.randomBytes(32).toString('base64')
 process.env.AZAR_SYNC_BLOB_DIR = path.join(dir, 'blobs')
+process.env.AZAR_OFFICE_SSO_SECRET = 'test-secret-for-office-sso'
 
 let server, base, db
 before(async () => {
@@ -144,4 +145,42 @@ test('a revoked or expired code does not join', async () => {
   const code = (await post('/office/codes', {}, h)).body
   await post(`/office/codes/${code.code}/revoke`, {}, h)
   assert.equal((await post('/office/adviser/join', { sessionToken: adviser.sessionToken, code: code.code, word: code.word })).status, 422)
+})
+
+// Amin #5967: opening the dashboard from the panel at kssx.ir/app (no second code)
+const b64u = (b) => Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+function handoff(phone, { secret = 'test-secret-for-office-sso', age = 0, nonce = crypto.randomBytes(16).toString('hex') } = {}) {
+  const iat = Math.floor(Date.now() / 1000) - age
+  const part = b64u(JSON.stringify({ v: 1, phone, iat, exp: iat + 60, nonce }))
+  return part + '.' + b64u(crypto.createHmac('sha256', secret).update(part).digest())
+}
+const local = (intl) => '0' + intl.slice(3)
+
+test('a signed handoff from the panel opens the office once; a new account names its office first', async () => {
+  const { owner, h } = await office('دفتر نمونه')
+  const ok = await post('/office/sso', { h: handoff(local(owner.phoneNumber)) })
+  assert.equal(ok.status, 200, JSON.stringify(ok.body))
+  assert.equal((await call('GET', '/office/overview', undefined, { 'x-office-token': ok.body.token })).body.office.name, 'دفتر نمونه')
+  assert.ok(h)
+
+  const once = handoff(local(owner.phoneNumber))
+  assert.equal((await post('/office/sso', { h: once })).status, 200)
+  assert.equal((await post('/office/sso', { h: once })).status, 401) // reused
+
+  const fresh = await account()
+  const first = await post('/office/sso', { h: handoff(local(fresh.phoneNumber)) })
+  assert.equal(first.status, 404)
+  assert.equal(first.body.error.code, 'no_office')
+  const opened = await post('/office/sso/open', { ticket: first.body.ticket, officeName: 'دفتر تازه' })
+  assert.equal(opened.status, 200)
+  assert.equal(opened.body.office.name, 'دفتر تازه')
+  assert.equal((await post('/office/sso/open', { ticket: first.body.ticket, officeName: 'x' })).status, 401)
+})
+
+test('a wrong signature, an old handoff or a number without EYVAN does not open', async () => {
+  const { owner } = await office()
+  assert.equal((await post('/office/sso', { h: handoff(local(owner.phoneNumber), { secret: 'other' }) })).status, 401)
+  assert.equal((await post('/office/sso', { h: handoff(local(owner.phoneNumber), { age: 200 }) })).status, 401)
+  assert.equal((await post('/office/sso', { h: 'garbage' })).status, 401)
+  assert.equal((await post('/office/sso', { h: handoff('09121110000') })).body.error.code, 'no_account')
 })

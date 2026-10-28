@@ -28,11 +28,15 @@ export class ApiError extends Error {
   constructor(public code: string, message: string, public status: number) { super(message); }
 }
 
+/** Amin #5967: inside the one panel (kssx.ir/app/office) the calls go through the panel's own address */
+export const IN_PANEL = location.pathname.startsWith('/app/office');
+const BASE = IN_PANEL ? '/app/office/api' : '';
+
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = session.get();
   let res: Response;
   try {
-    res = await fetch(path, {
+    res = await fetch(BASE + path, {
       method,
       headers: { 'content-type': 'application/json', ...(token ? { 'x-office-token': token } : {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -43,8 +47,10 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    if (res.status === 401 && path.startsWith('/office/') && path !== '/office/login') { session.clear(); location.reload(); }
-    throw new ApiError(data?.error?.code ?? 'error', persian(data?.error?.code, data?.error?.message), res.status);
+    if (res.status === 401 && path.startsWith('/office/') && !['/office/login', '/office/sso', '/office/sso/open'].includes(path)) { session.clear(); location.reload(); }
+    const err = new ApiError(data?.error?.code ?? 'error', persian(data?.error?.code, data?.error?.message), res.status);
+    if (data?.ticket) (err as ApiError & { ticket?: string }).ticket = data.ticket;
+    throw err;
   }
   return data as T;
 }
@@ -66,6 +72,8 @@ export const api = {
   verify: (phone: string, code: string) => call<void>('POST', '/auth/verify-otp', { phoneNumber: intl(phone), code }),
   login: (phone: string, officeName?: string) =>
     call<{ token: string; office: { name: string } }>('POST', '/office/login', { phoneNumber: intl(phone), officeName }),
+  sso: (h: string) => call<{ token: string; office: { name: string } }>('POST', '/office/sso', { h }),
+  ssoOpen: (ticket: string, officeName: string) => call<{ token: string; office: { name: string } }>('POST', '/office/sso/open', { ticket, officeName }),
   logout: () => call<void>('POST', '/office/logout', {}),
   overview: () => call<Overview>('GET', '/office/overview'),
   createFile: (f: NewFile) => call<{ id: string }>('POST', '/office/files', f),

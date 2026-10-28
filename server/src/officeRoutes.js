@@ -229,6 +229,77 @@ router.post('/login', (req, res) => {
   res.json({ token, office: { name: office.name } })
 })
 
+// POST /office/sso { h } → { token, office } | 404 no_office (+ phone hint) — Amin #5967: the dashboard opens from the
+// one panel at kssx.ir/app with no second code. The site signs, server-side at click time:
+//   h = base64url(JSON {v:1, phone:"09…", iat, exp: iat+60, nonce}) + "." + base64url(HMAC-SHA256(secret, thatPart))
+// secret = /root/kss-secrets/office-sso.secret (AZAR_OFFICE_SSO_SECRET here). Each nonce works once.
+db.exec(`CREATE TABLE IF NOT EXISTS office_sso_nonces (nonce TEXT PRIMARY KEY, used_at TEXT NOT NULL)`)
+const b64url = (buf) => buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+function handoff(h) {
+  const secret = (process.env.AZAR_OFFICE_SSO_SECRET || '').trim()
+  if (!secret || typeof h !== 'string' || h.length > 600) return null
+  const [part, sig] = h.split('.')
+  if (!part || !sig) return null
+  const want = Buffer.from(b64url(crypto.createHmac('sha256', secret).update(part).digest()))
+  const got = Buffer.from(sig)
+  if (want.length !== got.length || !crypto.timingSafeEqual(want, got)) return null
+  let body
+  try {
+    body = JSON.parse(Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'))
+  } catch {
+    return null
+  }
+  const t = Date.now() / 1000
+  if (body?.v !== 1 || !/^09\d{9}$/.test(body.phone) || typeof body.nonce !== 'string' || !/^[a-f0-9]{16,64}$/.test(body.nonce)) return null
+  if (!(body.iat <= t + 30 && body.exp >= t - 30 && body.exp - body.iat <= 120)) return null
+  const fresh = db.prepare('INSERT OR IGNORE INTO office_sso_nonces (nonce, used_at) VALUES (?, ?)').run(body.nonce, now()).changes === 1
+  db.prepare('DELETE FROM office_sso_nonces WHERE used_at < ?').run(new Date(Date.now() - DAY).toISOString())
+  return fresh ? body.phone : null
+}
+
+router.post('/sso', (req, res) => {
+  const phone = handoff(req.body?.h)
+  if (!phone) return fail(res, 401, 'handoff_invalid', 'ورود از پنل منقضی شده؛ دوباره از پنل وارد شوید.')
+  const user = db.prepare('SELECT id, admin_status FROM users WHERE phone_number IN (?, ?)').get(phone, '+98' + phone.slice(1))
+  if (!user) return fail(res, 422, 'no_account', 'این شماره حساب ایوان ندارد؛ برنامهٔ ایوان را نصب کنید و با همین شماره ثبت‌نام کنید.')
+  if (user.admin_status === 'locked' || user.admin_status === 'deleted') return fail(res, 403, 'account_locked', 'این حساب بسته است.')
+  let office = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(user.id)
+  if (!office) {
+    const name = text(req.body.officeName, 80)
+    // the same handoff cannot be reused, so the name step gets a short one-time ticket
+    if (!name) {
+      const ticket = generateSessionToken()
+      db.prepare('INSERT INTO office_sso_nonces (nonce, used_at) VALUES (?, ?)').run('t:' + ticket + ':' + user.id, now())
+      return res.status(404).json({ error: { code: 'no_office', message: 'نام دفتر را بنویسید.' }, ticket })
+    }
+    return fail(res, 422, 'invalid', 'نام دفتر را بنویسید.')
+  }
+  res.json(openSession(office))
+})
+
+// POST /office/sso/open { ticket, officeName } → { token, office }: the first visit from the panel names the office
+router.post('/sso/open', (req, res) => {
+  const ticket = typeof req.body?.ticket === 'string' ? req.body.ticket : ''
+  const row = ticket && db.prepare("SELECT nonce, used_at FROM office_sso_nonces WHERE nonce LIKE ?").get('t:' + ticket.replace(/[%_]/g, '') + ':%')
+  if (!row || Date.parse(row.used_at) < Date.now() - 15 * 60 * 1000) return fail(res, 401, 'handoff_invalid', 'ورود از پنل منقضی شده؛ دوباره از پنل وارد شوید.')
+  const name = text(req.body.officeName, 80)
+  if (!name) return fail(res, 422, 'invalid', 'نام دفتر را بنویسید.')
+  const userId = row.nonce.split(':')[2]
+  db.prepare('DELETE FROM office_sso_nonces WHERE nonce = ?').run(row.nonce)
+  let office = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(userId)
+  if (!office) {
+    office = { id: generateId(), owner_user_id: userId, name, created_at: now() }
+    db.prepare('INSERT INTO offices (id, owner_user_id, name, rules, created_at) VALUES (?, ?, ?, NULL, ?)').run(office.id, userId, name, office.created_at)
+  }
+  res.json(openSession(office))
+})
+
+function openSession(office) {
+  const token = generateSessionToken()
+  db.prepare('INSERT INTO office_sessions (token, office_id, created_at) VALUES (?, ?, ?)').run(token, office.id, now())
+  return { token, office: { name: office.name } }
+}
+
 // Everything below needs the dashboard's session
 const manager = express.Router()
 manager.use((req, res, next) => {

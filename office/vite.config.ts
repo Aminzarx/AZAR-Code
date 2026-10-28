@@ -7,6 +7,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5192,
-    proxy: { '/office': 'http://localhost:8799', '/auth': 'http://localhost:8799' },
+    proxy: {
+      '/office': 'http://localhost:8799',
+      '/auth': 'http://localhost:8799',
+      // inside the panel (kssx.ir/app/office), as nginx serves it there
+      '/app/office/api': { target: 'http://localhost:8799', rewrite: (p) => p.replace(/^\/app\/office\/api/, '') },
+    },
   },
 });
