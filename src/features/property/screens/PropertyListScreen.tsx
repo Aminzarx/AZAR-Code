@@ -332,9 +332,7 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
           <View style={styles.centeredSection}>
             <EmptyState
               title="هنوز فایلی ثبت نشده"
-              description="با افزودن اولین فایل ملکی، اینجا نمایش داده می‌شود."
-              actionLabel="افزودن فایل ملکی"
-              onAction={() => navigation.navigate('CreateProperty')}
+              description="با دکمهٔ «فایل تازه» پایین صفحه اولین فایل را ثبت کنید."
             />
           </View>
         ) : filteredProperties && filteredProperties.length === 0 ? (
@@ -375,7 +373,8 @@ export function PropertyListScreen({ navigation, embedded, refreshKey }: Props):
           />
         )}
 
-        {properties && properties.length > 0 ? (
+        {/* Amin #5978: an empty list has only this floating button, no second create button on the page */}
+        {properties ? (
           <FloatingActionButton
             accessibilityLabel="افزودن فایل ملکی"
             label="فایل تازه"

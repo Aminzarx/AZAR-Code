@@ -206,9 +206,7 @@ export function ContractListScreen({ navigation }: Props): React.JSX.Element {
           <View style={styles.centeredSection}>
             <EmptyState
               title="هنوز قراردادی ثبت نشده"
-              description="با «قرارداد تازه» اولین قرارداد را ثبت کنید."
-              actionLabel="قرارداد تازه"
-              onAction={() => navigation.navigate('CreateContract', undefined)}
+              description="با دکمهٔ «قرارداد تازه» پایین صفحه اولین قرارداد را ثبت کنید."
             />
           </View>
         ) : search.trim().length > 0 && (filteredContracts?.length ?? 0) === 0 ? (

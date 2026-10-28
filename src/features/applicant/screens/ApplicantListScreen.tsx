@@ -297,9 +297,7 @@ export function ApplicantListScreen({
           <View style={styles.centeredSection}>
             <EmptyState
               title="هنوز متقاضی‌ای ثبت نشده"
-              description="با افزودن اولین متقاضی، اینجا نمایش داده می‌شود."
-              actionLabel="افزودن متقاضی"
-              onAction={() => navigation.navigate('CreateApplicant')}
+              description="با دکمهٔ «متقاضی تازه» پایین صفحه اولین متقاضی را ثبت کنید."
             />
           </View>
         ) : filteredApplicants && filteredApplicants.length === 0 ? (
@@ -340,7 +338,8 @@ export function ApplicantListScreen({
           />
         )}
 
-        {applicants && applicants.length > 0 ? (
+        {/* Amin #5978: an empty list has only this floating button, no second create button on the page */}
+        {applicants ? (
           <FloatingActionButton
             accessibilityLabel="افزودن متقاضی"
             label="متقاضی تازه"
