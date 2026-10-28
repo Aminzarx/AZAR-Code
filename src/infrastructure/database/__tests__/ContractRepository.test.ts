@@ -1,6 +1,8 @@
 import { open, type DB } from '@op-engineering/op-sqlite'
 import { runMigrations } from '../migrationRunner'
 import { ContractRepository } from '../repositories/ContractRepository'
+import { PropertyRepository } from '../repositories/PropertyRepository'
+import { ApplicantRepository } from '../repositories/ApplicantRepository'
 
 const USER_ID = 'user-1'
 const PROPERTY_ID = 'prop-1'
@@ -172,5 +174,22 @@ describe('ContractRepository', () => {
     await expect(
       repository.create(baseContract('con-1', { applicantId: 'nonexistent-applicant' }))
     ).rejects.toThrow()
+  })
+
+  it('Amin #5864: deleting the file and the applicant keeps the contract with their names; reminders go', async () => {
+    await repository.create(baseContract('c-kept', { dealId: null }))
+    await db.execute('DELETE FROM deals WHERE id = ?', [DEAL_ID])
+    await db.execute(
+      `INSERT INTO reminders (id, user_id, property_id, title, remind_at, created_at, updated_at)
+       VALUES ('r-1', ?, ?, 'تماس', '2026-09-01', '2026-08-08', '2026-08-08')`,
+      [USER_ID, PROPERTY_ID]
+    )
+    await new PropertyRepository(db).delete(PROPERTY_ID)
+    await new ApplicantRepository(db).delete(APPLICANT_ID)
+    const kept = await repository.getById('c-kept')
+    expect(kept?.propertyLabel).toBe('آپارتمان')
+    expect(kept?.applicantLabel).toBe('علی رضایی')
+    const reminders = await db.execute('SELECT COUNT(*) as count FROM reminders')
+    expect(Number(reminders.rows[0]?.count)).toBe(0)
   })
 })

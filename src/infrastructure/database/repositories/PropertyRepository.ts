@@ -376,6 +376,14 @@ export class PropertyRepository {
   async delete(id: string): Promise<void> {
     const blocker = await this.deletionBlocker(id)
     if (blocker) throw new LinkedRecordsError(blocker)
+    // Amin #5864: its reminders go with it; its contracts stay and keep its name
+    const title = await this.db.execute('SELECT title FROM properties WHERE id = ?', [id])
+    await this.db.execute(
+      'UPDATE contracts SET property_label = COALESCE(property_label, ?) WHERE property_id = ?',
+      [(title.rows[0]?.title as string | undefined) ?? null, id] as never[]
+    )
+    await this.db.execute('DELETE FROM reminders WHERE property_id = ?', [id])
+    await this.db.execute('DELETE FROM listings WHERE property_id = ?', [id])
     // Amin #5062: its photos go with it (their server copies are deleted on the next push, giving the tokens back)
     await new PhotoRepository(this.db, () => '').deleteFor('property', id)
     await this.db.execute('DELETE FROM properties WHERE id = ?', [id])

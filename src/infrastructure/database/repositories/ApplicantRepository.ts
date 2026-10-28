@@ -277,6 +277,13 @@ export class ApplicantRepository {
   async delete(id: string): Promise<void> {
     const blocker = await this.deletionBlocker(id)
     if (blocker) throw new LinkedRecordsError(blocker)
+    // Amin #5864: its reminders go with it; its contracts stay and keep its name
+    const name = await this.db.execute('SELECT full_name FROM applicants WHERE id = ?', [id])
+    await this.db.execute(
+      'UPDATE contracts SET applicant_label = COALESCE(applicant_label, ?) WHERE applicant_id = ?',
+      [(name.rows[0]?.full_name as string | undefined) ?? null, id] as never[]
+    )
+    await this.db.execute('DELETE FROM reminders WHERE applicant_id = ?', [id])
     await this.db.execute('DELETE FROM applicants WHERE id = ?', [id])
   }
 }

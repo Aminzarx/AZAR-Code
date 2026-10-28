@@ -6,6 +6,12 @@ entries exist even before any code ships.
 
 ---
 
+## 1.5.13 — deleting a file/applicant: reminders go, contracts stay with the names (Amin #5864)
+
+- Deleting a file or an applicant deletes its reminders; its contracts stay and keep its name as text (`contracts.property_label` / `applicant_label`, set on delete), shown in the contract list and detail («… (حذف شده)» there).
+- Migration 0023 rebuilds `contracts` without the database link to properties/applicants (ids kept; the working DB is built fresh in memory each start, so the table is empty at that point) and restores its indexes and server-sync triggers. Older app versions load such rows fine (they load with foreign keys off and ignore unknown columns).
+- Deals still hold a file back («این فایل به ۱ معامله وصل است…») until Amin answers whether they go with it.
+
 ## 1.5.12 — deleting a linked file or applicant says why (#5716 full check)
 
 - A file or applicant that a contract, a deal or a reminder points at cannot be deleted (foreign keys are on, no cascade). Before: the detail page said only «حذف … با مشکل مواجه شد» every time; the list's long-press delete hid the row, showed «حذف شد», swallowed the error, and the row came back on the next visit. Now the list asks first (`blockedBy` in `useUndoableDelete`) and shows «این فایل به ۲ قرارداد و ۱ یادآوری وصل است؛ برای حذف، اول آن‌ها را حذف کنید.»; the repositories refuse with `LinkedRecordsError` carrying the same sentence, which the detail pages show; any other failed delete brings the row back with «… حذف نشد». Whether deleting should also remove/unlink those items is asked of Amin.

@@ -2,8 +2,8 @@ import type { DB } from '@op-engineering/op-sqlite'
 import { toPersianDigits } from '../../../shared/utils/persianText'
 
 /**
- * #5716 full check: a file or an applicant that a contract, a deal or a reminder points at cannot be deleted (the
- * database keeps the link). Asked before deleting, so the user is told what is linked instead of a silent failure.
+ * #5716 full check: a file or an applicant that a deal points at cannot be deleted (the database keeps the link;
+ * contracts and reminders are handled on delete, Amin #5864). Asked before deleting, so the user is told what is linked instead of a silent failure.
  */
 export class LinkedRecordsError extends Error {
   constructor(message: string) {
@@ -12,11 +12,8 @@ export class LinkedRecordsError extends Error {
   }
 }
 
-const TABLES: ReadonlyArray<[table: string, noun: string]> = [
-  ['contracts', 'قرارداد'],
-  ['deals', 'معامله'],
-  ['reminders', 'یادآوری']
-]
+// Amin #5864: contracts stay (they keep the names) and reminders go with the file; deals still hold it
+const TABLES: ReadonlyArray<[table: string, noun: string]> = [['deals', 'معامله']]
 
 /** «۲ قرارداد و ۱ یادآوری»; null when nothing points at it. */
 export async function linkedTo(

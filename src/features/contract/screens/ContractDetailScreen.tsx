@@ -101,7 +101,9 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
   ): void {
     setValues((current) => (current ? { ...current, [field]: value } : current))
     // a field's error goes as soon as it is edited (emulator test 2026-10-24: «این مورد لازم است.» stayed under a filled field)
-    setErrors((current) => (current[field as keyof typeof current] ? { ...current, [field]: undefined } : current))
+    setErrors((current) =>
+      current[field as keyof typeof current] ? { ...current, [field]: undefined } : current
+    )
   }
 
   async function handleSubmit(): Promise<void> {
@@ -194,7 +196,12 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
             <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
           ) : null}
           <ContractForm values={values} errors={errors} onChange={handleChange} />
-          <PhotoEditor photos={editPhotos.photos} noun="قرارداد" onChange={editPhotos.setPhotos} adder={editPhotos.adder} />
+          <PhotoEditor
+            photos={editPhotos.photos}
+            noun="قرارداد"
+            onChange={editPhotos.setPhotos}
+            adder={editPhotos.adder}
+          />
           <PhotoAddButton adder={editPhotos.adder} />
         </>
       ) : (
@@ -213,11 +220,18 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
           </View>
 
           {/* Amin #5062: the contract's photos */}
-          <PhotoStrip subjectType="contract" subjectId={contract.id} refreshKey={editPhotos.version} />
+          <PhotoStrip
+            subjectType="contract"
+            subjectId={contract.id}
+            refreshKey={editPhotos.version}
+          />
 
           <LinkRow
             label="ملک"
-            value={contract.property?.title ?? 'ملک پیدا نشد'}
+            value={
+              contract.property?.title ??
+              (contract.propertyLabel ? `${contract.propertyLabel} (حذف شده)` : 'ملک پیدا نشد')
+            }
             onPress={
               contract.property
                 ? () =>
@@ -231,7 +245,10 @@ export function ContractDetailScreen({ navigation, route }: Props): React.JSX.El
           />
           <LinkRow
             label="متقاضی"
-            value={contract.applicant?.fullName ?? 'متقاضی پیدا نشد'}
+            value={
+              contract.applicant?.fullName ??
+              (contract.applicantLabel ? `${contract.applicantLabel} (حذف شده)` : 'متقاضی پیدا نشد')
+            }
             onPress={
               contract.applicant
                 ? () =>
@@ -348,10 +365,7 @@ function LinkRow({ label, value, onPress, theme, styles }: LinkRowProps): React.
     <View style={styles.linkRow}>
       <View style={styles.linkTextGroup}>
         <Text style={[theme.typography('labelMd'), styles.label]}>{label}</Text>
-        <MarqueeText
-          style={[theme.typography('bodyMd'), styles.value]}>
-          {value}
-        </MarqueeText>
+        <MarqueeText style={[theme.typography('bodyMd'), styles.value]}>{value}</MarqueeText>
       </View>
       {onPress ? <Icon name="chevron" size="sm" color={theme.colors.outline} /> : null}
     </View>

@@ -48,13 +48,20 @@ function jalali(isoDate: string): string | null {
  * kind and file, the two sides, the amount, a days-left (or status) tag,
  * then the end date with «یادآوری تمدید» or «جزئیات».
  */
-export function ContractListItem({ contract, onPress, onLongPress, onRenewReminder }: Props): React.JSX.Element {
+export function ContractListItem({
+  contract,
+  onPress,
+  onLongPress,
+  onRenewReminder
+}: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
-  const label = `${contract.property?.title ?? 'ملک نامشخص'} - ${contract.applicant?.fullName ?? 'متقاضی نامشخص'}`
+  const label = `${contract.property?.title ?? contract.propertyLabel ?? 'ملک نامشخص'} - ${contract.applicant?.fullName ?? contract.applicantLabel ?? 'متقاضی نامشخص'}`
   const property = contract.property
-  const title = [contract.type, property?.title ?? 'ملک نامشخص'].filter(Boolean).join(' ')
-  const sides = contract.applicant?.fullName ?? 'متقاضی نامشخص'
+  const title = [contract.type, property?.title ?? contract.propertyLabel ?? 'ملک نامشخص']
+    .filter(Boolean)
+    .join(' ')
+  const sides = contract.applicant?.fullName ?? contract.applicantLabel ?? 'متقاضی نامشخص'
   const terms =
     contract.amount !== null && contract.amount > 0
       ? moneyLine(contract.amount, null, null)
@@ -66,12 +73,16 @@ export function ContractListItem({ contract, onPress, onLongPress, onRenewRemind
   const endText = jalali(contract.endDate)
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+    >
       <Card>
         <View style={styles.titleRow}>
-          <MarqueeText style={[theme.typography('titleSm'), styles.title]}>
-            {title}
-          </MarqueeText>
+          <MarqueeText style={[theme.typography('titleSm'), styles.title]}>{title}</MarqueeText>
           {endingSoon && days !== null ? (
             <View style={[styles.tag, styles.tagWarn]}>
               <Text style={[theme.typography('labelSm'), styles.tagWarnText]}>
@@ -79,25 +90,35 @@ export function ContractListItem({ contract, onPress, onLongPress, onRenewRemind
               </Text>
             </View>
           ) : (
-            <View style={[styles.tag, contract.status === 'active' ? styles.tagOk : styles.tagNeutral]}>
-              <Text style={[theme.typography('labelSm'), contract.status === 'active' ? styles.tagOkText : styles.tagNeutralText]}>
+            <View
+              style={[styles.tag, contract.status === 'active' ? styles.tagOk : styles.tagNeutral]}
+            >
+              <Text
+                style={[
+                  theme.typography('labelSm'),
+                  contract.status === 'active' ? styles.tagOkText : styles.tagNeutralText
+                ]}
+              >
                 {CONTRACT_STATUS_LABELS[contract.status]}
               </Text>
             </View>
           )}
         </View>
-        <MarqueeText style={[theme.typography('bodySm'), styles.muted]}>
-          {sides}
-        </MarqueeText>
+        <MarqueeText style={[theme.typography('bodySm'), styles.muted]}>{sides}</MarqueeText>
         {terms ? (
-          <MarqueeText style={[theme.typography('bodyMd'), styles.terms]}>
-            {terms}
-          </MarqueeText>
+          <MarqueeText style={[theme.typography('bodyMd'), styles.terms]}>{terms}</MarqueeText>
         ) : null}
         <View style={styles.footer}>
-          <Text style={[theme.typography('labelSm'), styles.muted]}>{endText ? `پایان: ${endText}` : ''}</Text>
+          <Text style={[theme.typography('labelSm'), styles.muted]}>
+            {endText ? `پایان: ${endText}` : ''}
+          </Text>
           {endingSoon && onRenewReminder ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="یادآوری تمدید" onPress={onRenewReminder} hitSlop={8}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="یادآوری تمدید"
+              onPress={onRenewReminder}
+              hitSlop={8}
+            >
               <Text style={[theme.typography('labelMd'), styles.action]}>یادآوری تمدید</Text>
             </Pressable>
           ) : (
@@ -119,7 +140,11 @@ function createStyles(theme: Theme) {
       gap: theme.spacing.space2
     },
     title: { color: theme.colors.onSurface, flexShrink: 1 },
-    muted: { color: theme.colors.onSurfaceVariant, marginTop: theme.spacing.space1, alignSelf: start },
+    muted: {
+      color: theme.colors.onSurfaceVariant,
+      marginTop: theme.spacing.space1,
+      alignSelf: start
+    },
     terms: { color: theme.colors.onSurface, marginTop: theme.spacing.space1, alignSelf: start },
     tag: {
       paddingHorizontal: theme.spacing.space3,

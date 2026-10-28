@@ -10,19 +10,20 @@ function fakeDb(counts: Record<string, number>): DB {
   } as unknown as DB
 }
 
-describe('linkedRecords (#5716)', () => {
-  it('names what a file is linked to, in Persian', async () => {
-    const links = await linkedTo(fakeDb({ contracts: 2, reminders: 1 }), 'property_id', 'p1')
-    expect(links).toBe('۲ قرارداد و ۱ یادآوری')
+describe('linkedRecords (#5716, Amin #5864)', () => {
+  it('only deals hold a file back; the sentence names them in Persian', async () => {
+    const links = await linkedTo(
+      fakeDb({ deals: 2, contracts: 1, reminders: 3 }),
+      'property_id',
+      'p1'
+    )
+    expect(links).toBe('۲ معامله')
     expect(linkedMessage('این فایل', links!)).toBe(
-      'این فایل به ۲ قرارداد و ۱ یادآوری وصل است؛ برای حذف، اول آن‌ها را حذف کنید.'
+      'این فایل به ۲ معامله وصل است؛ برای حذف، اول آن‌ها را حذف کنید.'
     )
   })
 
-  it('lists three with a comma, and is null when nothing links', async () => {
-    expect(
-      await linkedTo(fakeDb({ contracts: 1, deals: 1, reminders: 3 }), 'applicant_id', 'a1')
-    ).toBe('۱ قرارداد، ۱ معامله و ۳ یادآوری')
-    expect(await linkedTo(fakeDb({}), 'applicant_id', 'a1')).toBeNull()
+  it('contracts and reminders alone do not block (they are handled on delete)', async () => {
+    expect(await linkedTo(fakeDb({ contracts: 1, reminders: 3 }), 'applicant_id', 'a1')).toBeNull()
   })
 })

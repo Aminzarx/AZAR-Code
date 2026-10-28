@@ -20,6 +20,9 @@ export type ContractRecord = {
   trackingCode: string | null
   /** The id of this contract's end-date reminder in the phone's native calendar, or null if none was created. */
   calendarEventId: string | null
+  /** Amin #5864: the file's / applicant's name, kept once they were deleted (the contract stays) */
+  propertyLabel?: string | null
+  applicantLabel?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -63,6 +66,8 @@ function toContract(row: Record<string, unknown>): ContractRecord {
     notes: row.notes as string | null,
     trackingCode: row.tracking_code as string | null,
     calendarEventId: row.calendar_event_id as string | null,
+    propertyLabel: (row.property_label as string | null) ?? null,
+    applicantLabel: (row.applicant_label as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string
   }

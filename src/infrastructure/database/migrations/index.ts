@@ -21,6 +21,7 @@ import { migration0019ServerSync } from './0019_server_sync'
 import { migration0020DeviceStore } from './0020_device_store'
 import { migration0021Photos } from './0021_photos'
 import { migration0022RegionApplicantBarter } from './0022_region_applicant_barter'
+import { migration0023ContractKeepsParties } from './0023_contract_keeps_parties'
 
 /**
  * Ordered by version, ascending — docs/architecture/migration-strategy.md
@@ -48,5 +49,6 @@ export const migrations: readonly Migration[] = [
   migration0019ServerSync,
   migration0020DeviceStore,
   migration0021Photos,
-  migration0022RegionApplicantBarter
+  migration0022RegionApplicantBarter,
+  migration0023ContractKeepsParties
 ]
