@@ -1,4 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import RNFS from 'react-native-fs'
 import { AppState } from 'react-native'
 import { SIGNED_IN_ELSEWHERE, setSignedOutNotice } from './signedOutNotice'
@@ -143,7 +151,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       setAuthApiClient(client)
       setUserRepository(new UserRepository(db))
       setSessionManager(manager)
-      const service = new SyncService(db, await getDeviceStore(), new SyncApiClient(AUTH_API_BASE_URL), rnfsFiles)
+      const service = new SyncService(
+        db,
+        await getDeviceStore(),
+        new SyncApiClient(AUTH_API_BASE_URL),
+        rnfsFiles
+      )
       if (currentSession) await service.claim(currentSession.userId)
       if (cancelled) {
         return
@@ -181,7 +194,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
             bumpFilesVersion()
           }
           const pending = await syncService.pendingCount()
-          setSync({ state: 'idle', pending, usage: await syncService.lastUsage(), loaded: true, settled: true })
+          setSync({
+            state: 'idle',
+            pending,
+            usage: await syncService.lastUsage(),
+            loaded: true,
+            settled: true
+          })
           syncFailures.current = 0
           syncPausedUntil.current = 0
           return pending
@@ -222,7 +241,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     if (!session || !syncService) return
     let stopped = false
     const tick = (): void => {
-      if (!stopped && Date.now() >= syncPausedUntil.current) syncOnce(session).catch(() => undefined)
+      if (!stopped && Date.now() >= syncPausedUntil.current)
+        syncOnce(session).catch(() => undefined)
     }
     tick()
     const timer = setInterval(tick, SYNC_EVERY_MS)
@@ -236,7 +256,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   useEffect(() => {
     if (!session || !syncService) return
     const ping = (): void => {
-      if (AppState.currentState === 'active') syncService.presence(session.sessionToken).catch(() => undefined)
+      if (AppState.currentState === 'active')
+        syncService.presence(session.sessionToken).catch(() => undefined)
     }
     ping()
     const timer = setInterval(ping, PRESENCE_EVERY_MS)
@@ -252,7 +273,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   // Its own callback too: inside the memo below it changed with every 3-second sync tick, and Settings asked the
   // server for the ledger each time (seen on the web build, 2026-10-25)
   const getTokenLedger = useCallback(
-    () => (session && syncService ? syncService.tokenLedger(session.sessionToken) : Promise.resolve(null)),
+    () =>
+      session && syncService
+        ? syncService.tokenLedger(session.sessionToken)
+        : Promise.resolve(null),
     [session, syncService]
   )
 
@@ -260,7 +284,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     () =>
       session && syncService
         ? {
-            list: async () => (await syncService.announcements.announcements(session.sessionToken)).announcements,
+            list: async () =>
+              (await syncService.announcements.announcements(session.sessionToken)).announcements,
             dismiss: async (id) => {
               await syncService.announcements.dismissAnnouncement(session.sessionToken, id)
             }
@@ -275,9 +300,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       session && syncService
         ? {
             quote: (tokens) => syncService.purchases.purchaseQuote(session.sessionToken, tokens),
-            buy: (tokens, key) => syncService.purchases.purchaseTokens(session.sessionToken, tokens, key),
-            status: async (orderId) => (await syncService.purchases.purchaseStatus(session.sessionToken, orderId)).order,
-            receipts: async () => (await syncService.purchases.tokenPurchases(session.sessionToken)).purchases
+            buy: (tokens, key) =>
+              syncService.purchases.purchaseTokens(session.sessionToken, tokens, key),
+            status: async (orderId) =>
+              (await syncService.purchases.purchaseStatus(session.sessionToken, orderId)).order,
+            receipts: async () =>
+              (await syncService.purchases.tokenPurchases(session.sessionToken)).purchases
           }
         : null,
     [session, syncService]
@@ -323,7 +351,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         await syncService.claim(result.userId)
         try {
           await syncService.restore(result.sessionToken, result.userId)
-          setSync({ ...IDLE_SYNC, loaded: true, settled: true, usage: await syncService.lastUsage() })
+          setSync({
+            ...IDLE_SYNC,
+            loaded: true,
+            settled: true,
+            usage: await syncService.lastUsage()
+          })
         } catch {
           // the sync round tries again; meanwhile the offline copy (if any) shows (Amin #5524)
           const copyAt = await syncService.offlineCopyAt().catch(() => null)
@@ -334,7 +367,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
 
     async function signOutHere(): Promise<void> {
       await exclusive(async () => {
-        await syncService?.wipe()
+        // Amin #5817: changes that never reached the server stay queued (encrypted) for the same number's next sign-in
+        if (syncService && (await syncService.pendingCount()) > 0) await syncService.forget()
+        else await syncService?.wipe()
         // Amin #5112: the account's renewal reminders leave the phone's calendar with it
         await clearAllAzarReminders()
         await sessionManager?.logout()
@@ -400,7 +435,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       },
       getSupportContacts: () => authApiClient.getSupportContacts()
     }
-  }, [authApiClient, sessionManager, session, isInitializing, userRepository, syncService, sync, syncOnce, exclusive, tokenPurchase, getTokenLedger, announcements])
+  }, [
+    authApiClient,
+    sessionManager,
+    session,
+    isInitializing,
+    userRepository,
+    syncService,
+    sync,
+    syncOnce,
+    exclusive,
+    tokenPurchase,
+    getTokenLedger,
+    announcements
+  ])
 
   return (
     <AuthContext.Provider value={value ?? { ...placeholderValue, isInitializing: true }}>
@@ -411,7 +459,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
 
 const PRESENCE_EVERY_MS = 2 * 60 * 1000
 
-const IDLE_SYNC: SyncStatus = { state: 'idle', pending: 0, usage: null, loaded: false, settled: false }
+const IDLE_SYNC: SyncStatus = {
+  state: 'idle',
+  pending: 0,
+  usage: null,
+  loaded: false,
+  settled: false
+}
 
 const placeholderValue: AuthContextValue = {
   isInitializing: true,

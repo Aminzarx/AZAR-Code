@@ -18,14 +18,22 @@ import QRCode from 'react-native-qrcode-svg'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useAuth } from '@features/auth/AuthProvider'
-import { PALETTE_LABELS, useAppearance, useTheme, type AppearanceMode, type Theme } from '@shared/theme'
+import {
+  PALETTE_LABELS,
+  useAppearance,
+  useTheme,
+  type AppearanceMode,
+  type Theme
+} from '@shared/theme'
 import {
   ConfirmDialog,
   Icon,
   LogoPlaceholder,
   MarqueeText,
-  OtpPromptDialog
+  OtpPromptDialog,
+  Snackbar
 } from '@shared/components'
+import { takeTokenNotice } from '../services/tokenBlock'
 import { getDatabase } from '@infrastructure/database/connection'
 import {
   SessionRepository,
@@ -41,7 +49,13 @@ import { SettingsRow } from '../components/SettingsRow'
 import { OptionsSheet, type SheetOption } from '../components/OptionsSheet'
 import { useProfile } from '../hooks/useProfile'
 import { TokenCard } from '../components/TokenCard'
-import { formatTokenAmount, normalizeSummary, tokenLevel, usedShare, type TokenSummary } from '../services/tokenLedger'
+import {
+  formatTokenAmount,
+  normalizeSummary,
+  tokenLevel,
+  usedShare,
+  type TokenSummary
+} from '../services/tokenLedger'
 import { closedReasonText } from '../services/tokenPurchase'
 import { photoUri } from '@infrastructure/images/profilePhoto'
 import type { SupportContacts } from '@infrastructure/auth/httpAuthApiClient'
@@ -73,8 +87,18 @@ export function SettingsScreen(props: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const appearance = useAppearance()
-  const { session, logout, sendOtp, verifyOtp, deleteAccount, getSupportContacts, getTokenLedger, tokenPurchase, sync, syncNow } =
-    useAuth()
+  const {
+    session,
+    logout,
+    sendOtp,
+    verifyOtp,
+    deleteAccount,
+    getSupportContacts,
+    getTokenLedger,
+    tokenPurchase,
+    sync,
+    syncNow
+  } = useAuth()
   const { profile } = useProfile()
   const displayName = profile.displayName
   const phoneNumber = profile.phoneNumber
@@ -88,22 +112,37 @@ export function SettingsScreen(props: Props): React.JSX.Element {
   const [isQrVisible, setIsQrVisible] = useState(false)
   const [isLogoutConfirmVisible, setIsLogoutConfirmVisible] = useState(false)
   const [unsentAtLogout, setUnsentAtLogout] = useState(0)
+  const [notice, setNotice] = useState<string | null>(null)
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 4000)
+    return () => clearTimeout(timer)
+  }, [notice])
   const [deleteStep, setDeleteStep] = useState<DeleteAccountStep>('closed')
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [tokens, setTokens] = useState<{ summary: TokenSummary | null; fresh: boolean }>({ summary: null, fresh: true })
+  const [tokens, setTokens] = useState<{ summary: TokenSummary | null; fresh: boolean }>({
+    summary: null,
+    fresh: true
+  })
 
   // Amin #5108: tokens change only when a file, an applicant or a contract is saved — so asked again on every visit
   // and after each sync round
   const loadTokens = useCallback(() => {
     getTokenLedger()
-      .then((result) => setTokens({ summary: normalizeSummary(result?.ledger.summary), fresh: result?.fresh ?? true }))
+      .then((result) =>
+        setTokens({
+          summary: normalizeSummary(result?.ledger.summary),
+          fresh: result?.fresh ?? true
+        })
+      )
       .catch(() => undefined)
   }, [getTokenLedger])
 
   // Amin #5245: once 95% is used, ask the server whether buying is open (the button is off with a reason otherwise)
   const [buy, setBuy] = useState<{ open: boolean; hint: string | null } | null>(null)
-  const nearlyOut = tokens.summary !== null && tokens.fresh && tokenLevel(usedShare(tokens.summary)) === 'danger'
+  const nearlyOut =
+    tokens.summary !== null && tokens.fresh && tokenLevel(usedShare(tokens.summary)) === 'danger'
   useEffect(() => {
     if (!nearlyOut || !tokenPurchase) {
       setBuy(null)
@@ -112,7 +151,11 @@ export function SettingsScreen(props: Props): React.JSX.Element {
     let live = true
     tokenPurchase
       .quote()
-      .then((offer) => live && setBuy({ open: offer.open, hint: offer.open ? null : closedReasonText(offer.reason) }))
+      .then(
+        (offer) =>
+          live &&
+          setBuy({ open: offer.open, hint: offer.open ? null : closedReasonText(offer.reason) })
+      )
       .catch(() => live && setBuy(null))
     return () => {
       live = false
@@ -127,7 +170,12 @@ export function SettingsScreen(props: Props): React.JSX.Element {
     if (typeof props.navigation.addListener !== 'function') {
       return undefined
     }
-    return props.navigation.addListener('focus', loadTokens)
+    return props.navigation.addListener('focus', () => {
+      loadTokens()
+      // Amin #5815: arrived from «افزودن فایل/متقاضی» with too few tokens — a short note over the buy button
+      const waiting = takeTokenNotice()
+      if (waiting) setNotice(waiting)
+    })
   }, [props.navigation, loadTokens])
 
   useEffect(() => {
@@ -167,11 +215,13 @@ export function SettingsScreen(props: Props): React.JSX.Element {
   function supportOptions(): SheetOption[] {
     const prefix = support?.prefix ?? 'پشتیبانی اپلیکیشن ایوان'
     const text = `${prefix}\n${displayName ? `${displayName} — ` : ''}${phoneNumber ? toPersianDigits(formatIranPhoneNumberForDisplay(phoneNumber)) : ''}\n`
-    const open = (url: string, copyFirst = false) => () => {
-      if (copyFirst) Clipboard.setString(text)
-      setIsSupportSheetVisible(false)
-      Linking.openURL(url).catch(() => setSupportError('این پیام‌رسان روی گوشی نصب نیست.'))
-    }
+    const open =
+      (url: string, copyFirst = false) =>
+      () => {
+        if (copyFirst) Clipboard.setString(text)
+        setIsSupportSheetVisible(false)
+        Linking.openURL(url).catch(() => setSupportError('این پیام‌رسان روی گوشی نصب نیست.'))
+      }
     const soon = 'به‌زودی'
     return [
       {
@@ -223,10 +273,16 @@ export function SettingsScreen(props: Props): React.JSX.Element {
     logout()
   }
 
-  /** AZAR-SYNC-001: sends what is waiting first, so signing out loses nothing when online. */
-  async function handleAskLogout(): Promise<void> {
-    setUnsentAtLogout(await syncNow().catch(() => sync.pending))
+  /**
+   * AZAR-SYNC-001: tries to send what is waiting, so the count shown is what is left. Amin #5817: the question opens
+   * at once (it used to wait for the whole round, photos too, and the button looked dead); the count follows.
+   */
+  function handleAskLogout(): void {
+    setUnsentAtLogout(sync.pending)
     setIsLogoutConfirmVisible(true)
+    syncNow()
+      .then(setUnsentAtLogout)
+      .catch(() => undefined)
   }
 
   async function handleStartAccountDeletion(): Promise<void> {
@@ -270,7 +326,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
       setIsDeleting(false)
     }
   }
-
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -324,7 +379,10 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             </Text>
             <View style={styles.inviteRow}>
               <View style={styles.inviteCode}>
-                <Text accessibilityLabel="کد معرف شما" style={[theme.typography('titleMd'), styles.inviteCodeText]}>
+                <Text
+                  accessibilityLabel="کد معرف شما"
+                  style={[theme.typography('titleMd'), styles.inviteCodeText]}
+                >
                   {session.referralCode}
                 </Text>
                 <Pressable
@@ -353,7 +411,9 @@ export function SettingsScreen(props: Props): React.JSX.Element {
                 style={[styles.inviteAction, styles.inviteActionWide]}
               >
                 <Icon name="sms" size="sm" color={theme.colors.onBrand} />
-                <Text style={[theme.typography('labelMd'), styles.inviteActionText]}>دعوت با پیامک</Text>
+                <Text style={[theme.typography('labelMd'), styles.inviteActionText]}>
+                  دعوت با پیامک
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -364,7 +424,11 @@ export function SettingsScreen(props: Props): React.JSX.Element {
                 <Icon name="qr" size="sm" color={theme.colors.onBrand} />
               </Pressable>
             </View>
-            <ReferralQrPopup code={session.referralCode} visible={isQrVisible} onClose={() => setIsQrVisible(false)} />
+            <ReferralQrPopup
+              code={session.referralCode}
+              visible={isQrVisible}
+              onClose={() => setIsQrVisible(false)}
+            />
           </View>
         ) : null}
 
@@ -420,7 +484,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             label="خروج از حساب"
             destructive
             onPress={() => {
-              handleAskLogout().catch(() => undefined)
+              handleAskLogout()
             }}
             last
           />
@@ -436,7 +500,9 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           style={styles.deleteAccount}
           hitSlop={theme.spacing.space2}
         >
-          <Text style={[theme.typography('labelSm'), styles.deleteAccountText]}>حذف حساب کاربری</Text>
+          <Text style={[theme.typography('labelSm'), styles.deleteAccountText]}>
+            حذف حساب کاربری
+          </Text>
         </Pressable>
 
         {/* v1.4.0 (Amin #4324): whose app this is, linked to the company site; Amin #5715: the company logo instead of the address */}
@@ -463,28 +529,29 @@ export function SettingsScreen(props: Props): React.JSX.Element {
         </Text>
       </ScrollView>
 
-      <InviteSmsDialog
-        visible={isInviteVisible}
-        onClose={() => setIsInviteVisible(false)}
-      />
+      <InviteSmsDialog visible={isInviteVisible} onClose={() => setIsInviteVisible(false)} />
 
       <OptionsSheet
         visible={isSupportSheetVisible}
         title="راهنما و پشتیبانی"
-        lead={supportError ?? 'پیام‌رسان دلخواهتان را انتخاب کنید تا با پشتیبانی ایوان گفت‌وگو کنید.'}
+        lead={
+          supportError ?? 'پیام‌رسان دلخواهتان را انتخاب کنید تا با پشتیبانی ایوان گفت‌وگو کنید.'
+        }
         onClose={() => setIsSupportSheetVisible(false)}
         options={supportOptions()}
       />
+
+      <Snackbar visible={notice !== null} message={notice ?? ''} />
 
       <ConfirmDialog
         visible={isLogoutConfirmVisible}
         title="خروج از حساب"
         description={
           unsentAtLogout > 0
-            ? `${persianNumber(unsentAtLogout)} تغییر هنوز به سرور نرسیده و با خروج از این گوشی پاک می‌شود. برای نگه داشتن آن‌ها، اول به اینترنت وصل شوید.`
+            ? `${persianNumber(unsentAtLogout)} تغییر هنوز به سرور نرسیده؛ روی همین گوشی می‌ماند و با ورود دوباره با همین شماره فرستاده می‌شود.`
             : 'پرونده‌هایتان روی حساب شما می‌ماند و از این گوشی پاک می‌شود؛ با ورود دوباره، همه برمی‌گردد.'
         }
-        confirmLabel={unsentAtLogout > 0 ? 'خروج و پاک کردن' : 'خروج'}
+        confirmLabel="خروج"
         destructive
         onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutConfirmVisible(false)}
@@ -511,7 +578,6 @@ export function SettingsScreen(props: Props): React.JSX.Element {
         onConfirm={handleConfirmAccountDeletion}
         onCancel={() => setDeleteStep('closed')}
       />
-
     </SafeAreaView>
   )
 }
@@ -519,7 +585,11 @@ export function SettingsScreen(props: Props): React.JSX.Element {
 const COMPANY_SITE_URL = 'https://kssx.ir'
 const COMPANY_LOGO_WIDTH = 180
 
-const APPEARANCE_LABELS: Record<AppearanceMode, string> = { light: 'روشن', dark: 'تیره', system: 'هماهنگ با گوشی' }
+const APPEARANCE_LABELS: Record<AppearanceMode, string> = {
+  light: 'روشن',
+  dark: 'تیره',
+  system: 'هماهنگ با گوشی'
+}
 
 /** Amin #5160: the referrer's barcode opens in its own popup, as wide as the screen allows with a proper margin */
 function ReferralQrPopup({
@@ -538,14 +608,32 @@ function ReferralQrPopup({
   const qrSize = Math.round(cardWidth - theme.spacing.space5 * 2)
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.qrBackdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن بارکد">
-        <Pressable style={[styles.qrPopup, { width: cardWidth }]} onPress={(event) => event.stopPropagation()}>
+      <Pressable
+        style={styles.qrBackdrop}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="بستن بارکد"
+      >
+        <Pressable
+          style={[styles.qrPopup, { width: cardWidth }]}
+          onPress={(event) => event.stopPropagation()}
+        >
           <Text style={[theme.typography('titleSm'), styles.qrTitle]}>بارکد معرف</Text>
           <View style={styles.qrWhite}>
-            <QRCode value={code} size={qrSize - theme.spacing.space3 * 2} color={theme.colors.brand} backgroundColor="#FFFFFF" />
+            <QRCode
+              value={code}
+              size={qrSize - theme.spacing.space3 * 2}
+              color={theme.colors.brand}
+              backgroundColor="#FFFFFF"
+            />
           </View>
           <Text style={[theme.typography('titleMd'), styles.qrCode]}>{code}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="بستن" onPress={onClose} style={styles.qrClose}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="بستن"
+            onPress={onClose}
+            style={styles.qrClose}
+          >
             <Text style={[theme.typography('labelMd'), styles.qrCloseText]}>بستن</Text>
           </Pressable>
         </Pressable>
@@ -600,7 +688,12 @@ function createStyles(theme: Theme) {
     },
     inviteTitle: { color: theme.colors.onBrand, alignSelf: start },
     inviteLead: { color: 'rgba(255,255,255,0.75)', alignSelf: start },
-    inviteRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.space2, marginTop: theme.spacing.space2 },
+    inviteRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.space2,
+      marginTop: theme.spacing.space2
+    },
     inviteCode: {
       flex: 1,
       flexDirection: 'row',
@@ -786,7 +879,11 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.surfaceContainerLowest
     },
     qrTitle: { color: theme.colors.onSurface },
-    qrWhite: { padding: theme.spacing.space3, borderRadius: theme.radius.large, backgroundColor: '#FFFFFF' },
+    qrWhite: {
+      padding: theme.spacing.space3,
+      borderRadius: theme.radius.large,
+      backgroundColor: '#FFFFFF'
+    },
     qrClose: {
       alignSelf: 'stretch',
       minHeight: theme.touchTargetMinimum,

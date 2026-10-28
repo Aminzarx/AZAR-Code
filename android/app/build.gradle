@@ -82,7 +82,7 @@ android {
         applicationId "com.azarapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 17
+        versionCode 18
         // Amin #5325: the version comes from package.json (the app reads the same field)
         versionName new groovy.json.JsonSlurper().parse(file("../../package.json")).version
     }

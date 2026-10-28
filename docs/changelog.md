@@ -6,6 +6,12 @@ entries exist even before any code ships.
 
 ---
 
+## 1.5.11 — no new file or applicant without tokens; sign-out keeps unsent changes; names side by side (Amin #5815, #5817)
+
+- **#5815:** once 95% of the tokens are used (from the last kept token figures, so offline too), or the server has already refused a save for lack of tokens, «افزودن فایل» / «افزودن متقاضی» (every entry point, incl. a Divar share) leads to «تنظیمات» — where the buy button is — with a 4-second note «توکن کافی برای ثبت را ندارید». `withTokens` in `features/settings/services/tokenBlock.tsx`, wrapped inside `withLicence` in MainNavigator. Edits to existing files still save and stay queued.
+- **#5817 sign-out:** the question opens at once (it used to wait for a whole sync round, photos included, and the button looked dead); the unsent count follows. Unsent changes are no longer wiped: sign-out `forget()`s the working copy and keeps the encrypted queue for the same number's next sign-in (as on «signed in elsewhere»).
+- **#5817 names:** «نام» and «نام خانوادگی» are two fields on one row in the new-account step and in «ویرایش پروفایل» (still stored as one display name).
+
 ## 2026-08-08 — Phase 0 discovery
 
 **Change**: Created `/docs/00-project-overview.md` documenting the current

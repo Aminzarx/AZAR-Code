@@ -49,30 +49,39 @@ export function RegisterNameScreen({ navigation, route }: Props): React.JSX.Elem
     <AuthScreenContainer>
       <View style={styles.header}>
         <Text style={[theme.typography('titleMd'), styles.headerTitle]}>معرفی خودتان</Text>
-        <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>حساب تازه است؛ نام خود را بنویسید.</Text>
+        <Text style={[theme.typography('bodyMd'), styles.headerSubtitle]}>
+          حساب تازه است؛ نام خود را بنویسید.
+        </Text>
       </View>
       <View style={styles.form}>
-        <TextInput
-          label="نام"
-          required
-          value={firstName}
-          onChangeText={setFirstName}
-          placeholder="مثلاً علی"
-          errorMessage={firstError}
-          autoFocus
-          returnKeyType="done"
-          onSubmitEditing={handleContinue}
-        />
-        <TextInput
-          label="نام خانوادگی"
-          required
-          value={lastName}
-          onChangeText={setLastName}
-          placeholder="مثلاً رضایی"
-          errorMessage={lastError}
-          returnKeyType="done"
-          onSubmitEditing={handleContinue}
-        />
+        {/* Amin #5817: first and last name side by side */}
+        <View style={styles.nameRow}>
+          <View style={styles.half}>
+            <TextInput
+              label="نام"
+              required
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="مثلاً علی"
+              errorMessage={firstError}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleContinue}
+            />
+          </View>
+          <View style={styles.half}>
+            <TextInput
+              label="نام خانوادگی"
+              required
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="مثلاً رضایی"
+              errorMessage={lastError}
+              returnKeyType="done"
+              onSubmitEditing={handleContinue}
+            />
+          </View>
+        </View>
         <TextInput
           label="نام مشاور املاک (اختیاری)"
           value={agency}
@@ -93,6 +102,8 @@ function createStyles(theme: Theme) {
     header: { gap: theme.spacing.space2, marginBottom: theme.spacing.space8 },
     headerTitle: { color: theme.colors.primary, alignSelf: start },
     headerSubtitle: { color: theme.colors.onSurfaceVariant, alignSelf: start },
-    form: { gap: theme.spacing.space5 }
+    form: { gap: theme.spacing.space5 },
+    nameRow: { flexDirection: 'row', gap: theme.spacing.space3, alignItems: 'flex-start' },
+    half: { flex: 1 }
   })
 }

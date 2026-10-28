@@ -2,10 +2,21 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { useTheme, type Theme } from '@shared/theme'
-import { Button, FormScreenContainer, Icon, LogoPlaceholder, TextInput, type IconName } from '@shared/components'
+import {
+  Button,
+  FormScreenContainer,
+  Icon,
+  LogoPlaceholder,
+  TextInput,
+  type IconName
+} from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { formatIranPhoneNumberForDisplay } from '@shared/utils/iranPhoneNumber'
-import { photoUri, pickProfilePhoto, removeProfilePhotoFile } from '@infrastructure/images/profilePhoto'
+import {
+  photoUri,
+  pickProfilePhoto,
+  removeProfilePhotoFile
+} from '@infrastructure/images/profilePhoto'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { saveProfile, useProfile } from '../hooks/useProfile'
 
@@ -23,7 +34,10 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   const theme = useTheme()
   const styles = createStyles(theme)
   const { profile } = useProfile()
-  const [name, setName] = useState('')
+  // Amin #5817: first and last name as two fields on one row; kept as one display name («علی رضایی»)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const name = `${firstName.trim()} ${lastName.trim()}`.trim()
   const [agency, setAgency] = useState('')
   const [photoPath, setPhotoPath] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -36,8 +50,14 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   // fill the form once, from the first load; later reloads (coming back from
   // «تغییر شماره») only refresh the number, not what the user is typing
   useEffect(() => {
-    if (!loaded && (profile.displayName !== null || profile.phoneNumber !== null || profile.photoPath !== null)) {
-      setName(profile.displayName ?? '')
+    if (
+      !loaded &&
+      (profile.displayName !== null || profile.phoneNumber !== null || profile.photoPath !== null)
+    ) {
+      const whole = (profile.displayName ?? '').trim()
+      const space = whole.indexOf(' ')
+      setFirstName(space < 0 ? whole : whole.slice(0, space))
+      setLastName(space < 0 ? '' : whole.slice(space + 1).trim())
       setAgency(profile.agencyName ?? '')
       setPhotoPath(profile.photoPath)
       setLoaded(true)
@@ -66,7 +86,7 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   }
 
   async function handleSave(): Promise<void> {
-    if (!name.trim()) {
+    if (!firstName.trim() || !lastName.trim()) {
       setError('نام و نام خانوادگی را بنویسید.')
       return
     }
@@ -74,7 +94,8 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
     setIsSaving(true)
     try {
       await saveProfile({ displayName: name, agencyName: agency, photoPath })
-      if (profile.photoPath && profile.photoPath !== photoPath) await removeProfilePhotoFile(profile.photoPath)
+      if (profile.photoPath && profile.photoPath !== photoPath)
+        await removeProfilePhotoFile(profile.photoPath)
       navigation.goBack()
     } catch {
       setError('ذخیره نشد. دوباره تلاش کنید.')
@@ -88,7 +109,9 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       return
     }
     // the menu opens just under the photo, centred on it
-    frameRef.current?.measureInWindow((x, y, width, height) => setMenuAt({ x: x + width / 2, y: y + height + 8 }))
+    frameRef.current?.measureInWindow((x, y, width, height) =>
+      setMenuAt({ x: x + width / 2, y: y + height + 8 })
+    )
   }
 
   function handleMenu(action: 'change' | 'remove'): void {
@@ -105,7 +128,12 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
       onBack={() => navigation.goBack()}
       isDirty={isDirty}
       footer={
-        <Button label="ذخیرهٔ پروفایل" onPress={handleSave} loading={isSaving} disabled={!isDirty && loaded} />
+        <Button
+          label="ذخیرهٔ پروفایل"
+          onPress={handleSave}
+          loading={isSaving}
+          disabled={!isDirty && loaded}
+        />
       }
     >
       <View style={styles.photoBlock}>
@@ -128,23 +156,69 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
           </View>
         </Pressable>
         <Text style={[theme.typography('bodySm'), styles.hint]}>
-          {isPicking ? 'در حال آماده‌سازی عکس…' : uri ? 'برای تغییر یا حذف عکس، روی آن بزنید.' : 'برای گذاشتن عکس، روی دایره بزنید.'}
+          {isPicking
+            ? 'در حال آماده‌سازی عکس…'
+            : uri
+              ? 'برای تغییر یا حذف عکس، روی آن بزنید.'
+              : 'برای گذاشتن عکس، روی دایره بزنید.'}
         </Text>
       </View>
 
-      <Modal visible={menuAt !== null} transparent animationType="fade" onRequestClose={() => setMenuAt(null)}>
-        <Pressable style={styles.menuBackdrop} onPress={() => setMenuAt(null)} accessibilityRole="button" accessibilityLabel="بستن">
+      <Modal
+        visible={menuAt !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuAt(null)}
+      >
+        <Pressable
+          style={styles.menuBackdrop}
+          onPress={() => setMenuAt(null)}
+          accessibilityRole="button"
+          accessibilityLabel="بستن"
+        >
           {menuAt ? (
             <View style={[styles.menu, { top: menuAt.y, left: menuAt.x - MENU_WIDTH / 2 }]}>
-              <MenuRow icon="camera" label="تغییر عکس" onPress={() => handleMenu('change')} theme={theme} styles={styles} />
+              <MenuRow
+                icon="camera"
+                label="تغییر عکس"
+                onPress={() => handleMenu('change')}
+                theme={theme}
+                styles={styles}
+              />
               <View style={styles.menuDivider} />
-              <MenuRow icon="trash" label="حذف عکس" danger onPress={() => handleMenu('remove')} theme={theme} styles={styles} />
+              <MenuRow
+                icon="trash"
+                label="حذف عکس"
+                danger
+                onPress={() => handleMenu('remove')}
+                theme={theme}
+                styles={styles}
+              />
             </View>
           ) : null}
         </Pressable>
       </Modal>
 
-      <TextInput label="نام و نام خانوادگی" required value={name} onChangeText={setName} placeholder="مثلاً علی رضایی" />
+      <View style={styles.nameRow}>
+        <View style={styles.half}>
+          <TextInput
+            label="نام"
+            required
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder="مثلاً علی"
+          />
+        </View>
+        <View style={styles.half}>
+          <TextInput
+            label="نام خانوادگی"
+            required
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder="مثلاً رضایی"
+          />
+        </View>
+      </View>
       <TextInput
         label="نام مشاور املاک (اختیاری)"
         value={agency}
@@ -156,7 +230,9 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
         <View style={styles.phoneText}>
           <Text style={[theme.typography('labelMd'), styles.phoneLabel]}>شمارهٔ موبایل</Text>
           <Text style={[theme.typography('titleSm'), styles.phoneValue]}>
-            {profile.phoneNumber ? toPersianDigits(formatIranPhoneNumberForDisplay(profile.phoneNumber)) : '-'}
+            {profile.phoneNumber
+              ? toPersianDigits(formatIranPhoneNumberForDisplay(profile.phoneNumber))
+              : '-'}
           </Text>
         </View>
         <Pressable
@@ -175,7 +251,14 @@ export function ProfileScreen({ navigation }: Props): React.JSX.Element {
   )
 }
 
-function MenuRow({ icon, label, danger, onPress, theme, styles }: {
+function MenuRow({
+  icon,
+  label,
+  danger,
+  onPress,
+  theme,
+  styles
+}: {
   icon: IconName
   label: string
   danger?: boolean
@@ -185,7 +268,12 @@ function MenuRow({ icon, label, danger, onPress, theme, styles }: {
 }): React.JSX.Element {
   const color = danger ? theme.colors.error : theme.colors.onSurface
   return (
-    <Pressable accessibilityRole="menuitem" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}>
+    <Pressable
+      accessibilityRole="menuitem"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
+    >
       <Icon name={icon} size="sm" color={color} />
       <Text style={[theme.typography('bodyMd'), { color }]}>{label}</Text>
     </Pressable>
@@ -197,7 +285,13 @@ const MENU_WIDTH = 200
 
 function createStyles(theme: Theme) {
   return StyleSheet.create({
-    photoBlock: { alignItems: 'center', gap: theme.spacing.space2, paddingTop: theme.spacing.space2 },
+    nameRow: { flexDirection: 'row', gap: theme.spacing.space3, alignItems: 'flex-start' },
+    half: { flex: 1 },
+    photoBlock: {
+      alignItems: 'center',
+      gap: theme.spacing.space2,
+      paddingTop: theme.spacing.space2
+    },
     photoFrame: { width: PHOTO, height: PHOTO },
     photo: { width: PHOTO, height: PHOTO, borderRadius: PHOTO / 2 },
     cameraBadge: {
@@ -236,7 +330,11 @@ function createStyles(theme: Theme) {
       paddingHorizontal: theme.spacing.space4
     },
     menuRowPressed: { backgroundColor: theme.colors.surfaceContainerLow },
-    menuDivider: { height: 1, backgroundColor: theme.colors.outlineVariant, marginHorizontal: theme.spacing.space3 },
+    menuDivider: {
+      height: 1,
+      backgroundColor: theme.colors.outlineVariant,
+      marginHorizontal: theme.spacing.space3
+    },
     hint: { color: theme.colors.onSurfaceVariant, textAlign: 'center' }, // rtl-allow: hint under the centred photo
     phoneCard: {
       flexDirection: 'row',

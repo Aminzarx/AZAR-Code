@@ -7,6 +7,7 @@ import { CreatePropertyScreen } from '@features/property/screens/CreatePropertyS
 import { PropertyDetailScreen } from '@features/property/screens/PropertyDetailScreen'
 import { ApplicantListScreen } from '@features/applicant/screens/ApplicantListScreen'
 import { CreateApplicantScreen } from '@features/applicant/screens/CreateApplicantScreen'
+import { withTokens } from '@features/settings/services/tokenBlock'
 import { ApplicantDetailScreen } from '@features/applicant/screens/ApplicantDetailScreen'
 import { MatchingScreen } from '@features/matching/screens/MatchingScreen'
 import { DealListScreen } from '@features/deal/screens/DealListScreen'
@@ -27,7 +28,13 @@ import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
 import { withLicence } from '@features/licence/LicenceLocked'
-import { getFocusedRouteNameFromRoute, StackActions, useIsFocused, type RouteProp, type ParamListBase } from '@react-navigation/native'
+import {
+  getFocusedRouteNameFromRoute,
+  StackActions,
+  useIsFocused,
+  type RouteProp,
+  type ParamListBase
+} from '@react-navigation/native'
 import { createSwipeTabNavigator } from './SwipeTabs'
 import { setScreenshotsAllowed } from '@infrastructure/security/screenshots'
 
@@ -103,8 +110,9 @@ const TAB_ICONS: Record<TabName, IconName> = {
  */
 // Amin #4906: after the licence ends, adding files, matching and the whole contract section are closed; every
 // other screen stays open for reading (their edit actions follow useLicence()).
-const LockedCreateProperty = withLicence(CreatePropertyScreen, 'ثبت فایل تازه')
-const LockedCreateApplicant = withLicence(CreateApplicantScreen, 'ثبت متقاضی تازه')
+// Amin #5815: and none at all once 95% of the tokens are used
+const LockedCreateProperty = withLicence(withTokens(CreatePropertyScreen), 'ثبت فایل تازه')
+const LockedCreateApplicant = withLicence(withTokens(CreateApplicantScreen), 'ثبت متقاضی تازه')
 const LockedMatching = withLicence(MatchingScreen, 'تطبیق')
 const LockedCreateReminder = withLicence(CreateReminderScreen, 'یادآوری تازه')
 const LockedContractList = withLicence(ContractListScreen, 'بخش قراردادها')
@@ -135,7 +143,14 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
 ]
 
 /** Amin #5162: screenshots are allowed only in the Settings section (its first page and the pages it opens) */
-const SETTINGS_PAGES = new Set<string>(['Settings', 'Profile', 'ChangePhone', 'BuyTokens', 'Personalize', 'Connections'])
+const SETTINGS_PAGES = new Set<string>([
+  'Settings',
+  'Profile',
+  'ChangePhone',
+  'BuyTokens',
+  'Personalize',
+  'Connections'
+])
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
   return function TabStack({
@@ -167,7 +182,10 @@ function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentTy
     }, [isTabFocused, navigation, route.key])
     return (
       // Amin #5186: a new page inside a section slides in from the left and slides back out to the left
-      <Stack.Navigator initialRouteName={root} screenOptions={{ headerShown: false, animation: 'slide_from_left' }}>
+      <Stack.Navigator
+        initialRouteName={root}
+        screenOptions={{ headerShown: false, animation: 'slide_from_left' }}
+      >
         <Stack.Screen name={root} component={RootScreen} />
         {SHARED_SCREENS.filter(([name]) => name !== root).map(([name, component]) => (
           <Stack.Screen key={name} name={name} component={component} />

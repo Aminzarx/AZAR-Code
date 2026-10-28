@@ -323,15 +323,15 @@ describe('SettingsScreen', () => {
     expect(queryByText('نسخه پشتیبان')).toBeNull()
   })
 
-  it('warns before signing out when changes have not reached the server', async () => {
+  it('signing out keeps changes that have not reached the server, and asks at once (Amin #5817)', async () => {
     mockSync = { state: 'offline', pending: 3, usage: null, loaded: true, settled: true }
     mockSyncNow.mockResolvedValue(3)
     const { findByLabelText, findByText } = await render(
       withTheme(<SettingsScreen navigation={navigationProp} route={routeProp} />)
     )
     fireEvent.press(await findByLabelText('خروج از حساب'))
-    expect(await findByText(/۳ تغییر هنوز به سرور نرسیده/)).toBeTruthy()
-    fireEvent.press(await findByText('خروج و پاک کردن'))
+    expect(await findByText(/۳ تغییر هنوز به سرور نرسیده؛ روی همین گوشی می‌ماند/)).toBeTruthy()
+    fireEvent.press(await findByText('خروج'))
     await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1))
   })
 
