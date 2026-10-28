@@ -186,13 +186,9 @@ export function CreatePropertyScreen({ navigation, route }: Props): React.JSX.El
       }
       setIsDirty(false)
       markSaved()
-      // v1.4.0 (Amin #4311): after saving, go back to whatever opened the form
-      // (the list, a deal, a property…); the new record is there at the top.
-      if (navigation.canGoBack?.()) {
-        navigation.goBack()
-      } else {
-        navigation.replace('PropertyDetail', { propertyId: property.id })
-      }
+      // Amin #5977: after saving, the new file's own page (its info card) takes the form's place; Back from it still
+      // returns to whatever opened the form (Amin #4311)
+      navigation.replace('PropertyDetail', { propertyId: property.id })
     } catch (caughtError) {
       if (caughtError instanceof PropertyValidationError) {
         setErrors(caughtError.fieldErrors)
