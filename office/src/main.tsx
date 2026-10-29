@@ -8,11 +8,12 @@ import { applyTheme } from './lib/theme';
 import { ago } from './lib/fmt';
 import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, PageHeader, SearchBox, Segmented, Skeleton, ToastProvider, useAction, useConfirm, useToast } from './ui/kit';
 import { Icon } from './ui/icons';
-import { api, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules } from './api';
+import qrcode from 'qrcode-generator';
+import { api, ApiError, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules } from './api';
 
 /**
  * EYVAN office dashboard (Amin #5659/#5664/#5909/#5913/#5934): the real-estate office manager's own dashboard —
- * its own address and phone-code login, the IRIS panel's components and tokens. Every number comes from the
+ * its own sign-in («ورود با ایوان» or username + password, Amin #6033/#6034), the IRIS panel's components and tokens. Every number comes from the
  * office's files on the server and the work of the advisers who joined with a code.
  */
 applyTheme('light');
@@ -37,43 +38,129 @@ const dayNum = (d: string) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { da
 const today = () => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Tehran' }).format(new Date());
 
 // ------------------------------------------------------------------ login ----
+/** a QR as SVG squares (no outside service; CSP keeps everything on our own address) */
+function Qr({ text, size = 176 }: { text: string; size?: number }) {
+  const cells = useMemo(() => {
+    const q = qrcode(0, 'M');
+    q.addData(text);
+    q.make();
+    const n = q.getModuleCount();
+    const on: string[] = [];
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) on.push(`M${c + 2} ${r + 2}h1v1h-1z`);
+    return { n: n + 4, d: on.join('') };
+  }, [text]);
+  return (
+    <svg className="qr" viewBox={`0 0 ${cells.n} ${cells.n}`} width={size} height={size} role="img" aria-label="کد QR ورود با ایوان" shapeRendering="crispEdges">
+      <rect width={cells.n} height={cells.n} fill="#fff" />
+      <path d={cells.d} fill="#000" />
+    </svg>
+  );
+}
+
+/** Amin #6033 «ورود با ایوان»: a 2-minute code + its QR; the account's EYVAN app confirms it; we poll for the session */
+function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
+  const [link, setLink] = useState<{ code: string; poll: string; expiresAt: string } | null>(null);
+  const [left, setLeft] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const start = useCallback(() => {
+    setError(null);
+    setLink(null);
+    api.linkStart().then(setLink, (e: Error) => setError(e.message));
+  }, []);
+  useEffect(start, [start]);
+  useEffect(() => {
+    if (!link) return;
+    let alive = true;
+    const tick = () => setLeft(Math.max(0, Math.round((Date.parse(link.expiresAt) - Date.now()) / 1000)));
+    tick();
+    const clock = setInterval(tick, 1000);
+    const poll = setInterval(() => {
+      api.linkPoll(link.poll).then((r) => {
+        if (alive && 'token' in r) { alive = false; onSession(r); }
+      }, (e: ApiError & { ticket?: string }) => {
+        if (!alive) return;
+        if (e.code === 'no_office' && e.ticket) { alive = false; onSession({ ticket: e.ticket }); }
+        else if (e.code === 'link_expired') { alive = false; setLink(null); setError(e.message); }
+        else if (e.status !== 0 && e.status !== 429) { alive = false; setError(e.message); setLink(null); }
+      });
+    }, 2000);
+    return () => { alive = false; clearInterval(clock); clearInterval(poll); };
+  }, [link, onSession]);
+  const spaced = link ? fa4(link.code) : '';
+  return (
+    <div className="eyvan-link">
+      <p className="muted">برنامهٔ ایوان را روی گوشی باز کنید، «اسکن کد» را بزنید و این کد را اسکن کنید (یا عددش را وارد کنید)، بعد «تأیید ورود».</p>
+      {error ? <Alert tone="bad">{error}</Alert> : null}
+      {link ? (
+        <>
+          <Qr text={`eyvan://office-link?c=${link.code}`} />
+          <div className="link-code" dir="ltr" aria-label="کد ورود">{spaced}</div>
+          <small className="muted">{left > 0 ? `${fa(left)} ثانیه اعتبار دارد` : 'منقضی شد'}</small>
+        </>
+      ) : error ? null : <Skeleton rows={2} label="در حال گرفتن کد" />}
+      {(error || (link && left === 0)) && <Btn variant="ghost" onClick={start}>کد تازه</Btn>}
+    </div>
+  );
+}
+const fa4 = (code: string) => `${code.slice(0, 4)} ${code.slice(4)}`.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.charAt(Number(d)));
+
+type SignIn = { token: string; office: { name: string } } | { ticket: string };
+
+/**
+ * Amin #6033/#6034: the office dashboard's sign-in — «ورود با ایوان» (the app confirms a code) or the username and
+ * password chosen on the request. Only accounts whose office panel was approved get in.
+ */
 function Login({ onIn }: { onIn: () => void }) {
-  const [step, setStep] = useState<'phone' | 'code' | 'name'>('phone');
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
+  const [how, setHow] = useState<'eyvan' | 'password'>('eyvan');
+  const [ticket, setTicket] = useState<string | null>(null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const { busy, run, error } = useAction();
-  const p = toLatin(phone).replace(/\D/g, '');
-  const finish = async (officeName?: string) => {
-    try {
-      const r = await api.login(p, officeName);
-      session.set(r.token);
-      onIn();
-    } catch (e) {
-      if ((e as { code?: string }).code === 'no_office') setStep('name');
-      else throw e;
-    }
-  };
+  const onSession = useCallback((r: SignIn) => {
+    if ('ticket' in r) { setTicket(r.ticket); return; }
+    session.set(r.token);
+    onIn();
+  }, [onIn]);
   const submit = () =>
     run(async () => {
-      if (step === 'phone') { await api.sendCode(p); setStep('code'); }
-      else if (step === 'code') { await api.verify(p, toLatin(code).trim()); await finish(); }
-      else await finish(name.trim());
+      if (ticket) { onSession(await api.ssoOpen(ticket, name.trim())); return; }
+      try {
+        onSession(await api.password(toLatin(username).trim().toLowerCase(), password));
+      } catch (e) {
+        const t = (e as { code?: string; ticket?: string });
+        if (t.code === 'no_office' && t.ticket) setTicket(t.ticket);
+        else throw e;
+      }
     });
   return (
     <main className="login">
       <form className="kss-card login-card" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         <div className="side-brand"><div className="logo"><Icon name="home" size={18} /></div><div><b>ایوان</b><small>داشبورد دفتر املاک</small></div></div>
-        <h1 className="login-title">{step === 'name' ? 'دفتر تازه' : 'ورود مدیر دفتر'}</h1>
-        <p className="muted">{step === 'phone' ? 'با همان شماره‌ای که در برنامهٔ ایوان دارید وارد شوید.' : step === 'code' ? `کد پیامک‌شده به ${phone} را وارد کنید.` : 'این شماره هنوز دفتری ندارد؛ نام دفتر را بنویسید تا ساخته شود.'}</p>
-        {step === 'phone' && <Field label="شمارهٔ موبایل" required><input className="kss-input" dir="ltr" inputMode="tel" autoComplete="tel" placeholder="09xxxxxxxxx" value={phone} onChange={(e) => setPhone(e.target.value)} autoFocus /></Field>}
-        {step === 'code' && <Field label="کد تأیید" required><input className="kss-input" dir="ltr" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} autoFocus /></Field>}
-        {step === 'name' && <Field label="نام دفتر" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً دفتر املاک پارسه" autoFocus /></Field>}
-        {error && <Alert tone="bad">{error}</Alert>}
-        <Btn type="submit" variant="primary" busy={busy} disabled={step === 'phone' ? !/^09\d{9}$/.test(p) : step === 'code' ? !code.trim() : !name.trim()}>
-          {step === 'phone' ? 'گرفتن کد' : step === 'code' ? 'ورود' : 'ساخت دفتر و ورود'}
-        </Btn>
-        {step === 'code' && <button type="button" className="kss-btn kss-btn--ghost kss-btn--sm" onClick={() => { setStep('phone'); setCode(''); }}>تغییر شماره</button>}
+        {ticket ? (
+          <>
+            <h1 className="login-title">دفتر تازه</h1>
+            <p className="muted">برای این حساب هنوز دفتری ساخته نشده؛ نام دفتر را بنویسید.</p>
+            <Field label="نام دفتر" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً دفتر املاک پارسه" autoFocus /></Field>
+            {error && <Alert tone="bad">{error}</Alert>}
+            <Btn type="submit" variant="primary" busy={busy} disabled={!name.trim()}>ساخت دفتر و ورود</Btn>
+          </>
+        ) : (
+          <>
+            <h1 className="login-title">ورود مدیر دفتر</h1>
+            <Segmented label="روش ورود" value={how} onChange={setHow} options={[{ value: 'eyvan', label: 'ورود با ایوان' }, { value: 'password', label: 'نام کاربری و رمز' }]} />
+            {how === 'eyvan' ? <WithEyvan onSession={onSession} /> : (
+              <>
+                <p className="muted">نام کاربری و رمزی که در درخواست پنل دفتر در برنامهٔ ایوان گذاشتید.</p>
+                <Field label="نام کاربری" required><input className="kss-input" dir="ltr" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus /></Field>
+                <Field label="رمز" required><input className="kss-input" dir="ltr" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+                {error && <Alert tone="bad">{error}</Alert>}
+                <Btn type="submit" variant="primary" busy={busy} disabled={!username.trim() || !password}>ورود</Btn>
+              </>
+            )}
+            <p className="muted small">پنل دفتر را از برنامهٔ ایوان، تنظیمات ← اتصال‌ها و API‌ها ← پنل دفتر املاک، درخواست می‌دهید.</p>
+          </>
+        )}
       </form>
     </main>
   );
@@ -477,7 +564,7 @@ function App() {
   const handed = new URLSearchParams(location.search).has('h');
   const [inside, setInside] = useState(!handed && !!session.get());
   const onIn = useCallback(() => setInside(true), []);
-  return <ToastProvider>{inside ? <Dashboard /> : IN_PANEL || handed ? <FromPanel onIn={onIn} /> : <Login onIn={onIn} />}</ToastProvider>;
+  return <ToastProvider>{inside ? <Dashboard /> : handed ? <FromPanel onIn={onIn} /> : <Login onIn={onIn} />}</ToastProvider>;
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

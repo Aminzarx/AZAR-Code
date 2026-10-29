@@ -47,7 +47,7 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    if (res.status === 401 && path.startsWith('/office/') && !['/office/login', '/office/sso', '/office/sso/open'].includes(path)) { session.clear(); location.reload(); }
+    if (res.status === 401 && path.startsWith('/office/') && !['/office/login', '/office/sso', '/office/sso/open', '/office/password', '/office/link/start', '/office/link/poll'].includes(path)) { session.clear(); location.reload(); }
     const err = new ApiError(data?.error?.code ?? 'error', persian(data?.error?.code, data?.error?.message), res.status);
     if (data?.ticket) (err as ApiError & { ticket?: string }).ticket = data.ticket;
     throw err;
@@ -74,6 +74,11 @@ export const api = {
     call<{ token: string; office: { name: string } }>('POST', '/office/login', { phoneNumber: intl(phone), officeName }),
   sso: (h: string) => call<{ token: string; office: { name: string } }>('POST', '/office/sso', { h }),
   ssoOpen: (ticket: string, officeName: string) => call<{ token: string; office: { name: string } }>('POST', '/office/sso/open', { ticket, officeName }),
+  /** Amin #6034: the username + password chosen on the request in the app */
+  password: (username: string, password: string) => call<{ token: string; office: { name: string } }>('POST', '/office/password', { username, password }),
+  /** Amin #6033 «ورود با ایوان»: a 2-minute code the app confirms; poll until it does */
+  linkStart: () => call<{ code: string; poll: string; expiresAt: string }>('POST', '/office/link/start', {}),
+  linkPoll: (poll: string) => call<{ pending: true } | { token: string; office: { name: string } }>('POST', '/office/link/poll', { poll }),
   logout: () => call<void>('POST', '/office/logout', {}),
   overview: () => call<Overview>('GET', '/office/overview'),
   createFile: (f: NewFile) => call<{ id: string }>('POST', '/office/files', f),
