@@ -6,6 +6,15 @@ entries exist even before any code ships.
 
 ---
 
+## 1.5.14 — office panel by request, «ورود با ایوان», faster forms (Amin #5970/#6032/#6033/#6034, #5975/#5977/#5978)
+
+- «تنظیمات ← اتصال‌ها و API‌ها ← پنل دفتر املاک» (`OfficePanelScreen`): office address (required), union licence, landline (optional, `0`+10 digits) and the panel's own username + password (#6034, the panel only — never kssx.ir). Amin's confirm text before sending; once sent, «لغو درخواست»; a rejected request can be sent again.
+- When sales management approves, the app gives way to one full screen (`OfficePortalScreen`, gate in `RootNavigator` via `useOfficePortal`): «پرتال دفتر املاک برای شما فعال است» + «باز کردن پنل» (kssx.ir/app). The answer is kept on the phone (`office_portal_on`) so it also shows offline, and re-checked each time the app comes to the front. Nothing on the phone is wiped.
+- «ورود با ایوان» (#6033) on that screen: scan the panel's sign-in QR (or type its 8-digit code, or open its `eyvan://office-link?c=…` link — new intent filter) and confirm; the server signs that browser in. Codes live 2 minutes, work once; confirming needs the app's session and is rate-limited.
+- Server (`officeRoutes.js`): request carries `username` + `password_hash` (scrypt, salted; unique among pending/approved; 4–32 of a-z 0-9 . _; password ≥ 8); `POST /office/password` (5 wrong tries lock the name 15 min); `POST /office/link/start|poll` + `POST /office/adviser/link/confirm`; one shared `enter()` for every sign-in.
+- Also in this release: «افزودن فایل/متقاضی» open at once (#5975), a new file opens its own page after saving (#5977), empty lists keep only the floating button (#5978).
+
+
 ## Office dashboard 0.1.0 (Amin #5659/#5664/#5909/#5913/#5934) — built locally, not deployed
 
 - `office/`: the real-estate office manager's own web dashboard (its own address and login), made from the IRIS

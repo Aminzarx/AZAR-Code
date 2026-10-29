@@ -24,6 +24,7 @@ import { ChangePhoneScreen } from '@features/settings/screens/ChangePhoneScreen'
 import { BuyTokensScreen } from '@features/settings/screens/BuyTokensScreen'
 import { PersonalizeScreen } from '@features/settings/screens/PersonalizeScreen'
 import { ConnectionsScreen } from '@features/settings/screens/ConnectionsScreen'
+import { OfficePanelScreen } from '@features/settings/screens/OfficePanelScreen'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
@@ -72,6 +73,8 @@ export type MainStackParamList = {
   Personalize: undefined
   // Amin #5795: «اتصال‌ها و API‌ها»; fromShare = a Divar post was shared while the import is off
   Connections: { fromShare?: boolean } | undefined
+  /** Amin #5970/#6034: asking for the office panel */
+  OfficePanel: undefined
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -135,6 +138,7 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['BuyTokens', BuyTokensScreen],
   ['Personalize', PersonalizeScreen],
   ['Connections', ConnectionsScreen],
+  ['OfficePanel', OfficePanelScreen],
   ['CreateReminder', LockedCreateReminder],
   ['ReminderDetail', ReminderDetailScreen],
   ['ContractList', LockedContractList],
@@ -149,7 +153,8 @@ const SETTINGS_PAGES = new Set<string>([
   'ChangePhone',
   'BuyTokens',
   'Personalize',
-  'Connections'
+  'Connections',
+  'OfficePanel'
 ])
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {

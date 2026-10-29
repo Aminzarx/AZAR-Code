@@ -6,6 +6,8 @@ import { useTheme } from '@shared/theme'
 import { SplashScreen, useSplash } from '../app/SplashScreen'
 import { AuthNavigator } from './AuthNavigator'
 import { MainNavigator } from './MainNavigator'
+import { OfficePortalScreen } from '@features/settings/screens/OfficePortalScreen'
+import { useOfficePortal } from '@features/settings/services/officePanel'
 
 const FILES_WAIT_MS = 12000
 
@@ -44,11 +46,16 @@ export function RootNavigator(): React.JSX.Element {
     return () => clearTimeout(timer)
   }, [])
   const filesReady = !session || sync.settled || waitedEnough
-  const splash = useSplash(!isInitializing && navReady && filesReady)
+  // Amin #5970: an account whose office panel is on sees only the panel screen (its files stay on the phone)
+  const portal = useOfficePortal(session?.sessionToken)
+  const portalScreen = !!session && portal === true
+  const splash = useSplash(!isInitializing && (navReady || portalScreen) && filesReady && (!session || portal !== null))
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
-      {isInitializing ? null : (
+      {isInitializing ? null : portalScreen ? (
+        <OfficePortalScreen />
+      ) : (
         <NavigationContainer theme={navTheme} onReady={() => setNavReady(true)}>
           {session ? <MainNavigator /> : <AuthNavigator />}
         </NavigationContainer>

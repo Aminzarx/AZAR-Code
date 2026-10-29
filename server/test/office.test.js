@@ -47,6 +47,9 @@ async function call(method, route, body, headers = {}) {
 const post = (route, body, headers) => call('POST', route, body, headers)
 
 let nextPhone = 100
+let nextName = 0
+/** the dashboard's own sign-in, chosen on the request (Amin #6034) */
+const login = () => ({ username: `office_${++nextName}`, password: 'parse-1234' })
 async function verified() {
   const phoneNumber = `+98912300${String(++nextPhone).padStart(4, '0')}`
   assert.equal((await post('/auth/send-otp', { phoneNumber })).status, 204)
@@ -61,7 +64,7 @@ async function account() {
 }
 /** an approved office-panel request (Amin #5970), as sales management would approve it */
 async function approved(owner) {
-  assert.equal((await post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'تهران، ونک' })).status, 201)
+  assert.equal((await post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'تهران، ونک', ...(owner.login || login()) })).status, 201)
   const id = require('../src/officeRoutes').listRequests('pending').find((r) => r.userId === owner.userId).id
   assert.equal(require('../src/officeRoutes').approveRequest(id, 'test').ok, true)
 }
@@ -190,7 +193,7 @@ test('a wrong signature, an old handoff or a number without EYVAN does not open'
 
 test('the office-panel request: send, cancel (never approvable), send again, approve copies the account files', async () => {
   const user = await account()
-  const app = { sessionToken: user.sessionToken }
+  const app = { sessionToken: user.sessionToken, ...login() }
   const routes = require('../src/officeRoutes')
   assert.equal((await post('/office/adviser/request', { ...app, address: '' })).status, 422)
   assert.equal((await post('/office/adviser/request', { ...app, address: 'ونک', landline: '123' })).status, 422)
@@ -217,4 +220,48 @@ test('the office-panel request: send, cancel (never approvable), send again, app
   assert.equal(routes.officeActivity().find((o) => o.userId === user.userId).files, 1)
   // the phone's copy is untouched
   assert.equal((await post('/sync/pull', app)).body.rows.filter((r) => r.t === 'properties').length, 2)
+})
+
+test('the dashboard password (Amin #6034): chosen on the request, unique, hashed; wrong tries lock the name', async () => {
+  const owner = await account()
+  const app = { sessionToken: owner.sessionToken, address: 'ونک' }
+  assert.equal((await post('/office/adviser/request', { ...app, username: 'ab', password: 'parse-1234' })).body.error.code, 'invalid_username')
+  assert.equal((await post('/office/adviser/request', { ...app, username: 'parse_office', password: 'short' })).body.error.code, 'weak_password')
+  owner.login = { username: 'Parse_Office', password: 'parse-1234' }
+  await approved(owner)
+  const row = db.prepare('SELECT username, password_hash FROM office_requests WHERE user_id = ?').get(owner.userId)
+  assert.equal(row.username, 'parse_office')
+  assert.equal(row.password_hash.includes('parse-1234'), false)
+  const other = await account()
+  assert.equal((await post('/office/adviser/request', { sessionToken: other.sessionToken, address: 'x', username: 'parse_office', password: 'parse-1234' })).body.error.code, 'username_taken')
+
+  const opened = await post('/office/password', { username: 'parse_office', password: 'parse-1234' })
+  assert.equal(opened.status, 200) // approving already opened the office
+  assert.equal((await call('GET', '/office/overview', undefined, { 'x-office-token': opened.body.token })).status, 200)
+  assert.equal((await post('/office/password', { username: 'PARSE_OFFICE', password: 'parse-1234' })).status, 200)
+
+  for (let i = 0; i < 5; i++) assert.equal((await post('/office/password', { username: 'parse_office', password: 'wrong-pass' })).body.error.code, 'wrong_login')
+  assert.equal((await post('/office/password', { username: 'parse_office', password: 'parse-1234' })).body.error.code, 'login_locked')
+  assert.equal((await post('/office/password', { username: 'nobody_here', password: 'parse-1234' })).body.error.code, 'wrong_login')
+})
+
+test('«ورود با ایوان» (Amin #6033): the app confirms the code once; the dashboard gets the session; old codes die', async () => {
+  const { owner } = await office()
+  const start = await post('/office/link/start', {})
+  assert.equal(start.status, 201)
+  assert.match(start.body.code, /^\d{8}$/)
+  assert.deepEqual((await post('/office/link/poll', { poll: start.body.poll })).body, { pending: true })
+  const stranger = await account() // not approved
+  assert.equal((await post('/office/adviser/link/confirm', { sessionToken: stranger.sessionToken, code: start.body.code })).body.error.code, 'not_approved')
+  const ok = await post('/office/adviser/link/confirm', { sessionToken: owner.sessionToken, code: `eyvan://office-link?c=${start.body.code}` })
+  assert.equal(ok.status, 200, JSON.stringify(ok.body))
+  assert.equal((await post('/office/adviser/link/confirm', { sessionToken: owner.sessionToken, code: start.body.code })).status, 410) // once
+  const got = await post('/office/link/poll', { poll: start.body.poll })
+  assert.equal(got.status, 200)
+  assert.equal((await call('GET', '/office/overview', undefined, { 'x-office-token': got.body.token })).status, 200)
+  assert.equal((await post('/office/link/poll', { poll: start.body.poll })).status, 410) // the ticket works once
+  const old = await post('/office/link/start', {})
+  db.prepare('UPDATE office_links SET expires_at = ? WHERE code = ?').run(new Date(Date.now() - 1000).toISOString(), old.body.code)
+  assert.equal((await post('/office/adviser/link/confirm', { sessionToken: owner.sessionToken, code: old.body.code })).status, 410)
+  assert.equal((await post('/office/link/poll', { poll: old.body.poll })).status, 410)
 })

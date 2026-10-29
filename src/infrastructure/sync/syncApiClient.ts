@@ -45,6 +45,36 @@ export class StorageFullError extends Error {
 
 type ErrorBody = { error?: { code?: string; message?: string } }
 
+/** Amin #5970/#6033/#6034: the office panel refused a step; `message` is the server's Persian sentence */
+export class OfficeRefusedError extends Error {
+  constructor(
+    readonly code: string,
+    message: string
+  ) {
+    super(message)
+    this.name = 'OfficeRefusedError'
+  }
+}
+
+export type OfficeRequest = {
+  id: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  address: string
+  unionLicence: boolean
+  landline: string | null
+  username: string | null
+  createdAt: string
+  decidedAt: string | null
+}
+export type OfficeStatus = { request: OfficeRequest | null; portal: boolean }
+export type OfficeRequestInput = {
+  address: string
+  unionLicence: boolean
+  landline: string
+  username: string
+  password: string
+}
+
 /**
  * AZAR-SYNC-001: the account's files on the KSS server (server/src/syncRoutes.js).
  * Every call carries the session token; the server keeps rows and photos per account, encrypted.
@@ -160,6 +190,21 @@ export class SyncApiClient {
     return this.post('/divar/consent/status', { sessionToken })
   }
 
+  /** Amin #5970: the office-panel request — its status, send, cancel */
+  officeStatus(sessionToken: string): Promise<OfficeStatus> {
+    return this.post('/office/adviser/request/status', { sessionToken })
+  }
+  officeRequest(sessionToken: string, input: OfficeRequestInput): Promise<OfficeStatus> {
+    return this.post('/office/adviser/request', { sessionToken, ...input })
+  }
+  officeCancel(sessionToken: string): Promise<OfficeStatus> {
+    return this.post('/office/adviser/request/cancel', { sessionToken })
+  }
+  /** Amin #6033 «ورود با ایوان»: confirm the code the office dashboard shows */
+  officeLinkConfirm(sessionToken: string, code: string): Promise<{ ok: true }> {
+    return this.post('/office/adviser/link/confirm', { sessionToken, code })
+  }
+
   private async post<T>(path: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
     // offline (airplane mode, no network): say so at once instead of waiting on a request that cannot go out
     const network = await NetInfo.fetch().catch(() => null)
@@ -191,6 +236,9 @@ export class SyncApiClient {
     }
     const parsed = (await response.json().catch(() => ({}))) as ErrorBody
     if (response.status === 401) throw new SessionRevokedError()
+    if (path.startsWith('/office/') && parsed.error?.code && response.status !== 429) {
+      throw new OfficeRefusedError(parsed.error.code, parsed.error.message ?? '')
+    }
     if (path === '/divar/import' && parsed.error?.code) {
       throw new DivarImportError(parsed.error.code, parsed.error.message ?? '')
     }

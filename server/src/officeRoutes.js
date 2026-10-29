@@ -217,11 +217,32 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS office_requests_user ON office_requests(user_id, created_at);
 `)
+const USERNAME = /^[a-z0-9_.]{4,32}$/
+const PASSWORD_MIN = 8
+const usernameOf = (v) => toLatin(text(v, 40)).toLowerCase()
+/** taken by another account's pending or approved request */
+const usernameTaken = (username, userId) =>
+  !!db.prepare("SELECT 1 FROM office_requests WHERE username = ? AND user_id != ? AND status IN ('pending', 'approved')").get(username, userId)
+const SCRYPT = { N: 16384, r: 8, p: 1 }
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16)
+  return 's1$' + salt.toString('base64') + '$' + crypto.scryptSync(password, salt, 64, SCRYPT).toString('base64')
+}
+function passwordMatches(password, stored) {
+  const [v, salt, hash] = String(stored || 's1$AAAAAAAAAAAAAAAAAAAAAA==$').split('$')
+  const want = Buffer.from(hash || '', 'base64')
+  const got = crypto.scryptSync(password, Buffer.from(salt || '', 'base64'), 64, SCRYPT)
+  return v === 's1' && want.length === got.length && crypto.timingSafeEqual(want, got)
+}
+// Amin #6034: the dashboard's own username + password ride on the request
+for (const col of ['username TEXT', 'password_hash TEXT']) {
+  if (!db.prepare('PRAGMA table_info(office_requests)').all().some((c) => c.name === col.split(' ')[0])) db.exec(`ALTER TABLE office_requests ADD COLUMN ${col}`)
+}
 const NOT_APPROVED = 'پنل دفتر املاک برای این حساب فعال نیست؛ از برنامهٔ ایوان، تنظیمات › اتصال‌ها و API‌ها، درخواست بدهید.'
 const LANDLINE = /^0\d{10}$/
 const lastRequest = (userId) => db.prepare('SELECT * FROM office_requests WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1').get(userId)
 const requestView = (r) =>
-  r ? { id: r.id, status: r.status, address: r.address, unionLicence: !!r.union_licence, landline: r.landline, createdAt: r.created_at, decidedAt: r.decided_at } : null
+  r ? { id: r.id, status: r.status, address: r.address, unionLicence: !!r.union_licence, landline: r.landline, username: r.username ?? null, createdAt: r.created_at, decidedAt: r.decided_at } : null
 /** true when the account's office panel is on (its app is then off) */
 const portalOn = (userId) => lastRequest(userId)?.status === 'approved'
 
@@ -357,23 +378,24 @@ function handoff(h) {
 router.post('/sso', (req, res) => {
   const phone = handoff(req.body?.h)
   if (!phone) return fail(res, 401, 'handoff_invalid', 'ورود از پنل منقضی شده؛ دوباره از پنل وارد شوید.')
-  const user = db.prepare('SELECT id, admin_status FROM users WHERE phone_number IN (?, ?)').get(phone, '+98' + phone.slice(1))
+  const user = db.prepare('SELECT id FROM users WHERE phone_number IN (?, ?)').get(phone, '+98' + phone.slice(1))
   if (!user) return fail(res, 422, 'no_account', 'این شماره حساب ایوان ندارد؛ برنامهٔ ایوان را نصب کنید و با همین شماره ثبت‌نام کنید.')
+  enter(user.id, res)
+})
+
+/** an account that passed one of the sign-ins → the dashboard's session, or (first visit) a one-time ticket to name the office */
+function enter(userId, res) {
+  const user = db.prepare('SELECT id, admin_status FROM users WHERE id = ?').get(userId)
+  if (!user) return fail(res, 422, 'no_account', 'این حساب ایوان پیدا نشد.')
   if (user.admin_status === 'locked' || user.admin_status === 'deleted') return fail(res, 403, 'account_locked', 'این حساب بسته است.')
   if (!portalOn(user.id)) return fail(res, 403, 'not_approved', NOT_APPROVED)
-  let office = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(user.id)
-  if (!office) {
-    const name = text(req.body.officeName, 80)
-    // the same handoff cannot be reused, so the name step gets a short one-time ticket
-    if (!name) {
-      const ticket = generateSessionToken()
-      db.prepare('INSERT INTO office_sso_nonces (nonce, used_at) VALUES (?, ?)').run('t:' + ticket + ':' + user.id, now())
-      return res.status(404).json({ error: { code: 'no_office', message: 'نام دفتر را بنویسید.' }, ticket })
-    }
-    return fail(res, 422, 'invalid', 'نام دفتر را بنویسید.')
-  }
-  res.json(openSession(office))
-})
+  const office = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(user.id)
+  if (office) return res.json(openSession(office))
+  // the sign-in cannot be repeated, so the name step gets a short one-time ticket
+  const ticket = generateSessionToken()
+  db.prepare('INSERT INTO office_sso_nonces (nonce, used_at) VALUES (?, ?)').run('t:' + ticket + ':' + user.id, now())
+  res.status(404).json({ error: { code: 'no_office', message: 'نام دفتر را بنویسید.' }, ticket })
+}
 
 // POST /office/sso/open { ticket, officeName } → { token, office }: the first visit from the panel names the office
 router.post('/sso/open', (req, res) => {
@@ -562,8 +584,14 @@ adviser.post('/request', (req, res) => {
   const landline = toLatin(text(req.body?.landline, 20)).replace(/\D/g, '')
   if (!address) return fail(res, 422, 'invalid_address', 'آدرس دفتر را بنویسید.')
   if (landline && !LANDLINE.test(landline)) return fail(res, 422, 'invalid_landline', 'شمارهٔ تلفن ثابت را با پیش‌شماره بنویسید.')
-  db.prepare("INSERT INTO office_requests (id, user_id, address, union_licence, landline, status, created_at) VALUES (?, ?, ?, ?, ?, 'pending', ?)").run(
-    generateId(), req.adviserId, address, req.body?.unionLicence === true ? 1 : 0, landline || null, now()
+  // Amin #6034: the office dashboard's own username + password, chosen on the request (the dashboard only, never kssx.ir)
+  const username = usernameOf(req.body?.username)
+  const password = typeof req.body?.password === 'string' ? req.body.password : ''
+  if (!USERNAME.test(username)) return fail(res, 422, 'invalid_username', 'نام کاربری ۴ تا ۳۲ حرف انگلیسی، عدد، نقطه یا _ باشد.')
+  if (password.length < PASSWORD_MIN || password.length > 128) return fail(res, 422, 'weak_password', 'رمز دست‌کم ۸ حرف باشد.')
+  if (usernameTaken(username, req.adviserId)) return fail(res, 409, 'username_taken', 'این نام کاربری گرفته شده؛ نام دیگری بنویسید.')
+  db.prepare("INSERT INTO office_requests (id, user_id, address, union_licence, landline, status, created_at, username, password_hash) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)").run(
+    generateId(), req.adviserId, address, req.body?.unionLicence === true ? 1 : 0, landline || null, now(), username, hashPassword(password)
   )
   res.status(201).json({ request: requestView(lastRequest(req.adviserId)), portal: false })
 })
@@ -572,6 +600,78 @@ adviser.post('/request/cancel', (req, res) => {
   if (!last || last.status !== 'pending') return fail(res, 409, 'not_pending', 'درخواستی در انتظار نیست.')
   db.prepare("UPDATE office_requests SET status = 'cancelled', decided_at = ? WHERE id = ?").run(now(), last.id)
   res.json({ request: requestView(lastRequest(req.adviserId)), portal: false })
+})
+
+
+// ------------------------------------------------- dashboard sign-in: password (#6034), «ورود با ایوان» (#6033) ----
+// Password: chosen on the request, kept only as a scrypt hash (salted, memory-hard); 5 wrong tries lock the username
+// for 15 minutes. «ورود با ایوان»: the dashboard shows a short code (and its QR); the account's own EYVAN app, signed in,
+// confirms it; the dashboard, polling with its private ticket, then gets the session. A code lives 2 minutes, works once.
+db.exec(`
+  CREATE INDEX IF NOT EXISTS office_requests_username ON office_requests(username);
+  CREATE TABLE IF NOT EXISTS office_login_fails (username TEXT PRIMARY KEY, fails INTEGER NOT NULL, locked_until TEXT);
+  CREATE TABLE IF NOT EXISTS office_links (
+    code TEXT PRIMARY KEY, poll TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, user_id TEXT, confirmed_at TEXT
+  );
+`)
+const LOCK_AFTER = 5
+const LOCK_MINUTES = 15
+const LINK_SECONDS = 120
+const signInLimit = rateLimit({ windowMs: 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false })
+
+// POST /office/password { username, password } → { token, office } | 404 no_office + ticket (then /office/sso/open)
+router.post('/password', signInLimit, (req, res) => {
+  const username = usernameOf(req.body?.username)
+  const password = typeof req.body?.password === 'string' ? req.body.password.slice(0, 128) : ''
+  const lock = db.prepare('SELECT * FROM office_login_fails WHERE username = ?').get(username)
+  if (lock?.locked_until && Date.parse(lock.locked_until) > Date.now()) {
+    return fail(res, 429, 'login_locked', 'چند بار رمز اشتباه وارد شد؛ ۱۵ دقیقهٔ دیگر دوباره امتحان کنید.')
+  }
+  const r = USERNAME.test(username)
+    ? db.prepare("SELECT user_id, password_hash FROM office_requests WHERE username = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 1").get(username)
+    : null
+  const ok = passwordMatches(password, r?.password_hash) && !!r // the hash always runs, so an unknown name takes as long
+  if (!ok) {
+    const fails = (lock?.fails ?? 0) + 1
+    const lockedUntil = fails >= LOCK_AFTER ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000).toISOString() : null
+    db.prepare('INSERT OR REPLACE INTO office_login_fails (username, fails, locked_until) VALUES (?, ?, ?)').run(username, lockedUntil ? 0 : fails, lockedUntil)
+    return fail(res, 422, 'wrong_login', 'نام کاربری یا رمز درست نیست.')
+  }
+  db.prepare('DELETE FROM office_login_fails WHERE username = ?').run(username)
+  enter(r.user_id, res)
+})
+
+// POST /office/link/start → { code, poll, expiresAt }: the dashboard shows the code and its QR («eyvan://office-link?c=…»)
+router.post('/link/start', signInLimit, (_req, res) => {
+  db.prepare('DELETE FROM office_links WHERE expires_at < ?').run(new Date(Date.now() - 60 * 1000).toISOString())
+  let code
+  do code = String(crypto.randomInt(10000000, 100000000))
+  while (db.prepare('SELECT 1 FROM office_links WHERE code = ?').get(code))
+  const poll = generateSessionToken()
+  const expiresAt = new Date(Date.now() + LINK_SECONDS * 1000).toISOString()
+  db.prepare('INSERT INTO office_links (code, poll, created_at, expires_at) VALUES (?, ?, ?, ?)').run(code, poll, now(), expiresAt)
+  res.status(201).json({ code, poll, expiresAt })
+})
+
+// POST /office/link/poll { poll } → { pending: true } | { token, office } | 404 no_office + ticket | 410 link_expired
+router.post('/link/poll', (req, res) => {
+  const poll = typeof req.body?.poll === 'string' ? req.body.poll : ''
+  const row = poll && db.prepare('SELECT * FROM office_links WHERE poll = ?').get(poll)
+  if (!row || (!row.confirmed_at && Date.parse(row.expires_at) <= Date.now())) return fail(res, 410, 'link_expired', 'کد منقضی شد؛ کد تازه بگیرید.')
+  if (!row.confirmed_at) return res.json({ pending: true })
+  db.prepare('DELETE FROM office_links WHERE code = ?').run(row.code) // once
+  enter(row.user_id, res)
+})
+
+// POST /office/adviser/link/confirm { sessionToken, code } → { ok }: the app confirms the code it scanned or typed.
+// Never 401 here — the app reads 401 as «signed out».
+adviser.post('/link/confirm', signInLimit, (req, res) => {
+  const code = (toLatin(text(req.body?.code, 80)).match(/(\d{8})/) || [])[1] || ''
+  const row = code && db.prepare('SELECT * FROM office_links WHERE code = ?').get(code)
+  if (!row || row.confirmed_at || Date.parse(row.expires_at) <= Date.now()) return fail(res, 410, 'link_expired', 'این کد منقضی یا استفاده شده؛ در داشبورد کد تازه بگیرید.')
+  if (!portalOn(req.adviserId)) return fail(res, 403, 'not_approved', NOT_APPROVED)
+  db.prepare('UPDATE office_links SET user_id = ?, confirmed_at = ? WHERE code = ? AND confirmed_at IS NULL').run(req.adviserId, now(), code)
+  res.json({ ok: true })
 })
 
 router.use('/adviser', adviser)

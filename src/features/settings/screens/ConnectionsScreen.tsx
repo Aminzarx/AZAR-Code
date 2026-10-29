@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { StyleSheet, Switch, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
@@ -65,6 +65,26 @@ export function ConnectionsScreen({ navigation, route }: Props): React.JSX.Eleme
         </View>
         {error ? <Text style={[theme.typography('bodySm'), styles.error]}>{error}</Text> : null}
       </View>
+      {/* Amin #5970/#6032: the office panel is asked for here; sales management approves */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="پنل دفتر املاک"
+        onPress={() => navigation.navigate('OfficePanel')}
+        style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
+      >
+        <View style={styles.row}>
+          <View style={styles.iconWrap}>
+            <Icon name="building" size="sm" color={theme.colors.primary} />
+          </View>
+          <View style={styles.text}>
+            <Text style={[theme.typography('titleSm'), styles.title]}>پنل دفتر املاک</Text>
+            <Text style={[theme.typography('bodySm'), styles.note]}>
+              فایل‌های دفتر و کار مشاوران را در وب مدیریت کنید؛ با درخواست و پس از تأیید.
+            </Text>
+          </View>
+          <Icon name="chevron" size="sm" color={theme.colors.onSurfaceVariant} />
+        </View>
+      </Pressable>
       <ConfirmDialog
         visible={asking}
         title="ورود آگهی از دیوار"
@@ -106,6 +126,7 @@ function createStyles(theme: Theme) {
     title: { color: theme.colors.onSurface, alignSelf: start },
     note: { color: theme.colors.onSurfaceVariant, alignSelf: start },
     error: { color: theme.colors.error, alignSelf: start },
+    pressed: { opacity: 0.7 },
     notice: { color: theme.colors.onSurface, marginBottom: theme.spacing.space4, alignSelf: start }
   })
 }
