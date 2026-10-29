@@ -138,8 +138,8 @@ function createStyles(theme: Theme) {
       alignSelf: 'center',
       marginTop: theme.spacing.space6
     },
-    title: { color: theme.colors.onSurface, textAlign: 'center' },
-    body: { color: theme.colors.onSurfaceVariant, textAlign: 'center' },
+    title: { color: theme.colors.onSurface, textAlign: 'center' }, // rtl-allow: headline under the centred badge
+    body: { color: theme.colors.onSurfaceVariant, textAlign: 'center' }, // rtl-allow: one line under the centred headline
     card: {
       backgroundColor: theme.colors.surfaceContainerLowest,
       borderRadius: theme.radius.extraLarge,
