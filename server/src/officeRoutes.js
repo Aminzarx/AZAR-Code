@@ -219,10 +219,37 @@ db.exec(`
 `)
 const USERNAME = /^[a-z0-9_.]{4,32}$/
 const PASSWORD_MIN = 8
-const usernameOf = (v) => toLatin(text(v, 40)).toLowerCase()
-/** taken by another account's pending or approved request */
-const usernameTaken = (username, userId) =>
-  !!db.prepare("SELECT 1 FROM office_requests WHERE username = ? AND user_id != ? AND (status = 'pending' OR (status = 'approved' AND ended_at IS NULL))").get(username, userId)
+/**
+ * Amin #6090/#6091: one username in the whole system. The stored form is the compared form: Unicode NFKC, Persian and
+ * Arabic digits as Latin, no spaces or invisible marks, lower case («Zarandix» = «zarandix» = «zarandix ‌»).
+ */
+const usernameOf = (v) =>
+  String(v ?? '').normalize('NFKC').slice(0, 80)
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[\s\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').toLowerCase()
+const LIVE_REQUEST = "(status = 'pending' OR (status = 'approved' AND ended_at IS NULL))"
+/** held by a pending or approved (not turned off) request — any account, the asker's own old one included */
+const usernameTaken = (username) => !!db.prepare(`SELECT 1 FROM office_requests WHERE username = ? AND ${LIVE_REQUEST}`).get(username)
+/**
+ * The rest of the system's names (kssx.ir customer logins, sales-management users, IRIS) live in billing, which also
+ * asks IRIS; it answers { taken }. If it can't answer, the request is refused (fail closed), never accepted unchecked.
+ */
+async function usernameTakenElsewhere(username) {
+  const url = (process.env.AZAR_BILLING_URL || '').replace(/\/+$/, ''), key = process.env.AZAR_BILLING_KEY || ''
+  if (!url || !key) return process.env.NODE_ENV === 'production' ? null : false
+  try {
+    const r = await fetch(`${url}/internal/username-taken`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+      body: JSON.stringify({ username }),
+      signal: AbortSignal.timeout(10000)
+    })
+    const taken = (await r.json().catch(() => null))?.taken
+    return r.ok && typeof taken === 'boolean' ? taken : null
+  } catch {
+    return null
+  }
+}
 const SCRYPT = { N: 16384, r: 8, p: 1 }
 function hashPassword(password) {
   const salt = crypto.randomBytes(16)
@@ -238,6 +265,11 @@ function passwordMatches(password, stored) {
 for (const col of ['username TEXT', 'password_hash TEXT', 'ended_at TEXT', 'ended_by TEXT']) {
   if (!db.prepare('PRAGMA table_info(office_requests)').all().some((c) => c.name === col.split(' ')[0])) db.exec(`ALTER TABLE office_requests ADD COLUMN ${col}`)
 }
+// the database keeps it too: one live request per (normalised) username, whatever the app sends
+for (const r of db.prepare('SELECT id, username FROM office_requests WHERE username IS NOT NULL').all()) {
+  if (usernameOf(r.username) !== r.username) db.prepare('UPDATE office_requests SET username = ? WHERE id = ?').run(usernameOf(r.username), r.id)
+}
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS office_requests_live_username ON office_requests(username) WHERE username IS NOT NULL AND ${LIVE_REQUEST}`)
 const NOT_APPROVED = 'پنل دفتر املاک برای این حساب فعال نیست؛ از برنامهٔ ایوان، تنظیمات › اتصال‌ها و API‌ها، درخواست بدهید.'
 const LANDLINE = /^0\d{10}$/
 const lastRequest = (userId) => db.prepare('SELECT * FROM office_requests WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1').get(userId)
@@ -592,7 +624,7 @@ adviser.post('/leave', (req, res) => {
 
 // The app's side of the request (Amin #5970): status, send, cancel — with the app's own session
 adviser.post('/request/status', (req, res) => res.json({ request: requestView(lastRequest(req.adviserId)), portal: portalOn(req.adviserId) }))
-adviser.post('/request', (req, res) => {
+adviser.post('/request', async (req, res) => {
   const last = lastRequest(req.adviserId)
   if (last && (last.status === 'pending' || (last.status === 'approved' && !last.ended_at))) return fail(res, 409, 'already', 'درخواست قبلاً ثبت شده است.')
   const address = text(req.body?.address, 300)
@@ -604,10 +636,19 @@ adviser.post('/request', (req, res) => {
   const password = typeof req.body?.password === 'string' ? req.body.password : ''
   if (!USERNAME.test(username)) return fail(res, 422, 'invalid_username', 'نام کاربری ۴ تا ۳۲ حرف انگلیسی، عدد، نقطه یا _ باشد.')
   if (password.length < PASSWORD_MIN || password.length > 128) return fail(res, 422, 'weak_password', 'رمز دست‌کم ۸ حرف باشد.')
-  if (usernameTaken(username, req.adviserId)) return fail(res, 409, 'username_taken', 'این نام کاربری گرفته شده؛ نام دیگری بنویسید.')
-  db.prepare("INSERT INTO office_requests (id, user_id, address, union_licence, landline, status, created_at, username, password_hash) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)").run(
-    generateId(), req.adviserId, address, req.body?.unionLicence === true ? 1 : 0, landline || null, now(), username, hashPassword(password)
-  )
+  const TAKEN = 'این نام کاربری گرفته شده؛ نام دیگری بنویسید.'
+  if (usernameTaken(username)) return fail(res, 409, 'username_taken', TAKEN)
+  const elsewhere = await usernameTakenElsewhere(username)
+  if (elsewhere === null) return fail(res, 503, 'username_check_failed', 'بررسی نام کاربری الان ممکن نشد؛ کمی بعد دوباره بفرستید.')
+  if (elsewhere) return fail(res, 409, 'username_taken', TAKEN)
+  try {
+    db.prepare("INSERT INTO office_requests (id, user_id, address, union_licence, landline, status, created_at, username, password_hash) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)").run(
+      generateId(), req.adviserId, address, req.body?.unionLicence === true ? 1 : 0, landline || null, now(), username, hashPassword(password)
+    )
+  } catch (e) {
+    if (String(e?.code).startsWith('SQLITE_CONSTRAINT')) return fail(res, 409, 'username_taken', TAKEN)
+    throw e
+  }
   res.status(201).json({ request: requestView(lastRequest(req.adviserId)), portal: false })
 })
 adviser.post('/request/cancel', (req, res) => {
@@ -692,4 +733,4 @@ adviser.post('/link/confirm', signInLimit, (req, res) => {
 router.use('/adviser', adviser)
 router.use(manager)
 
-module.exports = { router, portalOn, listRequests, approveRequest, rejectRequest, endPortal, officeActivity }
+module.exports = { router, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity }

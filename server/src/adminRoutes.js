@@ -676,6 +676,8 @@ for (const [verb, fn] of [['approve', office.approveRequest], ['reject', office.
   })
 }
 // Amin #5970: the /app card shows only for accounts whose office panel is on (kssx.ir site asks by the signed-in phone)
+// GET /admin/office-username?u= → { taken }: billing asks before it gives out a kssx.ir or sales-management name (#6090)
+router.get('/office-username', (req, res) => res.json({ taken: office.usernameTaken(office.usernameOf(req.query.u)) }))
 router.get('/office-portal', (req, res) => {
   const raw = String(req.query.phone || '')
   if (!/^(09\d{9}|\+989\d{9})$/.test(raw)) return fail(res, 422, 'invalid_phone_number', 'Give phone as 09xxxxxxxxx.')

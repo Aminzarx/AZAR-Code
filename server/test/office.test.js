@@ -234,6 +234,12 @@ test('the dashboard password (Amin #6034): chosen on the request, unique, hashed
   assert.equal(row.password_hash.includes('parse-1234'), false)
   const other = await account()
   assert.equal((await post('/office/adviser/request', { sessionToken: other.sessionToken, address: 'x', username: 'parse_office', password: 'parse-1234' })).body.error.code, 'username_taken')
+  // Amin #6090/#6091: case, spaces, invisible marks and full-width letters don't make a new name
+  for (const same of ['PARSE_OFFICE', ' Parse_Office ', 'parse‌_office', 'ｐａｒｓｅ_office']) {
+    assert.equal((await post('/office/adviser/request', { sessionToken: other.sessionToken, address: 'x', username: same, password: 'parse-1234' })).body.error.code, 'username_taken', same)
+  }
+  // and the database refuses a second live row by itself
+  assert.throws(() => db.prepare("INSERT INTO office_requests (id, user_id, address, status, created_at, username) VALUES ('dup', ?, 'x', 'pending', 'now', 'parse_office')").run(other.userId), /UNIQUE/)
 
   const opened = await post('/office/password', { username: 'parse_office', password: 'parse-1234' })
   assert.equal(opened.status, 200) // approving already opened the office
@@ -279,4 +285,41 @@ test('turning the panel off (sales management) gives the app back, signs dashboa
   assert.equal((await post('/sync/pull', { sessionToken: owner.sessionToken })).status, 200)
   const again = await post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'ونک', ...login() })
   assert.equal(again.status, 201)
+})
+
+test('one username in the whole system (Amin #6090): the names billing holds (kssx.ir, sales management, IRIS) count; no answer = refused', async () => {
+  const http = require('node:http')
+  let answer = { taken: true }
+  const billing = http.createServer((req, res) => {
+    let body = ''
+    req.on('data', (c) => (body += c))
+    req.on('end', () => {
+      seen.push({ auth: req.headers.authorization, url: req.url, body: JSON.parse(body) })
+      res.writeHead(answer ? 200 : 500, { 'content-type': 'application/json' }).end(JSON.stringify(answer ?? {}))
+    })
+  })
+  const seen = []
+  await new Promise((r) => billing.listen(0, '127.0.0.1', r))
+  process.env.AZAR_BILLING_URL = `http://127.0.0.1:${billing.address().port}/api/v1`
+  process.env.AZAR_BILLING_KEY = 'k'.repeat(40)
+  try {
+    const owner = await account()
+    const ask = (username) => post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'x', username, password: 'parse-1234' })
+    const taken = await ask('Zarandix')
+    assert.equal(taken.status, 409)
+    assert.equal(taken.body.error.code, 'username_taken')
+    assert.deepEqual(seen[0], { auth: `Bearer ${'k'.repeat(40)}`, url: '/api/v1/internal/username-taken', body: { username: 'zarandix' } })
+    answer = null
+    assert.equal((await ask('zarandix2')).body.error.code, 'username_check_failed')
+    answer = { taken: false }
+    assert.equal((await ask('zarandix2')).status, 201)
+    // billing's side asks here before it hands out a name
+    const routes = require('../src/officeRoutes')
+    assert.equal(routes.usernameTaken(routes.usernameOf(' ZARANDIX2 ')), true)
+    assert.equal(routes.usernameTaken(routes.usernameOf('zarandix3')), false)
+  } finally {
+    delete process.env.AZAR_BILLING_URL
+    delete process.env.AZAR_BILLING_KEY
+    billing.close()
+  }
 })
