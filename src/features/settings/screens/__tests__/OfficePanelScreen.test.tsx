@@ -75,3 +75,12 @@ describe('OfficePanelScreen (Amin #5970/#6034)', () => {
     expect(queryByText('متن تأیید امین')).toBeNull()
   })
 })
+
+describe('OfficePanelScreen after the panel was turned off', () => {
+  it('says so and shows the form again', async () => {
+    mockStatus.mockResolvedValue({ request: { ...pending, status: 'approved', endedAt: '2026-10-29T10:00:00Z' }, portal: false })
+    const { findByText } = await render(withTheme(<OfficePanelScreen navigation={navigation} route={route} />))
+    expect(await findByText('ارسال درخواست')).toBeTruthy()
+    expect(await findByText(/پنل دفتر شما خاموش شد/)).toBeTruthy()
+  })
+})

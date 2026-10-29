@@ -265,3 +265,18 @@ test('«ورود با ایوان» (Amin #6033): the app confirms the code once;
   assert.equal((await post('/office/adviser/link/confirm', { sessionToken: owner.sessionToken, code: old.body.code })).status, 410)
   assert.equal((await post('/office/link/poll', { poll: old.body.poll })).status, 410)
 })
+
+test('turning the panel off (sales management) gives the app back, signs dashboards out, and a new request can follow', async () => {
+  const { owner, h } = await office()
+  const routes = require('../src/officeRoutes')
+  const id = routes.listRequests('approved').find((r) => r.userId === owner.userId).id
+  assert.equal(routes.endPortal(id, 't').ok, true)
+  assert.equal(routes.endPortal(id, 't').error, 'not_on')
+  const status = (await post('/office/adviser/request/status', { sessionToken: owner.sessionToken })).body
+  assert.equal(status.portal, false)
+  assert.ok(status.request.endedAt)
+  assert.equal((await call('GET', '/office/overview', undefined, h)).status, 401)
+  assert.equal((await post('/sync/pull', { sessionToken: owner.sessionToken })).status, 200)
+  const again = await post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'ونک', ...login() })
+  assert.equal(again.status, 201)
+})

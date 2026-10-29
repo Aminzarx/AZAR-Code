@@ -65,6 +65,8 @@ export type OfficeRequest = {
   username: string | null
   createdAt: string
   decidedAt: string | null
+  /** sales management turned the panel off again (the app works again) */
+  endedAt?: string | null
 }
 export type OfficeStatus = { request: OfficeRequest | null; portal: boolean }
 export type OfficeRequestInput = {

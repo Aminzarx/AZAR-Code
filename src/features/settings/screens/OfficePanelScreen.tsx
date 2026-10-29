@@ -88,7 +88,8 @@ export function OfficePanelScreen({ navigation }: Props): React.JSX.Element {
 
   const request = status?.request ?? null
   const pending = request?.status === 'pending'
-  const showForm = status !== null && !pending && request?.status !== 'approved'
+  const ended = request?.status === 'approved' && !!request.endedAt
+  const showForm = status !== null && !pending && (request?.status !== 'approved' || ended)
 
   return (
     <FormScreenContainer headerTitle="پنل دفتر املاک" onBack={() => navigation.goBack()}>
@@ -125,6 +126,11 @@ export function OfficePanelScreen({ navigation }: Props): React.JSX.Element {
 
       {showForm ? (
         <View style={styles.form}>
+          {ended ? (
+            <Text style={[theme.typography('bodyMd'), styles.notice]}>
+              پنل دفتر شما خاموش شد و برنامه دوباره کار می‌کند؛ هر وقت خواستید دوباره درخواست بدهید.
+            </Text>
+          ) : null}
           {request?.status === 'rejected' ? (
             <Text style={[theme.typography('bodyMd'), styles.notice]}>
               درخواست قبلی شما تأیید نشد؛ می‌توانید دوباره درخواست بدهید.

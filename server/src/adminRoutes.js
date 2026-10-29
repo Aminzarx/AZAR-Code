@@ -665,7 +665,7 @@ router.get('/office-requests', (req, res) => {
   audit(req, 'office_requests_list', null, status)
   res.json({ requests: office.listRequests(status) })
 })
-for (const [verb, fn] of [['approve', office.approveRequest], ['reject', office.rejectRequest]]) {
+for (const [verb, fn] of [['approve', office.approveRequest], ['reject', office.rejectRequest], ['off', office.endPortal]]) {
   router.post(`/office-requests/:id/${verb}`, (req, res) => {
     const out = fn(String(req.params.id), req.actor)
     if (out.error === 'not_found') return fail(res, 404, 'not_found', 'No such request.')

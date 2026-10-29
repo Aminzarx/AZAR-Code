@@ -222,7 +222,7 @@ const PASSWORD_MIN = 8
 const usernameOf = (v) => toLatin(text(v, 40)).toLowerCase()
 /** taken by another account's pending or approved request */
 const usernameTaken = (username, userId) =>
-  !!db.prepare("SELECT 1 FROM office_requests WHERE username = ? AND user_id != ? AND status IN ('pending', 'approved')").get(username, userId)
+  !!db.prepare("SELECT 1 FROM office_requests WHERE username = ? AND user_id != ? AND (status = 'pending' OR (status = 'approved' AND ended_at IS NULL))").get(username, userId)
 const SCRYPT = { N: 16384, r: 8, p: 1 }
 function hashPassword(password) {
   const salt = crypto.randomBytes(16)
@@ -235,16 +235,19 @@ function passwordMatches(password, stored) {
   return v === 's1' && want.length === got.length && crypto.timingSafeEqual(want, got)
 }
 // Amin #6034: the dashboard's own username + password ride on the request
-for (const col of ['username TEXT', 'password_hash TEXT']) {
+for (const col of ['username TEXT', 'password_hash TEXT', 'ended_at TEXT', 'ended_by TEXT']) {
   if (!db.prepare('PRAGMA table_info(office_requests)').all().some((c) => c.name === col.split(' ')[0])) db.exec(`ALTER TABLE office_requests ADD COLUMN ${col}`)
 }
 const NOT_APPROVED = 'پنل دفتر املاک برای این حساب فعال نیست؛ از برنامهٔ ایوان، تنظیمات › اتصال‌ها و API‌ها، درخواست بدهید.'
 const LANDLINE = /^0\d{10}$/
 const lastRequest = (userId) => db.prepare('SELECT * FROM office_requests WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1').get(userId)
 const requestView = (r) =>
-  r ? { id: r.id, status: r.status, address: r.address, unionLicence: !!r.union_licence, landline: r.landline, username: r.username ?? null, createdAt: r.created_at, decidedAt: r.decided_at } : null
-/** true when the account's office panel is on (its app is then off) */
-const portalOn = (userId) => lastRequest(userId)?.status === 'approved'
+  r ? { id: r.id, status: r.status, address: r.address, unionLicence: !!r.union_licence, landline: r.landline, username: r.username ?? null, createdAt: r.created_at, decidedAt: r.decided_at, endedAt: r.ended_at ?? null } : null
+/** true when the account's office panel is on (its app is then off); sales management can turn it off again */
+const portalOn = (userId) => {
+  const r = lastRequest(userId)
+  return r?.status === 'approved' && !r.ended_at
+}
 
 const KIND_OF = { sale: 'فروش', rent: 'رهن و اجاره', barter: 'تهاتر' }
 /** the account's own files (its phone's copy on the server) → office files, once each */
@@ -287,6 +290,18 @@ function approveRequest(id, actor) {
     imported = importFiles(r.user_id, office.id)
   })()
   return { ok: true, imported }
+}
+/** sales management: turn an approved panel off → the account's app works again; the office's files stay for a later approval */
+function endPortal(id, actor) {
+  const r = db.prepare('SELECT * FROM office_requests WHERE id = ?').get(id)
+  if (!r) return { error: 'not_found' }
+  if (r.status !== 'approved' || r.ended_at) return { error: 'not_on' }
+  db.transaction(() => {
+    db.prepare('UPDATE office_requests SET ended_at = ?, ended_by = ? WHERE id = ?').run(now(), actor, id)
+    const office = db.prepare('SELECT id FROM offices WHERE owner_user_id = ?').get(r.user_id)
+    if (office) db.prepare('DELETE FROM office_sessions WHERE office_id = ?').run(office.id) // open dashboards sign out
+  })()
+  return { ok: true }
 }
 function rejectRequest(id, actor) {
   const r = db.prepare('SELECT status FROM office_requests WHERE id = ?').get(id)
@@ -579,7 +594,7 @@ adviser.post('/leave', (req, res) => {
 adviser.post('/request/status', (req, res) => res.json({ request: requestView(lastRequest(req.adviserId)), portal: portalOn(req.adviserId) }))
 adviser.post('/request', (req, res) => {
   const last = lastRequest(req.adviserId)
-  if (last && (last.status === 'pending' || last.status === 'approved')) return fail(res, 409, 'already', 'درخواست قبلاً ثبت شده است.')
+  if (last && (last.status === 'pending' || (last.status === 'approved' && !last.ended_at))) return fail(res, 409, 'already', 'درخواست قبلاً ثبت شده است.')
   const address = text(req.body?.address, 300)
   const landline = toLatin(text(req.body?.landline, 20)).replace(/\D/g, '')
   if (!address) return fail(res, 422, 'invalid_address', 'آدرس دفتر را بنویسید.')
@@ -628,7 +643,7 @@ router.post('/password', signInLimit, (req, res) => {
     return fail(res, 429, 'login_locked', 'چند بار رمز اشتباه وارد شد؛ ۱۵ دقیقهٔ دیگر دوباره امتحان کنید.')
   }
   const r = USERNAME.test(username)
-    ? db.prepare("SELECT user_id, password_hash FROM office_requests WHERE username = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 1").get(username)
+    ? db.prepare("SELECT user_id, password_hash FROM office_requests WHERE username = ? AND status = 'approved' AND ended_at IS NULL ORDER BY created_at DESC LIMIT 1").get(username)
     : null
   const ok = passwordMatches(password, r?.password_hash) && !!r // the hash always runs, so an unknown name takes as long
   if (!ok) {
@@ -677,4 +692,4 @@ adviser.post('/link/confirm', signInLimit, (req, res) => {
 router.use('/adviser', adviser)
 router.use(manager)
 
-module.exports = { router, portalOn, listRequests, approveRequest, rejectRequest, officeActivity }
+module.exports = { router, portalOn, listRequests, approveRequest, rejectRequest, endPortal, officeActivity }
