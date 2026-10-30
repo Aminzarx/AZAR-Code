@@ -8,8 +8,7 @@ import { applyTheme } from './lib/theme';
 import { ago } from './lib/fmt';
 import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, PageHeader, SearchBox, Segmented, Skeleton, ToastProvider, useAction, useConfirm, useToast } from './ui/kit';
 import { Icon } from './ui/icons';
-import qrcode from 'qrcode-generator';
-import { api, ApiError, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules, type Quote, type Tokens } from './api';
+import { api, ApiError, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules, type Quote, type SignedIn, type Tokens } from './api';
 
 /**
  * EYVAN office dashboard (Amin #5659/#5664/#5909/#5913/#5934): the real-estate office manager's own dashboard —
@@ -38,73 +37,69 @@ const dayNum = (d: string) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { da
 const today = () => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Tehran' }).format(new Date());
 
 // ------------------------------------------------------------------ login ----
-/** a QR as SVG squares (no outside service; CSP keeps everything on our own address) */
-function Qr({ text, size = 176 }: { text: string; size?: number }) {
-  const cells = useMemo(() => {
-    const q = qrcode(0, 'M');
-    q.addData(text);
-    q.make();
-    const n = q.getModuleCount();
-    const on: string[] = [];
-    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) on.push(`M${c + 2} ${r + 2}h1v1h-1z`);
-    return { n: n + 4, d: on.join('') };
-  }, [text]);
-  return (
-    <svg className="qr" viewBox={`0 0 ${cells.n} ${cells.n}`} width={size} height={size} role="img" aria-label="کد QR ورود با ایوان" shapeRendering="crispEdges">
-      <rect width={cells.n} height={cells.n} fill="#fff" />
-      <path d={cells.d} fill="#000" />
-    </svg>
-  );
-}
+const PHONE = /^09\d{9}$/;
+const persianDate = (iso: string) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Tehran' }).format(new Date(iso));
 
-/** Amin #6033 «ورود با ایوان»: a 2-minute code + its QR; the account's EYVAN app confirms it; we poll for the session */
+/**
+ * Amin #6346 «ورود با ایوان»: the manager writes the mobile number; a sign-in screen opens at once in that number's EYVAN
+ * app (when the app is open) and holding its button for 3 seconds signs this page in. While it waits, the guide says so.
+ */
 function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
-  const [link, setLink] = useState<{ code: string; poll: string; expiresAt: string } | null>(null);
+  const [phone, setPhone] = useState('');
+  const [wait, setWait] = useState<{ poll: string; expiresAt: string } | null>(null);
   const [left, setLeft] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const start = useCallback(() => {
+  const { busy, run } = useAction();
+  const number = toLatin(phone).replace(/\D/g, '');
+  const ask = () => run(async () => {
     setError(null);
-    setLink(null);
-    api.linkStart().then(setLink, (e: Error) => setError(e.message));
-  }, []);
-  useEffect(start, [start]);
+    setWait(await api.linkPhone(number));
+  });
   useEffect(() => {
-    if (!link) return;
+    if (!wait) return;
     let alive = true;
-    const tick = () => setLeft(Math.max(0, Math.round((Date.parse(link.expiresAt) - Date.now()) / 1000)));
+    const tick = () => setLeft(Math.max(0, Math.round((Date.parse(wait.expiresAt) - Date.now()) / 1000)));
     tick();
     const clock = setInterval(tick, 1000);
     const poll = setInterval(() => {
-      api.linkPoll(link.poll).then((r) => {
+      api.linkPoll(wait.poll).then((r) => {
         if (alive && 'token' in r) { alive = false; onSession(r); }
       }, (e: ApiError & { ticket?: string }) => {
         if (!alive) return;
         if (e.code === 'no_office' && e.ticket) { alive = false; onSession({ ticket: e.ticket }); }
-        else if (e.code === 'link_expired') { alive = false; setLink(null); setError(e.message); }
-        else if (e.status !== 0 && e.status !== 429) { alive = false; setError(e.message); setLink(null); }
+        else if (e.status !== 0 && e.status !== 429) { alive = false; setWait(null); setError(e.message); }
       });
     }, 2000);
     return () => { alive = false; clearInterval(clock); clearInterval(poll); };
-  }, [link, onSession]);
-  const spaced = link ? fa4(link.code) : '';
+  }, [wait, onSession]);
+  if (wait) {
+    return (
+      <div className="eyvan-link">
+        <ol className="eyvan-steps">
+          <li>برنامهٔ ایوان را روی گوشی <b dir="ltr">{number.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.charAt(Number(d)))}</b> باز کنید.</li>
+          <li>صفحهٔ «ورود به داشبورد دفتر» همان لحظه در برنامه باز می‌شود.</li>
+          <li>دکمهٔ «نگه دارید تا وارد شوید» را <b>۳ ثانیه</b> نگه دارید تا هویت شما بررسی شود.</li>
+        </ol>
+        <div className="row nowrap" role="status"><span className="wait-dot" aria-hidden="true" /> <span className="muted">منتظر تأیید در برنامهٔ ایوان… {left > 0 ? `${fa(left)} ثانیه` : ''}</span></div>
+        <p className="muted small">اگر صفحه در برنامه باز نشد، برنامه را ببندید و دوباره باز کنید. برای این شماره باید پنل دفتر فعال باشد.</p>
+        <Btn variant="ghost" onClick={() => setWait(null)}>تغییر شماره</Btn>
+      </div>
+    );
+  }
   return (
     <div className="eyvan-link">
-      <p className="muted">برنامهٔ ایوان را روی گوشی باز کنید، «اسکن کد» را بزنید و این کد را اسکن کنید (یا عددش را وارد کنید)، بعد «تأیید ورود».</p>
-      {error ? <Alert tone="bad">{error}</Alert> : null}
-      {link ? (
-        <>
-          <Qr text={`eyvan://office-link?c=${link.code}`} />
-          <div className="link-code" dir="ltr" aria-label="کد ورود">{spaced}</div>
-          <small className="muted">{left > 0 ? `${fa(left)} ثانیه اعتبار دارد` : 'منقضی شد'}</small>
-        </>
-      ) : error ? null : <Skeleton rows={2} label="در حال گرفتن کد" />}
-      {(error || (link && left === 0)) && <Btn variant="ghost" onClick={start}>کد تازه</Btn>}
+      <p className="muted">شمارهٔ همراهی را بنویسید که با آن در برنامهٔ ایوان هستید.</p>
+      <Field label="شمارهٔ همراه" required>
+        <input className="kss-input" dir="ltr" inputMode="numeric" autoComplete="tel" placeholder="09121234567" value={phone}
+          onChange={(e) => setPhone(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && PHONE.test(number)) { e.preventDefault(); void ask(); } }} autoFocus />
+      </Field>
+      {error && <Alert tone="bad">{error}</Alert>}
+      <Btn type="button" variant="primary" busy={busy} disabled={!PHONE.test(number)} onClick={() => void ask()}>ورود با ایوان</Btn>
     </div>
   );
 }
-const fa4 = (code: string) => `${code.slice(0, 4)} ${code.slice(4)}`.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.charAt(Number(d)));
 
-type SignIn = { token: string; office: { name: string } } | { ticket: string };
+type SignIn = SignedIn | { ticket: string };
 
 /**
  * Amin #6033/#6034: the office dashboard's sign-in — «ورود با ایوان» (the app confirms a code) or the username and
@@ -119,7 +114,7 @@ function Login({ onIn }: { onIn: () => void }) {
   const { busy, run, error } = useAction();
   const onSession = useCallback((r: SignIn) => {
     if ('ticket' in r) { setTicket(r.ticket); return; }
-    session.set(r.token);
+    session.set(r.token, r.expiresAt);
     onIn();
   }, [onIn]);
   const submit = () =>
@@ -176,13 +171,13 @@ function FromPanel({ onIn }: { onIn: () => void }) {
     const h = new URLSearchParams(location.search).get('h');
     history.replaceState(null, '', location.pathname);
     if (!h) { setState({ t: 'fail', m: 'داشبورد دفتر را از پنل کاربری باز کنید.' }); return; }
-    api.sso(h).then((r) => { session.set(r.token); onIn(); }, (e: Error & { code?: string; ticket?: string }) =>
+    api.sso(h).then((r) => { session.set(r.token, r.expiresAt); onIn(); }, (e: Error & { code?: string; ticket?: string }) =>
       setState(e.code === 'no_office' && e.ticket ? { t: 'name', ticket: e.ticket } : { t: 'fail', m: e.message }));
   }, [onIn]);
   const open = () => run(async () => {
     if (state.t !== 'name') return;
     const r = await api.ssoOpen(state.ticket, name.trim());
-    session.set(r.token);
+    session.set(r.token, r.expiresAt);
     onIn();
   });
   return (
@@ -400,8 +395,11 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
   const [all, setAll] = useState(true);
   const [who, setWho] = useState<Set<string>>(new Set());
   const [rules, setRules] = useState<Rules>(o.office.rules);
+  // Amin #6344: a share runs with no end or until a day; the office can cancel it either way
+  const [span, setSpan] = useState<'none' | '7' | '30' | '90'>('none');
+  const until = span === 'none' ? null : new Date(Date.now() + Number(span) * 86400000).toISOString();
   const { busy, run, error } = useAction();
-  const send = () => run(() => api.share(ids, all ? 'all' : [...who], rules).then(onSent), `${fa(ids.length)} فایل فرستاده شد`);
+  const send = () => run(() => api.share(ids, all ? 'all' : [...who], rules, until).then(onSent), `${fa(ids.length)} فایل فرستاده شد`);
   // Amin #6269: each file's tokens × each recipient who does not have it yet; the server charges the same sum
   const people = all ? o.advisers.map((a) => a.id) : [...who];
   const picked = o.files.filter((f) => ids.includes(f.id));
@@ -422,6 +420,10 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
           ))}
           <b style={{ marginBlockStart: 'var(--s3)' }}>چه اطلاعاتی برود؟</b>
           <RuleSwitches rules={rules} set={setRules} />
+          <b style={{ marginBlockStart: 'var(--s3)' }}>تا کی؟</b>
+          <Segmented label="مدت اشتراک" value={span} onChange={setSpan}
+            options={[{ value: 'none', label: 'نامحدود' }, { value: '7', label: '۷ روز' }, { value: '30', label: '۳۰ روز' }, { value: '90', label: '۹۰ روز' }]} />
+          <small className="muted">{until ? `تا ${persianDate(until)} برای مشاور دیده می‌شود؛ بعد خودبه‌خود برداشته می‌شود.` : 'تا وقتی خودتان لغو نکنید دیده می‌شود.'} از «فرستاده به» در جدول فایل‌ها هر وقت بخواهید لغو می‌کنید.</small>
           {cost !== null && (
             <Alert tone={o.tokens && cost > o.tokens.balance ? 'bad' : 'info'}>
               این ارسال {fa(cost)} توکن از دفتر کم می‌کند (توکن هر فایل × تعداد مشاورانی که آن را ندارند). موجودی دفتر: {fa(Math.floor(o.tokens?.balance ?? 0))} توکن. توکن مشاوران کم نمی‌شود.
@@ -434,7 +436,32 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
   );
 }
 
-function FilesTable({ o, onNew, onSend }: { o: Overview; onNew: () => void; onSend: (ids: string[]) => void }) {
+/** Amin #6344: who has a file now, until when, and «لغو» for one or all — the adviser stops seeing it at once */
+function SharesModal({ o, fileId, onClose, reload }: { o: Overview; fileId: string; onClose: () => void; reload: () => void }) {
+  const f = o.files.find((x) => x.id === fileId);
+  const names = new Map(o.advisers.map((a) => [a.id, a.name]));
+  const { busy, run, error } = useAction();
+  const cancel = (adviserId?: string) => run(() => api.shareCancel(fileId, adviserId).then(reload), adviserId ? 'اشتراک لغو شد' : 'همهٔ اشتراک‌های این فایل لغو شد');
+  const shares = f?.shares ?? [];
+  return (
+    <Modal title="اشتراک‌های فایل" sub={f?.title} onClose={onClose} size="sm" locked={busy}
+      footer={<>{shares.length > 1 && <Btn variant="danger" busy={busy} onClick={() => void cancel()}>لغو همه</Btn>}<Btn variant="primary" onClick={onClose}>تمام</Btn></>}>
+      {!shares.length ? <Empty title="این فایل الان برای کسی فرستاده نشده">با «ارسال به مشاوران» دوباره بفرستید.</Empty> : (
+        <div className="stack sm">
+          {shares.map((s) => (
+            <div key={s.adviserId} className="row" style={{ justifyContent: 'space-between' }}>
+              <span>{s.adviserId === '*' ? 'همهٔ مشاوران' : names.get(s.adviserId) ?? 'مشاور'} <span className="faint">· {s.until ? `تا ${persianDate(s.until)}` : 'نامحدود'}</span></span>
+              <Btn size="sm" variant="ghost" disabled={busy} onClick={() => void cancel(s.adviserId)}>لغو</Btn>
+            </div>
+          ))}
+        </div>
+      )}
+      {error && <Alert tone="bad">{error}</Alert>}
+    </Modal>
+  );
+}
+
+function FilesTable({ o, onNew, onSend, onShares }: { o: Overview; onNew: () => void; onSend: (ids: string[]) => void; onShares: (id: string) => void }) {
   const [kind, setKind] = useState<string>('all');
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -465,7 +492,7 @@ function FilesTable({ o, onNew, onSend }: { o: Overview; onNew: () => void; onSe
                 <td className="num nowrap">{priceOf(f)}</td>
                 <td className="num">{f.size != null ? fa(f.size) + ' متر' : '—'}</td>
                 <td className="muted nowrap">{ago(f.createdAt)}</td>
-                <td>{sentTo(f) ?? <span className="faint">فرستاده نشده</span>}</td>
+                <td>{sentTo(f) ? <button type="button" className="kss-btn kss-btn--link kss-btn--sm" onClick={() => onShares(f.id)} title="دیدن و لغو اشتراک">{sentTo(f)}</button> : <span className="faint">فرستاده نشده</span>}</td>
                 <td>{daysLeft(f.expiresAt) <= 7 ? <Badge tone="warn">{fa(daysLeft(f.expiresAt))} روز مانده</Badge> : <span className="faint">{fa(daysLeft(f.expiresAt))} روز</span>}</td>
               </tr>
             ))}
@@ -551,10 +578,35 @@ function TokensCard({ reloadKey }: { reloadKey: string }) {
   );
 }
 
+const signOut = () => api.logout().catch(() => undefined).finally(() => { session.clear(); if (IN_PANEL) location.href = '/app'; else location.reload(); });
+
+/**
+ * Amin #6343: the office's settings — taking the request back, even after approval. The files go home to the manager's
+ * EYVAN app, every share ends, every adviser is unlinked and this dashboard closes.
+ */
+function Settings({ o }: { o: Overview }) {
+  const { ask: confirm, node: confirmNode } = useConfirm();
+  const [done, setDone] = useState<string | null>(null);
+  if (done) return <Alert tone="ok" title="درخواست پس گرفته شد" action={<Btn size="sm" onClick={() => { session.clear(); if (IN_PANEL) location.href = '/app'; else location.reload(); }}>بستن داشبورد</Btn>}>{done}</Alert>;
+  return (
+    <div className="stack sm">
+      {confirmNode}
+      <b>پس‌گرفتن درخواست پنل دفتر</b>
+      <p className="muted">با پس‌گرفتن درخواست، همهٔ فایل‌های دفتر ({fa(o.files.length)} فایل) به برنامهٔ ایوان شما برمی‌گردد، همهٔ اشتراک‌ها لغو می‌شود، دسترسی همهٔ مشاوران ({fa(o.advisers.length)} نفر) قطع می‌شود و این داشبورد بسته می‌شود. برنامهٔ ایوان دوباره مثل قبل کار می‌کند. هر وقت بخواهید می‌توانید دوباره درخواست بدهید؛ توکن‌های دفتر سر جایش می‌ماند.</p>
+      <div><Btn variant="danger" icon="logout" onClick={() => confirm({
+        title: 'پس‌گرفتن درخواست پنل دفتر', object: o.office.name,
+        consequence: 'فایل‌ها به برنامهٔ ایوان شما برمی‌گردد؛ همهٔ اشتراک‌ها لغو و دسترسی همهٔ مشاوران قطع می‌شود؛ این داشبورد بسته می‌شود.',
+        confirmLabel: 'پس‌گرفتن درخواست',
+        onConfirm: () => api.withdraw().then((r) => setDone(`${fa(r.files)} فایل دفتر در برنامهٔ ایوان شماست. برنامه را یک بار ببندید و باز کنید تا فایل‌ها دیده شوند.`)),
+      })}>پس‌گرفتن درخواست</Btn></div>
+    </div>
+  );
+}
+
 function Dashboard() {
   const [o, setO] = useState<Overview | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [layer, setLayer] = useState<null | { t: 'new' } | { t: 'code' } | { t: 'send'; ids: string[] }>(null);
+  const [layer, setLayer] = useState<null | { t: 'new' } | { t: 'code' } | { t: 'send'; ids: string[] } | { t: 'shares'; id: string }>(null);
   const [nav, setNav] = useState(false);
   const toast = useToast();
   const load = useCallback(() => api.overview().then((x) => { setO(x); setErr(null); }, (e: Error) => setErr(e.message)), []);
@@ -583,15 +635,21 @@ function Dashboard() {
           <a href="#advisers" className="item"><Icon name="user" size={20} /><span>مشاوران و اتصال</span></a>
           <a href="#sharing" className="item"><Icon name="shield" size={20} /><span>قواعد ارسال</span></a>
         </nav>
+        <div className="side-group">حساب</div>
+        <nav>
+          <a href="#settings" className="item"><Icon name="settings" size={20} /><span>تنظیمات</span></a>
+        </nav>
         <div className="grow" />
-        <button className="kss-btn kss-btn--ghost kss-btn--sm side-out" onClick={() => api.logout().finally(() => { session.clear(); if (IN_PANEL) location.href = '/app'; else location.reload(); })}><Icon name="logout" size={16} />خروج</button>
+        <button className="kss-btn kss-btn--ghost kss-btn--sm side-out" onClick={() => void signOut()}><Icon name="logout" size={16} />خروج</button>
       </aside>
       <div className="main">
         <header className="top">
           <button className="kss-icon-btn menu-btn" aria-label="منو" aria-expanded={nav} onClick={() => setNav(true)}><Icon name="menu" size={20} /></button>
           <span className="ctx"><Icon name="store" />{o?.office.name ?? 'دفتر املاک'}</span>
           <div className="spacer" />
-          <span className="ctx"><Icon name="user" />مدیر دفتر</span>
+          <span className="ctx hide-sm"><Icon name="user" />مدیر دفتر</span>
+          {/* Amin #6349: «خروج» always in sight, on phones too (the side menu is folded there) */}
+          <button className="kss-btn kss-btn--ghost kss-btn--sm" onClick={() => void signOut()}><Icon name="logout" size={16} />خروج</button>
         </header>
         <main id="top"><div className="page">
           <PageHeader title="نمای کلی دفتر" sub={`${today()}؛ همهٔ عددها از فایل‌های دفتر و کار مشاوران وصل`} meta={meta}
@@ -616,16 +674,18 @@ function Dashboard() {
                 <Card id="sharing" title="قواعد ارسال به مشاوران" sub="پیش‌فرض هر ارسال؛ هنگام ارسال قابل تغییر است"><Sharing o={o} reload={() => void load()} /></Card>
               </div>
               <Card id="files" title="فایل‌های دفتر" sub={`${fa(o.files.length)} فایل · انتخاب تکی یا چندتایی برای ارسال`} end={<Btn size="sm" icon="plus" onClick={() => setLayer({ t: 'new' })}>فایل تازه</Btn>} flush>
-                <FilesTable o={o} onNew={() => setLayer({ t: 'new' })} onSend={(ids) => setLayer({ t: 'send', ids })} />
+                <FilesTable o={o} onNew={() => setLayer({ t: 'new' })} onSend={(ids) => setLayer({ t: 'send', ids })} onShares={(id) => setLayer({ t: 'shares', id })} />
               </Card>
               <TokensCard reloadKey={o.asOf} />
+              <Card id="settings" title="تنظیمات دفتر"><Settings o={o} /></Card>
             </div>
           )}
         </div></main>
       </div>
       {layer?.t === 'new' && <NewFileModal onClose={() => setLayer(null)} onMade={(id, title) => { toast(`«${title}» ثبت شد`); void load(); setLayer({ t: 'send', ids: [id] }); }} />}
       {layer?.t === 'code' && <CodeModal onClose={() => { setLayer(null); void load(); }} />}
-      {layer?.t === 'send' && o && <SendModal o={o} ids={layer.ids} onClose={() => setLayer(null)} onSent={() => { setLayer(null); void load(); }} />}
+      {layer?.t === 'shares' && o && <SharesModal o={o} fileId={layer.id} onClose={() => setLayer(null)} reload={() => void load()} />}
+      {layer?.t === 'send' && o &&<SendModal o={o} ids={layer.ids} onClose={() => setLayer(null)} onSent={() => { setLayer(null); void load(); }} />}
     </div>
   );
 }

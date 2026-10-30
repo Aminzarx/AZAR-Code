@@ -3,7 +3,12 @@
 .login-card { inline-size: min(420px, 100%); padding: var(--s8); display: flex; flex-direction: column; gap: var(--s4); }
 .login-card .side-brand { padding: 0; border: 0; }
 .eyvan-link { display: flex; flex-direction: column; align-items: center; gap: var(--s3); text-align: center; }
-.eyvan-link .qr { border-radius: 8px; border: 1px solid var(--kss-color-border, #e5e7eb); padding: 6px; background: #fff; }
+.eyvan-link .kss-field, .eyvan-link .kss-btn { align-self: stretch; }
+.eyvan-steps { list-style-type: persian; text-align: start; margin: 0; padding-inline-start: 1.25em; display: flex; flex-direction: column; gap: var(--s2); line-height: 1.8; }
+.wait-dot { inline-size: 14px; block-size: 14px; border-radius: 50%; border: 2px solid var(--kss-color-border, #e5e7eb); border-top-color: var(--kss-color-primary, #2563eb); animation: wait-spin 0.9s linear infinite; }
+@keyframes wait-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .wait-dot { animation: none; } }
+@media (max-width: 480px) { .hide-sm { display: none !important; } }
 .link-code { font-size: 28px; font-weight: 700; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
 .login-card .small { font-size: 12px; }
 .login-title { font-size: var(--fs-xl, 22px); margin: 0; }
