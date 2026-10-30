@@ -72,7 +72,10 @@ export type OfficeRequest = {
   /** sales management turned the panel off again (the app works again) */
   endedAt?: string | null
 }
-export type OfficeStatus = { request: OfficeRequest | null; portal: boolean }
+/** demo (Amin #6345): a KSS demo number — the app keeps working beside the office and still answers dashboard sign-ins */
+export type OfficeStatus = { request: OfficeRequest | null; portal: boolean; demo?: boolean }
+/** Amin #6346: a dashboard sign-in waiting for this phone (the manager typed this number on the dashboard) */
+export type OfficeSignIn = { code: string; createdAt: string; expiresAt: string }
 export type OfficeRequestInput = {
   address: string
   unionLicence: boolean
@@ -219,6 +222,14 @@ export class SyncApiClient {
   /** Amin #6033 «ورود با ایوان»: confirm the code the office dashboard shows */
   officeLinkConfirm(sessionToken: string, code: string): Promise<{ ok: true }> {
     return this.post('/office/adviser/link/confirm', { sessionToken, code })
+  }
+  /** Amin #6346: the dashboard sign-in waiting for this phone, if any (asked every few seconds while the app is open) */
+  officeLinkPending(sessionToken: string): Promise<{ link: OfficeSignIn | null }> {
+    return this.post('/office/adviser/link/pending', { sessionToken })
+  }
+  /** Amin #6346: «این ورود من نیست» */
+  officeLinkDeny(sessionToken: string, code: string): Promise<{ ok: true }> {
+    return this.post('/office/adviser/link/deny', { sessionToken, code })
   }
 
   private async post<T>(path: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {

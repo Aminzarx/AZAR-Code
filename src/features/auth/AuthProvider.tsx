@@ -89,6 +89,8 @@ type AuthContextValue = {
   sync: SyncStatus
   /** sends what is waiting now; returns how many changes are still not on the server */
   syncNow: () => Promise<number>
+  /** Amin #6343: loads the account's files from the server again (after an office's files came home) */
+  reloadFiles?: () => Promise<number>
   /** Amin #5062: a file/contract photo's bytes (base64) for showing; null while it cannot be fetched (offline) */
   loadPhoto: (photo: { data: string | null; blobHash: string | null }) => Promise<string | null>
   /** Amin #5052: «کارنامهٔ توکن»; offline the last kept answer (fresh false); null when there is none */
@@ -392,6 +394,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       session,
       sync,
       syncNow: () => (session ? syncOnce(session) : Promise.resolve(0)),
+      reloadFiles: () => {
+        if (!session || !syncService) return Promise.resolve(0)
+        syncService.markStale()
+        return syncOnce(session)
+      },
       getTokenLedger,
       tokenPurchase,
       announcements,

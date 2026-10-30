@@ -3,7 +3,7 @@ import { AppState } from 'react-native'
 import { getDatabase } from '@infrastructure/database/connection'
 import { ApplicationSettingsRepository } from '@infrastructure/database/repositories/ApplicationSettingsRepository'
 import { AUTH_API_BASE_URL } from '@infrastructure/auth/config'
-import { OfficeRefusedError, SyncApiClient, type OfficeStatus } from '@infrastructure/sync/syncApiClient'
+import { OfficeRefusedError, SyncApiClient, type OfficeSignIn, type OfficeStatus } from '@infrastructure/sync/syncApiClient'
 
 /**
  * Amin #5970: the office panel is granted, not open. The user asks from «تنظیمات ← اتصال‌ها و API‌ها ← پنل دفتر املاک»
@@ -45,7 +45,7 @@ export function useOfficePortal(sessionToken: string | undefined): boolean | nul
   const check = useCallback(async () => {
     if (!sessionToken) return
     const status = await officeClient.officeStatus(sessionToken)
-    notePortal(status.portal)
+    noteStatus(status)
   }, [sessionToken])
 
   useEffect(() => {
@@ -77,8 +77,85 @@ export function useOfficePortal(sessionToken: string | undefined): boolean | nul
 /** the status page's answer, with the gate kept in step */
 export async function loadOfficeStatus(sessionToken: string): Promise<OfficeStatus> {
   const status = await officeClient.officeStatus(sessionToken)
-  notePortal(status.portal)
+  noteStatus(status)
   return status
+}
+
+/**
+ * The server's answer → the gate (the panel screen; never on a KSS demo number, #6345, where the app keeps working) and
+ * the sign-in watch (#6346: on for every account whose office is on, demo included).
+ */
+function noteStatus(status: OfficeStatus): void {
+  notePortal(status.portal && !status.demo)
+  if (watching === status.portal) return
+  watching = status.portal
+  watchers.forEach((w) => w(status.portal))
+}
+let watching = false
+const watchers = new Set<(on: boolean) => void>()
+/** true while this account's office is on: the app then answers sign-ins the dashboard asks for */
+export function useOfficeSignInWatch(): boolean {
+  const [on, setOn] = useState(watching)
+  useEffect(() => {
+    watchers.add(setOn)
+    setOn(watching)
+    return () => {
+      watchers.delete(setOn)
+    }
+  }, [])
+  return on
+}
+
+export const SIGN_IN_POLL_MS = 3000
+/**
+ * Amin #6346: «صفحهٔ مجوز ورود روی اپ باید فوری روی اپ باز بشه» — while the app is open and the office is on, it asks
+ * every few seconds whether the dashboard is waiting for this phone (no push service: the guide tells the manager to
+ * open the app first). A sign-in answered or refused here is not shown again.
+ */
+export function useOfficeSignIn(sessionToken: string | undefined, enabled: boolean): { link: OfficeSignIn | null; done: (code: string) => void } {
+  const [link, setLink] = useState<OfficeSignIn | null>(null)
+  const [handled] = useState(() => new Set<string>())
+  useEffect(() => {
+    if (!sessionToken || !enabled) {
+      setLink(null)
+      return
+    }
+    let alive = true
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let active = AppState.currentState === 'active'
+    const ask = async (): Promise<void> => {
+      if (!alive || !active) return
+      try {
+        const { link: next } = await officeClient.officeLinkPending(sessionToken)
+        if (alive) setLink(next && !handled.has(next.code) ? next : null)
+      } catch {
+        // offline or signed out: the next round tries again
+      }
+      if (alive && active) timer = setTimeout(() => void ask(), SIGN_IN_POLL_MS)
+    }
+    void ask()
+    const change = AppState.addEventListener('change', (state) => {
+      const was = active
+      active = state === 'active'
+      if (active && !was) {
+        if (timer) clearTimeout(timer)
+        void ask()
+      }
+    })
+    return () => {
+      alive = false
+      if (timer) clearTimeout(timer)
+      change.remove()
+    }
+  }, [sessionToken, enabled, handled])
+  const done = useCallback(
+    (code: string) => {
+      handled.add(code)
+      setLink((l) => (l?.code === code ? null : l))
+    },
+    [handled]
+  )
+  return { link, done }
 }
 
 /** «eyvan://office-link?c=12345678», a pasted link or a typed code (Persian digits too) → the 8 digits, or null */

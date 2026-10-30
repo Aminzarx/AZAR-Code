@@ -6,6 +6,15 @@ entries exist even before any code ships.
 
 ---
 
+## 1.5.17 — office: «ورود با ایوان» by number, take the request back, dated shares, demo office (Amin #6343–#6346, #6349)
+
+- «ورود با ایوان» (#6346): the dashboard asks for the mobile number (no more QR or code). While the app is open and the account's office is on, it asks `POST /office/adviser/link/pending` every 3 s (`useOfficeSignIn`; no push service, so the dashboard's guide says «open the app first»). A waiting sign-in opens at once over whatever is on screen (`OfficeSignInPrompt`, mounted in `RootNavigator`): hold «نگه دارید تا وارد شوید» for 3 s (letting go starts over) → `link/confirm`; «این ورود من نیست» → `link/deny` and the dashboard says it was refused. The page's answer is the same for any number (it never says who has an office); a newer request for a number replaces the older one; another account's app can never confirm it. Dashboard sign-ins last 3 hours and live in the browser tab only (closing it = sign in again).
+- Taking the request back (#6343) from the dashboard's «تنظیمات دفتر», even after approval: every share ends, every adviser is unlinked, unused join codes die, every dashboard is signed out, the panel is off. The office's files go home: the ones it made (and any imported one no longer on the phone) are written into the manager's copy on the server (`syncRoutes.putRow`, key `office-<id>`, owner name/phone added to the description); the app reloads its files the moment the panel goes off (`reloadFiles`), so they show without a restart. The office's tokens stay with the office.
+- Dated shares (#6344): a send runs with no end or for 7 / 30 / 90 days (`until`; an ended share disappears from the adviser's phone, and sending again counts as a new recipient); «فرستاده به» opens who has the file and until when, with «لغو» per adviser and «لغو همه» (`POST /office/share/cancel`). Tokens already spent stay spent.
+- Demo office (#6345): `POST /admin/office-demo { phone }` (KSS demo numbers only, `AZAR_TEST_OTP_NUMBERS`) makes «دفتر املاک نمونه» with 5 sample files. On a demo number `request/status` says `demo: true`: the app keeps working beside the office (no panel screen) and still answers dashboard sign-ins.
+- «خروج» (#6349) is always in the dashboard's top bar (it was only in the side menu, folded away on phones).
+- The panel screen in the app now explains the number sign-in instead of scanning a code. Everything in 1.5.16 is included.
+
 ## 1.5.16 — announcements: the bell counts them, pictures and sounds, reach numbers (Amin #6214)
 
 - Home's bell turns red with the number of KSS announcements this account has not seen yet (`useAnnouncements().unseen`, read again whenever Home or «اعلان‌ها» comes into view). Before, the bell only had a dot for overdue reminders and never noticed announcements. The dot still shows overdue reminders when there is no number.

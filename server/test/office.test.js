@@ -580,7 +580,7 @@ test('Amin #6346: sign in with the mobile number — the app sees it at once, co
   // refused in the app → the page is told
   const third = await post('/office/link/phone', { phone: owner.phoneNumber })
   const code = (await post('/office/adviser/link/pending', app)).body.link.code
-  assert.equal((await post('/office/adviser/link/deny', { ...app, code })).status, 204)
+  assert.equal((await post('/office/adviser/link/deny', { ...app, code })).status, 200)
   assert.equal((await post('/office/link/poll', { poll: third.body.poll })).body.error.code, 'link_denied')
   assert.equal((await post('/office/adviser/link/confirm', { ...app, code })).status, 410)
 })

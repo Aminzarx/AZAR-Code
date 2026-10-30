@@ -234,6 +234,11 @@ export class SyncService {
     this.isLoaded = false
   }
 
+  /** Amin #6343: the server put rows in the account's copy (an office's files coming home); the next round loads them */
+  markStale(): void {
+    this.isLoaded = false
+  }
+
   /**
    * Another phone took the number: the files leave the working database; changes that never reached the server
    * stay queued (encrypted) until the same number signs in again.

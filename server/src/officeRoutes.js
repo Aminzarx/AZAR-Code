@@ -1059,10 +1059,10 @@ adviser.post('/link/pending', (req, res) => {
   const row = portalOn(req.adviserId) ? pendingLink(req.adviserId) : null
   res.json({ link: row ? { code: row.code, createdAt: row.created_at, expiresAt: row.expires_at } : null })
 })
-// POST /office/adviser/link/deny { sessionToken, code } → 204: «این ورود من نیست»
+// POST /office/adviser/link/deny { sessionToken, code } → { ok }: «این ورود من نیست» (the app reads every answer as JSON)
 adviser.post('/link/deny', (req, res) => {
   db.prepare('UPDATE office_links SET denied_at = ? WHERE code = ? AND target_user_id = ? AND confirmed_at IS NULL').run(now(), text(req.body?.code, 8), req.adviserId)
-  res.status(204).end()
+  res.json({ ok: true })
 })
 
 // POST /office/adviser/link/confirm { sessionToken, code } → { ok }: the app confirms the code it scanned or typed.
