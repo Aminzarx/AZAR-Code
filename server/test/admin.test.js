@@ -235,7 +235,6 @@ test('delete is soft for 30 days (restore works), then the nightly purge leaves 
   const a = await account()
   const d = await call('POST', `/users/${a.userId}/delete`, { note: 'درخواست کاربر' })
   assert.equal(d.status, 200)
-  assert.equal((await signIn(a.phoneNumber)).status, 403)
   assert.equal((await call('POST', `/users/${a.userId}/restore`)).status, 200)
   assert.equal((await signIn(a.phoneNumber)).status, 200)
 
@@ -329,6 +328,37 @@ test('«حذف موقت»: archive frees the number; a new account signs up on i
   assert.equal(at.body.replacedReferrer, other.userId)
   const parent = db.prepare('SELECT referrer_user_id FROM referral_relationships WHERE referred_user_id = ?').get(fresh.body.userId)
   assert.equal(parent.referrer_user_id, oldParent)
+})
+
+test('Amin #6179: a number whose account an admin deleted signs up again as a new account; the old one is a tombstone', async () => {
+  const a = await account()
+  assert.equal((await call('POST', `/users/${a.userId}/delete`)).status, 200)
+  // the code is accepted, and the number is now unknown: the app goes on to sign-up (not «locked»)
+  const s = await signIn(a.phoneNumber)
+  assert.equal(s.status, 422)
+  assert.equal(s.body.error.code, 'invalid_phone_number')
+  const old = db.prepare('SELECT phone_number, deleted_at FROM users WHERE id = ?').get(a.userId)
+  assert.equal(old.phone_number, `deleted:${a.userId}`)
+  assert.ok(old.deleted_at)
+  await post('/auth/send-otp', { phoneNumber: a.phoneNumber })
+  await post('/auth/verify-otp', { phoneNumber: a.phoneNumber, code: '123456' })
+  const fresh = await post('/auth/register', { phoneNumber: a.phoneNumber, referralCode: 'AMINZX' })
+  assert.equal(fresh.status, 201, JSON.stringify(fresh.body))
+  assert.notEqual(fresh.body.userId, a.userId)
+  assert.equal((await signIn(a.phoneNumber)).status, 200)
+
+  // straight to sign-up (no login first) works too
+  const b = await account()
+  await call('POST', `/users/${b.userId}/delete`)
+  await post('/auth/send-otp', { phoneNumber: b.phoneNumber })
+  await post('/auth/verify-otp', { phoneNumber: b.phoneNumber, code: '123456' })
+  const again = await post('/auth/register', { phoneNumber: b.phoneNumber, referralCode: 'AMINZX' })
+  assert.equal(again.status, 201, JSON.stringify(again.body))
+
+  // a locked account is still refused
+  const c = await account()
+  await call('POST', `/users/${c.userId}/status`, { status: 'locked' })
+  assert.equal((await signIn(c.phoneNumber)).status, 403)
 })
 
 test('announcements (Amin #5370): written by admin, shown to the app until deleted or dismissed', async () => {

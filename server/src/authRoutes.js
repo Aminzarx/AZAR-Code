@@ -214,7 +214,7 @@ router.post('/register', registerLimiter, (req, res) => {
   if (isMovedNumber(phoneNumber)) {
     return fail(res, 422, 'phone_moved', 'This number was moved to another number.')
   }
-  if (findUserByPhone(phoneNumber)) {
+  if (liveUserByPhone(phoneNumber)) {
     return fail(
       res,
       422,
@@ -280,7 +280,7 @@ router.post('/login', registerLimiter, (req, res) => {
     return fail(res, 401, 'authentication_required', 'Verify your phone number before logging in.')
   }
 
-  let user = findUserByPhone(phoneNumber)
+  let user = liveUserByPhone(phoneNumber)
   if (!user && isMovedNumber(phoneNumber)) {
     // KSS (Amin #4632): the account moved to a new number; the old one no longer signs in
     return fail(res, 422, 'phone_moved', 'This number was moved to another number.')
@@ -296,7 +296,7 @@ router.post('/login', registerLimiter, (req, res) => {
     tokens().referralSignedUp(user.id).catch(() => undefined)
   }
 
-  // Amin #5197: an account a KSS admin locked or deleted does not sign in
+  // Amin #5197: an account a KSS admin locked does not sign in (a deleted one was cleared above, Amin #6179)
   if (user.admin_status === 'locked' || user.admin_status === 'deleted') {
     return fail(res, 403, 'account_locked', 'This account is locked. Contact support.')
   }
@@ -343,17 +343,8 @@ router.post('/delete-account', registerLimiter, (req, res) => {
   // invites, number history, licence and files go; the users row (id, referral code, the code it used) and both
   // directions of referral_relationships stay. The number itself is free to sign up again as a new account.
   db.transaction(() => {
-    db.prepare('UPDATE users SET phone_number = ?, deleted_at = ? WHERE id = ?').run(
-      deletedMarker(user.id),
-      new Date().toISOString(),
-      user.id
-    )
-    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
-    db.prepare('DELETE FROM invites WHERE referrer_user_id = ?').run(user.id)
-    db.prepare('DELETE FROM phone_changes WHERE user_id = ?').run(user.id)
-    db.prepare('DELETE FROM licences WHERE user_id = ?').run(user.id)
+    tombstone(user)
     db.prepare('DELETE FROM otp_requests WHERE phone_number = ?').run(phoneNumber)
-    deleteAccountData(user.id)
   })()
 
   res.status(204).end()
@@ -362,6 +353,30 @@ router.post('/delete-account', registerLimiter, (req, res) => {
 /** what a tombstone holds instead of a number: unique, and never a valid phone number (so never signs in) */
 function deletedMarker(userId) {
   return `deleted:${userId}`
+}
+
+/** the account becomes a tombstone (see delete-account); the caller wraps it in a transaction */
+function tombstone(user) {
+  db.prepare('UPDATE users SET phone_number = ?, deleted_at = ? WHERE id = ?').run(deletedMarker(user.id), new Date().toISOString(), user.id)
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
+  db.prepare('DELETE FROM invites WHERE referrer_user_id = ?').run(user.id)
+  db.prepare('DELETE FROM phone_changes WHERE user_id = ?').run(user.id)
+  db.prepare('DELETE FROM licences WHERE user_id = ?').run(user.id)
+  deleteAccountData(user.id)
+}
+
+/**
+ * Amin #6179: an account a KSS admin deleted (soft, restorable for 30 days) keeps its number until the nightly purge,
+ * so the person could not come back: the code was accepted, then sign-in was refused. When that number signs in or
+ * signs up again, the deleted account becomes a tombstone right then (as the purge would) and the number starts over
+ * as a new account. Locked accounts stay refused. Returns the user, or null when it was a deleted one.
+ */
+function liveUserByPhone(phoneNumber) {
+  const user = findUserByPhone(phoneNumber)
+  if (user?.admin_status !== 'deleted') return user ?? null
+  db.transaction(() => tombstone(user))()
+  console.info('[auth] deleted account', user.id, 'purged early: its number signs up again')
+  return null
 }
 
 module.exports = router
