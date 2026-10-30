@@ -6,6 +6,10 @@ entries exist even before any code ships.
 
 ---
 
+## 1.5.15 — fewer permissions at install (Amin #5551/#6132)
+
+- The app no longer asks for the old shared-storage permissions (`READ_/WRITE_EXTERNAL_STORAGE`, added by react-native-camera-kit and react-native-fs). Photos already come through the system camera and photo picker and every file stays in the app's own folder, so nothing changes for the user; the install screen and Play Protect's scan see a shorter permission list. Everything in 1.5.14 is included.
+
 ## 1.5.14 — office panel by request, «ورود با ایوان», faster forms (Amin #5970/#6032/#6033/#6034, #5975/#5977/#5978)
 
 - «تنظیمات ← اتصال‌ها و API‌ها ← پنل دفتر املاک» (`OfficePanelScreen`): office address (required), union licence, landline (optional, `0`+10 digits) and the panel's own username + password (#6034, the panel only — never kssx.ir). Amin's confirm text before sending; once sent, «لغو درخواست»; a rejected request can be sent again.
