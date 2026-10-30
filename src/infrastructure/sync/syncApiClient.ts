@@ -26,6 +26,10 @@ export type Announcement = {
   body: string
   tone: 'info' | 'success' | 'warning' | 'danger'
   createdAt: string
+  /** Amin #6214: has this account already had the card on screen (the home bell counts the ones not seen) */
+  seen?: boolean
+  /** Amin #6214: a picture, sound or video; url is on the API server (relative) */
+  media?: { id: string; kind: 'image' | 'audio' | 'video'; mime: string; bytes: number; url: string } | null
 }
 
 export class SessionRevokedError extends Error {
@@ -152,6 +156,16 @@ export class SyncApiClient {
   /** Amin #5370: KSS announcements this account has not dismissed, newest first */
   announcements(sessionToken: string): Promise<{ announcements: Announcement[] }> {
     return this.post('/announcements', { sessionToken })
+  }
+
+  /** Amin #6214: these cards were on the screen (counted once per account) */
+  announcementsSeen(sessionToken: string, ids: string[]): Promise<unknown> {
+    return this.post('/announcements/seen', { sessionToken, ids })
+  }
+
+  /** Amin #6214: the person tapped the card or opened its picture, sound or video */
+  openAnnouncement(sessionToken: string, id: string): Promise<unknown> {
+    return this.post(`/announcements/${encodeURIComponent(id)}/open`, { sessionToken })
   }
 
   /** Amin #5370: × on an announcement — it is not shown to this account again */

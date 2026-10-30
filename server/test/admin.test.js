@@ -69,6 +69,7 @@ after(() => {
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
+const announcements = () => require('../src/announcements')
 let requests = 0
 async function post(route, body) {
   const res = await fetch(`${base}${route}`, {
@@ -375,6 +376,63 @@ test('announcements (Amin #5370): written by admin, shown to the app until delet
   assert.deepEqual(await seen(), [])
   assert.equal((await post('/announcements', {})).status, 401)
   assert.equal((await call('GET', '/announcements')).body.announcements.length, 1)
+})
+
+test('announcements (Amin #6214): unseen count, seen/opened counts per announcement, media, push flag', async () => {
+  const a = await account()
+  const b = await account()
+  // an announcement from before the counting reads as unknown, never zero
+  db.prepare("INSERT INTO announcements (id, title, body, tone, created_at) VALUES ('old-6214', 'قدیمی', 'متن', 'info', '2026-10-01T00:00:00Z')").run()
+  const png = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(64, 1)])
+  const media = await call('POST', '/announcements/media', { data: png.toString('base64') })
+  assert.equal(media.status, 201, JSON.stringify(media.body))
+  assert.equal(media.body.kind, 'image')
+  assert.equal((await call('POST', '/announcements/media', { data: Buffer.from('<html>not a picture</html>').toString('base64') })).status, 415)
+  const mp3 = Buffer.concat([Buffer.from('ID3'), Buffer.alloc(64, 0)])
+  assert.equal(announcements().storeMedia({ data: mp3.toString('base64') }).media.kind, 'audio')
+  const big = Buffer.concat([Buffer.from('ffd8ff', 'hex'), Buffer.alloc(3 * 1024 * 1024, 0)])
+  assert.equal(announcements().storeMedia({ data: big.toString('base64') }).error, 'media_too_large')
+  assert.equal((await call('POST', '/announcements', { title: 'عکس', body: 'متن', tone: 'info', mediaId: 'nope' })).status, 422)
+
+  const made = await call('POST', '/announcements', { title: 'با عکس', body: 'متن', tone: 'success', push: true, mediaId: media.body.id })
+  assert.equal(made.status, 201)
+  assert.equal(made.body.push, true)
+  assert.equal(made.body.media.url, `/announcements/media/${media.body.id}`)
+  const plain = await call('POST', '/announcements', { title: 'ساده', body: 'متن', tone: 'info' })
+  assert.equal(plain.body.push, false)
+
+  // the app: everything starts unseen (the bell counts them); seen once the cards were on screen
+  const list = async (s) => (await post('/announcements', { sessionToken: s })).body.announcements
+  const unseen = async (s) => (await list(s)).filter((n) => !n.seen).length
+  const before = await unseen(a.sessionToken)
+  assert.ok(before >= 3)
+  assert.equal((await post('/announcements/seen', { sessionToken: a.sessionToken, ids: [made.body.id, plain.body.id, 'gone'] })).status, 204)
+  assert.equal(await unseen(a.sessionToken), before - 2)
+  assert.equal(await unseen(b.sessionToken), before) // per account
+  assert.equal((await post(`/announcements/${made.body.id}/open`, { sessionToken: b.sessionToken })).status, 204) // open counts as seen too
+  await post(`/announcements/${made.body.id}/open`, { sessionToken: b.sessionToken }) // twice = still one person
+  await post(`/announcements/${made.body.id}/dismiss`, { sessionToken: a.sessionToken })
+  assert.equal((await post('/announcements/seen', {})).status, 401)
+  assert.equal((await post('/announcements/nope/open', { sessionToken: a.sessionToken })).status, 404)
+
+  // the media itself, while its announcement is live
+  const got = await fetch(`${base}/announcements/media/${media.body.id}`)
+  assert.equal(got.status, 200)
+  assert.equal(got.headers.get('content-type'), 'image/png')
+  assert.equal(Buffer.from(await got.arrayBuffer()).length, png.length)
+
+  // sales management: per announcement counts, with the audience they are out of
+  const rows = (await call('GET', '/announcements')).body.announcements
+  const stat = (id) => rows.find((r) => r.id === id).stats
+  assert.deepEqual({ ...stat(made.body.id), audience: 0 }, { audience: 0, seen: 2, opened: 1, closed: 1 })
+  assert.ok(stat(made.body.id).audience >= 2)
+  assert.deepEqual({ ...stat(plain.body.id), audience: 0 }, { audience: 0, seen: 1, opened: 0, closed: 0 })
+  assert.equal(stat('old-6214'), null)
+
+  await call('DELETE', `/announcements/${made.body.id}`)
+  assert.equal((await fetch(`${base}/announcements/media/${media.body.id}`)).status, 404)
+  await call('DELETE', `/announcements/${plain.body.id}`)
+  await call('DELETE', '/announcements/old-6214')
 })
 
 test('«آخرین ورود» (Amin #5369): set at sign-up', async () => {

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { SectionList, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -32,7 +32,12 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
   const { reminders, isLoading, error, refetch } = useReminders(userId)
   const service = useReminderService()
   // Amin #5370: «یادآوری‌ها» became «اعلان‌ها»: KSS announcements on top, then the reminders
-  const { announcements, dismiss } = useAnnouncements()
+  const { announcements, dismiss, markSeen, open } = useAnnouncements()
+  // Amin #6214: they sit at the top of this screen, so once they are here they have been seen (the bell's number drops)
+  const unseenIds = announcements.filter((announcement) => announcement.seen === false).map((announcement) => announcement.id).join(',')
+  useEffect(() => {
+    if (unseenIds) markSeen(unseenIds.split(','))
+  }, [unseenIds, markSeen])
   const announcementCards =
     announcements.length > 0 ? (
       <View style={styles.announcements}>
@@ -41,6 +46,7 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
             key={announcement.id}
             announcement={announcement}
             onDismiss={() => dismiss(announcement.id)}
+            onOpen={() => open(announcement.id)}
           />
         ))}
       </View>

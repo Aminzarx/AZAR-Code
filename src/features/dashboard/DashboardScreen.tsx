@@ -25,6 +25,7 @@ import {
 } from './components/HomeSections'
 import type { DashboardStat } from './types'
 import { useSharedDivarLink } from '@features/property/hooks/useSharedDivarLink'
+import { useAnnouncements } from '@features/reminder/hooks/useAnnouncements'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Home'>
 
@@ -47,6 +48,8 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
   const ownPhoto = photoUri(profile.photoPath)
   // Amin #4906: after the licence ends Home keeps the follow-ups and the summary; adding and matching wait
   const { canEdit } = useLicence()
+  // Amin #6214: the bell turns red with the number of KSS announcements not seen yet (read again whenever Home is in view)
+  const { unseen: unseenAnnouncements } = useAnnouncements()
 
   const count = (id: DashboardStat['id']) => data?.stats.find((stat) => stat.id === id)?.value ?? 0
   const hasProperty = count('properties') > 0
@@ -112,8 +115,9 @@ export function DashboardScreen({ navigation }: Props): React.JSX.Element {
           </Pressable>
           <RoundIconButton
             icon="bell"
-            accessibilityLabel="اعلان‌ها"
+            accessibilityLabel={unseenAnnouncements > 0 ? `اعلان‌ها، ${unseenAnnouncements} اعلان تازه` : 'اعلان‌ها'}
             showDot={data?.hasOverdue}
+            count={unseenAnnouncements}
             onPress={() => navigation.navigate('ReminderList', undefined)}
           />
         </View>

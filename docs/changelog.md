@@ -6,6 +6,14 @@ entries exist even before any code ships.
 
 ---
 
+## 1.5.16 — announcements: the bell counts them, pictures and sounds, reach numbers (Amin #6214)
+
+- Home's bell turns red with the number of KSS announcements this account has not seen yet (`useAnnouncements().unseen`, read again whenever Home or «اعلان‌ها» comes into view). Before, the bell only had a dot for overdue reminders and never noticed announcements. The dot still shows overdue reminders when there is no number.
+- Opening «اعلان‌ها» marks the cards on screen as seen (`POST /announcements/seen`), so the number goes away.
+- Announcement cards: the reminder cards' corners (left ones radius 2), a megaphone badge in the tone's colour, an inline picture (tap = full screen), or a «پخش صدا / پخش ویدیو» button that opens the sound or video in the phone's player. Tapping the card or opening its media is «opened» (`POST /announcements/:id/open`), once per account.
+- Server (azar-auth `announcements.js`): `announcement_reads` (seen/opened per account), `announcement_media` (pictures ≤ 3 MB, sounds ≤ 8 MB, MP4 ≤ 10 MB, type taken from the bytes, kept under the database folder, served at `/announcements/media/:id` only while its announcement is live), `push` flag stored for the phone notification (the phone side is not in this version), and per-announcement counts for sales management (seen / opened / closed out of the accounts that exist now; announcements from before the counting are «unknown», never 0).
+- Everything in 1.5.15 is included.
+
 ## 1.5.15 — fewer permissions at install (Amin #5551/#6132)
 
 - The app no longer asks for the old shared-storage permissions (`READ_/WRITE_EXTERNAL_STORAGE`, added by react-native-camera-kit and react-native-fs). Photos already come through the system camera and photo picker and every file stays in the app's own folder, so nothing changes for the user; the install screen and Play Protect's scan see a shorter permission list. Everything in 1.5.14 is included.

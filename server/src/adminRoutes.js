@@ -649,8 +649,18 @@ router.get('/announcements', (req, res) => {
 router.post('/announcements', (req, res) => {
   const out = announcements.create(req.body || {}, req.actor)
   if (out.error) return fail(res, 422, `invalid_${out.error}`, `Check the ${out.error}.`)
-  audit(req, 'announcement_create', null, `${out.announcement.id} ${out.announcement.tone} ${out.announcement.title}`)
+  audit(req, 'announcement_create', null, `${out.announcement.id} ${out.announcement.tone}${out.announcement.push ? ' push' : ''}${out.announcement.media ? ' ' + out.announcement.media.kind : ''} ${out.announcement.title}`)
   res.status(201).json(out.announcement)
+})
+// Amin #6214: a picture, sound or video for the next announcement (index.js gives this path its larger body limit)
+router.post('/announcements/media', (req, res) => {
+  const out = announcements.storeMedia(req.body || {}, req.actor)
+  if (out.error === 'media_too_large') {
+    return res.status(413).json({ error: { code: 'media_too_large', message: `Too large for ${out.kind}.` }, kind: out.kind, limit: out.limit })
+  }
+  if (out.error) return fail(res, out.error === 'media_type' ? 415 : 422, out.error, 'This file is not accepted.')
+  audit(req, 'announcement_media', null, `${out.media.id} ${out.media.kind} ${out.media.bytes}`)
+  res.status(201).json(out.media)
 })
 router.delete('/announcements/:id', (req, res) => {
   if (!announcements.remove(String(req.params.id))) return fail(res, 404, 'not_found', 'No such announcement.')

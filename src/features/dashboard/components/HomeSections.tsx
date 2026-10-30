@@ -264,12 +264,15 @@ export function RoundIconButton({
   icon,
   accessibilityLabel,
   onPress,
-  showDot
+  showDot,
+  count = 0
 }: {
   icon: IconName
   accessibilityLabel: string
   onPress: () => void
   showDot?: boolean
+  /** Amin #6214: a red number (new announcements); it takes the dot's place */
+  count?: number
 }) {
   const theme = useTheme()
   const styles = createStyles(theme)
@@ -281,7 +284,13 @@ export function RoundIconButton({
       style={styles.roundButton}
     >
       <Icon name={icon} size="sm" color={theme.colors.onSurface} />
-      {showDot ? <View style={styles.dot} /> : null}
+      {count > 0 ? (
+        <View style={styles.countBadge}>
+          <Text style={[theme.typography('labelMd'), styles.countText]}>{toPersianDigits(count > 99 ? '99+' : String(count))}</Text>
+        </View>
+      ) : showDot ? (
+        <View style={styles.dot} />
+      ) : null}
     </Pressable>
   )
 }
@@ -403,6 +412,19 @@ function createStyles(theme: Theme) {
       alignItems: 'center',
       justifyContent: 'center'
     },
+    countBadge: {
+      position: 'absolute',
+      top: 4,
+      end: 4,
+      minWidth: 20,
+      height: 20,
+      paddingHorizontal: 5,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.error
+    },
+    countText: { color: theme.colors.onError, fontSize: 12, lineHeight: 16 },
     dot: {
       position: 'absolute',
       top: 10,

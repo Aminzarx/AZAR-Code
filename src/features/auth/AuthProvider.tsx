@@ -102,6 +102,9 @@ type AuthContextValue = {
 export type AnnouncementsApi = {
   list: () => Promise<Announcement[]>
   dismiss: (id: string) => Promise<void>
+  /** Amin #6214: seen = the cards were on screen; open = tapped or its media opened */
+  seen: (ids: string[]) => Promise<void>
+  open: (id: string) => Promise<void>
 }
 
 export type TokenPurchaseApi = {
@@ -288,6 +291,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
               (await syncService.announcements.announcements(session.sessionToken)).announcements,
             dismiss: async (id) => {
               await syncService.announcements.dismissAnnouncement(session.sessionToken, id)
+            },
+            seen: async (ids) => {
+              await syncService.announcements.announcementsSeen(session.sessionToken, ids)
+            },
+            open: async (id) => {
+              await syncService.announcements.openAnnouncement(session.sessionToken, id)
             }
           }
         : null,

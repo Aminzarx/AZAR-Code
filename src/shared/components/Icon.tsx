@@ -52,6 +52,8 @@ export type IconName =
   | 'moon'
   | 'image'
   | 'info'
+  | 'megaphone'
+  | 'play'
 
 type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -151,6 +153,11 @@ function glyphFor(name: IconName, isRTL: boolean): string {
       return 'search-outline'
     case 'bell':
       return 'notifications-outline'
+    // Amin #6214: KSS announcements
+    case 'megaphone':
+      return 'megaphone-outline'
+    case 'play':
+      return 'play-circle-outline'
     case 'time':
       return 'time-outline'
     case 'trash':

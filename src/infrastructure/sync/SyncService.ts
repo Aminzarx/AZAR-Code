@@ -168,7 +168,7 @@ export class SyncService {
   }
 
   /** Amin #5370: KSS announcements (list and dismiss), straight to the server */
-  get announcements(): Pick<SyncApiClient, 'announcements' | 'dismissAnnouncement'> {
+  get announcements(): Pick<SyncApiClient, 'announcements' | 'dismissAnnouncement' | 'announcementsSeen' | 'openAnnouncement'> {
     return this.api
   }
 
