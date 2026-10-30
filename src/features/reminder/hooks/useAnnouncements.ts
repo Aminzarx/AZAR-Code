@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import { AppState } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useAuth } from '@features/auth/AuthProvider'
 import type { Announcement } from '@infrastructure/sync/syncApiClient'
+import { announcementsSeenUpTo } from '@infrastructure/push/announcementPush'
 
 type UseAnnouncements = {
   announcements: Announcement[]
@@ -32,7 +34,10 @@ export function useAnnouncements(): UseAnnouncements {
     api
       .list()
       .then((list) => {
-        if (!cancelled) setAnnouncements(list)
+        if (cancelled) return
+        setAnnouncements(list)
+        // the phone's notification check starts after what the app already has (newest first)
+        announcementsSeenUpTo(list[0]?.createdAt)
       })
       .catch(() => undefined)
     return () => {
@@ -42,6 +47,13 @@ export function useAnnouncements(): UseAnnouncements {
 
   const reload = useCallback(() => setAttempt((current) => current + 1), [])
   useFocusEffect(reload)
+  // back to the front: read again at once, so the bell is right while the app is in use
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reload()
+    })
+    return () => sub.remove()
+  }, [reload])
 
   const dismiss = useCallback(
     (id: string) => {

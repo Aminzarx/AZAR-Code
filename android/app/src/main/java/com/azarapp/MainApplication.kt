@@ -22,6 +22,7 @@ class MainApplication : Application(), ReactApplication {
           add(AzarAppearancePackage())
           add(AzarScreenPackage())
           add(AzarSharePackage())
+          add(AzarPushPackage())
         },
     )
   }
@@ -31,5 +32,7 @@ class MainApplication : Application(), ReactApplication {
     // Amin #5055: the saved light/dark choice before the first window draws
     AzarAppearanceModule.apply(this, AzarAppearanceModule.savedMode(this))
     loadReactNative(this)
+    // Amin #6214: the ~15-minute check for announcements marked «روی گوشی هم»
+    AzarAnnouncementWorker.schedule(this)
   }
 }

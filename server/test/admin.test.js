@@ -429,6 +429,14 @@ test('announcements (Amin #6214): unseen count, seen/opened counts per announcem
   assert.deepEqual({ ...stat(plain.body.id), audience: 0 }, { audience: 0, seen: 1, opened: 0, closed: 0 })
   assert.equal(stat('old-6214'), null)
 
+  // the phone's background check: only «push» ones after since; none without since; no account needed
+  const first = await (await fetch(`${base}/announcements/push`)).json()
+  assert.deepEqual(first.announcements, [])
+  assert.ok(first.latest >= plain.body.createdAt)
+  const pushed = await (await fetch(`${base}/announcements/push?since=${encodeURIComponent('2026-01-01T00:00:00Z')}`)).json()
+  assert.deepEqual(pushed.announcements.map((n) => n.id), [made.body.id])
+  assert.equal((await (await fetch(`${base}/announcements/push?since=${encodeURIComponent(first.latest)}`)).json()).announcements.length, 0)
+
   await call('DELETE', `/announcements/${made.body.id}`)
   assert.equal((await fetch(`${base}/announcements/media/${media.body.id}`)).status, 404)
   await call('DELETE', `/announcements/${plain.body.id}`)

@@ -238,6 +238,27 @@ router.post('/:id/dismiss', (req, res) => {
   )
   res.status(204).end()
 })
+// Amin #6214 (brain: phone notifications without any outside push service): the phone's background check, every ~15
+// minutes. No account is needed (announcements go to everyone): GET /announcements/push?since=<createdAt> → the «push» ones
+// sent after it (at most 5, oldest first) and «latest» for the next check. Without since only «latest», so a fresh install
+// never pops up old ones. A few hundred bytes per check.
+router.get('/push', (req, res) => {
+  const since = typeof req.query.since === 'string' && !Number.isNaN(Date.parse(req.query.since)) ? new Date(req.query.since).toISOString() : null
+  const latest = db.prepare('SELECT MAX(created_at) AS at FROM announcements WHERE deleted_at IS NULL').get().at
+  const rows = since
+    ? db
+        .prepare(
+          `SELECT id, title, body, created_at FROM announcements
+           WHERE deleted_at IS NULL AND push = 1 AND created_at > ? ORDER BY created_at ASC LIMIT 5`
+        )
+        .all(since)
+    : []
+  res.set('Cache-Control', 'no-store')
+  res.json({
+    latest: latest ?? since ?? new Date(0).toISOString(),
+    announcements: rows.map((a) => ({ id: a.id, title: a.title, text: a.body.slice(0, 140), createdAt: a.created_at }))
+  })
+})
 router.get('/media/:id', (req, res) => {
   const m = /^[0-9a-f-]{36}$/.test(req.params.id) ? mediaOf(req.params.id) : null
   // only media an announcement still live uses

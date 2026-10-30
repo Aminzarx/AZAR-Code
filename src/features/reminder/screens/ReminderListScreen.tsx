@@ -19,6 +19,7 @@ import { ReminderListItem } from '../components/ReminderListItem'
 import { ReminderAttentionHeader } from '../components/ReminderAttentionHeader'
 import { AnnouncementCard } from '../components/AnnouncementCard'
 import { useAnnouncements } from '../hooks/useAnnouncements'
+import { askNotificationsOnce } from '@infrastructure/push/announcementPush'
 import { countReminderAttention, groupRemindersByTime } from '../utils/reminderGrouping'
 import type { Reminder } from '../types'
 
@@ -38,6 +39,10 @@ export function ReminderListScreen({ navigation }: Props): React.JSX.Element {
   useEffect(() => {
     if (unseenIds) markSeen(unseenIds.split(','))
   }, [unseenIds, markSeen])
+  // the phone notifications for «روی گوشی هم» announcements: asked once, here rather than at launch
+  useEffect(() => {
+    askNotificationsOnce().catch(() => undefined)
+  }, [])
   const announcementCards =
     announcements.length > 0 ? (
       <View style={styles.announcements}>

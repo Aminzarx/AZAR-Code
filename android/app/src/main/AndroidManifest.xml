@@ -2,6 +2,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Amin #6214: announcement notifications (asked once, on the announcements screen; Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Referral-code QR scanner (ReferralCodeScreen) — react-native-camera-kit -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Contract-end reminders written to the phone's own calendar app — react-native-calendar-events -->

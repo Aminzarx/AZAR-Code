@@ -140,6 +140,8 @@ dependencies {
     implementation("com.facebook.react:react-android")
     // v1.2.0 (Amin #4229): SMS User Consent — fill the sign-in code (AzarSmsCodeModule)
     implementation("com.google.android.gms:play-services-auth-api-phone:18.1.0")
+    // v1.5.16 (Amin #6214): the background check for announcement notifications (AzarAnnouncementWorker)
+    implementation("androidx.work:work-runtime:2.10.1")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
