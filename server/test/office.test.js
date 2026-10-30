@@ -13,6 +13,7 @@ process.env.AZAR_SYNC_KEY = crypto.randomBytes(32).toString('base64')
 process.env.AZAR_SYNC_BLOB_DIR = path.join(dir, 'blobs')
 process.env.AZAR_OFFICE_SSO_SECRET = 'test-secret-for-office-sso'
 process.env.KSS_PRICING_KEY = 'reader-key'
+process.env.AZAR_TEST_OTP_NUMBERS = '09123009999' // a KSS demo number (#6345)
 const ADMIN_KEY = crypto.randomBytes(32).toString('hex')
 process.env.AZAR_ADMIN_KEY = ADMIN_KEY
 
@@ -474,4 +475,145 @@ test('Amin #6289: sales management adds and deducts an office\'s tokens like an 
   assert.ok(t.lines.some((l) => l.what === 'هدیهٔ KSS' && l.amount === 500))
   assert.equal(appLines(), appBefore)
   assert.equal((await admin('GET', '/offices/nope/tokens')).status, 404)
+})
+
+/** an adviser linked to the office by a code */
+async function linkedAdviser(h) {
+  const adviser = await account()
+  const code = (await post('/office/codes', {}, h)).body
+  assert.equal((await post('/office/adviser/join', { sessionToken: adviser.sessionToken, code: code.code, word: code.word })).status, 200)
+  return adviser
+}
+
+test('Amin #6343: the office takes its request back — files go home to the app, shares end, advisers unlinked, signed out', async () => {
+  const owner = await account()
+  const at = new Date().toISOString()
+  await post('/sync/push', { sessionToken: owner.sessionToken, changes: [
+    { t: 'properties', k: 'own1', row: { id: 'own1', owner_id: owner.userId, title: 'فایل خود گوشی', city: 'تهران', address: '', status: 'active', created_at: at, updated_at: at } }
+  ] })
+  await approved(owner)
+  const { username } = db.prepare('SELECT username FROM office_requests WHERE user_id = ?').get(owner.userId)
+  const opened = await post('/office/password', { username, password: 'parse-1234' })
+  assert.equal(opened.status, 200, JSON.stringify(opened.body))
+  const h = { 'x-office-token': opened.body.token }
+  const made = (await post('/office/files', sample, h)).body.id
+  const adviser = await linkedAdviser(h)
+  await post('/office/share', { fileIds: [made], to: 'all' }, h)
+  const code = (await post('/office/codes', {}, h)).body
+  assert.equal((await post('/office/adviser/files', { sessionToken: adviser.sessionToken })).body.files.length, 1)
+
+  assert.equal((await post('/office/withdraw', {}, h)).body.error.code, 'confirm_required')
+  const out = await post('/office/withdraw', { confirm: 'withdraw' }, h)
+  assert.equal(out.status, 200, JSON.stringify(out.body))
+  assert.deepEqual(out.body, { returned: 1, files: 2 }) // the imported one is still on the phone
+  assert.equal((await call('GET', '/office/overview', undefined, h)).status, 401)
+  assert.equal((await post('/office/adviser/files', { sessionToken: adviser.sessionToken })).body.office, null)
+  assert.equal((await post('/office/adviser/join', { sessionToken: (await account()).sessionToken, code: code.code, word: code.word })).status, 422)
+  assert.equal((await post('/office/adviser/request/status', { sessionToken: owner.sessionToken })).body.portal, false)
+  const props = (await post('/sync/pull', { sessionToken: owner.sessionToken })).body.rows.filter((r) => r.t === 'properties')
+  assert.equal(props.length, 2)
+  const home = props.find((r) => r.k === `office-${made}`).row
+  assert.equal(home.owner_id, owner.userId)
+  assert.equal(home.title, sample.title)
+  assert.equal(home.transaction_type, 'sale')
+  assert.equal(home.area, 120)
+  assert.match(home.description, /مالک: آقای رضایی، 09121112233/)
+  // a new request can follow
+  assert.equal((await post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'ونک', ...login() })).status, 201)
+})
+
+test('Amin #6344: a share runs until a date or with no end; the office cancels either; an ended share is gone', async () => {
+  const { h } = await office()
+  const a = await linkedAdviser(h)
+  const b = await linkedAdviser(h)
+  const file = (await post('/office/files', sample, h)).body.id
+  const seen = async (who) => (await post('/office/adviser/files', { sessionToken: who.sessionToken })).body.files.length
+  assert.equal((await post('/office/share', { fileIds: [file], to: 'all', until: '2000-01-01' }, h)).body.error.code, 'invalid_until')
+  const tomorrow = new Date(Date.now() + 86400000).toISOString()
+  assert.equal((await post('/office/share', { fileIds: [file], to: [a.userId], until: tomorrow }, h)).status, 200)
+  assert.equal((await post('/office/share', { fileIds: [file], to: [b.userId], until: null }, h)).status, 200)
+  const shares = (await call('GET', '/office/overview', undefined, h)).body.files[0].shares
+  assert.equal(shares.find((s) => s.adviserId === a.userId).until, tomorrow)
+  assert.equal(shares.find((s) => s.adviserId === b.userId).until, null)
+  assert.equal(await seen(a), 1)
+  // the date passes: a no longer sees it, and sending again is a new (paid) recipient
+  db.prepare('UPDATE office_shares SET expires_at = ? WHERE adviser_id = ?').run(new Date(Date.now() - 1000).toISOString(), a.userId)
+  assert.equal(await seen(a), 0)
+  const resend = await post('/office/share', { fileIds: [file], to: [a.userId] }, h)
+  assert.ok(resend.body.tokens > 0)
+  assert.equal(await seen(a), 1)
+  // cancel one recipient, then all
+  assert.equal((await post('/office/share/cancel', { fileId: file, adviserId: b.userId }, h)).body.cancelled, 1)
+  assert.equal(await seen(b), 0)
+  assert.equal(await seen(a), 1)
+  assert.equal((await post('/office/share/cancel', { fileId: file }, h)).body.cancelled, 1)
+  assert.equal(await seen(a), 0)
+  const other = await office('دفتر دیگر')
+  assert.equal((await post('/office/share/cancel', { fileId: file }, other.h)).status, 404)
+})
+
+test('Amin #6346: sign in with the mobile number — the app sees it at once, confirms or refuses; same answer for any number', async () => {
+  const { owner } = await office()
+  const app = { sessionToken: owner.sessionToken }
+  assert.equal((await post('/office/link/phone', { phone: '123' })).status, 422)
+  const nobody = await post('/office/link/phone', { phone: '09359990000' })
+  assert.equal(nobody.status, 201) // looks the same: the page never says who has an office
+  assert.deepEqual((await post('/office/link/poll', { poll: nobody.body.poll })).body, { pending: true })
+
+  const persian = local(owner.phoneNumber).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.charAt(Number(d)))
+  const first = await post('/office/link/phone', { phone: persian })
+  assert.equal(first.status, 201)
+  const second = await post('/office/link/phone', { phone: owner.phoneNumber })
+  const pending = (await post('/office/adviser/link/pending', app)).body.link
+  assert.match(pending.code, /^\d{8}$/)
+  assert.equal((await post('/office/link/poll', { poll: first.body.poll })).status, 410) // replaced by the newer one
+  // someone else's app cannot confirm it
+  const stranger = await office('دفتر غریبه')
+  assert.equal((await post('/office/adviser/link/confirm', { sessionToken: stranger.owner.sessionToken, code: pending.code })).status, 410)
+  assert.equal((await post('/office/adviser/link/pending', { sessionToken: stranger.owner.sessionToken })).body.link, null)
+  assert.equal((await post('/office/adviser/link/confirm', { ...app, code: pending.code })).status, 200)
+  const got = await post('/office/link/poll', { poll: second.body.poll })
+  assert.equal(got.status, 200)
+  assert.ok(got.body.expiresAt)
+  assert.equal((await post('/office/adviser/link/pending', app)).body.link, null)
+
+  // refused in the app → the page is told
+  const third = await post('/office/link/phone', { phone: owner.phoneNumber })
+  const code = (await post('/office/adviser/link/pending', app)).body.link.code
+  assert.equal((await post('/office/adviser/link/deny', { ...app, code })).status, 204)
+  assert.equal((await post('/office/link/poll', { poll: third.body.poll })).body.error.code, 'link_denied')
+  assert.equal((await post('/office/adviser/link/confirm', { ...app, code })).status, 410)
+})
+
+test('Amin #6346: a dashboard sign-in lasts 3 hours, signed out or not', async () => {
+  const { h } = await office()
+  assert.equal((await call('GET', '/office/overview', undefined, h)).status, 200)
+  db.prepare('UPDATE office_sessions SET created_at = ? WHERE token = ?').run(new Date(Date.now() - 3 * 3600000 - 1000).toISOString(), h['x-office-token'])
+  assert.equal((await call('GET', '/office/overview', undefined, h)).status, 401)
+})
+
+test('Amin #6345: the demo office on a KSS demo number — sample files, the app keeps working; only demo numbers; once', async () => {
+  const routes = require('../src/officeRoutes')
+  const phoneNumber = '+989123009999'
+  await post('/auth/send-otp', { phoneNumber })
+  await post('/auth/verify-otp', { phoneNumber, code: '123456' })
+  const demo = (await post('/auth/register', { phoneNumber, referralCode: 'AZARSEED' })).body
+  const plain = await account()
+  assert.equal(routes.demoOffice(plain.phoneNumber).error, 'not_demo')
+  const made = await admin('POST', '/office-demo', { phone: '09123009999' })
+  assert.equal(made.status, 200, JSON.stringify(made.body))
+  assert.equal(made.body.made, true)
+  assert.equal((await admin('POST', '/office-demo', { phone: '09123009999' })).body.made, false)
+  const status = (await post('/office/adviser/request/status', { sessionToken: demo.sessionToken })).body
+  assert.equal(status.portal, true)
+  assert.equal(status.demo, true)
+  // sign in from the dashboard with the number, confirmed in the demo app
+  const start = await post('/office/link/phone', { phone: '09123009999' })
+  const code = (await post('/office/adviser/link/pending', { sessionToken: demo.sessionToken })).body.link.code
+  await post('/office/adviser/link/confirm', { sessionToken: demo.sessionToken, code })
+  const token = (await post('/office/link/poll', { poll: start.body.poll })).body.token
+  const o = (await call('GET', '/office/overview', undefined, { 'x-office-token': token })).body
+  assert.equal(o.office.name, 'دفتر املاک نمونه')
+  assert.equal(o.files.length, 5)
+  assert.equal((await post('/office/adviser/request/status', { sessionToken: plain.sessionToken })).body.demo, false)
 })

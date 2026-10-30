@@ -695,6 +695,13 @@ router.get('/office-portal', (req, res) => {
   const user = db.prepare('SELECT id FROM users WHERE phone_number IN (?, ?) AND deleted_at IS NULL').get(local, '+98' + local.slice(1))
   res.json({ portal: !!user && office.portalOn(user.id) })
 })
+// POST /admin/office-demo { phone } → { made }: Amin #6345 — the demo office on a KSS demo number (test numbers only)
+router.post('/office-demo', (req, res) => {
+  const out = office.demoOffice(String(req.body?.phone || ''))
+  if (out.error) return fail(res, out.error === 'no_account' ? 404 : 422, out.error, out.error === 'not_demo' ? 'Only a KSS demo (test) number.' : 'No EYVAN account on this number.')
+  audit(req, 'office_demo', out.userId, out.made ? 'made' : 'already')
+  res.json({ made: out.made })
+})
 router.get('/office-activity', (req, res) => {
   audit(req, 'office_activity')
   res.json({ offices: office.officeActivity() })

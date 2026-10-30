@@ -351,4 +351,12 @@ function moveAccountData(fromId, toId) {
   return { moved, kept }
 }
 
-module.exports = { router, deleteAccountData, rowsOf, blobOf, usageOf, moveAccountData }
+/** Amin #6343: a row written into an account's copy by the server (an office's files coming home); the app loads it at its next start */
+function putRow(accountId, table, key, row, at = new Date().toISOString()) {
+  const plain = Buffer.from(JSON.stringify(row), 'utf8')
+  db.prepare(`INSERT INTO sync_rows (account_id, tbl, row_key, data, bytes, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(account_id, tbl, row_key) DO UPDATE SET data = excluded.data, bytes = excluded.bytes, updated_at = excluded.updated_at`)
+    .run(accountId, table, key, seal(plain), plain.length, at)
+}
+
+module.exports = { router, deleteAccountData, rowsOf, blobOf, usageOf, moveAccountData, putRow }

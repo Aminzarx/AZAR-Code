@@ -108,11 +108,14 @@ const text = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) :
 const toLatin = (v) => v.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : NaN)
 
+// Amin #6346: a dashboard sign-in lasts 3 hours, signed out or not
+const SESSION_MS = 3 * 60 * 60 * 1000
+const sessionCutoff = () => new Date(Date.now() - SESSION_MS).toISOString()
 /** The office behind the dashboard's session (X-Office-Token), or null. */
 function officeOf(req) {
   const token = req.get('x-office-token') || ''
   if (!token) return null
-  const s = db.prepare('SELECT office_id FROM office_sessions WHERE token = ?').get(token)
+  const s = db.prepare('SELECT office_id FROM office_sessions WHERE token = ? AND created_at > ?').get(token, sessionCutoff())
   return s ? db.prepare('SELECT * FROM offices WHERE id = ?').get(s.office_id) : null
 }
 /** The EYVAN account behind an app session (for advisers), or null. */
@@ -160,18 +163,26 @@ function fileFrom(body) {
   return { file: f }
 }
 
+// Amin #6344: a share runs until a date or with no end (expires_at NULL); either way the office can cancel it
+if (!db.prepare('PRAGMA table_info(office_shares)').all().some((c) => c.name === 'expires_at')) db.exec('ALTER TABLE office_shares ADD COLUMN expires_at TEXT')
+const LIVE_SHARE = '(expires_at IS NULL OR expires_at > ?)'
+
 function filesOf(officeId) {
-  const sent = db.prepare('SELECT file_id, adviser_id FROM office_shares WHERE office_id = ?').all(officeId)
+  const sent = db.prepare(`SELECT file_id, adviser_id, expires_at FROM office_shares WHERE office_id = ? AND ${LIVE_SHARE}`).all(officeId, now())
   return db
     .prepare('SELECT * FROM office_files WHERE office_id = ? AND archived_at IS NULL ORDER BY created_at DESC')
     .all(officeId)
-    .map((r) => ({
-      id: r.id,
-      ...open(r.data),
-      createdAt: r.created_at,
-      expiresAt: r.expires_at,
-      sentTo: sent.filter((s) => s.file_id === r.id).map((s) => s.adviser_id)
-    }))
+    .map((r) => {
+      const mine = sent.filter((s) => s.file_id === r.id)
+      return {
+        id: r.id,
+        ...open(r.data),
+        createdAt: r.created_at,
+        expiresAt: r.expires_at,
+        sentTo: mine.map((s) => s.adviser_id),
+        shares: mine.map((s) => ({ adviserId: s.adviser_id, until: s.expires_at ?? null }))
+      }
+    })
 }
 
 function advisersOf(officeId) {
@@ -375,6 +386,97 @@ function endPortal(id, actor) {
   })()
   return { ok: true }
 }
+/**
+ * Amin #6343: the office takes its own request back, even after approval (dashboard › تنظیمات). Then:
+ * - every file of the office goes back to its manager's app: the files it made (and any imported one no longer in the
+ *   phone's copy) are written into that account's copy on the server, which the app loads at its next start;
+ * - every share ends, every adviser is unlinked, unused join codes die, every dashboard is signed out;
+ * - the panel is off (the app works again) and a new request can follow. The office's tokens stay with the office.
+ */
+const KIND_KEY = { 'فروش': 'sale', 'رهن و اجاره': 'rent', 'اجاره': 'rent', 'تهاتر': 'barter' }
+function propertyRowOf(id, userId, f, createdAt) {
+  const owner = [f.ownerName, f.ownerPhone].filter(Boolean).join('، ')
+  return {
+    id, owner_id: userId, title: f.title || 'فایل', property_type: f.propertyType || null, transaction_type: KIND_KEY[f.kind] || 'sale',
+    city: f.city || 'تهران', region: f.region || null, address: f.address || '', price: f.price ?? null, area: f.size ?? null,
+    rooms: f.rooms ?? null, deposit_amount: f.deposit ?? null, rent_amount: f.rent ?? null, is_convertible: 0,
+    description: [f.description, owner && `مالک: ${owner}`].filter(Boolean).join('\n') || null,
+    status: 'active', created_at: createdAt, updated_at: now()
+  }
+}
+function withdrawOffice(officeId, actor) {
+  const office = db.prepare('SELECT * FROM offices WHERE id = ?').get(officeId)
+  if (!office) return { error: 'not_found' }
+  const r = lastRequest(office.owner_user_id)
+  if (r?.status !== 'approved' || r.ended_at) return { error: 'not_on' }
+  const sync = require('./syncRoutes')
+  const have = new Set(sync.rowsOf(office.owner_user_id).filter((x) => x.table === 'properties' && x.row).map((x) => x.key))
+  const files = db.prepare('SELECT * FROM office_files WHERE office_id = ? AND archived_at IS NULL').all(officeId)
+  const at = now()
+  let returned = 0
+  db.transaction(() => {
+    for (const row of files) {
+      const imported = row.id.startsWith(`p:${office.owner_user_id}:`)
+      const key = imported ? row.id.slice(`p:${office.owner_user_id}:`.length) : `office-${row.id}`
+      if (have.has(key)) continue // still on the phone (imported, or returned by an earlier withdrawal)
+      sync.putRow(office.owner_user_id, 'properties', key, propertyRowOf(key, office.owner_user_id, open(row.data), row.created_at), at)
+      returned++
+    }
+    db.prepare('UPDATE office_requests SET ended_at = ?, ended_by = ? WHERE id = ?').run(at, actor, r.id)
+    db.prepare('DELETE FROM office_shares WHERE office_id = ?').run(officeId)
+    db.prepare('UPDATE office_advisers SET ended_at = ? WHERE office_id = ? AND ended_at IS NULL').run(at, officeId)
+    db.prepare('UPDATE office_codes SET revoked_at = ? WHERE office_id = ? AND used_at IS NULL AND revoked_at IS NULL').run(at, officeId)
+    db.prepare('DELETE FROM office_sessions WHERE office_id = ?').run(officeId)
+  })()
+  return { ok: true, returned, files: files.length }
+}
+
+/**
+ * Amin #6345: a demo office for a KSS demo number (AZAR_TEST_OTP_NUMBERS) — approved, named «دفتر املاک نمونه», with
+ * sample files. On a demo number the app keeps working beside the dashboard (the gate is told demo: true), so one number
+ * shows both. Run again = nothing new.
+ */
+const DEMO_FILES = [
+  { title: 'آپارتمان ۱۲۰ متری ونک', kind: 'فروش', propertyType: 'آپارتمان', region: 'ونک', address: 'خیابان ملاصدرا', size: 120, rooms: 2, price: 9500000000, description: 'نوساز، آسانسور، پارکینگ' },
+  { title: 'آپارتمان ۸۵ متری سعادت‌آباد', kind: 'رهن و اجاره', propertyType: 'آپارتمان', region: 'سعادت‌آباد', address: 'میدان کاج', size: 85, rooms: 2, deposit: 1500000000, rent: 25000000, description: 'طبقهٔ سوم، نورگیر' },
+  { title: 'مغازهٔ ۴۰ متری تجریش', kind: 'اجاره', propertyType: 'تجاری', region: 'تجریش', address: 'خیابان شهرداری', size: 40, deposit: 800000000, rent: 60000000, description: 'بر خیابان اصلی' },
+  { title: 'ویلای ۳۰۰ متری لواسان', kind: 'فروش', propertyType: 'ویلا', city: 'لواسان', region: 'نجارکلا', address: 'کوچهٔ باغ', size: 300, rooms: 4, price: 42000000000, description: 'استخر و باغ' },
+  { title: 'آپارتمان ۱۱۰ متری پونک برای تهاتر', kind: 'تهاتر', propertyType: 'آپارتمان', region: 'پونک', address: 'بلوار عدل', size: 110, rooms: 3, price: 7800000000, description: 'تهاتر با زمین شمال' }
+]
+function demoOffice(phone) {
+  const sms = require('./sms')
+  const mobile = sms.iranMobile(phone || '')
+  if (!mobile || !sms.isTestNumber(mobile)) return { error: 'not_demo' }
+  const user = db.prepare('SELECT id FROM users WHERE phone_number IN (?, ?) AND deleted_at IS NULL').get(mobile, '+98' + mobile.slice(1))
+  if (!user) return { error: 'no_account' }
+  let made = false
+  db.transaction(() => {
+    if (!portalOn(user.id)) {
+      db.prepare("INSERT INTO office_requests (id, user_id, address, union_licence, landline, status, created_at, decided_at, decided_by) VALUES (?, ?, 'دفتر نمونهٔ KSS', 0, NULL, 'approved', ?, ?, 'demo')")
+        .run(generateId(), user.id, now(), now())
+    }
+    let office = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(user.id)
+    if (!office) {
+      office = { id: generateId() }
+      db.prepare("INSERT INTO offices (id, owner_user_id, name, rules, created_at) VALUES (?, ?, 'دفتر املاک نمونه', NULL, ?)").run(office.id, user.id, now())
+      made = true
+    }
+    giveDefault(office.id)
+    if (!db.prepare('SELECT 1 FROM office_files WHERE office_id = ?').get(office.id)) {
+      const put = db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
+      DEMO_FILES.forEach((f, i) => {
+        const at = new Date(Date.now() - i * DAY).toISOString()
+        put.run(generateId(), office.id, seal({ city: 'تهران', ownerName: '', ownerPhone: '', ...f }), at, at, new Date(Date.parse(at) + FILE_DAYS * DAY).toISOString())
+      })
+    }
+  })()
+  return { ok: true, made, userId: user.id }
+}
+const isDemo = (userId) => {
+  const phone = db.prepare('SELECT phone_number FROM users WHERE id = ?').get(userId)?.phone_number
+  return !!phone && require('./sms').isTestNumber(phone)
+}
+
 function rejectRequest(id, actor) {
   const r = db.prepare('SELECT status FROM office_requests WHERE id = ?').get(id)
   if (!r) return { error: 'not_found' }
@@ -430,10 +532,8 @@ router.post('/login', (req, res) => {
     )
     giveDefault(office.id)
   }
-  const token = generateSessionToken()
-  db.prepare('INSERT INTO office_sessions (token, office_id, created_at) VALUES (?, ?, ?)').run(token, office.id, now())
   db.prepare('DELETE FROM otp_requests WHERE phone_number = ?').run(phoneNumber)
-  res.json({ token, office: { name: office.name } })
+  res.json(openSession(office))
 })
 
 // POST /office/sso { h } → { token, office } | 404 no_office (+ phone hint) — Amin #5967: the dashboard opens from the
@@ -506,8 +606,9 @@ router.post('/sso/open', (req, res) => {
 
 function openSession(office) {
   const token = generateSessionToken()
+  db.prepare('DELETE FROM office_sessions WHERE created_at <= ?').run(sessionCutoff()) // #6346: 3 hours, then gone
   db.prepare('INSERT INTO office_sessions (token, office_id, created_at) VALUES (?, ?, ?)').run(token, office.id, now())
-  return { token, office: { name: office.name } }
+  return { token, office: { name: office.name }, expiresAt: new Date(Date.now() + SESSION_MS).toISOString() }
 }
 
 // Everything below needs the dashboard's session
@@ -522,6 +623,14 @@ manager.use((req, res, next) => {
 manager.post('/logout', (req, res) => {
   db.prepare('DELETE FROM office_sessions WHERE token = ?').run(req.get('x-office-token'))
   res.status(204).end()
+})
+
+// POST /office/withdraw { confirm: 'withdraw' } → { returned, files }: Amin #6343, from the dashboard's settings
+manager.post('/withdraw', (req, res) => {
+  if (req.body?.confirm !== 'withdraw') return fail(res, 422, 'confirm_required', 'پس‌گرفتن درخواست را تأیید کنید.')
+  const r = withdrawOffice(req.office.id, 'office')
+  if (r.error) return fail(res, 409, r.error, 'پنل این دفتر فعال نیست.')
+  res.json({ returned: r.returned, files: r.files })
 })
 
 manager.get('/overview', async (req, res, next) => {
@@ -579,8 +688,18 @@ manager.post('/files/:id/archive', (req, res) => {
 
 // POST /office/share { fileIds, to: 'all' | [adviserId], fields: { description, address, owner } }
 // Amin #6269: «all» is the advisers linked now (each one is a recipient the office pays for), no longer a wildcard row
+// Amin #6344: until = the share's last moment (a future date, at most a year), null/absent = no end
+const YEAR = 366 * DAY
+function untilOf(v) {
+  if (v === null || v === undefined || v === '') return { until: null }
+  const t = typeof v === 'string' ? Date.parse(v) : NaN
+  if (!Number.isFinite(t) || t <= Date.now() || t > Date.now() + YEAR) return { error: 'تاریخ پایان اشتراک باید بعد از امروز و تا یک سال دیگر باشد.' }
+  return { until: new Date(t).toISOString() }
+}
 manager.post('/share', async (req, res, next) => {
   try {
+    const { until, error: untilError } = untilOf(req.body?.until)
+    if (untilError) return fail(res, 422, 'invalid_until', untilError)
     const ids = Array.isArray(req.body?.fileIds) ? [...new Set(req.body.fileIds.filter((x) => typeof x === 'string'))] : []
     const linkedList = advisersOf(req.office.id).map((a) => a.id)
     const linked = new Set(linkedList)
@@ -593,12 +712,13 @@ manager.post('/share', async (req, res, next) => {
     const s = await tokens.settings()
     if (!s) return fail(res, 503, 'tokens_unavailable', 'الان توکن‌ها خوانده نمی‌شوند؛ کمی بعد دوباره امتحان کنید.')
     const fields = ['specs', ...FIELDS.slice(1).filter((k) => req.body?.fields?.[k] === true)]
-    const had = db.prepare('SELECT 1 FROM office_shares WHERE file_id = ? AND adviser_id IN (?, ?)')
-    const put = db.prepare('INSERT OR REPLACE INTO office_shares (office_id, file_id, adviser_id, fields, shared_at) VALUES (?, ?, ?, ?, ?)')
+    // an ended (expired) share is gone: sending again is a new recipient
+    const had = db.prepare(`SELECT 1 FROM office_shares WHERE file_id = ? AND adviser_id IN (?, ?) AND ${LIVE_SHARE}`)
+    const put = db.prepare('INSERT OR REPLACE INTO office_shares (office_id, file_id, adviser_id, fields, shared_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
     const out = db.transaction(() => {
       // a recipient who already has the file (sent before, or by an old «all» row) costs nothing again
       const plan = ids.map((id) => {
-        const fresh = to.filter((a) => !had.get(id, a, '*'))
+        const fresh = to.filter((a) => !had.get(id, a, '*', now()))
         return { id, fresh, cost: fileTokens(open(rows[id].data), s) * fresh.length }
       })
       const needed = plan.reduce((a, p) => a + p.cost, 0)
@@ -606,7 +726,7 @@ manager.post('/share', async (req, res, next) => {
       if (balance < needed) return { short: { balance, needed } }
       const at = now()
       for (const p of plan) {
-        to.forEach((a) => put.run(req.office.id, p.id, a, JSON.stringify(fields), at))
+        to.forEach((a) => put.run(req.office.id, p.id, a, JSON.stringify(fields), at, until))
         if (p.fresh.length) {
           tokens.post(officeAccount(req.office.id), 'office_file_share', -p.cost,
             `office-share:${p.id}:${crypto.createHash('sha256').update([...p.fresh].sort().join(',')).digest('hex').slice(0, 32)}`,
@@ -620,6 +740,18 @@ manager.post('/share', async (req, res, next) => {
   } catch (e) {
     next(e)
   }
+})
+
+// POST /office/share/cancel { fileId, adviserId? } → { cancelled }: Amin #6344 — the office ends a share (dated or not)
+// at once; no adviserId = every recipient of that file (an old «all» row included). Tokens already spent stay spent.
+manager.post('/share/cancel', (req, res) => {
+  const fileId = typeof req.body?.fileId === 'string' ? req.body.fileId : ''
+  if (!fileId || !db.prepare('SELECT 1 FROM office_files WHERE id = ? AND office_id = ?').get(fileId, req.office.id)) return fail(res, 404, 'not_found', 'فایل پیدا نشد.')
+  const adviserId = typeof req.body?.adviserId === 'string' ? req.body.adviserId : null
+  const r = adviserId
+    ? db.prepare('DELETE FROM office_shares WHERE office_id = ? AND file_id = ? AND adviser_id = ?').run(req.office.id, fileId, adviserId)
+    : db.prepare('DELETE FROM office_shares WHERE office_id = ? AND file_id = ?').run(req.office.id, fileId)
+  res.json({ cancelled: r.changes })
 })
 
 // GET /office/tokens → the balance, every line (newest first), what one token costs and whether buying is open
@@ -765,8 +897,8 @@ adviser.post('/files', (req, res) => {
   if (!link) return res.json({ office: null, files: [] })
   const office = db.prepare('SELECT name FROM offices WHERE id = ?').get(link.office_id)
   const shares = db
-    .prepare("SELECT file_id, fields FROM office_shares WHERE office_id = ? AND adviser_id IN (?, '*')")
-    .all(link.office_id, req.adviserId)
+    .prepare(`SELECT file_id, fields FROM office_shares WHERE office_id = ? AND adviser_id IN (?, '*') AND ${LIVE_SHARE}`)
+    .all(link.office_id, req.adviserId, now())
   const allowed = new Map()
   for (const s of shares) allowed.set(s.file_id, new Set([...(allowed.get(s.file_id) || []), ...JSON.parse(s.fields)]))
   const files = filesOf(link.office_id)
@@ -796,7 +928,11 @@ adviser.post('/leave', (req, res) => {
 
 
 // The app's side of the request (Amin #5970): status, send, cancel — with the app's own session
-adviser.post('/request/status', (req, res) => res.json({ request: requestView(lastRequest(req.adviserId)), portal: portalOn(req.adviserId) }))
+// demo: true on a KSS demo number (#6345): the app keeps working beside the office, and still answers dashboard sign-ins
+adviser.post('/request/status', (req, res) => {
+  const portal = portalOn(req.adviserId)
+  res.json({ request: requestView(lastRequest(req.adviserId)), portal, demo: portal && isDemo(req.adviserId) })
+})
 adviser.post('/request', async (req, res) => {
   const last = lastRequest(req.adviserId)
   if (last && (last.status === 'pending' || (last.status === 'approved' && !last.ended_at))) return fail(res, 409, 'already', 'درخواست قبلاً ثبت شده است.')
@@ -886,10 +1022,47 @@ router.post('/link/start', signInLimit, (_req, res) => {
 router.post('/link/poll', (req, res) => {
   const poll = typeof req.body?.poll === 'string' ? req.body.poll : ''
   const row = poll && db.prepare('SELECT * FROM office_links WHERE poll = ?').get(poll)
-  if (!row || (!row.confirmed_at && Date.parse(row.expires_at) <= Date.now())) return fail(res, 410, 'link_expired', 'کد منقضی شد؛ کد تازه بگیرید.')
+  if (row?.denied_at) return fail(res, 403, 'link_denied', 'این ورود در برنامهٔ ایوان رد شد.')
+  if (!row || (!row.confirmed_at && Date.parse(row.expires_at) <= Date.now())) return fail(res, 410, 'link_expired', 'زمان تأیید تمام شد؛ دوباره امتحان کنید.')
   if (!row.confirmed_at) return res.json({ pending: true })
   db.prepare('DELETE FROM office_links WHERE code = ?').run(row.code) // once
   enter(row.user_id, res)
+})
+
+// Amin #6346: sign in with the mobile number — the dashboard sends the number; that account's EYVAN app, open, shows a
+// sign-in screen at once (it asks /adviser/link/pending every few seconds while open) and the manager holds its button
+// for 3 seconds; the dashboard, polling as above, gets the session. The answer is the same for any number, so the page
+// never tells who has an office; a newer request for a number replaces its older one; the app can also refuse it.
+for (const col of ['target_user_id TEXT', 'denied_at TEXT']) {
+  if (!db.prepare('PRAGMA table_info(office_links)').all().some((c) => c.name === col.split(' ')[0])) db.exec(`ALTER TABLE office_links ADD COLUMN ${col}`)
+}
+// POST /office/link/phone { phone } → { poll, expiresAt }
+router.post('/link/phone', signInLimit, (req, res) => {
+  const mobile = require('./sms').iranMobile(toLatin(text(req.body?.phone, 20)))
+  if (!mobile) return fail(res, 422, 'invalid_phone', 'شمارهٔ همراه را درست بنویسید؛ مثل ۰۹۱۲۱۲۳۴۵۶۷.')
+  db.prepare('DELETE FROM office_links WHERE expires_at < ?').run(new Date(Date.now() - 60 * 1000).toISOString())
+  const user = db.prepare('SELECT id FROM users WHERE phone_number IN (?, ?) AND deleted_at IS NULL').get(mobile, '+98' + mobile.slice(1))
+  const target = user && portalOn(user.id) ? user.id : null
+  if (target) db.prepare('DELETE FROM office_links WHERE target_user_id = ? AND confirmed_at IS NULL').run(target)
+  let code
+  do code = String(crypto.randomInt(10000000, 100000000))
+  while (db.prepare('SELECT 1 FROM office_links WHERE code = ?').get(code))
+  const poll = generateSessionToken()
+  const expiresAt = new Date(Date.now() + LINK_SECONDS * 1000).toISOString()
+  db.prepare('INSERT INTO office_links (code, poll, created_at, expires_at, target_user_id) VALUES (?, ?, ?, ?, ?)').run(code, poll, now(), expiresAt, target)
+  res.status(201).json({ poll, expiresAt })
+})
+const pendingLink = (userId) =>
+  db.prepare('SELECT * FROM office_links WHERE target_user_id = ? AND confirmed_at IS NULL AND denied_at IS NULL AND expires_at > ? ORDER BY created_at DESC LIMIT 1').get(userId, now())
+// POST /office/adviser/link/pending { sessionToken } → { link: { code, createdAt, expiresAt } | null }
+adviser.post('/link/pending', (req, res) => {
+  const row = portalOn(req.adviserId) ? pendingLink(req.adviserId) : null
+  res.json({ link: row ? { code: row.code, createdAt: row.created_at, expiresAt: row.expires_at } : null })
+})
+// POST /office/adviser/link/deny { sessionToken, code } → 204: «این ورود من نیست»
+adviser.post('/link/deny', (req, res) => {
+  db.prepare('UPDATE office_links SET denied_at = ? WHERE code = ? AND target_user_id = ? AND confirmed_at IS NULL').run(now(), text(req.body?.code, 8), req.adviserId)
+  res.status(204).end()
 })
 
 // POST /office/adviser/link/confirm { sessionToken, code } → { ok }: the app confirms the code it scanned or typed.
@@ -897,7 +1070,9 @@ router.post('/link/poll', (req, res) => {
 adviser.post('/link/confirm', signInLimit, (req, res) => {
   const code = (toLatin(text(req.body?.code, 80)).match(/(\d{8})/) || [])[1] || ''
   const row = code && db.prepare('SELECT * FROM office_links WHERE code = ?').get(code)
-  if (!row || row.confirmed_at || Date.parse(row.expires_at) <= Date.now()) return fail(res, 410, 'link_expired', 'این کد منقضی یا استفاده شده؛ در داشبورد کد تازه بگیرید.')
+  if (!row || row.confirmed_at || row.denied_at || Date.parse(row.expires_at) <= Date.now() || (row.target_user_id && row.target_user_id !== req.adviserId)) {
+    return fail(res, 410, 'link_expired', 'این کد منقضی یا استفاده شده؛ در داشبورد کد تازه بگیرید.')
+  }
   if (!portalOn(req.adviserId)) return fail(res, 403, 'not_approved', NOT_APPROVED)
   db.prepare('UPDATE office_links SET user_id = ?, confirmed_at = ? WHERE code = ? AND confirmed_at IS NULL').run(req.adviserId, now(), code)
   res.json({ ok: true })
@@ -906,4 +1081,4 @@ adviser.post('/link/confirm', signInLimit, (req, res) => {
 router.use('/adviser', adviser)
 router.use(manager)
 
-module.exports = { router, officeBalance, officeAccount, giveDefault, giveMissingDefaults, OFFICE_DEFAULT_TOKENS, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity }
+module.exports = { router, officeBalance, officeAccount, giveDefault, giveMissingDefaults, OFFICE_DEFAULT_TOKENS, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity, withdrawOffice, demoOffice }
