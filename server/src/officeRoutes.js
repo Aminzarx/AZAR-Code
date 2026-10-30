@@ -79,6 +79,20 @@ const roundT = (n) => Math.round(n * 1000) / 1000
 function officeBalance(officeId) {
   return roundT(db.prepare('SELECT COALESCE(SUM(amount), 0) AS b FROM token_ledger WHERE account_id = ?').get(officeAccount(officeId)).b)
 }
+// Amin #6289: every office dashboard starts with 2,500 tokens: one ledger line per office, ever (the idem key), given when
+// the office is made; an office made before this gets it once at start-up (giveMissingDefaults)
+const OFFICE_DEFAULT_TOKENS = 2500
+function giveDefault(officeId) {
+  return tokens.post(officeAccount(officeId), 'office_default', OFFICE_DEFAULT_TOKENS, `office-default:${officeId}`)
+}
+/** offices that never got the default → [{ officeId, name, balance }] (dry = only list them) */
+function giveMissingDefaults(dry = false) {
+  const missing = db.prepare(`SELECT id, name FROM offices o WHERE NOT EXISTS
+    (SELECT 1 FROM token_ledger t WHERE t.idem_key = 'office-default:' || o.id)`).all()
+  const out = missing.map((o) => ({ officeId: o.id, name: o.name, balance: officeBalance(o.id), gets: OFFICE_DEFAULT_TOKENS }))
+  if (!dry) db.transaction(() => missing.forEach((o) => giveDefault(o.id)))()
+  return out
+}
 /** a file's tokens at today's price, or null while pricing cannot be read (then nothing is added or sent) */
 function fileTokens(file, s) {
   if (!s) return null
@@ -344,6 +358,7 @@ function approveRequest(id, actor) {
       office = { id: generateId(), name: String(settings.agency_name || settings.display_name || 'دفتر املاک').slice(0, 80) }
       db.prepare('INSERT INTO offices (id, owner_user_id, name, rules, created_at) VALUES (?, ?, ?, NULL, ?)').run(office.id, r.user_id, office.name, now())
     }
+    giveDefault(office.id) // #6289: once per office; a re-approval gives nothing new
     imported = importFiles(r.user_id, office.id)
   })()
   return { ok: true, imported }
@@ -386,7 +401,8 @@ function officeActivity() {
     advisers: one('SELECT COUNT(*) n FROM office_advisers WHERE office_id = ? AND ended_at IS NULL', o.id).n,
     sends: one('SELECT COUNT(*) n FROM office_shares WHERE office_id = ?', o.id).n,
     lastVisit: one('SELECT MAX(created_at) at FROM office_sessions WHERE office_id = ?', o.id).at,
-    portalOn: portalOn(o.owner_user_id)
+    portalOn: portalOn(o.owner_user_id),
+    tokens: { balance: officeBalance(o.id) } // #6289
   }))
 }
 
@@ -412,6 +428,7 @@ router.post('/login', (req, res) => {
     db.prepare('INSERT INTO offices (id, owner_user_id, name, rules, created_at) VALUES (?, ?, ?, ?, ?)').run(
       office.id, office.owner_user_id, office.name, office.rules, office.created_at
     )
+    giveDefault(office.id)
   }
   const token = generateSessionToken()
   db.prepare('INSERT INTO office_sessions (token, office_id, created_at) VALUES (?, ?, ?)').run(token, office.id, now())
@@ -482,6 +499,7 @@ router.post('/sso/open', (req, res) => {
   if (!office) {
     office = { id: generateId(), owner_user_id: userId, name, created_at: now() }
     db.prepare('INSERT INTO offices (id, owner_user_id, name, rules, created_at) VALUES (?, ?, ?, NULL, ?)').run(office.id, userId, name, office.created_at)
+    giveDefault(office.id)
   }
   res.json(openSession(office))
 })
@@ -618,7 +636,8 @@ manager.get('/tokens', async (req, res, next) => {
         const what = l.reason === 'office_file_hold' ? `افزودن فایل «${titles[fileId] ?? 'حذف‌شده'}»`
           : l.reason === 'office_file_share' ? `فرستادن «${titles[fileId] ?? 'حذف‌شده'}» برای ${Number(n || 0).toLocaleString('fa-IR')} مشاور`
             : l.reason === 'pack_bought' ? 'خرید توکن'
-              : l.reason === 'admin_grant' ? 'هدیهٔ KSS' : l.reason === 'admin_deduct' ? 'کسر توسط KSS' : l.reason
+              : l.reason === 'admin_grant' ? 'هدیهٔ KSS' : l.reason === 'admin_deduct' ? 'کسر توسط KSS'
+                : l.reason === 'office_default' ? 'توکن هدیهٔ شروع دفتر' : l.reason
         return { at: l.at, kind: l.reason, what, amount: l.amount }
       })
     const owner = db.prepare('SELECT phone_number FROM users WHERE id = ?').get(req.office.owner_user_id)
@@ -887,4 +906,4 @@ adviser.post('/link/confirm', signInLimit, (req, res) => {
 router.use('/adviser', adviser)
 router.use(manager)
 
-module.exports = { router, officeBalance, officeAccount, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity }
+module.exports = { router, officeBalance, officeAccount, giveDefault, giveMissingDefaults, OFFICE_DEFAULT_TOKENS, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity }

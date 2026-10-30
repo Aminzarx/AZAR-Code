@@ -64,6 +64,14 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: { code: 'internal_error', message: 'Something went wrong.' } })
 })
 
+// Amin #6289: an office made before the 2,500-token default gets it once (one ledger line each; a restart gives nothing new)
+try {
+  const given = office.giveMissingDefaults()
+  if (given.length) console.log(`office default tokens given to ${given.length} office(s)`)
+} catch (error) {
+  console.error('office default tokens:', error.message)
+}
+
 app.listen(PORT, HOST, () => {
   console.log(`AZAR auth server listening on ${HOST}:${PORT}`)
 })

@@ -700,4 +700,44 @@ router.get('/office-activity', (req, res) => {
   res.json({ offices: office.officeActivity() })
 })
 
+// Amin #6289: an office dashboard's tokens get the same tools as an app user's: the ledger, add, deduct (with a reason;
+// never below 0; the same key twice counts once). The office's account is «office:<id>»; its manager's app tokens never move.
+const findOffice = (id) => db.prepare('SELECT * FROM offices WHERE id = ?').get(String(id))
+const officeView = (o) => ({ officeId: o.id, name: o.name, balance: office.officeBalance(o.id) })
+router.get('/offices/:id/tokens', (req, res) => {
+  const o = findOffice(req.params.id)
+  if (!o) return fail(res, 404, 'not_found', 'No such office.')
+  const acc = office.officeAccount(o.id)
+  const page = Math.max(1, Number(req.query.page) || 1)
+  const total = db.prepare('SELECT COUNT(*) AS n FROM token_ledger WHERE account_id = ? AND amount != 0').get(acc).n
+  const lines = db
+    .prepare('SELECT at, reason, amount, ref FROM token_ledger WHERE account_id = ? AND amount != 0 ORDER BY at DESC LIMIT 50 OFFSET ?')
+    .all(acc, (page - 1) * 50)
+  audit(req, 'read', o.owner_user_id, `office tokens ${o.id} page=${page}`)
+  res.json({ ...officeView(o), total, page, lines })
+})
+router.post('/offices/:id/tokens/:kind(grant|deduct)', (req, res) => {
+  const o = findOffice(req.params.id)
+  if (!o) return fail(res, 404, 'not_found', 'No such office.')
+  const add = req.params.kind === 'grant'
+  const amount = Number(req.body?.amount)
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) return fail(res, 422, 'invalid_amount', 'amount must be > 0 and <= 100000.')
+  const reason = String((add ? req.body?.note : req.body?.reason) || req.body?.note || '').trim().slice(0, 300)
+  if (!add && !reason) return fail(res, 422, 'reason_required', 'A reason is required.')
+  const acc = office.officeAccount(o.id)
+  const idemKey = `office_admin_${req.params.kind}:${o.id}:${String(req.get('idempotency-key') || crypto.randomUUID()).slice(0, 100)}`
+  const outcome = db.transaction(() => {
+    if (db.prepare('SELECT 1 FROM token_ledger WHERE idem_key = ?').get(idemKey)) return 'repeat'
+    const balance = office.officeBalance(o.id)
+    if (!add && amount > balance) return { short: Math.max(0, balance) }
+    tokens.post(acc, add ? 'admin_grant' : 'admin_deduct', add ? amount : -amount, idemKey, reason || null)
+    return 'done'
+  })()
+  if (outcome?.short !== undefined) {
+    return res.status(409).json({ error: { code: 'insufficient_tokens', message: 'The balance cannot go below 0.' }, balance: outcome.short })
+  }
+  if (outcome === 'done') audit(req, add ? 'office_grant' : 'office_deduct', o.owner_user_id, `${o.id} ${amount} ${reason}`)
+  res.json({ tokens: { balance: office.officeBalance(o.id) }, office: officeView(o) })
+})
+
 module.exports = { router, purgeDue }

@@ -35,7 +35,8 @@ const REASONS = [
   'profile_bonus',
   'pack_bought',
   'office_file_hold', // Amin #6269: an office dashboard keeps a file (once, when the file is added)
-  'office_file_share' // Amin #6269: an office sends a file to its advisers (the file's tokens × the new recipients)
+  'office_file_share', // Amin #6269: an office sends a file to its advisers (the file's tokens × the new recipients)
+  'office_default' // Amin #6289: the 2,500 tokens every office dashboard starts with (once per office)
 ]
 const BONUS_REASONS = ['referral_bonus', 'profile_bonus']
 /** the records that cost tokens, by the table the phone syncs them in */

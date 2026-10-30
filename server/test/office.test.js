@@ -13,6 +13,8 @@ process.env.AZAR_SYNC_KEY = crypto.randomBytes(32).toString('base64')
 process.env.AZAR_SYNC_BLOB_DIR = path.join(dir, 'blobs')
 process.env.AZAR_OFFICE_SSO_SECRET = 'test-secret-for-office-sso'
 process.env.KSS_PRICING_KEY = 'reader-key'
+const ADMIN_KEY = crypto.randomBytes(32).toString('hex')
+process.env.AZAR_ADMIN_KEY = ADMIN_KEY
 
 let server, base, db, pricing
 before(async () => {
@@ -37,6 +39,7 @@ before(async () => {
   app.use(express.json())
   app.use('/auth', require('../src/authRoutes'))
   app.use('/office', require('../src/officeRoutes').router)
+  app.use('/admin', require('../src/adminRoutes').router)
   await new Promise((r) => {
     server = app.listen(0, '127.0.0.1', r)
   })
@@ -95,7 +98,7 @@ async function office(name = 'دفتر املاک پارسه', startTokens = 100
   const res = await post('/office/login', { phoneNumber: owner.phoneNumber, officeName: name })
   assert.equal(res.status, 200, JSON.stringify(res.body))
   const officeId = db.prepare('SELECT id FROM offices WHERE owner_user_id = ?').get(owner.userId).id
-  if (startTokens) grant(officeId, startTokens)
+  if (startTokens !== 2500) grant(officeId, startTokens - 2500) // every office starts with 2,500 (#6289)
   return { owner, h: { 'x-office-token': res.body.token }, officeId }
 }
 const sample = { title: 'آپارتمان ۱۲۰ متری ونک', kind: 'فروش', region: 'ونک', address: 'خیابان ملاصدرا، پلاک ۱۲', size: 120, rooms: 2, price: 9500000000, description: 'نوساز', ownerName: 'آقای رضایی', ownerPhone: '09121112233' }
@@ -411,4 +414,64 @@ test('Amin #6269: another office never sees or spends these tokens', async () =>
   assert.equal((await call('GET', '/office/tokens', undefined, b.h)).body.balance, 0)
   assert.equal((await call('GET', '/office/tokens', undefined, a.h)).body.balance, 1000)
   assert.equal((await post('/office/tokens/status', { orderId: 'tko_x' }, b.h)).status, 404)
+})
+
+// ---------------------------------------------------------------- Amin #6289: 2,500 to start; sales management tools ----
+// sales management calls from the same machine (the admin guard refuses a forwarded request)
+async function admin(method, route, body, key) {
+  const res = await fetch(`${base}/admin${route}`, { method, body: body === undefined ? undefined : JSON.stringify(body),
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${ADMIN_KEY}`, 'x-admin-actor': 'test-admin', ...(key ? { 'idempotency-key': key } : {}) } })
+  const text = await res.text()
+  return { status: res.status, body: text ? JSON.parse(text) : null }
+}
+
+test('Amin #6289: a new office starts with 2,500 tokens, one ledger line, given once', async () => {
+  const { h, officeId } = await office('دفتر شروع', 2500)
+  const t = (await call('GET', '/office/tokens', undefined, h)).body
+  assert.equal(t.balance, 2500)
+  assert.deepEqual(t.lines.map((l) => [l.kind, l.amount, l.what]), [['office_default', 2500, 'توکن هدیهٔ شروع دفتر']])
+  const o = require('../src/officeRoutes')
+  assert.equal(o.giveDefault(officeId), false, 'a second time gives nothing')
+  assert.deepEqual(o.giveMissingDefaults(), [])
+  assert.equal(o.officeBalance(officeId), 2500)
+})
+
+test('Amin #6289: an office made before the default gets it once at start-up (listed first in a dry run)', async () => {
+  const { officeId } = await office('دفتر قدیمی', 2500)
+  db.prepare("DELETE FROM token_ledger WHERE idem_key = ?").run(`office-default:${officeId}`) // as if made before #6289
+  const o = require('../src/officeRoutes')
+  const dry = o.giveMissingDefaults(true)
+  assert.deepEqual(dry.map((x) => [x.officeId, x.balance, x.gets]), [[officeId, 0, 2500]])
+  assert.equal(o.officeBalance(officeId), 0, 'a dry run gives nothing')
+  assert.equal(o.giveMissingDefaults().length, 1)
+  assert.equal(o.officeBalance(officeId), 2500)
+  assert.equal(o.giveMissingDefaults().length, 0)
+})
+
+test('Amin #6289: sales management adds and deducts an office\'s tokens like an app user\'s (reason, ledger, never below 0, once per key)', async () => {
+  const { owner, h, officeId } = await office('دفتر مدیریت', 2500)
+  const appLines = () => db.prepare('SELECT COUNT(*) n FROM token_ledger WHERE account_id = ?').get(owner.userId).n
+  const appBefore = appLines()
+  const actRes = await admin('GET', '/office-activity')
+  assert.equal(actRes.status, 200, JSON.stringify(actRes.body))
+  const act = actRes.body.offices.find((x) => x.officeId === officeId)
+  assert.equal(act.tokens.balance, 2500)
+  const g = await admin('POST', `/offices/${officeId}/tokens/grant`, { amount: 500, note: 'هدیهٔ همکاری' }, 'k-grant-1')
+  assert.equal(g.status, 200, JSON.stringify(g.body))
+  assert.equal(g.body.tokens.balance, 3000)
+  assert.equal((await admin('POST', `/offices/${officeId}/tokens/grant`, { amount: 500, note: 'هدیهٔ همکاری' }, 'k-grant-1')).body.tokens.balance, 3000, 'same key = once')
+  assert.equal((await admin('POST', `/offices/${officeId}/tokens/deduct`, { amount: 10 }, 'k-d0')).status, 422, 'a deduct needs a reason')
+  const short = await admin('POST', `/offices/${officeId}/tokens/deduct`, { amount: 3001, reason: 'اشتباه' }, 'k-d1')
+  assert.equal(short.status, 409)
+  assert.equal(short.body.balance, 3000)
+  assert.equal((await admin('POST', `/offices/${officeId}/tokens/deduct`, { amount: 200, reason: 'توکن اشتباهی' }, 'k-d2')).body.tokens.balance, 2800)
+  const led = (await admin('GET', `/offices/${officeId}/tokens`)).body
+  assert.equal(led.balance, 2800)
+  assert.deepEqual(led.lines.map((l) => [l.reason, l.amount]).sort(), [['admin_deduct', -200], ['admin_grant', 500], ['office_default', 2500]].sort())
+  assert.ok(led.lines.some((l) => l.reason === 'admin_deduct' && l.ref === 'توکن اشتباهی'))
+  // the dashboard shows the same lines in words; the manager's own app tokens never move
+  const t = (await call('GET', '/office/tokens', undefined, h)).body
+  assert.ok(t.lines.some((l) => l.what === 'هدیهٔ KSS' && l.amount === 500))
+  assert.equal(appLines(), appBefore)
+  assert.equal((await admin('GET', '/offices/nope/tokens')).status, 404)
 })
