@@ -74,7 +74,7 @@ export function ago(iso: string | null | undefined): string {
   return date(iso);
 }
 
-/** 09392426480 -> ۰۹۳۹ ۲۴۲ ۶۴۸۰ (display only; wrap in .ltr) */
+/** 09121234567 -> ۰۹۱۲ ۱۲۳ ۴۵۶۷ (display only; wrap in .ltr) */
 export const phone = (p: string | null | undefined) => {
   if (!p) return 'ثبت نشده';
   const d = toLatin(p).replace(/\D/g, '');

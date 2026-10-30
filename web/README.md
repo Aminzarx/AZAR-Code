@@ -28,8 +28,8 @@ npm run preview    # the built dist on http://localhost:5191
 ## Deploy (VPS)
 ```bash
 tar czf eyvan-web-dist.tgz -C dist .
-scp eyvan-web-dist.tgz root@194.5.175.64:/root/
-ssh root@194.5.175.64 bash /root/deploy-web.sh
+scp eyvan-web-dist.tgz "$EYVAN_DEPLOY_HOST":/root/
+ssh "$EYVAN_DEPLOY_HOST" bash /root/deploy-web.sh
 ```
 `server/deploy/deploy-web.sh` keeps the previous build in `/var/www/eyvan-web.prev` (rollback: swap the folders).
 The site is `server/deploy/nginx-app.kssx.ir.conf` (live as /etc/nginx/sites-available/app.kssx.ir.conf).

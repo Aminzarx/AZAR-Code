@@ -45,20 +45,10 @@ override with `AZAR_DB_PATH`.
 
 ## Deployment
 
-Deployed automatically by `.github/workflows/deploy-backend.yml` on every
-push that touches `server/**`, via SSH to the VPS sandbox described in the
-project's deploy-key handoff doc. The workflow:
+Live since Amin #4113 (2026-10-22): the code of this folder in `/opt/azar-auth` on the KSS host, run by the systemd
+unit `azar-auth` (copy in `deploy/azar-auth.service`) on `127.0.0.1:8787`, behind nginx as `https://api.zarandix.ir`.
+Environment names (no values) are in `.env.example`; the real file lives outside the repo. To update: back up
+`data/azar-auth.db`, copy `src/` and `package*.json` to `/opt/azar-auth`, `npm ci --omit=dev`, `systemctl restart azar-auth`,
+then `curl https://api.zarandix.ir/health`. The nightly per-account backup is `deploy/install-nightly.sh`.
 
-1. rsyncs this directory to `~/azar-server` on the VPS.
-2. Runs `npm ci --omit=dev`.
-3. (Re)starts the process under `pm2` as `azar-api`, listening on port
-   `8787` inside the container.
-
-The container has no public IP of its own — reaching it from a real phone
-requires an nginx vhost on the VPS host (outside the container, set up by
-the server admin) proxying a public HTTPS subdomain to `127.0.0.1:8787`
-_inside_ the container's own network namespace. The app is hardcoded to
-call `https://api.zarandix.ir`.
-
-Required GitHub repo secrets (Settings → Secrets and variables → Actions):
-`VPS_HOST`, `VPS_PORT`, `VPS_USER`, `VPS_SSH_PRIVATE_KEY`.
+`.github/workflows/deploy-backend.yml` deploys to the old sandbox container and only runs by hand.

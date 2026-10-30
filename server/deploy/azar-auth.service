@@ -1,0 +1,23 @@
+# Live unit of the sign-in server (/etc/systemd/system/azar-auth.service). Secrets come only from the
+# EnvironmentFile (see server/.env.example) and the admin key credential, both outside the repo.
+[Unit]
+Description=EYVAN sign-in server (api.zarandix.ir)
+After=network.target
+
+[Service]
+User=azar-auth
+WorkingDirectory=/opt/azar-auth
+Environment=NODE_ENV=production PORT=8787 HOST=127.0.0.1 AZAR_DB_PATH=/opt/azar-auth/data/azar-auth.db
+EnvironmentFile=/root/kss-secrets/azar-auth.env
+LoadCredential=eyvan-admin.key:/root/kss-secrets/eyvan-admin.key
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/azar-auth/data
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

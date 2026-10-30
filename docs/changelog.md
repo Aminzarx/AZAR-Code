@@ -1840,7 +1840,7 @@ about 90 s of launch.
 ## 2026-10-25 — KSS test account for Amin (server)
 
 **Change**: Numbers in `AZAR_TEST_OTP_NUMBERS` are KSS test accounts: fixed code 123456, `test: true` in the admin
-user list and detail (billing leaves them out of the sales numbers), and no nightly backup. 09120009162 got a free
+user list and detail (billing leaves them out of the sales numbers), and no nightly backup. (شماره‌ی آزمایشی) got a free
 licence for a year and a seeded set pushed through `/sync/push`: 20 files (sale, رهن و اجاره, barter, mixed) and
 15 applicants (buy, rent, barter) in Tehran and Karaj, 6 deals at different stages and one رهن و اجاره contract,
 with high, mid and under-70 matches.
@@ -2036,7 +2036,7 @@ today, add button when empty).
 **Change**: Amin found that leaving the app «seems to log out». The app never signs out on close or in the
 background. It signs out only when the server answers `session_revoked`, because another phone signed in with the
 same number (one phone per account, AZAR-SYNC-001). The server log shows exactly that: the test number
-09120009162 was used by Amin's phone and by KSS's emulator at the same time, and each emulator sign-in signed his
+(شماره‌ی آزمایشی) was used by Amin's phone and by KSS's emulator at the same time, and each emulator sign-in signed his
 phone out. From now on KSS's emulator tests do not use that number while Amin uses it. In the app, the start page now
 says once why the phone was signed out («با این شماره روی گوشی دیگری وارد شده‌اید…», `signedOutNotice.ts`), so it never
 looks like a random logout. Reminder cards' left corners have radius 2 (#5634).

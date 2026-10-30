@@ -2,12 +2,12 @@
 # Amin #5540: publishing a version is ONE step — the install file goes up AND update.json names it, so every
 # installed copy offers the update within 10 minutes (UpdateChecker RECHECK_MS). Never copy an APK without this.
 #
-#   scripts/publish-apk.sh <version> <signed arm apk> "<Persian notes>"
+#   EYVAN_DEPLOY_HOST=user@server scripts/publish-apk.sh <version> <signed arm apk> "<Persian notes>"
 #
 # Backs up update.json and the eyvan.apk link to /root/kss-backups first; checks the served file's sha256 at the end.
 set -euo pipefail
 VERSION="$1"; APK="$2"; NOTES="$3"
-HOST=root@194.5.175.64
+HOST="${EYVAN_DEPLOY_HOST:?set EYVAN_DEPLOY_HOST=user@your-server first}"
 NAME="eyvan-$VERSION.apk"
 SHA=$(sha256sum "$APK" | cut -d' ' -f1)
 TS=$(date +%Y%m%d-%H%M%S)
