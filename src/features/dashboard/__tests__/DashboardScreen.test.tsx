@@ -8,9 +8,12 @@ import type { DashboardData } from '../types'
 
 const mockNavigate = jest.fn()
 
+// Amin #6214: the announcements the bell counts (null = none, as before)
+const mockAnnouncements: { api: null | { list: jest.Mock; dismiss: jest.Mock; seen: jest.Mock; open: jest.Mock } } = { api: null }
 jest.mock('@features/auth/AuthProvider', () => ({
   useAuth: () => ({
-    session: { sessionId: 's1', userId: 'u1', referralCode: 'ABCD1234', sessionToken: 't1' }
+    session: { sessionId: 's1', userId: 'u1', referralCode: 'ABCD1234', sessionToken: 't1' },
+    announcements: mockAnnouncements.api
   })
 }))
 
@@ -69,6 +72,23 @@ describe('DashboardScreen (v1.3.0 home)', () => {
     expect(getByText('۲۴')).toBeTruthy()
     expect(getByText('پیگیری باز')).toBeTruthy()
     expect(mockedFetchDashboardData).toHaveBeenCalledWith('u1')
+  })
+
+  it('Amin #6214: the bell shows the number of announcements not seen yet', async () => {
+    mockedFetchDashboardData.mockResolvedValue(homeData())
+    const note = (id: string, seen: boolean) => ({ id, title: id, body: 'متن', tone: 'info' as const, createdAt: '2026-10-30T10:00:00Z', seen })
+    mockAnnouncements.api = {
+      list: jest.fn().mockResolvedValue([note('a', false), note('b', false), note('c', true)]),
+      dismiss: jest.fn(),
+      seen: jest.fn(),
+      open: jest.fn()
+    }
+    try {
+      const { findByLabelText } = await renderDashboard()
+      expect(await findByLabelText('اعلان‌ها، 2 اعلان تازه')).toBeTruthy()
+    } finally {
+      mockAnnouncements.api = null
+    }
   })
 
   it('shows an error state with retry when the fetch fails', async () => {

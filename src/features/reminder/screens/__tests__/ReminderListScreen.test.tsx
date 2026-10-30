@@ -20,6 +20,10 @@ jest.mock('@features/auth/AuthProvider', () => ({
 jest.mock('../../hooks/useReminders')
 jest.mock('../../hooks/useReminderService')
 jest.mock('../../hooks/useReminderContexts')
+// Amin #6214: announcements reload on focus (needs navigation); this screen's tests are about the reminders
+jest.mock('../../hooks/useAnnouncements', () => ({
+  useAnnouncements: () => ({ announcements: [], unseen: 0, dismiss: jest.fn(), markSeen: jest.fn(), open: jest.fn(), reload: jest.fn() })
+}))
 
 const mockedUseReminders = useReminders as jest.MockedFunction<typeof useReminders>
 const mockedUseReminderService = useReminderService as jest.MockedFunction<
