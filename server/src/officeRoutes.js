@@ -3,6 +3,9 @@ const express = require('express')
 const rateLimit = require('express-rate-limit')
 const db = require('./db')
 const { generateId, generateSessionToken } = require('./ids')
+const tokens = require('./tokens')
+const purchases = require('./purchaseRoutes')
+const { appPrices } = require('./licenceRoutes')
 
 // KSS (Amin #5659/#5664/#5909/#5913/#5934): the real-estate office dashboard. An office belongs to one EYVAN
 // account (the manager), who signs in on the web with a phone code. Its own session never touches the phone's
@@ -61,8 +64,30 @@ db.exec(`
   );
 `)
 
-function fail(res, status, code, message) {
-  res.status(status).json({ error: { code, message } })
+function fail(res, status, code, message, extra = {}) {
+  res.status(status).json({ error: { code, message }, ...extra })
+}
+
+// ---------------------------------------------------------------- the office's tokens (Amin #6269) ----
+// The office dashboard has its own token ledger (account «office:<id>» in token_ledger), apart from its manager's app
+// tokens and with no free allowance: balance = bought − spent. A file costs what the app charges for a record of its
+// size (pricing's tokens per KB, rounded up to whole tokens). Adding a file takes its tokens once (holding cost, #6274 a);
+// sending it takes its tokens once per new recipient (123 × 4 advisers = 492); the advisers' own tokens are never
+// touched. Not enough tokens = the add or the send is refused with the shortfall and the buy link (#6274 b).
+const officeAccount = (officeId) => `office:${officeId}`
+const roundT = (n) => Math.round(n * 1000) / 1000
+function officeBalance(officeId) {
+  return roundT(db.prepare('SELECT COALESCE(SUM(amount), 0) AS b FROM token_ledger WHERE account_id = ?').get(officeAccount(officeId)).b)
+}
+/** a file's tokens at today's price, or null while pricing cannot be read (then nothing is added or sent) */
+function fileTokens(file, s) {
+  if (!s) return null
+  return Math.max(1, Math.ceil(tokens.bytesToTokens(Buffer.byteLength(JSON.stringify(file), 'utf8'), s)))
+}
+function tokensShort(res, balance, needed) {
+  const fa = (n) => Math.ceil(n).toLocaleString('fa-IR')
+  return fail(res, 402, 'tokens_short', `توکن دفتر کافی نیست: ${fa(needed)} توکن لازم است و ${fa(Math.max(0, balance))} توکن دارید. از «توکن‌های دفتر» توکن بخرید.`,
+    { balance, needed, buy: '#tokens' })
 }
 const now = () => new Date().toISOString()
 const text = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
@@ -481,17 +506,40 @@ manager.post('/logout', (req, res) => {
   res.status(204).end()
 })
 
-manager.get('/overview', (req, res) => res.json(overviewOf(req.office)))
+manager.get('/overview', async (req, res, next) => {
+  try {
+    // Amin #6269: each file's tokens at today's price (what one more recipient costs) and the office's balance
+    const s = await tokens.settings()
+    const o = overviewOf(req.office)
+    const cost = (f) => (s ? fileTokens(Object.fromEntries(Object.entries(f).filter(([k]) => !['id', 'createdAt', 'expiresAt', 'sentTo'].includes(k))), s) : null)
+    res.json({ ...o, files: o.files.map((f) => ({ ...f, tokens: cost(f) })), tokens: { balance: officeBalance(req.office.id), priced: !!s } })
+  } catch (e) {
+    next(e)
+  }
+})
 
-manager.post('/files', (req, res) => {
-  const { file, error } = fileFrom(req.body || {})
-  if (error) return fail(res, 422, 'invalid_file', error)
-  const id = generateId()
-  const at = now()
-  db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-    id, req.office.id, seal(file), at, at, new Date(Date.now() + FILE_DAYS * DAY).toISOString()
-  )
-  res.status(201).json({ id })
+manager.post('/files', async (req, res, next) => {
+  try {
+    const { file, error } = fileFrom(req.body || {})
+    if (error) return fail(res, 422, 'invalid_file', error)
+    const cost = fileTokens(file, await tokens.settings())
+    if (cost === null) return fail(res, 503, 'tokens_unavailable', 'الان توکن‌ها خوانده نمی‌شوند؛ کمی بعد دوباره امتحان کنید.')
+    const id = generateId()
+    const at = now()
+    const short = db.transaction(() => {
+      const balance = officeBalance(req.office.id)
+      if (balance < cost) return { balance }
+      db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)').run(
+        id, req.office.id, seal(file), at, at, new Date(Date.now() + FILE_DAYS * DAY).toISOString()
+      )
+      tokens.post(officeAccount(req.office.id), 'office_file_hold', -cost, `office-hold:${id}`, id, at)
+      return null
+    })()
+    if (short) return tokensShort(res, short.balance, cost)
+    res.status(201).json({ id, tokens: cost, balance: officeBalance(req.office.id) })
+  } catch (e) {
+    next(e)
+  }
 })
 
 const fileRow = (req) => db.prepare('SELECT * FROM office_files WHERE id = ? AND office_id = ? AND archived_at IS NULL').get(req.params.id, req.office.id)
@@ -512,17 +560,123 @@ manager.post('/files/:id/archive', (req, res) => {
 })
 
 // POST /office/share { fileIds, to: 'all' | [adviserId], fields: { description, address, owner } }
-manager.post('/share', (req, res) => {
-  const ids = Array.isArray(req.body?.fileIds) ? req.body.fileIds.filter((x) => typeof x === 'string') : []
-  const linked = new Set(advisersOf(req.office.id).map((a) => a.id))
-  const to = req.body?.to === 'all' ? ['*'] : Array.isArray(req.body?.to) ? req.body.to.filter((x) => linked.has(x)) : []
-  if (ids.length === 0 || to.length === 0) return fail(res, 422, 'nothing_to_send', 'فایل و مشاور را انتخاب کنید.')
-  const mine = new Set(filesOf(req.office.id).map((f) => f.id))
-  if (!ids.every((id) => mine.has(id))) return fail(res, 404, 'not_found', 'فایل پیدا نشد.')
-  const fields = ['specs', ...FIELDS.slice(1).filter((k) => req.body?.fields?.[k] === true)]
-  const put = db.prepare('INSERT OR REPLACE INTO office_shares (office_id, file_id, adviser_id, fields, shared_at) VALUES (?, ?, ?, ?, ?)')
-  db.transaction(() => ids.forEach((id) => to.forEach((a) => put.run(req.office.id, id, a, JSON.stringify(fields), now()))))()
-  res.json({ sent: ids.length * to.length })
+// Amin #6269: «all» is the advisers linked now (each one is a recipient the office pays for), no longer a wildcard row
+manager.post('/share', async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body?.fileIds) ? [...new Set(req.body.fileIds.filter((x) => typeof x === 'string'))] : []
+    const linkedList = advisersOf(req.office.id).map((a) => a.id)
+    const linked = new Set(linkedList)
+    const to = req.body?.to === 'all' ? linkedList : Array.isArray(req.body?.to) ? [...new Set(req.body.to.filter((x) => linked.has(x)))] : []
+    if (ids.length === 0 || to.length === 0) return fail(res, 422, 'nothing_to_send', 'فایل و مشاور را انتخاب کنید.')
+    const rows = Object.fromEntries(
+      db.prepare('SELECT * FROM office_files WHERE office_id = ? AND archived_at IS NULL').all(req.office.id).map((r) => [r.id, r])
+    )
+    if (!ids.every((id) => rows[id])) return fail(res, 404, 'not_found', 'فایل پیدا نشد.')
+    const s = await tokens.settings()
+    if (!s) return fail(res, 503, 'tokens_unavailable', 'الان توکن‌ها خوانده نمی‌شوند؛ کمی بعد دوباره امتحان کنید.')
+    const fields = ['specs', ...FIELDS.slice(1).filter((k) => req.body?.fields?.[k] === true)]
+    const had = db.prepare('SELECT 1 FROM office_shares WHERE file_id = ? AND adviser_id IN (?, ?)')
+    const put = db.prepare('INSERT OR REPLACE INTO office_shares (office_id, file_id, adviser_id, fields, shared_at) VALUES (?, ?, ?, ?, ?)')
+    const out = db.transaction(() => {
+      // a recipient who already has the file (sent before, or by an old «all» row) costs nothing again
+      const plan = ids.map((id) => {
+        const fresh = to.filter((a) => !had.get(id, a, '*'))
+        return { id, fresh, cost: fileTokens(open(rows[id].data), s) * fresh.length }
+      })
+      const needed = plan.reduce((a, p) => a + p.cost, 0)
+      const balance = officeBalance(req.office.id)
+      if (balance < needed) return { short: { balance, needed } }
+      const at = now()
+      for (const p of plan) {
+        to.forEach((a) => put.run(req.office.id, p.id, a, JSON.stringify(fields), at))
+        if (p.fresh.length) {
+          tokens.post(officeAccount(req.office.id), 'office_file_share', -p.cost,
+            `office-share:${p.id}:${crypto.createHash('sha256').update([...p.fresh].sort().join(',')).digest('hex').slice(0, 32)}`,
+            `${p.id}|${p.fresh.length}`, at)
+        }
+      }
+      return { sent: ids.length * to.length, tokens: needed }
+    })()
+    if (out.short) return tokensShort(res, out.short.balance, out.short.needed)
+    res.json({ ...out, balance: officeBalance(req.office.id) })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// GET /office/tokens → the balance, every line (newest first), what one token costs and whether buying is open
+manager.get('/tokens', async (req, res, next) => {
+  try {
+    const titles = Object.fromEntries(
+      db.prepare('SELECT id, data FROM office_files WHERE office_id = ?').all(req.office.id).map((r) => [r.id, open(r.data).title || 'بی‌نام'])
+    )
+    const lines = db
+      .prepare('SELECT at, reason, amount, ref FROM token_ledger WHERE account_id = ? ORDER BY at DESC LIMIT 300')
+      .all(officeAccount(req.office.id))
+      .map((l) => {
+        const [fileId, n] = String(l.ref || '').split('|')
+        const what = l.reason === 'office_file_hold' ? `افزودن فایل «${titles[fileId] ?? 'حذف‌شده'}»`
+          : l.reason === 'office_file_share' ? `فرستادن «${titles[fileId] ?? 'حذف‌شده'}» برای ${Number(n || 0).toLocaleString('fa-IR')} مشاور`
+            : l.reason === 'pack_bought' ? 'خرید توکن'
+              : l.reason === 'admin_grant' ? 'هدیهٔ KSS' : l.reason === 'admin_deduct' ? 'کسر توسط KSS' : l.reason
+        return { at: l.at, kind: l.reason, what, amount: l.amount }
+      })
+    const owner = db.prepare('SELECT phone_number FROM users WHERE id = ?').get(req.office.owner_user_id)
+    const p = await appPrices()
+    const price = purchases.priceOf(p, 1)
+    const closed = price.off ?? purchases.officeClosed(owner?.phone_number || '')
+    const orders = db
+      .prepare("SELECT * FROM token_orders WHERE account_id = ? AND status <> 'failed' ORDER BY created_at DESC LIMIT 50")
+      .all(officeAccount(req.office.id))
+      .map(purchases.orderView)
+    res.json({
+      balance: officeBalance(req.office.id),
+      lines,
+      buy: { open: closed === null, reason: closed, unitToman: price.off ? null : price.unitToman, minTokens: purchases.minOf(p) },
+      orders
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+// POST /office/tokens/quote { tokens } → { quote } (the price as pricing has it now; the dashboard never computes it)
+manager.post('/tokens/quote', async (req, res, next) => {
+  try {
+    const p = await appPrices()
+    const n = Number(req.body?.tokens)
+    const min = purchases.minOf(p)
+    if (min === null) return fail(res, 409, 'min_unset', 'فروش توکن فعلاً بسته است.')
+    if (!Number.isInteger(n) || n < min) return fail(res, 422, 'invalid_tokens', `کمترین خرید ${min.toLocaleString('fa-IR')} توکن است.`)
+    const q = purchases.priceOf(p, n)
+    if (q.off) return fail(res, 409, q.off, 'فروش توکن فعلاً بسته است.')
+    res.json({ quote: { tokens: n, ...q } })
+  } catch (e) {
+    next(e)
+  }
+})
+// POST /office/tokens/buy { tokens } (Idempotency-Key) → { order, payUrl }: billing's gateway, then back to the dashboard
+manager.post('/tokens/buy', async (req, res, next) => {
+  try {
+    const idem = String(req.get('idempotency-key') || '').slice(0, 100)
+    if (!idem) return fail(res, 422, 'idempotency_key_required', 'Send an Idempotency-Key.')
+    const owner = db.prepare('SELECT phone_number FROM users WHERE id = ?').get(req.office.owner_user_id)
+    const r = await purchases.startOrder({ accountId: officeAccount(req.office.id), phone: owner?.phone_number || '', count: Number(req.body?.tokens), idem,
+      closed: () => purchases.officeClosed(owner?.phone_number || '') })
+    if (r.error) return fail(res, r.status, r.error, /[؀-ۿ]/.test(r.message) ? r.message : 'فروش توکن فعلاً بسته است.')
+    res.json(r.body)
+  } catch (e) {
+    next(e)
+  }
+})
+// POST /office/tokens/status { orderId } → { order } (also asks billing, so a lost notice is caught up)
+manager.post('/tokens/status', async (req, res, next) => {
+  try {
+    const o = db.prepare('SELECT * FROM token_orders WHERE id = ? AND account_id = ?').get(String(req.body?.orderId || ''), officeAccount(req.office.id))
+    if (!o) return fail(res, 404, 'not_found', 'این خرید پیدا نشد.')
+    res.json({ order: purchases.orderView(await purchases.reconcile(o)) })
+  } catch (e) {
+    next(e)
+  }
 })
 
 manager.put('/rules', (req, res) => {
@@ -733,4 +887,4 @@ adviser.post('/link/confirm', signInLimit, (req, res) => {
 router.use('/adviser', adviser)
 router.use(manager)
 
-module.exports = { router, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity }
+module.exports = { router, officeBalance, officeAccount, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity }

@@ -19,6 +19,7 @@ process.env.AZAR_TOKEN_SALES_TEST_NUMBERS = Array.from({ length: 20 }, (_, i) =>
 
 /** kss-pricing GET /apps: the token price with its VAT answer */
 let tokenPrice = { price_toman: 50, vat_applies: true, vat_included: false, vat_rate: 0.1 }
+let minBuy = 10 // Amin #6269: kss-pricing's app.eyvan_token_min_buy (live 1,200; small here so the amounts below stay readable)
 const pricing = http.createServer((req, res) => {
   if (req.url !== '/apps' || req.headers.authorization !== 'Bearer reader-key') return res.writeHead(401).end()
   res.writeHead(200, { 'content-type': 'application/json' })
@@ -27,7 +28,8 @@ const pricing = http.createServer((req, res) => {
       apps: [
         { key: 'eyvan_token_allowance', value: 100, price_toman: null },
         { key: 'eyvan_tokens_per_kb', value: 0.127, price_toman: null },
-        { key: 'eyvan_token_price', value: tokenPrice.price_toman, ...tokenPrice }
+        { key: 'eyvan_token_price', value: tokenPrice.price_toman, ...tokenPrice },
+        { key: 'eyvan_token_min_buy', value: minBuy, price_toman: null }
       ]
     })
   )
@@ -243,4 +245,22 @@ test('the bank sends the buyer back through our host: billing verifies on loopba
   assert.equal(evil.headers.get('location'), '/tokens/paid?paid=failed')
   const bad = await get('/pay/api/v1/eyvan-pay/callback/..%2Fadmin?Status=OK')
   assert.equal(bad.headers.get('location'), '/tokens/paid?paid=failed')
+})
+
+test('Amin #6269: the smallest purchase comes from pricing; below it is refused in Persian; no minimum in pricing = sales off', async () => {
+  const a = await account()
+  minBuy = 300
+  licence.resetPricesCache()
+  const q = (await post('/tokens/purchase/quote', { sessionToken: a.sessionToken, tokens: 200 })).body
+  assert.equal(q.minTokens, 300)
+  assert.equal(q.quote, null)
+  const low = await post('/tokens/purchase', { sessionToken: a.sessionToken, tokens: 200 }, { 'idempotency-key': 'k-min' })
+  assert.equal(low.status, 422)
+  assert.equal(low.body.error.code, 'invalid_tokens')
+  assert.match(low.body.error.message, /۳۰۰/)
+  minBuy = null
+  licence.resetPricesCache()
+  assert.equal((await post('/tokens/purchase/quote', { sessionToken: a.sessionToken })).body.reason, 'min_unset')
+  minBuy = 10
+  licence.resetPricesCache()
 })

@@ -92,6 +92,8 @@ async function appPrices() {
           included: byKey.eyvan_token_price?.vat_included ?? null,
           rate: typeof byKey.eyvan_token_price?.vat_rate === 'number' ? byKey.eyvan_token_price.vat_rate : null
         },
+        // Amin #6269: the smallest purchase (app and office dashboard); empty = token sales are off (no fallback)
+        tokenMinBuy: num('eyvan_token_min_buy'),
         tokenPacks: ['eyvan_token_pack_1', 'eyvan_token_pack_2', 'eyvan_token_pack_3'].map(num).filter((n) => n !== null)
       }
       pricesAt = Date.now()

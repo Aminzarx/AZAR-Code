@@ -4,6 +4,8 @@ export type OfficeFile = {
   id: string; title: string; kind: string; propertyType: string; city: string; region: string; address: string;
   size: number | null; rooms: number | null; price: number | null; deposit: number | null; rent: number | null;
   description: string; ownerName: string; ownerPhone: string; createdAt: string; expiresAt: string; sentTo: string[];
+  /** Amin #6269: the file's tokens at today's price = what one recipient costs (null while pricing can't be read) */
+  tokens?: number | null;
 };
 export type Adviser = {
   id: string; name: string; newFiles: number; contacts: number; reminders: number; closedToday: number;
@@ -14,7 +16,16 @@ export type Overview = {
   office: { name: string; rules: Rules }; asOf: string; files: OfficeFile[]; newToday: number; newWeek: number;
   perDay: { day: string; office: number }[]; expiring: OfficeFile[]; sentFiles: number; advisers: Adviser[];
   stages: { stage: string; count: number }[]; openDeals: number; codes: { code: string; word: string; expires_at: string }[];
+  tokens?: { balance: number; priced: boolean };
 };
+/** Amin #6269: the office's own tokens */
+export type TokenLine = { at: string; kind: string; what: string; amount: number };
+export type TokenOrder = { id: string; tokens: number; totalToman: number; status: string; paidAt: string | null; createdAt: string; sandbox: boolean };
+export type Tokens = {
+  balance: number; lines: TokenLine[]; orders: TokenOrder[];
+  buy: { open: boolean; reason: string | null; unitToman: number | null; minTokens: number | null };
+};
+export type Quote = { tokens: number; unitToman: number; baseToman: number; vatToman: number; totalToman: number };
 export type NewFile = Partial<Omit<OfficeFile, 'id' | 'createdAt' | 'expiresAt' | 'sentTo'>>;
 
 const TOKEN = 'eyvan-office-token';
@@ -32,13 +43,13 @@ export class ApiError extends Error {
 export const IN_PANEL = location.pathname.startsWith('/app/office');
 const BASE = IN_PANEL ? '/app/office/api' : '';
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function call<T>(method: string, path: string, body?: unknown, extra: Record<string, string> = {}): Promise<T> {
   const token = session.get();
   let res: Response;
   try {
     res = await fetch(BASE + path, {
       method,
-      headers: { 'content-type': 'application/json', ...(token ? { 'x-office-token': token } : {}) },
+      headers: { 'content-type': 'application/json', ...(token ? { 'x-office-token': token } : {}), ...extra },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -89,4 +100,7 @@ export const api = {
   newCode: () => call<{ code: string; word: string; expiresAt: string }>('POST', '/office/codes', {}),
   revokeCode: (code: string) => call<void>('POST', `/office/codes/${code}/revoke`, {}),
   unlink: (id: string) => call<void>('POST', `/office/advisers/${id}/unlink`, {}),
+  tokens: () => call<Tokens>('GET', '/office/tokens'),
+  tokenQuote: (tokens: number) => call<{ quote: Quote }>('POST', '/office/tokens/quote', { tokens }),
+  tokenBuy: (tokens: number, idem: string) => call<{ order: TokenOrder; payUrl: string | null }>('POST', '/office/tokens/buy', { tokens }, { 'idempotency-key': idem }),
 };

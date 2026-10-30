@@ -9,7 +9,7 @@ import { ago } from './lib/fmt';
 import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, PageHeader, SearchBox, Segmented, Skeleton, ToastProvider, useAction, useConfirm, useToast } from './ui/kit';
 import { Icon } from './ui/icons';
 import qrcode from 'qrcode-generator';
-import { api, ApiError, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules } from './api';
+import { api, ApiError, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules, type Quote, type Tokens } from './api';
 
 /**
  * EYVAN office dashboard (Amin #5659/#5664/#5909/#5913/#5934): the real-estate office manager's own dashboard —
@@ -390,7 +390,8 @@ function NewFileModal({ onClose, onMade }: { onClose: () => void; onMade: (id: s
         <Field label="نام مالک"><input className="kss-input" value={f.ownerName ?? ''} onChange={set('ownerName')} /></Field>
         <Field label="شمارهٔ مالک" hint="به‌طور پیش‌فرض برای مشاوران فرستاده نمی‌شود"><input className="kss-input" dir="ltr" inputMode="tel" value={f.ownerPhone ?? ''} onChange={set('ownerPhone')} placeholder="09xxxxxxxxx" /></Field>
       </div>
-      {error && <Alert tone="bad">{error}</Alert>}
+      <p className="muted small">ثبت فایل یک بار، به اندازهٔ حجم فایل، از توکن‌های دفتر کم می‌کند؛ تمدید رایگان است.</p>
+      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
     </Modal>
   );
 }
@@ -401,6 +402,11 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
   const [rules, setRules] = useState<Rules>(o.office.rules);
   const { busy, run, error } = useAction();
   const send = () => run(() => api.share(ids, all ? 'all' : [...who], rules).then(onSent), `${fa(ids.length)} فایل فرستاده شد`);
+  // Amin #6269: each file's tokens × each recipient who does not have it yet; the server charges the same sum
+  const people = all ? o.advisers.map((a) => a.id) : [...who];
+  const picked = o.files.filter((f) => ids.includes(f.id));
+  const cost = picked.some((f) => f.tokens == null) ? null
+    : picked.reduce((sum, f) => sum + (f.tokens ?? 0) * people.filter((p) => !f.sentTo.includes(p) && !f.sentTo.includes('*')).length, 0);
   return (
     <Modal title={`ارسال ${fa(ids.length)} فایل به مشاوران`} sub="مشاوران فایل را فقط با اینترنت در برنامه می‌بینند؛ روی گوشی ذخیره نمی‌شود" onClose={onClose} locked={busy}
       footer={<><Btn onClick={onClose} disabled={busy}>بعداً</Btn><Btn variant="primary" icon="upload" busy={busy} disabled={!o.advisers.length || (!all && !who.size)} onClick={() => void send()}>ارسال</Btn></>}>
@@ -416,9 +422,14 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
           ))}
           <b style={{ marginBlockStart: 'var(--s3)' }}>چه اطلاعاتی برود؟</b>
           <RuleSwitches rules={rules} set={setRules} />
+          {cost !== null && (
+            <Alert tone={o.tokens && cost > o.tokens.balance ? 'bad' : 'info'}>
+              این ارسال {fa(cost)} توکن از دفتر کم می‌کند (توکن هر فایل × تعداد مشاورانی که آن را ندارند). موجودی دفتر: {fa(Math.floor(o.tokens?.balance ?? 0))} توکن. توکن مشاوران کم نمی‌شود.
+            </Alert>
+          )}
         </div>
       )}
-      {error && <Alert tone="bad">{error}</Alert>}
+      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
     </Modal>
   );
 }
@@ -483,6 +494,63 @@ function CodeModal({ onClose }: { onClose: () => void }) {
 }
 
 // ------------------------------------------------------------------ page ----
+/**
+ * Amin #6269: the office's own tokens: the balance, buying (kss-pricing's price and smallest purchase; billing's
+ * gateway), and every charge in words. Adding a file takes its tokens once; sending takes them per new recipient.
+ */
+function TokensCard({ reloadKey }: { reloadKey: string }) {
+  const [t, setT] = useState<Tokens | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [count, setCount] = useState('');
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const { busy, run, error } = useAction();
+  useEffect(() => { api.tokens().then((x) => { setT(x); setErr(null); }, (e: Error) => setErr(e.message)); }, [reloadKey]);
+  const n = count ? Number(toLatin(count).replace(/\D/g, '')) : 0;
+  useEffect(() => {
+    setQuote(null);
+    if (!t?.buy.open || !t.buy.minTokens || n < t.buy.minTokens) return;
+    const h = window.setTimeout(() => { api.tokenQuote(n).then((r) => setQuote(r.quote), () => setQuote(null)); }, 300);
+    return () => window.clearTimeout(h);
+  }, [n, t?.buy.open, t?.buy.minTokens]);
+  const buy = () => run(async () => {
+    const r = await api.tokenBuy(n, `office-${Date.now()}-${n}`);
+    if (r.payUrl) location.href = r.payUrl;
+  });
+  const closedWhy: Record<string, string> = {
+    sales_off: 'خرید توکن برای این دفتر هنوز باز نشده است.', price_unset: 'قیمت توکن هنوز تعیین نشده است.',
+    vat_unset: 'مالیات قیمت توکن هنوز تعیین نشده است.', min_unset: 'کمترین خرید توکن هنوز تعیین نشده است.',
+  };
+  return (
+    <Card id="tokens" title="توکن‌های دفتر" sub="ثبت هر فایل یک بار به اندازهٔ حجمش، و ارسال آن برای هر مشاوری که فایل را ندارد، از این موجودی کم می‌شود">
+      {err && !t ? <Alert tone="bad">{err}</Alert> : !t ? <Skeleton rows={3} /> : (
+        <div className="stack">
+          <div className="grid g4 card-grid">
+            <Kpi icon="chart" k="موجودی توکن دفتر" v={fa(Math.floor(t.balance))} tone={t.balance <= 0 ? 'warn' : undefined} d="جدا از توکن‌های اپ شما و مشاوران" />
+          </div>
+          {t.buy.open ? (
+            <div className="stack sm">
+              <Field label="چند توکن می‌خرید؟" hint={t.buy.minTokens ? `کمترین خرید ${fa(t.buy.minTokens)} توکن` : undefined}>
+                <input className="kss-input num" inputMode="numeric" dir="ltr" value={count} onChange={(e) => setCount(e.target.value)} placeholder={t.buy.minTokens ? fa(t.buy.minTokens) : ''} />
+              </Field>
+              {quote && <p className="small">مبلغ: <b>{fa(quote.totalToman)} تومان</b>{quote.vatToman ? ` (با ${fa(quote.vatToman)} تومان مالیات)` : ''}</p>}
+              <div><Btn variant="primary" icon="upload" busy={busy} disabled={!quote} onClick={() => void buy()}>پرداخت و خرید توکن</Btn></div>
+              {error && <Alert tone="bad">{error}</Alert>}
+            </div>
+          ) : <Alert tone="info">{closedWhy[t.buy.reason ?? ''] ?? 'خرید توکن الان باز نیست.'}</Alert>}
+          {t.lines.length ? (
+            <div className="table-wrap"><table className="kss-table">
+              <thead><tr><th>زمان</th><th>شرح</th><th className="num">توکن</th></tr></thead>
+              <tbody>{t.lines.map((l, i) => (
+                <tr key={i}><td>{ago(l.at)}</td><td>{l.what}</td><td className="num" dir="ltr">{l.amount > 0 ? '+' : '−'}{fa(Math.abs(Math.round(l.amount)))}</td></tr>
+              ))}</tbody>
+            </table></div>
+          ) : <p className="muted small">هنوز توکنی خرج یا خریده نشده است.</p>}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function Dashboard() {
   const [o, setO] = useState<Overview | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -508,6 +576,7 @@ function Dashboard() {
         <nav>
           <a href="#top" className="item on" aria-current="page"><Icon name="overview" size={20} /><span>نمای کلی</span></a>
           <a href="#files" className="item"><Icon name="file" size={20} /><span>فایل‌ها</span>{!!o?.files.length && <span className="count num">{fa(o.files.length)}</span>}</a>
+          <a href="#tokens" className="item"><Icon name="chart" size={20} /><span>توکن‌های دفتر</span>{o?.tokens && <span className="count num">{fa(Math.floor(o.tokens.balance))}</span>}</a>
         </nav>
         <div className="side-group">مشاوران</div>
         <nav>
@@ -549,6 +618,7 @@ function Dashboard() {
               <Card id="files" title="فایل‌های دفتر" sub={`${fa(o.files.length)} فایل · انتخاب تکی یا چندتایی برای ارسال`} end={<Btn size="sm" icon="plus" onClick={() => setLayer({ t: 'new' })}>فایل تازه</Btn>} flush>
                 <FilesTable o={o} onNew={() => setLayer({ t: 'new' })} onSend={(ids) => setLayer({ t: 'send', ids })} />
               </Card>
+              <TokensCard reloadKey={o.asOf} />
             </div>
           )}
         </div></main>

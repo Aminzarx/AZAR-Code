@@ -29,8 +29,9 @@ const TEST_NUMBERS = new Set(
     .filter(Boolean)
 )
 const OPEN_MINUTES = 30
-const MIN_TOKENS = 1
+// Amin #6269: the smallest purchase is kss-pricing's app.eyvan_token_min_buy (1,200); empty = sales off
 const MAX_TOKENS = 1000000
+const minOf = (p) => (typeof p?.tokenMinBuy === 'number' && p.tokenMinBuy >= 1 ? p.tokenMinBuy : null)
 /** the button turns on once this share of the tokens is used (Amin #5245) */
 const BUY_FROM_SHARE = 0.95
 
@@ -76,6 +77,7 @@ function usedShareOf(summary) {
 /** The price of `count` tokens as kss-pricing has it now, or why it cannot be sold. */
 function priceOf(p, count) {
   if (!p || typeof p.tokenPriceToman !== 'number' || p.tokenPriceToman <= 0) return { off: 'price_unset' }
+  if (minOf(p) === null) return { off: 'min_unset' }
   const vat = p.tokenVat ?? {}
   if (vat.applies == null) return { off: 'vat_unset' }
   const base = Math.round(count * p.tokenPriceToman)
@@ -181,12 +183,13 @@ router.post('/purchase/quote', limited, express.json({ limit: '4kb' }), async (r
     const price = priceOf(await appPrices(), 1)
     const closed = price.off ?? closedFor(user, tokens.summaryOf(user.id, s))
     const count = Number(req.body?.tokens)
-    const quote = !price.off && Number.isInteger(count) && count >= MIN_TOKENS && count <= MAX_TOKENS ? priceOf(await appPrices(), count) : null
+    const min = minOf(await appPrices())
+    const quote = !price.off && Number.isInteger(count) && count >= min && count <= MAX_TOKENS ? priceOf(await appPrices(), count) : null
     res.json({
       open: closed === null,
       reason: closed,
       unitToman: price.off ? null : price.unitToman,
-      minTokens: MIN_TOKENS,
+      minTokens: min,
       maxTokens: MAX_TOKENS,
       quote: quote && !quote.off ? { tokens: count, ...quote } : null,
       sandbox: !LIVE
@@ -203,63 +206,80 @@ router.post('/purchase', limited, express.json({ limit: '4kb' }), async (req, re
     if (!user) return fail(res, 401, 'session_revoked', 'Sign in again.')
     const idem = String(req.get('idempotency-key') || '').slice(0, 100)
     if (!idem) return fail(res, 422, 'idempotency_key_required', 'Send an Idempotency-Key.')
-    const idemKey = `${user.id}:${idem}`
-    const existing = db.prepare('SELECT * FROM token_orders WHERE idem_key = ?').get(idemKey)
-    if (existing) {
-      if (existing.status === 'pending' && Date.parse(existing.expires_at) > Date.now() && existing.pay_url) {
-        return res.json({ order: orderView(existing), payUrl: existing.pay_url })
-      }
-      return res.json({ order: orderView(await reconcile(existing)), payUrl: null })
-    }
-    const count = Number(req.body?.tokens)
-    if (!Number.isInteger(count) || count < MIN_TOKENS || count > MAX_TOKENS) {
-      return fail(res, 422, 'invalid_tokens', `tokens must be a whole number ${MIN_TOKENS}…${MAX_TOKENS}.`)
-    }
     const s = await tokens.settings()
     if (!s) return fail(res, 503, 'tokens_unavailable', 'Tokens cannot be read right now.')
-    const price = priceOf(await appPrices(), count)
-    if (price.off) return fail(res, 409, price.off, 'Token sales are not open.')
-    const closed = closedFor(user, tokens.summaryOf(user.id, s))
-    if (closed) return fail(res, 409, closed, 'Token sales are not open for this account now.')
-
-    const now = new Date()
-    const order = {
-      id: `tko_${crypto.randomUUID()}`,
-      created_at: now.toISOString(),
-      expires_at: new Date(now.getTime() + OPEN_MINUTES * 60 * 1000).toISOString()
-    }
-    db.prepare(
-      `INSERT INTO token_orders (id, account_id, idem_key, tokens, unit_toman, base_toman, vat_toman, total_toman, live, created_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(order.id, user.id, idemKey, count, price.unitToman, price.baseToman, price.vatToman, price.totalToman, LIVE ? 1 : 0, order.created_at, order.expires_at)
-
-    let r
-    try {
-      r = await billing('POST', '/internal/eyvan/token-payments', {
-        orderRef: order.id,
-        accountRef: user.id,
-        mobile: sms.iranMobile(user.phone_number),
-        tokens: count,
-        baseRial: price.baseToman * 10,
-        vatRial: price.vatToman * 10,
-        totalRial: price.totalToman * 10,
-        live: LIVE
-      })
-    } catch {
-      r = { ok: false, status: 502, json: null }
-    }
-    if (!r.ok || !r.json?.url) {
-      db.prepare("UPDATE token_orders SET status = 'failed' WHERE id = ?").run(order.id)
-      return fail(res, 502, 'payment_unavailable', 'The payment could not be started; try again later.')
-    }
-    db.prepare('UPDATE token_orders SET pay_url = ? WHERE id = ?').run(r.json.url, order.id)
-    res.json({ order: orderView(db.prepare('SELECT * FROM token_orders WHERE id = ?').get(order.id)), payUrl: r.json.url })
+    const r = await startOrder({ accountId: user.id, phone: user.phone_number, count: Number(req.body?.tokens), idem,
+      closed: () => closedFor(user, tokens.summaryOf(user.id, s)) })
+    if (r.error) return fail(res, r.status, r.error, r.message)
+    res.json(r.body)
   } catch (error) {
     next(error)
   }
 })
 
-// POST /tokens/purchase/status { sessionToken, orderId } → { order }
+/**
+ * One order: the same Idempotency-Key is the same order; checks the count against pricing's minimum, the price, and
+ * `closed()` (who may buy now); asks billing for the payment. Used by the app (/tokens/purchase) and by the office
+ * dashboard (Amin #6269, account «office:<id>»). → { body } or { status, error, message }.
+ */
+async function startOrder({ accountId, phone, count, idem, closed }) {
+  const idemKey = `${accountId}:${idem}`
+  const existing = db.prepare('SELECT * FROM token_orders WHERE idem_key = ?').get(idemKey)
+  if (existing) {
+    if (existing.status === 'pending' && Date.parse(existing.expires_at) > Date.now() && existing.pay_url) {
+      return { body: { order: orderView(existing), payUrl: existing.pay_url } }
+    }
+    return { body: { order: orderView(await reconcile(existing)), payUrl: null } }
+  }
+  const p = await appPrices()
+  const min = minOf(p)
+  if (min === null) return { status: 409, error: 'min_unset', message: 'Token sales are not open.' }
+  if (!Number.isInteger(count) || count < min || count > MAX_TOKENS) {
+    return { status: 422, error: 'invalid_tokens', message: `کمترین خرید ${min.toLocaleString('fa-IR')} توکن است.` }
+  }
+  const price = priceOf(p, count)
+  if (price.off) return { status: 409, error: price.off, message: 'Token sales are not open.' }
+  const shut = closed()
+  if (shut) return { status: 409, error: shut, message: 'Token sales are not open for this account now.' }
+  const now = new Date()
+  const order = {
+    id: `tko_${crypto.randomUUID()}`,
+    created_at: now.toISOString(),
+    expires_at: new Date(now.getTime() + OPEN_MINUTES * 60 * 1000).toISOString()
+  }
+  db.prepare(
+    `INSERT INTO token_orders (id, account_id, idem_key, tokens, unit_toman, base_toman, vat_toman, total_toman, live, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(order.id, accountId, idemKey, count, price.unitToman, price.baseToman, price.vatToman, price.totalToman, LIVE ? 1 : 0, order.created_at, order.expires_at)
+  let r
+  try {
+    r = await billing('POST', '/internal/eyvan/token-payments', {
+      orderRef: order.id,
+      accountRef: accountId,
+      mobile: sms.iranMobile(phone),
+      tokens: count,
+      baseRial: price.baseToman * 10,
+      vatRial: price.vatToman * 10,
+      totalRial: price.totalToman * 10,
+      live: LIVE
+    })
+  } catch {
+    r = { ok: false, status: 502, json: null }
+  }
+  if (!r.ok || !r.json?.url) {
+    db.prepare("UPDATE token_orders SET status = 'failed' WHERE id = ?").run(order.id)
+    return { status: 502, error: 'payment_unavailable', message: 'پرداخت شروع نشد؛ کمی بعد دوباره امتحان کنید.' }
+  }
+  db.prepare('UPDATE token_orders SET pay_url = ? WHERE id = ?').run(r.json.url, order.id)
+  return { body: { order: orderView(db.prepare('SELECT * FROM token_orders WHERE id = ?').get(order.id)), payUrl: r.json.url } }
+}
+/** may an office (its manager's number) buy now? null = yes (no 95% rule: the office buys whenever it wants, #6269) */
+function officeClosed(phone) {
+  if (!LIVE && !TEST_NUMBERS.has(sms.iranMobile(phone))) return 'sales_off'
+  if (!BILLING_URL || !BILLING_KEY || !SECRET) return 'sales_off'
+  return null
+}
+
 router.post('/purchase/status', limited, express.json({ limit: '4kb' }), async (req, res, next) => {
   try {
     const user = accountOf(req)
@@ -306,9 +326,14 @@ router.post('/purchase/paid', limited, express.raw({ type: '*/*', limit: '4kb' }
 // tokens were already credited by billing's signed notice, and the app reads the order's status when it is opened again.
 router.get('/paid', (req, res) => {
   // Android opens the app itself (eyvan://paid); iPhone and other browsers go back to the web app (#5183)
-  const backToApp = /Android/i.test(String(req.get('user-agent') || ''))
-    ? 'intent://paid#Intent;scheme=eyvan;package=com.azarapp;end'
-    : 'https://app.kssx.ir/'
+  // Amin #6269: an office's purchase goes back to its dashboard, not the app
+  const orderRow = typeof req.query.order === 'string' ? db.prepare('SELECT account_id FROM token_orders WHERE id = ?').get(req.query.order) : null
+  const forOffice = String(orderRow?.account_id || '').startsWith('office:')
+  const backToApp = forOffice
+    ? 'https://kssx.ir/app/office/'
+    : /Android/i.test(String(req.get('user-agent') || ''))
+      ? 'intent://paid#Intent;scheme=eyvan;package=com.azarapp;end'
+      : 'https://app.kssx.ir/'
   const ok = req.query.paid === 'ok'
   res.set({ 'cache-control': 'no-store', 'content-type': 'text/html; charset=utf-8', 'referrer-policy': 'no-referrer' })
   res.send(`<!doctype html>
@@ -324,9 +349,9 @@ h1{font-size:22px;margin:0 0 8px}p{line-height:1.9;margin:0}
 .note{font-size:13px;color:#4a6383;margin-top:14px}
 </style></head><body><div class="wrap">
 <div class="hero"><h1>${ok ? 'پرداخت انجام شد' : 'پرداخت انجام نشد'}</h1>
-<p>${ok ? 'توکن‌ها به حساب شما اضافه شد. به اپ ایوان برگردید؛ رسید خرید آنجاست.' : 'مبلغی از حساب شما کم نشد، یا اگر کم شده باشد بانک آن را برمی‌گرداند. به اپ ایوان برگردید و دوباره امتحان کنید.'}</p></div>
-<a class="btn" href="${backToApp}">بازگشت به اپ ایوان</a>
-<p class="note">اگر دکمه کار نکرد، این صفحه را ببندید و اپ ایوان را باز کنید.</p>
+<p>${ok ? (forOffice ? 'توکن‌ها به حساب دفتر شما اضافه شد. به داشبورد دفتر برگردید؛ موجودی و رسید آنجاست.' : 'توکن‌ها به حساب شما اضافه شد. به اپ ایوان برگردید؛ رسید خرید آنجاست.') : 'مبلغی از حساب شما کم نشد، یا اگر کم شده باشد بانک آن را برمی‌گرداند. ' + (forOffice ? 'به داشبورد دفتر برگردید و دوباره امتحان کنید.' : 'به اپ ایوان برگردید و دوباره امتحان کنید.')}</p></div>
+<a class="btn" href="${backToApp}">${forOffice ? 'بازگشت به داشبورد دفتر' : 'بازگشت به اپ ایوان'}</a>
+<p class="note">${forOffice ? 'اگر دکمه کار نکرد، این صفحه را ببندید و داشبورد دفتر را دوباره باز کنید.' : 'اگر دکمه کار نکرد، این صفحه را ببندید و اپ ایوان را باز کنید.'}</p>
 </div></body></html>`)
 })
 
@@ -360,4 +385,4 @@ function purchasesOf(accountId) {
     .map(orderView)
 }
 
-module.exports = { router, bankReturn, creditOrder, purchasesOf, priceOf, signatureOf }
+module.exports = { router, bankReturn, creditOrder, purchasesOf, priceOf, signatureOf, startOrder, officeClosed, orderView, reconcile, minOf }

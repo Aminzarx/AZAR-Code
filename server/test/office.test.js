@@ -12,9 +12,23 @@ process.env.AZAR_FIXED_OTP_CODE = '123456'
 process.env.AZAR_SYNC_KEY = crypto.randomBytes(32).toString('base64')
 process.env.AZAR_SYNC_BLOB_DIR = path.join(dir, 'blobs')
 process.env.AZAR_OFFICE_SSO_SECRET = 'test-secret-for-office-sso'
+process.env.KSS_PRICING_KEY = 'reader-key'
 
-let server, base, db
+let server, base, db, pricing
 before(async () => {
+  // Amin #6269: files cost the office tokens at pricing's tokens per KB
+  const http = require('node:http')
+  pricing = http.createServer((req, res) => {
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end(JSON.stringify({ apps: [
+      { key: 'eyvan_token_allowance', value: 100, price_toman: null },
+      { key: 'eyvan_tokens_per_kb', value: 0.5, price_toman: null },
+      { key: 'eyvan_token_price', value: 50, price_toman: 50, vat_applies: false, vat_included: null, vat_rate: null },
+      { key: 'eyvan_token_min_buy', value: 1200, price_toman: null }
+    ] }))
+  })
+  await new Promise((r) => pricing.listen(0, '127.0.0.1', r))
+  process.env.KSS_PRICING_URL = `http://127.0.0.1:${pricing.address().port}`
   const express = require('express')
   db = require('../src/db')
   const app = express()
@@ -29,6 +43,7 @@ before(async () => {
   base = `http://127.0.0.1:${server.address().port}`
 })
 after(() => {
+  pricing.close()
   server.close()
   db.close()
   fs.rmSync(dir, { recursive: true, force: true })
@@ -68,14 +83,20 @@ async function approved(owner) {
   const id = require('../src/officeRoutes').listRequests('pending').find((r) => r.userId === owner.userId).id
   assert.equal(require('../src/officeRoutes').approveRequest(id, 'test').ok, true)
 }
-async function office(name = 'دفتر املاک پارسه') {
+/** tokens given to an office (as a KSS admin would); a negative amount takes some back */
+function grant(officeId, amount) {
+  require('../src/tokens').post(`office:${officeId}`, amount >= 0 ? 'admin_grant' : 'admin_deduct', amount, `test:${crypto.randomUUID()}`)
+}
+async function office(name = 'دفتر املاک پارسه', startTokens = 100000) {
   const owner = await account()
   await approved(owner)
   await post('/auth/send-otp', { phoneNumber: owner.phoneNumber })
   await post('/auth/verify-otp', { phoneNumber: owner.phoneNumber, code: '123456' })
   const res = await post('/office/login', { phoneNumber: owner.phoneNumber, officeName: name })
   assert.equal(res.status, 200, JSON.stringify(res.body))
-  return { owner, h: { 'x-office-token': res.body.token } }
+  const officeId = db.prepare('SELECT id FROM offices WHERE owner_user_id = ?').get(owner.userId).id
+  if (startTokens) grant(officeId, startTokens)
+  return { owner, h: { 'x-office-token': res.body.token }, officeId }
 }
 const sample = { title: 'آپارتمان ۱۲۰ متری ونک', kind: 'فروش', region: 'ونک', address: 'خیابان ملاصدرا، پلاک ۱۲', size: 120, rooms: 2, price: 9500000000, description: 'نوساز', ownerName: 'آقای رضایی', ownerPhone: '09121112233' }
 
@@ -322,4 +343,72 @@ test('one username in the whole system (Amin #6090): the names billing holds (ks
     delete process.env.AZAR_BILLING_KEY
     billing.close()
   }
+})
+
+// ---------------------------------------------------------------- Amin #6269: the office pays in tokens ----
+test('Amin #6269: adding a file takes its tokens once; sending takes them per new recipient (× 4 advisers); short = refused with the buy link; advisers pay nothing', async () => {
+  const { owner, h, officeId } = await office('دفتر توکن', 0)
+  // no tokens: adding is refused, nothing is stored
+  const none = await post('/office/files', sample, h)
+  assert.equal(none.status, 402)
+  assert.equal(none.body.error.code, 'tokens_short')
+  assert.match(none.body.error.message, /توکن/)
+  assert.equal(none.body.buy, '#tokens')
+  assert.equal((await call('GET', '/office/overview', undefined, h)).body.files.length, 0)
+
+  grant(officeId, 5000)
+  const made = await post('/office/files', sample, h)
+  assert.equal(made.status, 201, JSON.stringify(made.body))
+  const cost = made.body.tokens
+  assert.ok(Number.isInteger(cost) && cost >= 1)
+  assert.equal(made.body.balance, 5000 - cost)
+  const o = (await call('GET', '/office/overview', undefined, h)).body
+  assert.equal(o.tokens.balance, 5000 - cost)
+  assert.equal(o.files[0].tokens, cost, 'the overview shows what one recipient costs')
+  // renewing is free (the holding cost is charged once, #6274 a)
+  assert.equal((await post(`/office/files/${made.body.id}/renew`, {}, h)).status, 204)
+  assert.equal(require('../src/officeRoutes').officeBalance(officeId), 5000 - cost)
+
+  // four advisers join; their own tokens never move
+  const advisers = []
+  for (let i = 0; i < 4; i++) {
+    const a = await account()
+    const code = (await post('/office/codes', {}, h)).body
+    assert.equal((await post('/office/adviser/join', { sessionToken: a.sessionToken, code: code.code, word: code.word })).status, 200)
+    advisers.push(a)
+  }
+  const ledgerOf = (id) => db.prepare('SELECT COUNT(*) AS n FROM token_ledger WHERE account_id = ?').get(id).n
+  const before = advisers.map((a) => ledgerOf(a.userId))
+  const sent = await post('/office/share', { fileIds: [made.body.id], to: 'all', fields: {} }, h)
+  assert.equal(sent.status, 200, JSON.stringify(sent.body))
+  assert.equal(sent.body.tokens, cost * 4)
+  assert.equal(sent.body.balance, 5000 - cost * 5)
+  assert.deepEqual(advisers.map((a) => ledgerOf(a.userId)), before, 'the advisers pay nothing')
+  // the same people again: no new charge
+  assert.equal((await post('/office/share', { fileIds: [made.body.id], to: 'all', fields: { description: true } }, h)).body.tokens, 0)
+  for (const a of advisers) assert.equal((await post('/office/adviser/files', { sessionToken: a.sessionToken })).body.files.length, 1)
+
+  // a send the office cannot pay for is refused, and nobody gets the file
+  const second = (await post('/office/files', { ...sample, title: 'مغازه' }, h)).body
+  grant(officeId, -(require('../src/officeRoutes').officeBalance(officeId) - (second.tokens * 4 - 1)))
+  const short = await post('/office/share', { fileIds: [second.id], to: 'all', fields: {} }, h)
+  assert.equal(short.status, 402)
+  assert.equal(short.body.needed, second.tokens * 4)
+  assert.equal((await post('/office/adviser/files', { sessionToken: advisers[0].sessionToken })).body.files.length, 1)
+
+  // the usage page: every line, newest first, in words
+  const t = (await call('GET', '/office/tokens', undefined, h)).body
+  assert.equal(t.balance, second.tokens * 4 - 1)
+  assert.ok(t.lines.some((l) => l.kind === 'office_file_share' && l.amount === -cost * 4 && /برای ۴ مشاور/.test(l.what)))
+  assert.ok(t.lines.some((l) => l.kind === 'office_file_hold' && /افزودن فایل/.test(l.what)))
+  assert.equal(typeof t.buy.open, 'boolean')
+  void owner
+})
+
+test('Amin #6269: another office never sees or spends these tokens', async () => {
+  const a = await office('دفتر الف', 1000)
+  const b = await office('دفتر ب', 0)
+  assert.equal((await call('GET', '/office/tokens', undefined, b.h)).body.balance, 0)
+  assert.equal((await call('GET', '/office/tokens', undefined, a.h)).body.balance, 1000)
+  assert.equal((await post('/office/tokens/status', { orderId: 'tko_x' }, b.h)).status, 404)
 })

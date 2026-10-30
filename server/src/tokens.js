@@ -33,7 +33,9 @@ const REASONS = [
   'divar_import', // Navid 2026-10-27: one Divar post read into a new file (eyvan_divar_import_tokens)
   'referral_bonus',
   'profile_bonus',
-  'pack_bought'
+  'pack_bought',
+  'office_file_hold', // Amin #6269: an office dashboard keeps a file (once, when the file is added)
+  'office_file_share' // Amin #6269: an office sends a file to its advisers (the file's tokens × the new recipients)
 ]
 const BONUS_REASONS = ['referral_bonus', 'profile_bonus']
 /** the records that cost tokens, by the table the phone syncs them in */
