@@ -10,6 +10,7 @@ import { ago, digits } from './lib/fmt';
 import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, PageHeader, SearchBox, Segmented, Skeleton, ToastProvider, useAction, useConfirm, useToast } from './ui/kit';
 import { Icon } from './ui/icons';
 import { api, ApiError, IN_PANEL, session, type Adviser, type Contact, type NewFile, type OfficeFile, type Overview, type Rules, type Quote, type SignedIn, type Tokens } from './api';
+import { ApplicantModal, ApplicantRecord, ApplicantsPage, ContractModal, ContractsPage, DivarCard, DivarImport, FileMatches, MatchingPage, ReminderModal, RemindersPage, TodayCard, useDesk } from './work';
 
 /**
  * EYVAN office dashboard (Amin #5659/#5664/#5909/#5913/#5934): the real-estate office manager's own dashboard —
@@ -322,8 +323,10 @@ function Sharing({ o, reload }: { o: Overview; reload: () => void }) {
 }
 
 // ---------------------------------------------------------- new file + send ----
-function NewFileModal({ onClose, onMade }: { onClose: () => void; onMade: (id: string, title: string) => void }) {
+function NewFileModal({ onClose, onMade, divarOn }: { onClose: () => void; onMade: (id: string, title: string) => void; divarOn?: boolean }) {
   const [f, setF] = useState<Record<string, string>>({ kind: 'فروش', city: 'تهران' });
+  // Amin #6337: a Divar post (the manager's own) fills the form for checking
+  const fill = (nf: NewFile) => setF((x) => ({ ...x, ...Object.fromEntries(Object.entries(nf).filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => [k, String(v)])) }));
   const { busy, run, error } = useAction();
   const set = (k: string) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
   const n = (k: string) => (f[k] ? Number(toLatin(f[k]!).replace(/[^\d.]/g, '')) : null);
@@ -341,8 +344,9 @@ function NewFileModal({ onClose, onMade }: { onClose: () => void; onMade: (id: s
     <Field label={label + ' (تومان)'}><input className="kss-input num" inputMode="numeric" dir="ltr" value={f[k] ?? ''} onChange={set(k)} /></Field>
   );
   return (
-    <Modal title="فایل تازهٔ دفتر" sub="فایل به نام دفتر ثبت می‌شود و ۳۰ روز اعتبار دارد" onClose={onClose} size="wide" locked={busy}
+    <Modal title="فایل تازهٔ دفتر" sub="فایل در برنامهٔ ایوان شما هم ثبت می‌شود و می‌توانید برای مشاوران بفرستید" onClose={onClose} size="wide" locked={busy}
       footer={<><Btn onClick={onClose} disabled={busy}>انصراف</Btn><Btn variant="primary" busy={busy} disabled={!f.title?.trim() || !f.region?.trim()} onClick={() => void save()}>ثبت فایل</Btn></>}>
+      {divarOn ? <DivarImport onFill={fill} /> : <p className="muted small divar-hint"><Icon name="link" size={14} />ورود فایل از لینک آگهی دیوار را می‌توانید از <a href="#/settings" onClick={onClose}>تنظیمات</a> روشن کنید.</p>}
       <div className="form-grid">
         {/* Amin #5965: title and deal kind on one row */}
         <div className="span2 title-row">
@@ -369,7 +373,7 @@ function NewFileModal({ onClose, onMade }: { onClose: () => void; onMade: (id: s
         <Field label="شمارهٔ مالک" hint="به‌طور پیش‌فرض برای مشاوران فرستاده نمی‌شود"><input className="kss-input" dir="ltr" inputMode="tel" value={f.ownerPhone ?? ''} onChange={set('ownerPhone')} placeholder="09xxxxxxxxx" /></Field>
       </div>
       <p className="muted small">ثبت فایل یک بار، به اندازهٔ حجم فایل، از توکن‌ها کم می‌کند و فایل در برنامهٔ ایوان شما هم دیده می‌شود.</p>
-      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
+      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#/tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
     </Modal>
   );
 }
@@ -414,7 +418,7 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
           )}
         </div>
       )}
-      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
+      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#/tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
     </Modal>
   );
 }
@@ -579,13 +583,16 @@ function CodeModal({ onClose }: { onClose: () => void }) {
 }
 
 /** Amin #6336: a file's own record — everything on it, who has it, and what can be done with it */
-function FileModal({ o, f, onClose, onSend, onShares }: { o: Overview; f: OfficeFile; onClose: () => void; onSend: () => void; onShares: () => void }) {
+function FileModal({ o, f, onClose, onSend, onShares, onContract, onReminder, openApplicant }: {
+  o: Overview; f: OfficeFile; onClose: () => void; onSend: () => void; onShares: () => void;
+  onContract: () => void; onReminder: () => void; openApplicant: (id: string) => void;
+}) {
   const names = new Map(o.advisers.map((a) => [a.id, a.name]));
   const holders = (f.shares ?? []).map((s) => (s.adviserId === '*' ? 'همهٔ مشاوران' : names.get(s.adviserId) ?? 'مشاور') + (s.until ? ` (تا ${persianDate(s.until)})` : ''));
   const row = (k: string, v: ReactNode) => (v === null || v === '' || v === undefined ? null : <><dt>{k}</dt><dd>{v}</dd></>);
   return (
     <Modal title={f.title} sub={[f.propertyType, [f.city, f.region].filter(Boolean).join('، ')].filter(Boolean).join(' · ')} onClose={onClose} dismissable
-      footer={<Btn variant="primary" icon="upload" onClick={onSend}>ارسال به مشاوران</Btn>}>
+      footer={<><Btn icon="clock" onClick={onReminder}>یادآور</Btn><Btn icon="verified" onClick={onContract}>ثبت قرارداد</Btn><Btn variant="primary" icon="upload" onClick={onSend}>ارسال به مشاوران</Btn></>}>
       <div className="stack">
         <div className="row tight wrap">
           <Badge tone={f.kind === 'فروش' ? 'info' : 'neutral'} icon={false}>{f.kind}</Badge>
@@ -607,6 +614,8 @@ function FileModal({ o, f, onClose, onSend, onShares }: { o: Overview; f: Office
           end={holders.length ? <button type="button" className="kss-btn kss-btn--link kss-btn--sm" onClick={onShares}>دیدن و لغو</button> : undefined}>
           {holders.length ? <ul className="plain stack sm">{holders.map((h, i) => <li key={i}>{h}</li>)}</ul> : <span className="faint">هنوز برای مشاوری فرستاده نشده است.</span>}
         </Card>
+        {/* Amin #6333: the applicants this file fits, by the app's matching rules */}
+        <FileMatches fileId={f.id} openApplicant={openApplicant} />
       </div>
     </Modal>
   );
@@ -663,7 +672,7 @@ function PhoneBook({ addKey }: { addKey: number }) {
   };
   const rows = (list?.contacts ?? []).filter((c) => !q || [c.name, c.phone, c.notes].some((x) => x.includes(q) || toLatinDigits(x).includes(toLatinDigits(q))));
   return (
-    <Card id="contacts" title="دفترچه تلفن" sub={list ? `${fa(list.contacts.length)} مخاطب · همان مخاطبان برنامهٔ ایوان شما` : 'مخاطبان برنامهٔ ایوان شما'} flush
+    <Card id="contacts" title="مخاطبان" sub={list ? `${fa(list.contacts.length)} مخاطب · همان مخاطبان برنامهٔ ایوان شما` : 'مخاطبان برنامهٔ ایوان شما'} flush
       end={<span className="row tight"><Btn size="sm" icon="download" onClick={() => void csv()} disabled={!list?.contacts.length}>خروجی CSV</Btn><Btn size="sm" variant="primary" icon="plus" onClick={() => setAdding(true)}>مخاطب تازه</Btn></span>}>
       {err && !list ? <div className="pad"><ErrorBox what="دفترچه تلفن" error={err} retry={() => void load()} /></div> : !list ? <div className="pad"><Skeleton rows={3} /></div> : !list.contacts.length ? (
         <Empty title="دفترچه هنوز خالی است" action={<Btn variant="primary" icon="plus" onClick={() => setAdding(true)}>مخاطب تازه</Btn>}>مخاطبانی که در برنامهٔ ایوان دارید این‌جا هم دیده می‌شوند؛ مخاطبی که این‌جا اضافه کنید در برنامه هم هست.</Empty>
@@ -801,44 +810,230 @@ function Settings({ o }: { o: Overview }) {
   );
 }
 
+// ------------------------------------------------------------------ pages ----
+/**
+ * Amin #6333: one page per section (hash routes «#/files», «#/applicants/<id>»…), a grouped sidebar, each page with its
+ * own header and actions. The old one-page anchors («#files», «#tokens»…) still land on their page.
+ */
+const PAGES = ['overview', 'files', 'applicants', 'matching', 'contracts', 'reminders', 'contacts', 'advisers', 'tokens', 'settings'] as const;
+type Page = (typeof PAGES)[number];
+const LEGACY: Record<string, Page> = { top: 'overview', files: 'files', tokens: 'tokens', advisers: 'advisers', sharing: 'advisers', contacts: 'contacts', settings: 'settings' };
+function readRoute(): { page: Page; id: string | null } {
+  let h = '';
+  try { h = decodeURIComponent(location.hash.replace(/^#\/?/, '')); } catch { h = ''; }
+  const [p = '', id = ''] = h.split('/');
+  const page = (PAGES as readonly string[]).includes(p) ? (p as Page) : LEGACY[p] ?? 'overview';
+  return { page, id: id || null };
+}
+function useRoute() {
+  const [r, setR] = useState(readRoute);
+  useEffect(() => {
+    const on = () => { setR(readRoute()); window.scrollTo({ top: 0 }); };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  return r;
+}
+const go = (path: string) => { location.hash = '#/' + path; };
+
+type NavItem = { page: Page; label: string; icon: string; count?: number | null; alert?: boolean };
+function SideNav({ page, groups }: { page: Page; groups: { title: string; items: NavItem[] }[] }) {
+  return (
+    <>
+      {groups.map((g) => (
+        <div key={g.title}>
+          <div className="side-group">{g.title}</div>
+          <nav>
+            {g.items.map((i) => (
+              <a key={i.page} href={'#/' + i.page} className={'item' + (page === i.page ? ' on' : '')} aria-current={page === i.page ? 'page' : undefined}>
+                <Icon name={i.icon} size={20} /><span>{i.label}</span>
+                {!!i.count && <span className={'count num' + (i.alert ? ' alert' : '')}>{fa(i.count)}</span>}
+              </a>
+            ))}
+          </nav>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** Amin #6342: «＋» in the phone's bottom bar — what to add */
+function AddSheet({ onClose, pick }: { onClose: () => void; pick: (t: 'file' | 'applicant' | 'reminder' | 'contract') => void }) {
+  const items: { t: 'file' | 'applicant' | 'reminder' | 'contract'; icon: string; label: string; sub: string }[] = [
+    { t: 'file', icon: 'file', label: 'فایل تازه', sub: 'ملک برای فروش، رهن و اجاره یا تهاتر' },
+    { t: 'applicant', icon: 'users', label: 'متقاضی تازه', sub: 'خریدار، مستأجر یا متقاضی تهاتر' },
+    { t: 'reminder', icon: 'clock', label: 'یادآور تازه', sub: 'تماس، بازدید یا هر کار دیگر' },
+    { t: 'contract', icon: 'verified', label: 'ثبت قرارداد', sub: 'برای یک فایل و یک متقاضی' },
+  ];
+  return (
+    <Modal title="افزودن" size="sm" onClose={onClose} dismissable>
+      <ul className="plain add-sheet">
+        {items.map((i) => (
+          <li key={i.t}><button type="button" className="add-item" onClick={() => pick(i.t)}>
+            <span className="add-ico"><Icon name={i.icon} size={20} /></span>
+            <span className="grow"><b>{i.label}</b><span className="faint xs block">{i.sub}</span></span>
+            <Icon name="chevron" size={18} />
+          </button></li>
+        ))}
+      </ul>
+    </Modal>
+  );
+}
+
+type Layer = null | { t: 'new' } | { t: 'code' } | { t: 'send'; ids: string[] } | { t: 'shares'; id: string } | { t: 'file'; id: string } | { t: 'pick' }
+  | { t: 'add' } | { t: 'newApplicant' } | { t: 'applicant'; id: string } | { t: 'contract'; preset: { applicantId?: string; fileId?: string } }
+  | { t: 'reminder'; preset: { applicantId?: string; fileId?: string; title?: string } };
+
 function Dashboard() {
   const [o, setO] = useState<Overview | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [layer, setLayer] = useState<null | { t: 'new' } | { t: 'code' } | { t: 'send'; ids: string[] } | { t: 'shares'; id: string } | { t: 'file'; id: string } | { t: 'pick' }>(null);
+  const [layer, setLayer] = useState<Layer>(null);
   const [nav, setNav] = useState(false);
   const [addContact, setAddContact] = useState(0); // Amin #6342: «مخاطبین» in the bottom bar opens the phone book
+  const [work, setWork] = useState(0); // bumped after anything is added or changed: pages and the sidebar's numbers reload
+  const { page, id: routeId } = useRoute();
   const toast = useToast();
   const load = useCallback(() => api.overview().then((x) => { setO(x); setErr(null); }, (e: Error) => setErr(e.message)), []);
-  useEffect(() => { void load(); const t = window.setInterval(() => void load(), 60000); return () => window.clearInterval(t); }, [load]);
+  useEffect(() => { void load(); const t = window.setInterval(() => { void load(); setWork((w) => w + 1); }, 60000); return () => window.clearInterval(t); }, [load]);
+  const desk = useDesk(work);
+  const [divarOn, setDivarOn] = useState<boolean | null>(null);
+  useEffect(() => { if (desk) setDivarOn(desk.divar.on); }, [desk]);
+  const changed = () => { setWork((w) => w + 1); void load(); };
+  // another page closes what was open; a deep link «#/applicants/<id>» opens that record
+  useEffect(() => { setLayer(page === 'applicants' && routeId ? { t: 'applicant', id: routeId } : null); setNav(false); }, [page, routeId]);
   const sentAll = o?.files.filter((f) => f.sentTo.length).length ?? 0;
+  const openFile = (id: string) => setLayer({ t: 'file', id });
+  const openApplicant = (id: string) => setLayer({ t: 'applicant', id });
+  const onContract = (preset: { applicantId?: string; fileId?: string }) => setLayer({ t: 'contract', preset });
+  const onReminder = (preset: { applicantId?: string; fileId?: string; title?: string }) => setLayer({ t: 'reminder', preset });
+  const closeLayer = () => { if (layer?.t === 'applicant' && page === 'applicants' && routeId) go('applicants'); setLayer(null); };
+  const due = desk ? desk.reminders.overdue + desk.reminders.today : 0;
 
-  const meta: ReactNode = o && (
-    <>
-      <span><Icon name="clock" size={12} />به‌روزرسانی: {ago(o.asOf)}</span>
-      <span><Icon name="users" size={12} />{fa(o.advisers.length)} مشاور وصل</span>
-    </>
-  );
+  const groups: { title: string; items: NavItem[] }[] = [
+    { title: 'دفتر', items: [
+      { page: 'overview', label: 'نمای کلی', icon: 'overview' },
+      { page: 'files', label: 'فایل‌ها', icon: 'file', count: o?.files.length },
+      { page: 'applicants', label: 'متقاضیان', icon: 'users', count: desk?.applicants },
+      { page: 'matching', label: 'تطبیق', icon: 'insights' },
+    ] },
+    { title: 'کارها', items: [
+      { page: 'contracts', label: 'قراردادها', icon: 'verified', count: desk?.contracts },
+      { page: 'reminders', label: 'یادآورها', icon: 'clock', count: due, alert: !!desk?.reminders.overdue },
+      { page: 'contacts', label: 'دفترچه تلفن', icon: 'calls' },
+    ] },
+    { title: 'مشاوران', items: [{ page: 'advisers', label: 'مشاوران و اتصال', icon: 'agent', count: o?.advisers.length }] },
+    { title: 'حساب', items: [
+      { page: 'tokens', label: 'توکن‌ها', icon: 'bolt', count: o?.tokens ? Math.floor(o.tokens.balance) : null },
+      { page: 'settings', label: 'تنظیمات', icon: 'settings' },
+    ] },
+  ];
+
+  /** the pages that read the office's overview (files, advisers, tokens) wait for it */
+  const needO = (body: (o: Overview) => ReactNode) => (err && !o ? <ErrorBox what="داشبورد" error={err} retry={() => void load()} /> : !o ? <Skeleton rows={6} /> : body(o));
+  const newFileBtn = <Btn variant="primary" icon="plus" onClick={() => setLayer({ t: 'new' })}>فایل تازه</Btn>;
+
+  const pageBody = (): ReactNode => {
+    switch (page) {
+      case 'files':
+        return (
+          <>
+            <PageHeader title="فایل‌ها" sub="همان فایل‌های برنامهٔ ایوان شما؛ برای ارسال به مشاوران یکی یا چندتا را انتخاب کنید"
+              meta={o && <><span><Icon name="file" size={12} />{fa(o.files.length)} فایل فعال</span><span><Icon name="upload" size={12} />{fa(sentAll)} فایل برای مشاوران فرستاده شده</span></>}
+              actions={<><Btn icon="upload" disabled={!o?.files.length} onClick={() => setLayer({ t: 'pick' })}>اشتراک فایل‌ها</Btn>{newFileBtn}</>} />
+            {needO((o) => (
+              <Card id="files" flush>
+                <FilesTable o={o} onNew={() => setLayer({ t: 'new' })} onSend={(ids) => setLayer({ t: 'send', ids })} onShares={(id) => setLayer({ t: 'shares', id })} onOpen={openFile} />
+              </Card>
+            ))}
+          </>
+        );
+      case 'applicants':
+        return <ApplicantsPage openApplicant={openApplicant} onNew={() => setLayer({ t: 'newApplicant' })} reloadKey={work} />;
+      case 'matching':
+        return <MatchingPage openFile={openFile} openApplicant={openApplicant} onContract={onContract} onReminder={onReminder} reloadKey={work} />;
+      case 'contracts':
+        return <ContractsPage openFile={openFile} openApplicant={openApplicant} onNew={() => onContract({})} reloadKey={work} />;
+      case 'reminders':
+        return <RemindersPage openFile={openFile} openApplicant={openApplicant} onNew={() => onReminder({})} reloadKey={work} />;
+      case 'contacts':
+        return (
+          <>
+            <PageHeader title="دفترچه تلفن" sub="مخاطبان برنامهٔ ایوان شما؛ مخاطب تازه در برنامه هم اضافه می‌شود" />
+            <PhoneBook addKey={addContact} />
+          </>
+        );
+      case 'advisers':
+        return (
+          <>
+            <PageHeader title="مشاوران و اتصال" sub="فعالیت امروز مشاوران وصل، کدهای اتصال و قواعد ارسال فایل"
+              meta={o && <span><Icon name="users" size={12} />{fa(o.advisers.length)} مشاور وصل</span>}
+              actions={<Btn variant="primary" icon="key" onClick={() => setLayer({ t: 'code' })}>ساخت کد اتصال مشاور</Btn>} />
+            {needO((o) => (
+              <div className="grid g-main">
+                <Card id="advisers" title="فعالیت مشاوران امروز" sub="از ساعت ۰۰:۰۰ تا الان · مرتب بر اساس معاملهٔ بسته و فایل تازه" flush><Advisers o={o} reload={() => void load()} onCode={() => setLayer({ t: 'code' })} /></Card>
+                <Card id="sharing" title="قواعد ارسال به مشاوران" sub="پیش‌فرض هر ارسال؛ هنگام ارسال قابل تغییر است"><Sharing o={o} reload={() => void load()} /></Card>
+              </div>
+            ))}
+          </>
+        );
+      case 'tokens':
+        return (
+          <>
+            <PageHeader title="توکن‌ها" sub="یک موجودی برای برنامهٔ ایوان و این داشبورد" />
+            {needO((o) => <TokensCard reloadKey={o.asOf} />)}
+          </>
+        );
+      case 'settings':
+        return (
+          <>
+            <PageHeader title="تنظیمات دفتر" sub="اتصال‌ها و پنل دفتر" />
+            {needO((o) => (
+              <div className="stack">
+                <DivarCard onChange={(on) => { setDivarOn(on); setWork((w) => w + 1); }} />
+                <Card id="settings" title="پنل دفتر"><Settings o={o} /></Card>
+              </div>
+            ))}
+          </>
+        );
+      default:
+        return (
+          <>
+            <PageHeader title="نمای کلی دفتر" sub={`${today()}؛ همهٔ عددها از فایل‌ها، متقاضیان و کارهای برنامهٔ ایوان شما و مشاوران وصل`}
+              meta={o && <><span><Icon name="clock" size={12} />به‌روزرسانی: {ago(o.asOf)}</span><span><Icon name="users" size={12} />{fa(o.advisers.length)} مشاور وصل</span></>}
+              actions={<><Btn icon="users" onClick={() => setLayer({ t: 'newApplicant' })}>متقاضی تازه</Btn>{newFileBtn}</>} />
+            {needO((o) => (
+              <div className="stack">
+                <div className="grid g4 card-grid">
+                  <Kpi icon="file" k="فایل‌های تازه امروز" v={fa(o.newToday)} d={`از ساعت ۰۰:۰۰ · ${fa(o.newWeek)} فایل در ۷ روز · ${fa(o.files.length)} فایل فعال`} href="#/files" />
+                  <Kpi icon="users" k="متقاضیان فعال" v={desk ? fa(desk.applicants) : '—'} d={desk ? `${fa(desk.contracts)} قرارداد فعال` : 'از برنامهٔ ایوان شما'} href="#/applicants" />
+                  <Kpi icon="clock" k="کارهای امروز" v={desk ? fa(due) : '—'} tone={desk?.reminders.overdue ? 'warn' : undefined}
+                    d={desk ? (desk.reminders.overdue ? `${fa(desk.reminders.overdue)} یادآور عقب‌افتاده` : 'یادآور عقب‌افتاده‌ای نیست') : 'یادآورهای برنامهٔ ایوان'} href="#/reminders" />
+                  <Kpi icon="bolt" k="توکن‌های مشترک" v={o.tokens ? fa(Math.floor(o.tokens.balance)) : '—'} d="یک موجودی برای برنامهٔ ایوان و این داشبورد" href="#/tokens" />
+                </div>
+                <div className="grid g-main">
+                  <Card title="فایل‌های تازه در ۱۴ روز اخیر" sub="تعداد فایل ثبت‌شده در هر روز، به وقت تهران"><NewFilesChart days={o.perDay} /></Card>
+                  <TodayCard openFile={openFile} openApplicant={openApplicant} onNew={() => onReminder({})} reloadKey={work} />
+                </div>
+                <div className="grid g-main">
+                  <Card title="فعالیت مشاوران امروز" sub="از ساعت ۰۰:۰۰ تا الان" flush end={<a className="kss-btn kss-btn--ghost kss-btn--sm" href="#/advisers">همه</a>}>
+                    <Advisers o={o} reload={() => void load()} onCode={() => setLayer({ t: 'code' })} />
+                  </Card>
+                  <Card title="معامله‌های باز مشاوران" sub={o.openDeals ? `${fa(o.openDeals)} معاملهٔ باز، بر اساس آخرین مرحله` : 'از برنامهٔ مشاوران وصل'}><Stages o={o} /></Card>
+                </div>
+              </div>
+            ))}
+          </>
+        );
+    }
+  };
+
+  const fileOf = (id: string) => o?.files.find((x) => x.id === id);
   return (
     <div className={'shell' + (nav ? ' nav-open' : '')}>
       {nav && <div className="scrim" onClick={() => setNav(false)} />}
       <aside className="side" aria-label="منوی اصلی" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setNav(false); }}>
         <div className="side-brand"><div className="logo"><Icon name="home" size={18} /></div><div><b>ایوان</b><small>داشبورد دفتر املاک</small></div></div>
-        <div className="side-group">دفتر</div>
-        <nav>
-          <a href="#top" className="item on" aria-current="page"><Icon name="overview" size={20} /><span>نمای کلی</span></a>
-          <a href="#files" className="item"><Icon name="file" size={20} /><span>فایل‌ها</span>{!!o?.files.length && <span className="count num">{fa(o.files.length)}</span>}</a>
-          <a href="#tokens" className="item"><Icon name="chart" size={20} /><span>توکن‌ها</span>{o?.tokens && <span className="count num">{fa(Math.floor(o.tokens.balance))}</span>}</a>
-        </nav>
-        <div className="side-group">مشاوران</div>
-        <nav>
-          <a href="#advisers" className="item"><Icon name="user" size={20} /><span>مشاوران و اتصال</span></a>
-          <a href="#sharing" className="item"><Icon name="shield" size={20} /><span>قواعد ارسال</span></a>
-          <a href="#contacts" className="item"><Icon name="calls" size={20} /><span>دفترچه تلفن</span></a>
-        </nav>
-        <div className="side-group">حساب</div>
-        <nav>
-          <a href="#settings" className="item"><Icon name="settings" size={20} /><span>تنظیمات</span></a>
-        </nav>
+        <SideNav page={page} groups={groups} />
         <div className="grow" />
         <button className="kss-btn kss-btn--ghost kss-btn--sm side-out" onClick={() => void signOut()}><Icon name="logout" size={16} />خروج</button>
       </aside>
@@ -851,54 +1046,31 @@ function Dashboard() {
           {/* Amin #6349: «خروج» always in sight, on phones too (the side menu is folded there) */}
           <button className="kss-btn kss-btn--ghost kss-btn--sm" onClick={() => void signOut()}><Icon name="logout" size={16} />خروج</button>
         </header>
-        <main id="top"><div className="page">
-          <PageHeader title="نمای کلی دفتر" sub={`${today()}؛ همهٔ عددها از فایل‌های دفتر و کار مشاوران وصل`} meta={meta}
-            actions={<><Btn icon="plus" onClick={() => setLayer({ t: 'new' })}>فایل تازه</Btn><Btn variant="primary" icon="key" onClick={() => setLayer({ t: 'code' })}>ساخت کد اتصال مشاور</Btn></>} />
-          {err && !o ? <ErrorBox what="داشبورد" error={err} retry={() => void load()} /> : !o ? <Skeleton rows={6} /> : (
-            <div className="stack">
-              <div className="grid g4 card-grid">
-                <Kpi icon="file" k="فایل‌های تازه امروز" v={fa(o.newToday)} d={`فایل‌های ثبت‌شدهٔ دفتر از ساعت ۰۰:۰۰ · ${fa(o.newWeek)} فایل در ۷ روز`} href="#files" />
-                <Kpi icon="users" k="مشاوران وصل" v={fa(o.advisers.length)} d={o.advisers.length ? `${fa(o.advisers.filter((a) => a.newFiles || a.contacts || a.closedToday).length)} نفر امروز فعال بوده‌اند` : 'با کد اتصال مشاور اضافه کنید'} href="#advisers" />
-                <Kpi icon="upload" k="فایل‌های فرستاده" v={fa(sentAll)} d={`از ${fa(o.files.length)} فایل فعال دفتر · برای مشاوران`} href="#files" />
-                <Kpi icon="chart" k="توکن‌های مشترک" v={o.tokens ? fa(Math.floor(o.tokens.balance)) : '—'} d="یک موجودی برای برنامهٔ ایوان و این داشبورد" href="#tokens" />
-              </div>
-              <div className="grid g-main">
-                <Card title="فایل‌های تازه در ۱۴ روز اخیر" sub="تعداد فایل ثبت‌شدهٔ دفتر در هر روز، به وقت تهران"><NewFilesChart days={o.perDay} /></Card>
-                <Card title="معامله‌های باز مشاوران" sub={o.openDeals ? `${fa(o.openDeals)} معاملهٔ باز، بر اساس آخرین مرحله` : 'از برنامهٔ مشاوران وصل'}><Stages o={o} /></Card>
-              </div>
-              <div className="grid g-main">
-                <div className="stack">
-                  <Card id="advisers" title="فعالیت مشاوران امروز" sub="از ساعت ۰۰:۰۰ تا الان · مرتب بر اساس معاملهٔ بسته و فایل تازه" flush><Advisers o={o} reload={() => void load()} onCode={() => setLayer({ t: 'code' })} /></Card>
-                </div>
-                <Card id="sharing" title="قواعد ارسال به مشاوران" sub="پیش‌فرض هر ارسال؛ هنگام ارسال قابل تغییر است"><Sharing o={o} reload={() => void load()} /></Card>
-              </div>
-              <Card id="files" title="فایل‌های دفتر" sub={`${fa(o.files.length)} فایل · انتخاب تکی یا چندتایی برای ارسال`} end={<Btn size="sm" icon="plus" onClick={() => setLayer({ t: 'new' })}>فایل تازه</Btn>} flush>
-                <FilesTable o={o} onNew={() => setLayer({ t: 'new' })} onSend={(ids) => setLayer({ t: 'send', ids })} onShares={(id) => setLayer({ t: 'shares', id })} onOpen={(id) => setLayer({ t: 'file', id })} />
-              </Card>
-              <PhoneBook addKey={addContact} />
-              <TokensCard reloadKey={o.asOf} />
-              <Card id="settings" title="تنظیمات دفتر"><Settings o={o} /></Card>
-            </div>
-          )}
-        </div></main>
+        <main id="top"><div className="page" key={page}>{pageBody()}</div></main>
       </div>
-      {layer?.t === 'new' && <NewFileModal onClose={() => setLayer(null)} onMade={(id, title) => { toast(`«${title}» ثبت شد`); void load(); setLayer({ t: 'send', ids: [id] }); }} />}
+      {layer?.t === 'new' && <NewFileModal divarOn={!!divarOn} onClose={() => setLayer(null)} onMade={(id, title) => { toast(`«${title}» ثبت شد`); changed(); setLayer({ t: 'send', ids: [id] }); }} />}
       {layer?.t === 'code' && <CodeModal onClose={() => { setLayer(null); void load(); }} />}
       {layer?.t === 'shares' && o && <SharesModal o={o} fileId={layer.id} onClose={() => setLayer(null)} reload={() => void load()} />}
       {layer?.t === 'file' && o && (() => {
-        const f = o.files.find((x) => x.id === layer.id);
-        return f ? <FileModal o={o} f={f} onClose={() => setLayer(null)} onSend={() => setLayer({ t: 'send', ids: [f.id] })} onShares={() => setLayer({ t: 'shares', id: f.id })} /> : null;
+        const f = fileOf(layer.id);
+        return f ? <FileModal o={o} f={f} onClose={() => setLayer(null)} onSend={() => setLayer({ t: 'send', ids: [f.id] })} onShares={() => setLayer({ t: 'shares', id: f.id })}
+          onContract={() => onContract({ fileId: f.id })} onReminder={() => onReminder({ fileId: f.id, title: `پیگیری ${f.title}` })} openApplicant={openApplicant} /> : null;
       })()}
       {layer?.t === 'pick' && o && <PickFilesModal o={o} onClose={() => setLayer(null)} onNext={(ids) => setLayer({ t: 'send', ids })} />}
+      {layer?.t === 'add' && <AddSheet onClose={() => setLayer(null)} pick={(t) => setLayer(t === 'file' ? { t: 'new' } : t === 'applicant' ? { t: 'newApplicant' } : t === 'reminder' ? { t: 'reminder', preset: {} } : { t: 'contract', preset: {} })} />}
+      {layer?.t === 'newApplicant' && <ApplicantModal onClose={() => setLayer(null)} onMade={(a) => { toast(`«${a.name}» ثبت شد`); changed(); setLayer({ t: 'applicant', id: a.id }); }} />}
+      {layer?.t === 'applicant' && <ApplicantRecord id={layer.id} onClose={closeLayer} openFile={openFile} onContract={onContract} onReminder={onReminder} onChanged={changed} reloadKey={work} />}
+      {layer?.t === 'contract' && <ContractModal files={o?.files ?? []} preset={layer.preset} onClose={() => setLayer(null)} onMade={(c) => { toast('قرارداد ثبت شد'); changed(); setLayer(null); if (page !== 'contracts') toast(`«${c.fileTitle}» دیگر در پیشنهادها نمی‌آید`); }} />}
+      {layer?.t === 'reminder' && <ReminderModal files={o?.files ?? []} preset={layer.preset} onClose={() => setLayer(null)} onMade={() => { toast('یادآور ثبت شد'); changed(); setLayer(null); }} />}
       {/* Amin #6342: the phone's bottom bar, quick ways in (Material icons) */}
       <nav className="bottom-bar" aria-label="میانبرها">
-        <a href="#files"><Icon name="file" size={22} /><span>فایل‌ها</span></a>
-        <a href="#contacts"><Icon name="calls" size={22} /><span>مخاطبین</span></a>
-        <button type="button" className="bb-main" onClick={() => setLayer({ t: 'new' })} aria-label="فایل تازه"><Icon name="plus" size={26} /></button>
+        <a href="#/files" className={page === 'files' ? 'on' : undefined}><Icon name="file" size={22} /><span>فایل‌ها</span></a>
+        <a href="#/contacts" className={page === 'contacts' ? 'on' : undefined} onClick={() => setAddContact(0)}><Icon name="calls" size={22} /><span>مخاطبین</span></a>
+        <button type="button" className="bb-main" onClick={() => setLayer({ t: 'add' })} aria-label="افزودن"><Icon name="plus" size={26} /></button>
         <button type="button" onClick={() => setLayer({ t: 'pick' })} disabled={!o}><Icon name="upload" size={22} /><span>اشتراک فایل‌ها</span></button>
         <button type="button" onClick={() => setLayer({ t: 'code' })}><Icon name="users" size={22} /><span>افزودن مشاور</span></button>
       </nav>
-      {layer?.t === 'send' && o &&<SendModal o={o} ids={layer.ids} onClose={() => setLayer(null)} onSent={() => { setLayer(null); void load(); }} />}
+      {layer?.t === 'send' && o && <SendModal o={o} ids={layer.ids} onClose={() => setLayer(null)} onSent={() => { setLayer(null); void load(); }} />}
     </div>
   );
 }
