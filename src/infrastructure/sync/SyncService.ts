@@ -163,7 +163,7 @@ export class SyncService {
   }
 
   /** Amin #5454: tells the server the app is open (last seen, kept to the minute there) */
-  presence(sessionToken: string): Promise<unknown> {
+  presence(sessionToken: string): Promise<{ serverWriteAt?: string | null } | undefined> {
     return this.api.presence(sessionToken)
   }
 
@@ -230,6 +230,7 @@ export class SyncService {
     await this.setState('photo_hash', null)
     await this.setState(BLOB_TRASH_KEY, null)
     await this.setState('token_ledger', null)
+    await this.setState('server_write_seen', null)
     this.photoCache.clear()
     this.isLoaded = false
   }
@@ -237,6 +238,21 @@ export class SyncService {
   /** Amin #6343: the server put rows in the account's copy (an office's files coming home); the next round loads them */
   markStale(): void {
     this.isLoaded = false
+  }
+
+  /**
+   * Amin #6330: the office dashboard writes into this account's copy; /presence says when the server last did.
+   * true = newer than what this phone has seen → the caller reloads the files. The first sighting is only kept (the
+   * load at start already had everything up to then).
+   */
+  async noteServerWrite(at: string | null | undefined): Promise<boolean> {
+    if (!at) return false
+    const seen = await this.getState('server_write_seen')
+    if (seen !== null && at <= seen) return false
+    await this.setState('server_write_seen', at)
+    if (seen === null) return false
+    this.markStale()
+    return true
   }
 
   /**

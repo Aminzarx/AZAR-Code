@@ -4,6 +4,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const rateLimit = require('express-rate-limit')
 const db = require('./db')
+const serverWrites = require('./serverWrites')
 const tokens = require('./tokens')
 
 // KSS AZAR-SYNC-001 (Amin #4142/#4147/#4192, GO #4797): every file of an account lives here, on the
@@ -357,6 +358,7 @@ function putRow(accountId, table, key, row, at = new Date().toISOString()) {
   db.prepare(`INSERT INTO sync_rows (account_id, tbl, row_key, data, bytes, updated_at) VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(account_id, tbl, row_key) DO UPDATE SET data = excluded.data, bytes = excluded.bytes, updated_at = excluded.updated_at`)
     .run(accountId, table, key, seal(plain), plain.length, at)
+  serverWrites.mark(accountId) // the app reloads its files when it next says it is open (#6330)
 }
 
 module.exports = { router, deleteAccountData, rowsOf, blobOf, usageOf, moveAccountData, putRow }

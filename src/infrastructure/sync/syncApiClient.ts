@@ -172,7 +172,8 @@ export class SyncApiClient {
   }
 
   /** Amin #5454: «the app is open» — the server keeps the time as last seen */
-  presence(sessionToken: string): Promise<unknown> {
+  /** serverWriteAt (Amin #6330): the last time the server wrote into this account's copy (the office dashboard) */
+  presence(sessionToken: string): Promise<{ ok: true; serverWriteAt?: string | null }> {
     return this.post('/presence', { sessionToken })
   }
 

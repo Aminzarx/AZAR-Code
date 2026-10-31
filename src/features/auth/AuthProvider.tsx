@@ -262,7 +262,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     if (!session || !syncService) return
     const ping = (): void => {
       if (AppState.currentState === 'active')
-        syncService.presence(session.sessionToken).catch(() => undefined)
+        syncService
+          .presence(session.sessionToken)
+          // Amin #6330: the office dashboard changed this account's files → load them now
+          .then((r) => syncService.noteServerWrite(r?.serverWriteAt))
+          .then((stale) => (stale ? syncOnce(session) : undefined))
+          .catch(() => undefined)
     }
     ping()
     const timer = setInterval(ping, PRESENCE_EVERY_MS)
@@ -273,7 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       clearInterval(timer)
       change.remove()
     }
-  }, [session, syncService])
+  }, [session, syncService, syncOnce])
 
   // Its own callback too: inside the memo below it changed with every 3-second sync tick, and Settings asked the
   // server for the ledger each time (seen on the web build, 2026-10-25)

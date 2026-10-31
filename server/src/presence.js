@@ -3,6 +3,7 @@
 // Kept to the minute (one write a minute at most per account); nothing else about the visit is stored.
 const express = require('express')
 const db = require('./db')
+const serverWrites = require('./serverWrites')
 
 {
   const have = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name)
@@ -20,7 +21,8 @@ function seen(userId) {
 
 const router = express.Router()
 
-// POST /presence { sessionToken } → { ok: true }; 401 when the session is gone
+// POST /presence { sessionToken } → { ok: true, serverWriteAt }; 401 when the session is gone. serverWriteAt (Amin #6330):
+// the last time the server wrote into this account's copy (the office dashboard), so the app knows to reload its files
 router.post('/', express.json({ limit: '4kb' }), (req, res) => {
   const token =
     (typeof req.body?.sessionToken === 'string' && req.body.sessionToken) || req.get('x-session-token') || ''
@@ -30,7 +32,7 @@ router.post('/', express.json({ limit: '4kb' }), (req, res) => {
     return
   }
   seen(session.user_id)
-  res.json({ ok: true })
+  res.json({ ok: true, serverWriteAt: serverWrites.lastOf(session.user_id) })
 })
 
 module.exports = { router, seen }
