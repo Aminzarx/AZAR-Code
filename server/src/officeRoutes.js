@@ -768,7 +768,9 @@ manager.get('/tokens', async (req, res, next) => {
         const what = l.reason === 'office_file_hold' ? `افزودن فایل «${titles[fileId] ?? 'حذف‌شده'}»`
           : l.reason === 'office_file_share' ? `فرستادن «${titles[fileId] ?? 'حذف‌شده'}» برای ${Number(n || 0).toLocaleString('fa-IR')} مشاور`
             : l.reason === 'pack_bought' ? 'خرید توکن'
-              : l.reason === 'admin_grant' ? 'هدیهٔ KSS' : l.reason === 'admin_deduct' ? 'کسر توسط KSS'
+              // Amin #6400: «افزودن/کسر ظرفیت», and the new «آزاد کردن» / «پر کردن ظرفیت»
+              : l.reason === 'admin_grant' ? 'افزودن ظرفیت توسط KSS' : l.reason === 'admin_deduct' ? 'کسر ظرفیت توسط KSS'
+                : l.reason === 'admin_release' ? 'آزاد کردن ظرفیت توسط KSS' : l.reason === 'admin_fill' ? 'پر کردن ظرفیت توسط KSS'
                 : l.reason === 'office_default' ? 'توکن هدیهٔ شروع دفتر' : l.reason
         return { at: l.at, kind: l.reason, what, amount: l.amount }
       })

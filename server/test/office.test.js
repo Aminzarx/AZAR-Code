@@ -472,7 +472,7 @@ test('Amin #6289: sales management adds and deducts an office\'s tokens like an 
   assert.ok(led.lines.some((l) => l.reason === 'admin_deduct' && l.ref === 'توکن اشتباهی'))
   // the dashboard shows the same lines in words; the manager's own app tokens never move
   const t = (await call('GET', '/office/tokens', undefined, h)).body
-  assert.ok(t.lines.some((l) => l.what === 'هدیهٔ KSS' && l.amount === 500))
+  assert.ok(t.lines.some((l) => l.what === 'افزودن ظرفیت توسط KSS' && l.amount === 500))
   assert.equal(appLines(), appBefore)
   assert.equal((await admin('GET', '/offices/nope/tokens')).status, 404)
 })
@@ -616,4 +616,50 @@ test('Amin #6345: the demo office on a KSS demo number — sample files, the app
   assert.equal(o.office.name, 'دفتر املاک نمونه')
   assert.equal(o.files.length, 5)
   assert.equal((await post('/office/adviser/request/status', { sessionToken: plain.sessionToken })).body.demo, false)
+})
+
+test('Amin #6400: «آزاد کردن ظرفیت» gives back what an app user\'s records hold (records stay; deleting one later gives nothing again); «پر کردن» tops up to the allowance', async () => {
+  const a = await account()
+  const at = new Date().toISOString()
+  const big = { id: 'r1', owner_id: a.userId, title: 'آپارتمان', city: 'تهران', address: '', description: 'x'.repeat(4000), status: 'active', created_at: at, updated_at: at }
+  assert.equal((await post('/sync/push', { sessionToken: a.sessionToken, changes: [{ t: 'properties', k: 'r1', row: big }] })).status, 200)
+  const bal = async () => (await admin('GET', `/users/${a.userId}`)).body.tokens.balance
+  const before = await bal()
+  assert.ok(before < 100, `the record holds capacity (${before})`)
+  const r = await admin('POST', `/users/${a.userId}/tokens/release`, { note: 'آزمایش' }, 'rel-1')
+  assert.equal(r.status, 200, JSON.stringify(r.body))
+  assert.equal(r.body.records, 1)
+  assert.equal(r.body.tokens.balance, 100)
+  assert.equal((await admin('POST', `/users/${a.userId}/tokens/release`, { note: 'آزمایش' }, 'rel-1')).body.repeat, true, 'same key = once')
+  assert.equal((await admin('POST', `/users/${a.userId}/tokens/release`, {}, 'rel-2')).body.records, 0, 'nothing held any more')
+  // deleting the released record gives nothing back a second time
+  await post('/sync/push', { sessionToken: a.sessionToken, changes: [{ t: 'properties', k: 'r1', row: null }] })
+  assert.equal(await bal(), 100)
+  // fill: already full → 409; after a deduct, back up to the allowance; never lowers
+  assert.equal((await admin('POST', `/users/${a.userId}/tokens/fill`, {}, 'fill-0')).status, 409)
+  await admin('POST', `/users/${a.userId}/tokens/deduct`, { amount: 30, reason: 'آزمایش' }, 'ded-1')
+  const f = await admin('POST', `/users/${a.userId}/tokens/fill`, { note: 'پر کردن' }, 'fill-1')
+  assert.equal(f.status, 200, JSON.stringify(f.body))
+  assert.equal(f.body.added, 30)
+  assert.equal(f.body.tokens.balance, 100)
+  assert.equal((await admin('POST', `/users/${a.userId}/tokens/fill`, { target: 150 }, 'fill-2')).body.tokens.balance, 150)
+  assert.equal((await admin('POST', `/users/${a.userId}/tokens/fill`, { target: -1 }, 'fill-3')).status, 422)
+})
+
+test('Amin #6400: an office\'s «آزاد کردن ظرفیت» gives back what its files and sends took, once; «پر کردن» tops up to 2,500', async () => {
+  const { h, officeId } = await office('دفتر ظرفیت', 2500)
+  await linkedAdviser(h)
+  const file = (await post('/office/files', sample, h)).body.id
+  await post('/office/share', { fileIds: [file], to: 'all' }, h)
+  const used = 2500 - (await admin('GET', `/offices/${officeId}/tokens`)).body.balance
+  assert.ok(used > 0)
+  const r = await admin('POST', `/offices/${officeId}/tokens/release`, { note: 'آزمایش' }, 'orel-1')
+  assert.equal(r.status, 200, JSON.stringify(r.body))
+  assert.equal(r.body.tokens.balance, 2500)
+  assert.equal((await admin('POST', `/offices/${officeId}/tokens/release`, {}, 'orel-2')).body.added, 0, 'nothing more to give back')
+  assert.equal((await admin('POST', `/offices/${officeId}/tokens/fill`, {}, 'ofill-1')).status, 409)
+  await admin('POST', `/offices/${officeId}/tokens/deduct`, { amount: 400, reason: 'آزمایش' }, 'oded-1')
+  assert.equal((await admin('POST', `/offices/${officeId}/tokens/fill`, {}, 'ofill-2')).body.tokens.balance, 2500)
+  const words = (await call('GET', '/office/tokens', undefined, h)).body.lines.map((l) => l.what)
+  for (const w of ['آزاد کردن ظرفیت توسط KSS', 'پر کردن ظرفیت توسط KSS', 'کسر ظرفیت توسط KSS']) assert.ok(words.includes(w), w)
 })

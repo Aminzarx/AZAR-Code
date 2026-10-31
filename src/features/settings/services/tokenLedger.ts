@@ -8,7 +8,8 @@ export type TokenSummary = {
   balance: number
   allowance: number
   earned: number
-  earnedBy: { referral: number; profile: number }
+  /** granted (Amin #6400): what support added — «افزودن ظرفیت», «پر کردن ظرفیت», «آزاد کردن ظرفیت» */
+  earnedBy: { referral: number; profile: number; granted: number }
   bought: number
   spent: number
   spentBy: {
@@ -36,7 +37,7 @@ export function normalizeSummary(summary: Partial<TokenSummary> | undefined): To
     balance: summary.balance,
     allowance: summary.allowance,
     earned: summary.earned ?? 0,
-    earnedBy: { referral: summary.earnedBy?.referral ?? 0, profile: summary.earnedBy?.profile ?? 0 },
+    earnedBy: { referral: summary.earnedBy?.referral ?? 0, profile: summary.earnedBy?.profile ?? 0, granted: summary.earnedBy?.granted ?? 0 },
     bought: summary.bought ?? 0,
     referralBonus: typeof summary.referralBonus === 'number' ? summary.referralBonus : null,
     spent: summary.spent ?? 0,
@@ -46,7 +47,7 @@ export function normalizeSummary(summary: Partial<TokenSummary> | undefined): To
       contracts: summary.spentBy?.contracts ?? 0,
       phoneChange: summary.spentBy?.phoneChange ?? 0,
       divarImport: summary.spentBy?.divarImport ?? 0,
-      // Amin #5243: taken off by support (billing «کسر توکن»), with the reason kept on the server
+      // Amin #5243: taken off by support (billing «کسر ظرفیت», #6400), with the reason kept on the server
       deducted: summary.spentBy?.deducted ?? 0
     }
   }

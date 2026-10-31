@@ -332,6 +332,45 @@ router.post('/users/:id/tokens/deduct', async (req, res, next) => {
   }
 })
 
+// Amin #6400: «آزاد کردن ظرفیت» and «پر کردن ظرفیت» (Idempotency-Key header; the same key twice counts once)
+// POST /admin/users/:id/tokens/release { note } → every record the account holds gives its capacity back (records stay)
+// POST /admin/users/:id/tokens/fill { target?, note } → the balance up to target (default: the starting allowance); never lowers it
+router.post('/users/:id/tokens/:kind(release|fill)', async (req, res, next) => {
+  try {
+    const user = findUser(req.params.id)
+    if (!user) return fail(res, 404, 'not_found', 'No such account.')
+    const s = await tokens.settings()
+    if (!s) return fail(res, 503, 'tokens_unavailable', 'Token settings are not available right now.')
+    const note = String(req.body?.note || '').trim().slice(0, 300)
+    const idem = `admin_${req.params.kind}:${user.id}:${String(req.get('idempotency-key') || crypto.randomUUID()).slice(0, 100)}`
+    if (db.prepare('SELECT 1 FROM token_ledger WHERE idem_key = ?').get(idem)) {
+      return res.json({ tokens: tokensView(user.id, s), repeat: true })
+    }
+    if (req.params.kind === 'release') {
+      const out = db.transaction(() => {
+        tokens.post(user.id, 'admin_release', 0, idem) // a zero line that holds the key, so a retry counts once
+        return tokens.releaseRecords(user.id, s, tokens.storeOf(user.id), note)
+      })()
+      audit(req, 'release', user.id, `${out.released} records=${out.records} ${note}`)
+      return res.json({ tokens: tokensView(user.id, s), released: out.released, records: out.records })
+    }
+    const raw = req.body?.target
+    const target = raw === undefined || raw === null || raw === '' ? s.tokenAllowance : Number(raw)
+    if (!Number.isFinite(target) || target <= 0 || target > 100000) return fail(res, 422, 'invalid_target', 'target must be > 0 and <= 100000.')
+    const outcome = db.transaction(() => {
+      const add = Math.round((target - tokens.balanceOf(user.id, s)) * 100) / 100
+      if (add <= 0) return { full: true }
+      tokens.post(user.id, 'admin_fill', add, idem, note || null)
+      return { add }
+    })()
+    if (outcome.full) return res.status(409).json({ error: { code: 'already_full', message: 'The balance is already at or above the target.' }, tokens: tokensView(user.id, s) })
+    audit(req, 'fill', user.id, `${outcome.add} to ${target} ${note}`)
+    res.json({ tokens: tokensView(user.id, s), added: outcome.add })
+  } catch (error) {
+    next(error)
+  }
+})
+
 // POST /admin/users/:id/licence/extend { days, note }
 router.post('/users/:id/licence/extend', async (req, res, next) => {
   try {
@@ -745,6 +784,36 @@ router.post('/offices/:id/tokens/:kind(grant|deduct)', (req, res) => {
   }
   if (outcome === 'done') audit(req, add ? 'office_grant' : 'office_deduct', o.owner_user_id, `${o.id} ${amount} ${reason}`)
   res.json({ tokens: { balance: office.officeBalance(o.id) }, office: officeView(o) })
+})
+
+// Amin #6400 for an office: «آزاد کردن ظرفیت» gives back what its files and sends took (offices never refund, so one line
+// for the total not yet released); «پر کردن ظرفیت» tops up to target (default 2,500, the office's starting amount)
+router.post('/offices/:id/tokens/:kind(release|fill)', (req, res) => {
+  const o = findOffice(req.params.id)
+  if (!o) return fail(res, 404, 'not_found', 'No such office.')
+  const acc = office.officeAccount(o.id)
+  const note = String(req.body?.note || '').trim().slice(0, 300)
+  const idemKey = `office_admin_${req.params.kind}:${o.id}:${String(req.get('idempotency-key') || crypto.randomUUID()).slice(0, 100)}`
+  const raw = req.body?.target
+  const target = raw === undefined || raw === null || raw === '' ? office.OFFICE_DEFAULT_TOKENS : Number(raw)
+  if (req.params.kind === 'fill' && (!Number.isFinite(target) || target <= 0 || target > 100000)) return fail(res, 422, 'invalid_target', 'target must be > 0 and <= 100000.')
+  const outcome = db.transaction(() => {
+    if (db.prepare('SELECT 1 FROM token_ledger WHERE idem_key = ?').get(idemKey)) return { repeat: true }
+    let add
+    if (req.params.kind === 'release') {
+      const used = db.prepare("SELECT COALESCE(-SUM(amount), 0) AS u FROM token_ledger WHERE account_id = ? AND reason IN ('office_file_hold', 'office_file_share', 'admin_release')").get(acc).u
+      add = Math.round(used * 1000) / 1000
+      if (add <= 0) return { none: true }
+    } else {
+      add = Math.round((target - office.officeBalance(o.id)) * 100) / 100
+      if (add <= 0) return { full: true }
+    }
+    tokens.post(acc, req.params.kind === 'release' ? 'admin_release' : 'admin_fill', add, idemKey, note || null)
+    return { add }
+  })()
+  if (outcome.full) return res.status(409).json({ error: { code: 'already_full', message: 'The balance is already at or above the target.' }, office: officeView(o) })
+  if (outcome.add) audit(req, `office_${req.params.kind}`, o.owner_user_id, `${o.id} ${outcome.add} ${note}`)
+  res.json({ tokens: { balance: office.officeBalance(o.id) }, office: officeView(o), added: outcome.add ?? 0 })
 })
 
 module.exports = { router, purgeDue }

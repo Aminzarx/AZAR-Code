@@ -138,6 +138,10 @@ function TokenBreakdownSheet({
             <Line styles={styles} theme={theme} label="سهمیهٔ حساب" value={summary.allowance} />
             <Line styles={styles} theme={theme} label="هدیهٔ معرفی همکار" value={summary.earnedBy.referral} />
             <Line styles={styles} theme={theme} label="هدیهٔ تکمیل پروفایل" value={summary.earnedBy.profile} />
+            {/* Amin #6400: what support added (add, fill or release of capacity) */}
+            {summary.earnedBy.granted > 0 ? (
+              <Line styles={styles} theme={theme} label="افزودن ظرفیت توسط پشتیبانی" value={summary.earnedBy.granted} />
+            ) : null}
             <Line styles={styles} theme={theme} label="خرید بستهٔ توکن" value={summary.bought} />
             <Line styles={styles} theme={theme} label="جمع" value={tokenTotal(summary)} strong />
           </View>
@@ -153,7 +157,7 @@ function TokenBreakdownSheet({
               <Line styles={styles} theme={theme} label="ورود آگهی از دیوار" value={summary.spentBy.divarImport} />
             ) : null}
             {summary.spentBy.deducted > 0 ? (
-              <Line styles={styles} theme={theme} label="کسر توسط پشتیبانی" value={summary.spentBy.deducted} />
+              <Line styles={styles} theme={theme} label="کسر ظرفیت توسط پشتیبانی" value={summary.spentBy.deducted} />
             ) : null}
             <Line styles={styles} theme={theme} label="جمع" value={summary.spent} strong />
           </View>
