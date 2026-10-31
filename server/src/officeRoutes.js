@@ -1129,6 +1129,8 @@ adviser.use((req, res, next) => {
 
 // POST /office/adviser/join { sessionToken, code, word } → { office }
 adviser.post('/join', (req, res) => {
+  // Amin #6597: an app whose own office is approved is that office's dashboard already (#6330); it joins no office
+  if (portalOn(req.adviserId)) return fail(res, 422, 'office_owner', 'این اپ خودش داشبورد دفتر شماست و خودکار با آن یکی شده است؛ اتصال به دفتر دیگری از این اپ ممکن نیست.')
   const code = text(req.body?.code, 8)
   const word = text(req.body?.word, 10)
   const row = db.prepare('SELECT * FROM office_codes WHERE code = ?').get(code)

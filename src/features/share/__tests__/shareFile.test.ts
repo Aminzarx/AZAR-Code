@@ -127,7 +127,7 @@ describe('snapshot filter (Amin #6339)', () => {
       expect(Object.keys(file)).not.toContain(key)
     }
     expect(JSON.stringify(file)).not.toContain('ملاصدرا')
-    expect(file).toMatchObject({ title: property.title, city: 'تهران', region: 'ونک', area: 120, rooms: 3, barterItems: ['سایر'] })
+    expect(file).toMatchObject({ title: 'آپارتمان ۱۲۰ متری – ونک', city: 'تهران', region: 'ونک', area: 120, rooms: 3, barterItems: ['سایر'] })
   })
 
   it('never carries the phone-only fields (ids, owner id, status, dates)', () => {

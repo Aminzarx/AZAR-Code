@@ -178,6 +178,17 @@ test('an adviser joins with code + word once, sees only what was sent, only the 
   assert.equal((await post('/office/adviser/files', app)).body.office, null)
 })
 
+test('Amin #6597: an app whose own office is approved joins no office (it is that dashboard already)', async () => {
+  const mine = await office('دفتر من')
+  const { h } = await office('دفتر دیگر')
+  const code = (await post('/office/codes', {}, h)).body
+  const r = await post('/office/adviser/join', { sessionToken: mine.owner.sessionToken, code: code.code, word: code.word })
+  assert.equal(r.status, 422)
+  assert.equal(r.body.error.code, 'office_owner')
+  assert.match(r.body.error.message, /خودش داشبورد دفتر شماست/)
+  assert.equal(db.prepare('SELECT used_at FROM office_codes WHERE code = ?').get(code.code).used_at, null) // the code stays usable
+})
+
 test('a revoked or expired code does not join', async () => {
   const { h } = await office()
   const adviser = await account()
