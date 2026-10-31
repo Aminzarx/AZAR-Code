@@ -541,18 +541,24 @@ function moveOfficeFiles(dry = false) {
 
 /**
  * One token pool (#6330): what each office's own ledger (account «office:<id>») still holds moves once into its
- * manager's app account («office_merge»), and the office account reads 0 for good. dry = only list.
+ * manager's app account («office_merge»), and the office account reads 0 for good. The old #6289 start gift does NOT
+ * move (Amin #6553: «۲۵۰۰ تا خیام صنعت شریف رو بردار», under #6533's no-start-tokens rule): only what is left over it
+ * (purchases, grants…) folds in. FOLD_START_GIFT = true would move it too. dry = only list.
  */
+const FOLD_START_GIFT = false
 function mergeOfficeTokens(dry = false) {
   const report = []
   for (const office of db.prepare('SELECT * FROM offices').all()) {
     if (db.prepare('SELECT 1 FROM token_ledger WHERE idem_key = ?').get(`office-merge:${office.id}`)) continue
     const legacy = legacyAccount(office.id)
-    const balance = roundT(db.prepare('SELECT COALESCE(SUM(amount), 0) AS b FROM token_ledger WHERE account_id = ?').get(legacy).b)
-    report.push({ officeId: office.id, office: office.name, balance })
+    const sum = (where) => roundT(db.prepare(`SELECT COALESCE(SUM(amount), 0) AS b FROM token_ledger WHERE account_id = ? ${where}`).get(legacy).b)
+    const balance = sum('')
+    const gift = FOLD_START_GIFT ? 0 : sum("AND reason = 'office_default'")
+    const moves = roundT(Math.max(0, balance - gift))
+    report.push({ officeId: office.id, office: office.name, balance, giftRemoved: roundT(balance - moves), moves })
     if (dry) continue
     db.transaction(() => {
-      tokens.post(office.owner_user_id, 'office_merge', balance, `office-merge:${office.id}`, office.id)
+      tokens.post(office.owner_user_id, 'office_merge', moves, `office-merge:${office.id}`, office.id)
       tokens.post(legacy, 'office_merge', -balance, `office-merge-out:${office.id}`, office.id)
     })()
   }
