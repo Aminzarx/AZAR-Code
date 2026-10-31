@@ -9,7 +9,7 @@ import { applyTheme } from './lib/theme';
 import { ago, digits } from './lib/fmt';
 import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, PageHeader, SearchBox, Segmented, Skeleton, ToastProvider, useAction, useConfirm, useToast } from './ui/kit';
 import { Icon } from './ui/icons';
-import { api, ApiError, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules, type Quote, type SignedIn, type Tokens } from './api';
+import { api, ApiError, IN_PANEL, session, type Adviser, type Contact, type NewFile, type OfficeFile, type Overview, type Rules, type Quote, type SignedIn, type Tokens } from './api';
 
 /**
  * EYVAN office dashboard (Amin #5659/#5664/#5909/#5913/#5934): the real-estate office manager's own dashboard —
@@ -638,6 +638,86 @@ function PickFilesModal({ o, onClose, onNext }: { o: Overview; onClose: () => vo
   );
 }
 
+/**
+ * Amin #6335 «دفترچه تلفن»: the manager's app contacts (one set of data, #6330) — search, add (it shows in the app too),
+ * call, and «خروجی CSV» for Excel.
+ */
+function PhoneBook({ addKey }: { addKey: number }) {
+  const [list, setList] = useState<{ contacts: Contact[]; roles: Record<string, string> } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [adding, setAdding] = useState(false);
+  const toast = useToast();
+  const load = useCallback(() => api.contacts().then((x) => { setList(x); setErr(null); }, (e: Error) => setErr(e.message)), []);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (addKey) setAdding(true); }, [addKey]);
+  const csv = async () => {
+    try {
+      const blob = await api.contactsCsv();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'دفترچه-تلفن.csv';
+      a.click();
+      window.setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    } catch (e) { toast((e as Error).message, 'bad'); }
+  };
+  const rows = (list?.contacts ?? []).filter((c) => !q || [c.name, c.phone, c.notes].some((x) => x.includes(q) || toLatinDigits(x).includes(toLatinDigits(q))));
+  return (
+    <Card id="contacts" title="دفترچه تلفن" sub={list ? `${fa(list.contacts.length)} مخاطب · همان مخاطبان برنامهٔ ایوان شما` : 'مخاطبان برنامهٔ ایوان شما'} flush
+      end={<span className="row tight"><Btn size="sm" icon="download" onClick={() => void csv()} disabled={!list?.contacts.length}>خروجی CSV</Btn><Btn size="sm" variant="primary" icon="plus" onClick={() => setAdding(true)}>مخاطب تازه</Btn></span>}>
+      {err && !list ? <div className="pad"><ErrorBox what="دفترچه تلفن" error={err} retry={() => void load()} /></div> : !list ? <div className="pad"><Skeleton rows={3} /></div> : !list.contacts.length ? (
+        <Empty title="دفترچه هنوز خالی است" action={<Btn variant="primary" icon="plus" onClick={() => setAdding(true)}>مخاطب تازه</Btn>}>مخاطبانی که در برنامهٔ ایوان دارید این‌جا هم دیده می‌شوند؛ مخاطبی که این‌جا اضافه کنید در برنامه هم هست.</Empty>
+      ) : (
+        <>
+          <div className="toolbar"><SearchBox value={q} onChange={setQ} placeholder="جست‌وجو در نام، شماره، یادداشت" /></div>
+          {!rows.length ? <Empty kind="filtered" title="مخاطبی با این جست‌وجو پیدا نشد">متن جست‌وجو را تغییر دهید.</Empty> : (
+            <ul className="plain contact-list">
+              {rows.map((c) => (
+                <li key={c.id} className="contact-row">
+                  <span className="contact-avatar" aria-hidden="true">{c.name.trim().charAt(0) || '؟'}</span>
+                  <span className="grow">
+                    <b>{c.name}</b>
+                    <span className="faint xs block">{[c.roles.map((r) => list.roles[r] ?? r).join('، '), c.notes].filter(Boolean).join(' · ') || ' '}</span>
+                  </span>
+                  <a className="num contact-phone" dir="ltr" href={`tel:${c.phone}`} title="تماس">{digits(c.phone)}</a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+      {adding && <ContactModal roles={list?.roles ?? {}} onClose={() => setAdding(false)} onMade={(name) => { setAdding(false); toast(`«${name}» به دفترچه اضافه شد`); void load(); }} />}
+    </Card>
+  );
+}
+const toLatinDigits = (s: string) => s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+
+function ContactModal({ roles, onClose, onMade }: { roles: Record<string, string>; onClose: () => void; onMade: (name: string) => void }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [role, setRole] = useState('');
+  const [notes, setNotes] = useState('');
+  const { busy, run, error } = useAction();
+  const submit = () => run(async () => { await api.addContact({ name: name.trim(), phone: toLatinDigits(phone), role: role || undefined, notes: notes.trim() || undefined }); onMade(name.trim()); });
+  return (
+    <Modal title="مخاطب تازه" sub="در برنامهٔ ایوان شما هم اضافه می‌شود" onClose={onClose} size="sm" locked={busy}
+      footer={<Btn variant="primary" busy={busy} disabled={!name.trim() || !phone.trim()} onClick={() => void submit()}>افزودن</Btn>}>
+      <form className="stack sm" onSubmit={(e) => { e.preventDefault(); if (name.trim() && phone.trim()) void submit(); }}>
+        {error && <Alert tone="bad">{error}</Alert>}
+        <Field label="نام" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoFocus /></Field>
+        <Field label="شماره" required hint="همراه مثل ۰۹۱۲۱۲۳۴۵۶۷ یا ثابت با پیش‌شماره"><input className="kss-input num" dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={16} /></Field>
+        <Field label="نقش">
+          <select className="kss-input" value={role} onChange={(e) => setRole(e.target.value)}>
+            <option value="">بدون نقش</option>
+            {Object.entries(roles).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </Field>
+        <Field label="یادداشت"><textarea className="kss-input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} /></Field>
+      </form>
+    </Modal>
+  );
+}
+
 // ------------------------------------------------------------------ page ----
 /**
  * Amin #6269: the office's own tokens: the balance, buying (kss-pricing's price and smallest purchase; billing's
@@ -670,7 +750,7 @@ function TokensCard({ reloadKey }: { reloadKey: string }) {
       {err && !t ? <Alert tone="bad">{err}</Alert> : !t ? <Skeleton rows={3} /> : (
         <div className="stack">
           <div className="grid g4 card-grid">
-            <Kpi icon="chart" k="موجودی توکن دفتر" v={fa(Math.floor(t.balance))} tone={t.balance <= 0 ? 'warn' : undefined} d="جدا از توکن‌های اپ شما و مشاوران" />
+            <Kpi icon="chart" k="موجودی مشترک" v={fa(Math.floor(t.balance))} tone={t.balance <= 0 ? 'warn' : undefined} d="همان موجودی برنامهٔ ایوان شما؛ مشاوران از آن خرج نمی‌کنند" />
           </div>
           {t.buy.open ? (
             <div className="stack sm">
@@ -726,6 +806,7 @@ function Dashboard() {
   const [err, setErr] = useState<string | null>(null);
   const [layer, setLayer] = useState<null | { t: 'new' } | { t: 'code' } | { t: 'send'; ids: string[] } | { t: 'shares'; id: string } | { t: 'file'; id: string } | { t: 'pick' }>(null);
   const [nav, setNav] = useState(false);
+  const [addContact, setAddContact] = useState(0); // Amin #6342: «مخاطبین» in the bottom bar opens the phone book
   const toast = useToast();
   const load = useCallback(() => api.overview().then((x) => { setO(x); setErr(null); }, (e: Error) => setErr(e.message)), []);
   useEffect(() => { void load(); const t = window.setInterval(() => void load(), 60000); return () => window.clearInterval(t); }, [load]);
@@ -752,6 +833,7 @@ function Dashboard() {
         <nav>
           <a href="#advisers" className="item"><Icon name="user" size={20} /><span>مشاوران و اتصال</span></a>
           <a href="#sharing" className="item"><Icon name="shield" size={20} /><span>قواعد ارسال</span></a>
+          <a href="#contacts" className="item"><Icon name="calls" size={20} /><span>دفترچه تلفن</span></a>
         </nav>
         <div className="side-group">حساب</div>
         <nav>
@@ -793,6 +875,7 @@ function Dashboard() {
               <Card id="files" title="فایل‌های دفتر" sub={`${fa(o.files.length)} فایل · انتخاب تکی یا چندتایی برای ارسال`} end={<Btn size="sm" icon="plus" onClick={() => setLayer({ t: 'new' })}>فایل تازه</Btn>} flush>
                 <FilesTable o={o} onNew={() => setLayer({ t: 'new' })} onSend={(ids) => setLayer({ t: 'send', ids })} onShares={(id) => setLayer({ t: 'shares', id })} onOpen={(id) => setLayer({ t: 'file', id })} />
               </Card>
+              <PhoneBook addKey={addContact} />
               <TokensCard reloadKey={o.asOf} />
               <Card id="settings" title="تنظیمات دفتر"><Settings o={o} /></Card>
             </div>
@@ -809,8 +892,8 @@ function Dashboard() {
       {layer?.t === 'pick' && o && <PickFilesModal o={o} onClose={() => setLayer(null)} onNext={(ids) => setLayer({ t: 'send', ids })} />}
       {/* Amin #6342: the phone's bottom bar, quick ways in (Material icons) */}
       <nav className="bottom-bar" aria-label="میانبرها">
-        <a href="#top"><Icon name="overview" size={22} /><span>نمای کلی</span></a>
         <a href="#files"><Icon name="file" size={22} /><span>فایل‌ها</span></a>
+        <a href="#contacts"><Icon name="calls" size={22} /><span>مخاطبین</span></a>
         <button type="button" className="bb-main" onClick={() => setLayer({ t: 'new' })} aria-label="فایل تازه"><Icon name="plus" size={26} /></button>
         <button type="button" onClick={() => setLayer({ t: 'pick' })} disabled={!o}><Icon name="upload" size={22} /><span>اشتراک فایل‌ها</span></button>
         <button type="button" onClick={() => setLayer({ t: 'code' })}><Icon name="users" size={22} /><span>افزودن مشاور</span></button>

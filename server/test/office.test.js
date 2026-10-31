@@ -525,7 +525,7 @@ test('Amin #6343: the office takes its request back — files go home to the app
   assert.equal(home.transaction_type, 'sale')
   assert.equal(home.area, 120)
   const ownerContact = rows.find((r) => r.t === 'contacts' && r.k === home.owner_contact_id).row
-  assert.deepEqual([ownerContact.full_name, ownerContact.phone_number], ['آقای رضایی', '09121112233'])
+  assert.deepEqual([ownerContact.full_name, ownerContact.phone_number], ['آقای رضایی', '+989121112233'])
   assert.ok(rows.some((r) => r.t === 'contact_roles' && r.row?.contact_id === home.owner_contact_id && r.row.role === 'owner'))
   // a new request can follow
   assert.equal((await post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'ونک', ...login() })).status, 201)
@@ -740,4 +740,32 @@ test('Amin #6330: the one-time move — office files not in the manager\'s copy 
   assert.equal(mine(o.moveOfficeFiles()), undefined)
   assert.equal(mine(o.mergeOfficeTokens()), undefined)
   assert.equal(db.prepare('SELECT COALESCE(SUM(amount), 0) b FROM token_ledger WHERE account_id = ?').get(o.legacyAccount(officeId)).b, 0)
+})
+
+test("Amin #6335: the phone book is the manager's app contacts — list with roles, add (into the app too), no duplicates, CSV for Excel", async () => {
+  const { owner, h } = await office('دفتر دفترچه', 5000)
+  assert.deepEqual((await call('GET', '/office/contacts', undefined, h)).body.contacts, [])
+  assert.equal((await post('/office/contacts', { name: '', phone: '09120000000' }, h)).status, 422)
+  assert.equal((await post('/office/contacts', { name: 'علی', phone: '123' }, h)).status, 422)
+  const made = await post('/office/contacts', { name: 'علی رضایی', phone: '۰۹۱۲ ۱۱۱ ۲۲۳۳', role: 'buyer', notes: 'دنبال آپارتمان، "ونک"' }, h)
+  assert.equal(made.status, 201, JSON.stringify(made.body))
+  assert.equal(made.body.contact.phone, '09121112233')
+  assert.equal((await post('/office/contacts', { name: 'دوباره', phone: '+989121112233' }, h)).status, 409)
+  await post('/office/contacts', { name: 'دفتر ونک', phone: '02188776655' }, h)
+  const list = (await call('GET', '/office/contacts', undefined, h)).body
+  assert.deepEqual(list.contacts.map((c) => [c.name, c.phone, c.roles]), [['دفتر ونک', '02188776655', []], ['علی رضایی', '09121112233', ['buyer']]])
+  assert.equal(list.roles.buyer, 'خریدار')
+  // the app has it: a contact row and its role row in the manager's copy
+  const rows = (await post('/sync/pull', { sessionToken: owner.sessionToken })).body.rows
+  assert.ok(rows.some((r) => r.t === 'contacts' && r.row?.full_name === 'علی رضایی' && r.row.phone_number === '+989121112233'))
+  assert.ok(rows.some((r) => r.t === 'contact_roles' && r.row?.role === 'buyer'))
+  // CSV: BOM, header, quoted notes
+  const res = await fetch(`${base}/office/contacts.csv`, { headers: h })
+  assert.equal(res.status, 200)
+  assert.match(res.headers.get('content-type'), /text\/csv/)
+  const bytes = Buffer.from(await res.arrayBuffer())
+  assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf], 'a BOM, so Excel reads Persian')
+  const body = bytes.toString('utf8')
+  assert.match(body, /نام,شماره,نقش,یادداشت,تاریخ ثبت/)
+  assert.match(body, /علی رضایی,09121112233,خریدار,"دنبال آپارتمان، ""ونک"""/)
 })

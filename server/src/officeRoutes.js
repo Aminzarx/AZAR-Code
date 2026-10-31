@@ -431,7 +431,7 @@ function fileOfRow(row, contacts) {
     title: String(row.title || 'فایل'), kind: KIND_OF[row.transaction_type] || 'فروش', propertyType: row.property_type || '',
     city: row.city || 'تهران', region: row.region || '', address: row.address || '', size: row.area ?? null, rooms: row.rooms ?? null,
     price: row.price ?? null, deposit: row.deposit_amount ?? null, rent: row.rent_amount ?? null, description: row.description || '',
-    ownerName: owner?.full_name || '', ownerPhone: owner?.phone_number || ''
+    ownerName: owner?.full_name || '', ownerPhone: shownPhone(owner?.phone_number)
   }
 }
 
@@ -490,7 +490,7 @@ function mirrorOut(office, id, file, createdAt, { archived = false, at = now() }
   if (archived) row.status = 'archived'
   if (file.ownerName || file.ownerPhone) {
     const cid = `owner-${key}`
-    sync.putRow(ownerId, 'contacts', cid, { id: cid, user_id: ownerId, full_name: file.ownerName || 'مالک', phone_number: file.ownerPhone || '', email: null, notes: null, is_archived: 0, created_at: createdAt, updated_at: at }, at)
+    sync.putRow(ownerId, 'contacts', cid, { id: cid, user_id: ownerId, full_name: file.ownerName || 'مالک', phone_number: phoneOf(file.ownerPhone) || file.ownerPhone || '', email: null, notes: null, is_archived: 0, created_at: createdAt, updated_at: at }, at)
     sync.putRow(ownerId, 'contact_roles', `${cid}-owner`, { id: `${cid}-owner`, contact_id: cid, role: 'owner', created_at: createdAt }, at)
     row.owner_contact_id = cid
   }
@@ -998,6 +998,67 @@ manager.post('/tokens/status', async (req, res, next) => {
   } catch (e) {
     next(e)
   }
+})
+
+// ---------------------------------------------------------------- the phone book (Amin #6335) ----
+// «دفترچه تلفن» = the manager's own app contacts (one set of data, #6330): the dashboard lists them with their roles,
+// adds one (written into the copy, so the app has it too) and gives them all as a CSV (UTF-8 with BOM, opens in Excel).
+const ROLE_FA = { owner: 'مالک', buyer: 'خریدار', tenant: 'مستأجر', seller: 'فروشنده', landlord: 'موجر', agent: 'مشاور', collaborator: 'همکار', referrer: 'معرف' }
+/** a mobile (09… / +989…) → +989…, a landline (0…, 11 digits) as is, anything else → null; Persian digits accepted */
+function phoneOf(raw) {
+  const d = String(raw ?? '').replace(/[۰-۹]/g, (c) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[٠-٩]/g, (c) => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/[\s\-()]/g, '')
+  if (/^\+989\d{9}$/.test(d)) return d
+  if (/^09\d{9}$/.test(d)) return '+98' + d.slice(1)
+  if (/^0\d{10}$/.test(d)) return d
+  return null
+}
+const shownPhone = (p) => (String(p || '').startsWith('+98') ? '0' + String(p).slice(3) : String(p || ''))
+
+function contactsOf(office) {
+  const rows = require('./syncRoutes').rowsOf(office.owner_user_id)
+  const roles = new Map()
+  for (const r of rows) if (r.table === 'contact_roles' && r.row) roles.set(r.row.contact_id, [...(roles.get(r.row.contact_id) || []), r.row.role])
+  return rows
+    .filter((r) => r.table === 'contacts' && r.row && !r.row.is_archived)
+    .map((r) => ({ id: r.key, name: r.row.full_name || '', phone: shownPhone(r.row.phone_number), notes: r.row.notes || '', roles: roles.get(r.key) || [], createdAt: r.row.created_at || null }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'fa'))
+}
+
+// GET /office/contacts → { contacts: [{ id, name, phone, notes, roles, createdAt }], roles: { key: fa } }
+manager.get('/contacts', (req, res) => {
+  res.json({ contacts: contactsOf(req.office), roles: ROLE_FA })
+})
+
+// POST /office/contacts { name, phone, role?, notes? } → 201 { contact }
+manager.post('/contacts', (req, res) => {
+  const name = text(req.body?.name, 80)
+  const phone = phoneOf(req.body?.phone)
+  const role = req.body?.role && ROLE_FA[req.body.role] ? req.body.role : null
+  const notes = text(req.body?.notes, 500)
+  if (!name) return fail(res, 422, 'invalid_contact', 'نام را بنویسید.')
+  if (!phone) return fail(res, 422, 'invalid_contact', 'شماره را درست بنویسید؛ همراه مثل ۰۹۱۲۱۲۳۴۵۶۷ یا ثابت با پیش‌شماره.')
+  const ownerId = req.office.owner_user_id
+  if (contactsOf(req.office).some((c) => phoneOf(c.phone) === phone)) return fail(res, 409, 'contact_exists', 'این شماره در دفترچه هست.')
+  const sync = require('./syncRoutes')
+  const id = generateId()
+  const at = now()
+  db.transaction(() => {
+    sync.putRow(ownerId, 'contacts', id, { id, user_id: ownerId, full_name: name, phone_number: phone, email: null, notes: notes || null, is_archived: 0, created_at: at, updated_at: at }, at)
+    if (role) sync.putRow(ownerId, 'contact_roles', `${id}-${role}`, { id: `${id}-${role}`, contact_id: id, role, created_at: at }, at)
+  })()
+  res.status(201).json({ contact: { id, name, phone: shownPhone(phone), notes, roles: role ? [role] : [], createdAt: at } })
+})
+
+// GET /office/contacts.csv → the phone book as a CSV file
+manager.get('/contacts.csv', (req, res) => {
+  const cell = (v) => {
+    const s = String(v ?? '')
+    return /[",\n\r]/.test(s) || /^[=+\-@]/.test(s) ? `"${(/^[=+\-@]/.test(s) ? "'" : '') + s.replace(/"/g, '""')}"` : s
+  }
+  const lines = [['نام', 'شماره', 'نقش', 'یادداشت', 'تاریخ ثبت'].join(',')]
+  for (const c of contactsOf(req.office)) lines.push([c.name, c.phone, c.roles.map((r) => ROLE_FA[r] || r).join('، '), c.notes, c.createdAt ? c.createdAt.slice(0, 10) : ''].map(cell).join(','))
+  res.set({ 'content-type': 'text/csv; charset=utf-8', 'content-disposition': "attachment; filename=\"phone-book.csv\"; filename*=UTF-8''%D8%AF%D9%81%D8%AA%D8%B1%DA%86%D9%87-%D8%AA%D9%84%D9%81%D9%86.csv", 'cache-control': 'no-store' })
+  res.send('﻿' + lines.join('\r\n') + '\r\n')
 })
 
 manager.put('/rules', (req, res) => {

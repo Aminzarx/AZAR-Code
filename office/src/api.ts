@@ -49,6 +49,9 @@ export const session = {
 try { localStorage.removeItem(TOKEN); } catch { /* the old, lasting sign-in is gone */ }
 export type SignedIn = { token: string; office: { name: string }; expiresAt?: string };
 
+/** Amin #6335: the phone book = the manager's app contacts */
+export type Contact = { id: string; name: string; phone: string; notes: string; roles: string[]; createdAt: string | null };
+
 export class ApiError extends Error {
   constructor(public code: string, message: string, public status: number) { super(message); }
 }
@@ -110,6 +113,15 @@ export const api = {
   overview: () => call<Overview>('GET', '/office/overview'),
   createFile: (f: NewFile) => call<{ id: string }>('POST', '/office/files', f),
   renew: (id: string) => call<void>('POST', `/office/files/${id}/renew`, {}),
+  contacts: () => call<{ contacts: Contact[]; roles: Record<string, string> }>('GET', '/office/contacts'),
+  addContact: (c: { name: string; phone: string; role?: string; notes?: string }) => call<{ contact: Contact }>('POST', '/office/contacts', c),
+  /** the CSV comes with the session header, so it is fetched and handed to the browser as a file */
+  contactsCsv: async () => {
+    const token = session.get();
+    const res = await fetch(BASE + '/office/contacts.csv', { headers: token ? { 'x-office-token': token } : {} });
+    if (!res.ok) throw new ApiError('csv_failed', 'فایل ساخته نشد؛ دوباره امتحان کنید.', res.status);
+    return res.blob();
+  },
   archive: (id: string) => call<void>('POST', `/office/files/${id}/archive`, {}),
   share: (fileIds: string[], to: 'all' | string[], fields: Rules, until: string | null) => call<{ sent: number }>('POST', '/office/share', { fileIds, to, fields, until }),
   /** Amin #6344: end a share now (one adviser, or everyone who has the file) */

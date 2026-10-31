@@ -76,3 +76,12 @@
   .bottom-bar button:disabled { opacity: .5; }
   .main { padding-block-end: calc(76px + env(safe-area-inset-bottom)); }
 }
+
+/* Amin #6335: the phone book */
+.contact-list { display: flex; flex-direction: column; }
+.contact-row { display: flex; gap: var(--s3); align-items: center; padding: var(--s3) var(--s5); border-block-start: 1px solid var(--line); }
+.contact-row .grow { min-inline-size: 0; }
+.contact-avatar { inline-size: 36px; block-size: 36px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: var(--bg-2, #f1f5f9); color: var(--accent, var(--kss-color-primary, #2563eb)); font-weight: 700; }
+.contact-phone { white-space: nowrap; text-decoration: none; font-variant-numeric: tabular-nums; }
+@media (max-width: 768px) { .contact-row { padding-inline: var(--s4); } }
