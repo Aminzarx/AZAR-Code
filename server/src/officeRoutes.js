@@ -1085,6 +1085,9 @@ manager.get('/contacts.csv', (req, res) => {
   res.send('﻿' + lines.join('\r\n') + '\r\n')
 })
 
+// Amin #6333/#6337: applicants, matching, contracts, reminders and the Divar import on the manager's own app data (officeWork.js)
+require('./officeWork').mount(manager, { db, rowsOf: (u) => require('./syncRoutes').rowsOf(u), putRow: (...a) => require('./syncRoutes').putRow(...a), tokens, fail, text, generateId, now, tokensShort, officeBalance, keyOfFile, fileOfKey, shownPhone })
+
 manager.put('/rules', (req, res) => {
   const rules = Object.fromEntries(FIELDS.slice(1).map((k) => [k, req.body?.[k] === true]))
   db.prepare('UPDATE offices SET rules = ? WHERE id = ?').run(JSON.stringify(rules), req.office.id)

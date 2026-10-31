@@ -52,7 +52,41 @@ export type SignedIn = { token: string; office: { name: string }; expiresAt?: st
 /** Amin #6335: the phone book = the manager's app contacts */
 export type Contact = { id: string; name: string; phone: string; notes: string; roles: string[]; createdAt: string | null };
 
+/** Amin #6333: the app's own work in the dashboard (the manager's app data, one set with the phone) */
+export type Applicant = {
+  id: string; name: string; phone: string; kinds: string[]; propertyType: string; city: string; region: string;
+  barterItems: string[]; barterOther: string; minBudget: number | null; maxBudget: number | null; minArea: number | null; maxArea: number | null;
+  rooms: number | null; deposit: number | null; rent: number | null; convertible: boolean; description: string;
+  status: 'active' | 'archived'; createdAt: string | null; updatedAt: string | null; matches?: number;
+};
+export type NewApplicant = {
+  name: string; phone: string; kinds: string[]; propertyType?: string; city: string; region?: string; barterItems?: string[]; barterOther?: string;
+  minBudget?: string; maxBudget?: string; minArea?: string; maxArea?: string; rooms?: string; deposit?: string; rent?: string; convertible?: boolean; description?: string;
+};
+export type MatchFile = {
+  id: string; title: string; kinds: string[]; kind: string; propertyType: string; city: string; region: string; price: number | null;
+  deposit: number | null; rent: number | null; size: number | null; rooms: number | null; archived: boolean; closed: boolean;
+};
+export type Contract = {
+  id: string; type: string; status: 'active' | 'completed' | 'cancelled'; statusLabel: string; amount: number | null; startDate: string | null; endDate: string | null;
+  trackingCode: string; notes: string; fileId: string | null; fileTitle: string; applicantId: string | null; applicantName: string; archived: boolean; createdAt: string | null;
+};
+export type NewContract = { fileId: string; applicantId: string; type: string; amount?: string; startDate: string; endDate: string; trackingCode?: string; notes?: string };
+export type Reminder = {
+  id: string; title: string; description: string; remindAt: string; type: 'general' | 'call' | 'visit'; typeLabel: string; done: boolean;
+  bucket: 'overdue' | 'today' | 'upcoming' | 'done'; fileId: string | null; fileTitle: string | null; applicantId: string | null; applicantName: string | null;
+};
+export type NewReminder = { title: string; description?: string; date: string; time: string; type: string; fileId?: string; applicantId?: string };
+export type Desk = { applicants: number; contracts: number; reminders: { overdue: number; today: number }; divar: { on: boolean } };
+export type Divar = { on: boolean; at: string | null; consent: string; cost: number | null };
+export type MatchList = {
+  applicants: { id: string; name: string; kinds: string[]; city: string; region: string; count: number; best: number }[];
+  files: (MatchFile & { count: number; best: number })[];
+};
+
 export class ApiError extends Error {
+  /** a form's field-by-field messages (field → message), when the server sends them */
+  fields?: Record<string, string>;
   constructor(public code: string, message: string, public status: number) { super(message); }
 }
 
@@ -78,6 +112,7 @@ async function call<T>(method: string, path: string, body?: unknown, extra: Reco
     if (res.status === 401 && path.startsWith('/office/') && !['/office/login', '/office/sso', '/office/sso/open', '/office/password', '/office/link/start', '/office/link/poll', '/office/link/phone'].includes(path)) { session.clear(); location.reload(); }
     const err = new ApiError(data?.error?.code ?? 'error', persian(data?.error?.code, data?.error?.message), res.status);
     if (data?.ticket) (err as ApiError & { ticket?: string }).ticket = data.ticket;
+    if (data?.fields) err.fields = data.fields;
     throw err;
   }
   return data as T;
@@ -133,4 +168,22 @@ export const api = {
   tokens: () => call<Tokens>('GET', '/office/tokens'),
   tokenQuote: (tokens: number) => call<{ quote: Quote }>('POST', '/office/tokens/quote', { tokens }),
   tokenBuy: (tokens: number, idem: string) => call<{ order: TokenOrder; payUrl: string | null }>('POST', '/office/tokens/buy', { tokens }, { 'idempotency-key': idem }),
+  // Amin #6333/#6337: the app's work on the manager's own app data
+  desk: () => call<Desk>('GET', '/office/desk'),
+  applicants: () => call<{ applicants: Applicant[]; kinds: string[]; propertyTypes: string[]; barterItems: string[] }>('GET', '/office/applicants'),
+  applicant: (id: string) => call<{ applicant: Applicant; matches: { file: MatchFile; score: number; criteria: string[] }[]; contracts: Contract[]; reminders: Reminder[] }>('GET', `/office/applicants/${encodeURIComponent(id)}`),
+  addApplicant: (a: NewApplicant) => call<{ applicant: Applicant; tokens: number; balance: number }>('POST', '/office/applicants', a),
+  applicantStatus: (id: string, status: 'active' | 'archived') => call<{ applicant: Applicant }>('POST', `/office/applicants/${encodeURIComponent(id)}/status`, { status }),
+  matches: () => call<MatchList>('GET', '/office/matches'),
+  matchesForApplicant: (id: string) => call<{ applicant: Applicant; files: { file: MatchFile; score: number; criteria: string[] }[] }>('GET', `/office/matches/applicant/${encodeURIComponent(id)}`),
+  matchesForFile: (id: string) => call<{ file: MatchFile; applicants: { applicant: Applicant; score: number; criteria: string[] }[] }>('GET', `/office/matches/file/${encodeURIComponent(id)}`),
+  contracts: () => call<{ contracts: Contract[]; kinds: string[]; statuses: Record<string, string> }>('GET', '/office/contracts'),
+  addContract: (c: NewContract) => call<{ contract: Contract; tokens: number; balance: number }>('POST', '/office/contracts', c),
+  contractStatus: (id: string, status: Contract['status']) => call<{ contract: Contract }>('POST', `/office/contracts/${encodeURIComponent(id)}/status`, { status }),
+  reminders: () => call<{ reminders: Reminder[]; types: Record<string, string> }>('GET', '/office/reminders'),
+  addReminder: (r: NewReminder) => call<{ reminder: Reminder }>('POST', '/office/reminders', r),
+  reminderDone: (id: string, done: boolean) => call<{ reminder: Reminder }>('POST', `/office/reminders/${encodeURIComponent(id)}/done`, { done }),
+  divar: () => call<Divar>('GET', '/office/divar'),
+  divarConsent: (on: boolean, agree?: boolean) => call<{ on: boolean; at: string }>('POST', '/office/divar/consent', { on, agree }),
+  divarImport: (link: string) => call<{ file: NewFile; photos: number; charged: number; balance: number }>('POST', '/office/divar/import', { link }),
 };
