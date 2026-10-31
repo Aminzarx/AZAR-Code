@@ -5,6 +5,7 @@ import { Card, MarqueeText } from '@shared/components'
 import { toPersianDigits } from '@shared/utils/persianText'
 import { moneyLine, relativeDay } from '@shared/utils/shortMoney'
 import type { Property } from '../types'
+import { SHARED_FILE_LABEL, isSharedFileId } from '@features/share/shareFile'
 
 type Props = {
   property: Property
@@ -71,20 +72,26 @@ export function PropertyListItem({ property, onPress, matchCount, onLongPress }:
         ) : null}
 
         <View style={styles.footer}>
-          {property.status === 'archived' ? (
-            <View style={[styles.pill, styles.pillNeutral]}>
-              <Text style={[theme.typography('labelSm'), styles.pillNeutralText]}>بایگانی</Text>
-            </View>
-          ) : matchCount ? (
-            <View style={[styles.pill, styles.pillPositive]}>
-              <View style={styles.dot} />
-              <Text style={[theme.typography('labelSm'), styles.pillPositiveText]}>
-                {`${toPersianDigits(String(matchCount))} متقاضی مناسب`}
-              </Text>
-            </View>
-          ) : (
-            <View />
-          )}
+          <View style={styles.pills}>
+            {property.status === 'archived' ? (
+              <View style={[styles.pill, styles.pillNeutral]}>
+                <Text style={[theme.typography('labelSm'), styles.pillNeutralText]}>بایگانی</Text>
+              </View>
+            ) : matchCount ? (
+              <View style={[styles.pill, styles.pillPositive]}>
+                <View style={styles.dot} />
+                <Text style={[theme.typography('labelSm'), styles.pillPositiveText]}>
+                  {`${toPersianDigits(String(matchCount))} متقاضی مناسب`}
+                </Text>
+              </View>
+            ) : null}
+            {/* Amin #6339: received from a colleague's EYVAN */}
+            {isSharedFileId(property.id) ? (
+              <View style={[styles.pill, styles.pillShared]}>
+                <Text style={[theme.typography('labelSm'), styles.pillSharedText]}>{SHARED_FILE_LABEL}</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={[theme.typography('labelSm'), styles.age]}>
             {relativeDay(property.createdAt)}
           </Text>
@@ -145,6 +152,9 @@ export function createListCardStyles(theme: Theme) {
     pillPositiveText: { color: theme.colors.onSuccessContainer },
     pillNeutral: { backgroundColor: theme.colors.surfaceContainer },
     pillNeutralText: { color: theme.colors.onSurfaceVariant },
+    pills: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.space1, flexShrink: 1 },
+    pillShared: { backgroundColor: theme.colors.secondaryContainer },
+    pillSharedText: { color: theme.colors.onSecondaryContainer },
     dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.success },
     age: { color: theme.colors.onSurfaceVariant }
   })

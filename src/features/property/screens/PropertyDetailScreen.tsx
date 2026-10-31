@@ -35,6 +35,7 @@ import { PropertyValidationError } from '../services/PropertyValidationError'
 import { derivePropertyStatus } from '../statusDerivation'
 import { deriveRentStatusLabel } from '@shared/utils/rentStatus'
 import type { Property, PropertyFormErrors, PropertyFormValues } from '../types'
+import { SHARED_FILE_LABEL, isSharedFileId } from '@features/share/shareFile'
 
 type Props = NativeStackScreenProps<MainStackParamList, 'PropertyDetail'>
 
@@ -194,6 +195,15 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
   const headlinePrice = property
     ? moneyLine(property.price, property.depositAmount, property.rentAmount)
     : null
+  // Amin #6339/#6341: «اشتراک‌گذاری» → «تنظیمات اشتراک فایل» (a one-time link; reading only, so also after the licence ends)
+  const shareButton = property ? (
+    <Button
+      label="اشتراک‌گذاری"
+      variant="secondary"
+      onPress={() => navigation.navigate('ShareFile', { propertyId: property.id })}
+      style={styles.shareButton}
+    />
+  ) : null
 
   return (
     <FormScreenContainer
@@ -250,6 +260,10 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
               ) : null}
               {derivedStatus ? (
                 <StatusBadge label={derivedStatus.label} tone={derivedStatus.tone} />
+              ) : null}
+              {/* Amin #6339: a file received from a colleague's EYVAN */}
+              {isSharedFileId(property.id) ? (
+                <StatusBadge label={SHARED_FILE_LABEL} tone="highlight" />
               ) : null}
             </View>
             <MarqueeText style={[theme.typography('headlineLgMobile'), styles.title]}>
@@ -376,6 +390,7 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
                     style={styles.actionButton}
                   />
                 </View>
+                {shareButton}
                 <Button
                   label="حذف فایل"
                   onPress={() => setIsDeleteConfirmVisible(true)}
@@ -383,7 +398,9 @@ export function PropertyDetailScreen({ navigation, route }: Props): React.JSX.El
                   loading={isDeleting}
                 />
               </>
-            ) : null}
+            ) : (
+              <View style={styles.shareAlone}>{shareButton}</View>
+            )}
             {submitError ? (
               <Text style={[theme.typography('bodySm'), styles.submitError]}>{submitError}</Text>
             ) : null}
@@ -535,6 +552,12 @@ function createStyles(theme: Theme) {
     },
     actionButton: {
       flex: 1
+    },
+    shareButton: {
+      marginBottom: theme.spacing.space1
+    },
+    shareAlone: {
+      marginTop: theme.spacing.space5
     }
   })
 }

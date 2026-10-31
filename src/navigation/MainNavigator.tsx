@@ -27,6 +27,8 @@ import { ConnectionsScreen } from '@features/settings/screens/ConnectionsScreen'
 import { OfficePanelScreen } from '@features/settings/screens/OfficePanelScreen'
 import { OfficeJoinScreen } from '@features/settings/screens/OfficeJoinScreen'
 import { OfficeHubScreen } from '@features/settings/screens/OfficeHubScreen'
+import { ShareFileScreen } from '@features/share/screens/ShareFileScreen'
+import { ReceiveFileScreen } from '@features/share/screens/ReceiveFileScreen'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
@@ -81,6 +83,10 @@ export type MainStackParamList = {
   OfficeJoin: undefined
   /** Amin #6330: «دفتر املاک» with its two sections (connect to an office dashboard / ask for the panel) */
   OfficeHub: undefined
+  /** Amin #6339/#6341: «تنظیمات اشتراک فایل» for one file, then its one-time link (barcode, SMS, share) */
+  ShareFile: { propertyId: string }
+  /** Amin #6339/#6523: «دریافت فایل» — scan or paste a share link; code = opened from an eyvan://share link */
+  ReceiveFile: { code?: string } | undefined
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -127,6 +133,8 @@ const LockedCreateReminder = withLicence(CreateReminderScreen, 'یادآوری �
 const LockedContractList = withLicence(ContractListScreen, 'بخش قراردادها')
 const LockedCreateContract = withLicence(CreateContractScreen, 'بخش قراردادها')
 const LockedContractDetail = withLicence(ContractDetailScreen, 'بخش قراردادها')
+// Amin #6339: a received file is a new file of this phone, so it follows the same licence and token rules
+const LockedReceiveFile = withLicence(withTokens(ReceiveFileScreen), 'دریافت فایل')
 
 const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['PropertyList', PropertyListScreen],
@@ -147,6 +155,8 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['OfficePanel', OfficePanelScreen],
   ['OfficeJoin', OfficeJoinScreen],
   ['OfficeHub', OfficeHubScreen],
+  ['ShareFile', ShareFileScreen],
+  ['ReceiveFile', LockedReceiveFile],
   ['CreateReminder', LockedCreateReminder],
   ['ReminderDetail', ReminderDetailScreen],
   ['ContractList', LockedContractList],
@@ -164,7 +174,8 @@ const SETTINGS_PAGES = new Set<string>([
   'Connections',
   'OfficePanel',
   'OfficeJoin',
-  'OfficeHub'
+  'OfficeHub',
+  'ReceiveFile'
 ])
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {
