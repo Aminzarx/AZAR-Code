@@ -378,7 +378,7 @@ function createStyles(theme: Theme) {
     },
     optionLast: { borderBottomWidth: 0 },
     qrCard: { alignItems: 'center', gap: theme.spacing.space3 },
-    qrTitle: { color: theme.colors.onSurface, textAlign: 'center' },
+    qrTitle: { color: theme.colors.onSurface, textAlign: 'center' }, // rtl-allow: title over the centred barcode
     qrWhite: { backgroundColor: '#FFFFFF', padding: theme.spacing.space3, borderRadius: theme.radius.large },
     timer: {
       flexDirection: 'row',
@@ -390,7 +390,7 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.warningContainer
     },
     timerText: { color: theme.colors.onWarningContainer },
-    center: { color: theme.colors.onSurfaceVariant, textAlign: 'center' },
+    center: { color: theme.colors.onSurfaceVariant, textAlign: 'center' }, // rtl-allow: countdown under the centred barcode
     actions: { flexDirection: 'row', gap: theme.spacing.space3, marginBottom: theme.spacing.space3 },
     action: { flex: 1 }
   })

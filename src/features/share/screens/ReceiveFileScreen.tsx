@@ -175,7 +175,7 @@ function createStyles(theme: Theme) {
     text: { flex: 1, gap: theme.spacing.space1 },
     title: { color: theme.colors.onSurface, alignSelf: start },
     note: { color: theme.colors.onSurfaceVariant, alignSelf: start, marginTop: theme.spacing.space2 },
-    or: { color: theme.colors.onSurfaceVariant, textAlign: 'center', marginVertical: theme.spacing.space3 },
+    or: { color: theme.colors.onSurfaceVariant, textAlign: 'center', marginVertical: theme.spacing.space3 }, // rtl-allow: the «یا» divider between scan and paste
     error: { color: theme.colors.error, alignSelf: start, marginTop: theme.spacing.space2 },
     actions: { flexDirection: 'row', gap: theme.spacing.space3, marginTop: theme.spacing.space3 },
     action: { flex: 1 }
