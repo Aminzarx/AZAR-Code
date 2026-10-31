@@ -9,14 +9,16 @@
     <!-- Contract-end reminders written to the phone's own calendar app — react-native-calendar-events -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <!-- v1.2.0 (Amin #4223): install a downloaded update from inside the app — AzarInstallerModule. 1.5.20 tried the
+         browser instead (Navid #6717); the scan warning stayed, so it is back in 1.5.21 (Amin #6740). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Amin #5551/#6132 (install-time security scan): ask for nothing the app doesn't use. camera-kit and
          react-native-fs add the old shared-storage permissions; photos come through the system camera and photo picker
          (AzarImageModule, FileProvider) and every file stays in the app's own folder, so they are removed here. -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <!-- 1.5.20 (Navid #6717, Play Protect): react-native-keychain adds biometrics and netinfo adds Wi-Fi state; the app
-         uses neither (no biometric unlock, only online/offline is read). Updates open in the browser since 1.5.20, so
-         REQUEST_INSTALL_PACKAGES (in-app install, 1.2.0–1.5.19) is gone too. -->
+         uses neither (no biometric unlock, only online/offline is read). -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" tools:node="remove" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" tools:node="remove" />
