@@ -73,7 +73,8 @@ export type OfficeRequest = {
   endedAt?: string | null
 }
 /** demo (Amin #6345): a KSS demo number — the app keeps working beside the office and still answers dashboard sign-ins */
-export type OfficeStatus = { request: OfficeRequest | null; portal: boolean; demo?: boolean }
+/** keepApp (Amin #6330): the app keeps working beside the office dashboard — same files, same tokens */
+export type OfficeStatus = { request: OfficeRequest | null; portal: boolean; demo?: boolean; keepApp?: boolean }
 /** Amin #6346: a dashboard sign-in waiting for this phone (the manager typed this number on the dashboard) */
 export type OfficeSignIn = { code: string; createdAt: string; expiresAt: string }
 /** Amin #6330: a file an office sent this adviser — only the fields the office allowed (null = not shared) */

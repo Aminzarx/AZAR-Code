@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { StyleSheet, Switch, Text, View } from 'react-native'
+import { Linking, StyleSheet, Switch, Text, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainStackParamList } from '@navigation/MainNavigator'
 import { useTheme, type Theme } from '@shared/theme'
@@ -7,6 +7,7 @@ import { Button, ConfirmDialog, FormScreenContainer, LoadingIndicator, TextInput
 import { useAuth } from '@features/auth/AuthProvider'
 import type { OfficeStatus } from '@infrastructure/sync/syncApiClient'
 import {
+  OFFICE_PANEL_URL,
   OFFICE_REQUEST_CONFIRM_TEXT,
   loadOfficeStatus,
   notePortal,
@@ -90,6 +91,8 @@ export function OfficePanelScreen({ navigation }: Props): React.JSX.Element {
   const pending = request?.status === 'pending'
   const ended = request?.status === 'approved' && !!request.endedAt
   const showForm = status !== null && !pending && (request?.status !== 'approved' || ended)
+  // Amin #6330: once approved the app keeps working; this page then says how to get into the dashboard
+  const active = !!status?.portal && request?.status === 'approved' && !ended
 
   return (
     <FormScreenContainer headerTitle="درخواست پنل املاک" onBack={() => navigation.goBack()}>
@@ -109,6 +112,23 @@ export function OfficePanelScreen({ navigation }: Props): React.JSX.Element {
         )
       ) : null}
 
+      {active && request ? (
+        <View style={styles.card}>
+          <Text style={[theme.typography('titleSm'), styles.title]}>پنل دفتر شما فعال است</Text>
+          <Text style={[theme.typography('bodySm'), styles.note]}>نشانی داشبورد: kssx.ir/app/office</Text>
+          <Text style={[theme.typography('bodySm'), styles.note]}>
+            ورود با ایوان: در داشبورد شمارهٔ همراه همین حساب را بنویسید و این‌جا در برنامه دکمهٔ ورود را ۳ ثانیه نگه دارید.
+          </Text>
+          {request.username ? (
+            <Text style={[theme.typography('bodySm'), styles.note]}>
+              یا با نام کاربری «{request.username}» و رمزی که هنگام درخواست گذاشتید.
+            </Text>
+          ) : null}
+          <Text style={[theme.typography('bodySm'), styles.note]}>آدرس دفتر: {request.address}</Text>
+          <Button label="باز کردن داشبورد دفتر" onPress={() => Linking.openURL(`${OFFICE_PANEL_URL}/office/`).catch(() => undefined)} />
+        </View>
+      ) : null}
+
       {pending && request ? (
         <View style={styles.card}>
           <Text style={[theme.typography('titleSm'), styles.title]}>درخواست شما در حال بررسی است</Text>
@@ -117,7 +137,7 @@ export function OfficePanelScreen({ navigation }: Props): React.JSX.Element {
             <Text style={[theme.typography('bodySm'), styles.note]}>نام کاربری پنل: {request.username}</Text>
           ) : null}
           <Text style={[theme.typography('bodySm'), styles.note]}>
-            پس از تأیید، برنامه به پنل دفتر راهنمایی‌تان می‌کند و فایل‌هایتان سر جایشان می‌مانند.
+            پس از تأیید، پنل دفتر در وب باز می‌شود و فایل‌هایتان سر جایشان می‌مانند.
           </Text>
           {error ? <Text style={[theme.typography('bodySm'), styles.error]}>{error}</Text> : null}
           <Button label="لغو درخواست" variant="destructive" loading={busy} onPress={() => setAsking('cancel')} />

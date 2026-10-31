@@ -82,11 +82,12 @@ export async function loadOfficeStatus(sessionToken: string): Promise<OfficeStat
 }
 
 /**
- * The server's answer → the gate (the panel screen; never on a KSS demo number, #6345, where the app keeps working) and
+ * The server's answer → the gate (the panel screen; never on a KSS demo number, #6345, nor once the server says keepApp,
+ * #6330: the app keeps working beside the dashboard) and
  * the sign-in watch (#6346: on for every account whose office is on, demo included).
  */
 function noteStatus(status: OfficeStatus): void {
-  notePortal(status.portal && !status.demo)
+  notePortal(status.portal && !status.demo && !status.keepApp)
   if (watching === status.portal) return
   watching = status.portal
   watchers.forEach((w) => w(status.portal))

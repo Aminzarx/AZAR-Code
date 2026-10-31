@@ -931,9 +931,11 @@ adviser.post('/leave', (req, res) => {
 
 // The app's side of the request (Amin #5970): status, send, cancel — with the app's own session
 // demo: true on a KSS demo number (#6345): the app keeps working beside the office, and still answers dashboard sign-ins
+// keepApp (Amin #6330): an app that became an office keeps working as an app (same files, same tokens as the dashboard);
+// 1.5.18+ reads it like demo, older apps still show the panel screen
 adviser.post('/request/status', (req, res) => {
   const portal = portalOn(req.adviserId)
-  res.json({ request: requestView(lastRequest(req.adviserId)), portal, demo: portal && isDemo(req.adviserId) })
+  res.json({ request: requestView(lastRequest(req.adviserId)), portal, demo: portal && isDemo(req.adviserId), keepApp: portal })
 })
 adviser.post('/request', async (req, res) => {
   const last = lastRequest(req.adviserId)
