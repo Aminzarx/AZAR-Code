@@ -141,12 +141,7 @@ router.post('/consent', (req, res) => {
   const accountId = tokens.accountOf(req)
   if (!accountId) return fail(res, 401, 'session_revoked', 'Sign in again.')
   if (typeof req.body?.on !== 'boolean') return fail(res, 422, 'invalid_request', 'on must be true or false.')
-  const on = req.body.on
-  const at = new Date().toISOString()
-  require('./db')
-    .prepare('INSERT INTO divar_consents (id, user_id, at, turned_on, consent_text) VALUES (?, ?, ?, ?, ?)')
-    .run(require('./ids').generateId(), accountId, at, on ? 1 : 0, on ? CONSENT_TEXT : null)
-  res.json({ on, at })
+  res.json(setConsent(accountId, req.body.on))
 })
 
 // POST /divar/consent/status { sessionToken } → { on, at }  (a new phone reads the account's choice)
@@ -156,41 +151,60 @@ router.post('/consent/status', (req, res) => {
   res.json(consentOf(accountId))
 })
 
+/**
+ * One post into an account (the app's import, and the office dashboard's since Amin #6337): consent, link, price, the
+ * hourly limit, tokens, then the post. → { post, charged } or { status, code, message } when refused.
+ */
+async function importFor(accountId, link) {
+  const tokens = require('./tokens')
+  // Amin #5795: only after the user turned it on in Settings and agreed to the terms
+  if (!consentOf(accountId).on) {
+    return { status: 403, code: 'consent_required', message: 'ورود آگهی از دیوار خاموش است؛ از «تنظیمات ← اتصال‌ها و API‌ها» روشنش کنید.' }
+  }
+  const token = postToken(link)
+  if (!token) return { status: 400, code: 'not_divar', message: 'این لینکِ یک آگهیِ دیوار نیست.' }
+  const s = await tokens.settings()
+  // Amin #4302: no price set in kss-pricing = the import is off (no fallback price)
+  if (!s || s.divarImportTokens == null) return { status: 403, code: 'import_off', message: 'ورود آگهی از دیوار هنوز فعال نشده است.' }
+  if (tooMany(accountId)) return { status: 429, code: 'too_many', message: 'در این یک ساعت آگهیِ زیادی وارد کرده‌اید؛ کمی بعد دوباره تلاش کنید.' }
+  const cost = s.divarImportTokens
+  tokens.ensureOpening(accountId, s, tokens.storeOf(accountId))
+  if (cost > 0 && tokens.balanceOf(accountId, s) < cost) {
+    return { status: 402, code: 'tokens_short', message: 'توکنِ کافی برای ورود این آگهی ندارید.' }
+  }
+  let post
+  try {
+    post = await fetchPost(token)
+  } catch {
+    return { status: 502, code: 'divar_unreachable', message: 'دیوار الان جواب نمی‌دهد؛ چند دقیقهٔ دیگر دوباره تلاش کنید.' }
+  }
+  if (!post || !post.title) return { status: 404, code: 'post_gone', message: 'این آگهی در دیوار پیدا نشد؛ شاید حذف یا منقضی شده است.' }
+  // the same post again on the same day is not charged twice
+  const day = new Date().toISOString().slice(0, 10)
+  const charged = cost > 0 && tokens.post(accountId, 'divar_import', -cost, `divar:${token}:${day}`, token)
+  return { post, charged: charged ? cost : 0 }
+}
+
+/** the account's switch, turned now (on = agreed to CONSENT_TEXT) → { on, at } */
+function setConsent(accountId, on) {
+  const at = new Date().toISOString()
+  require('./db')
+    .prepare('INSERT INTO divar_consents (id, user_id, at, turned_on, consent_text) VALUES (?, ?, ?, ?, ?)')
+    .run(require('./ids').generateId(), accountId, at, on ? 1 : 0, on ? CONSENT_TEXT : null)
+  return { on, at }
+}
+
 // POST /divar/import { sessionToken, link } → { post, charged }  (the user's own share or pasted link; one post only)
 router.post('/import', async (req, res, next) => {
   try {
-    const tokens = require('./tokens')
-    const accountId = tokens.accountOf(req)
+    const accountId = require('./tokens').accountOf(req)
     if (!accountId) return fail(res, 401, 'session_revoked', 'Sign in again.')
-    // Amin #5795: only after the user turned it on in Settings and agreed to the terms
-    if (!consentOf(accountId).on) {
-      return fail(res, 403, 'consent_required', 'ورود آگهی از دیوار خاموش است؛ از «تنظیمات ← اتصال‌ها و API‌ها» روشنش کنید.')
-    }
-    const token = postToken(req.body?.link)
-    if (!token) return fail(res, 400, 'not_divar', 'این لینکِ یک آگهیِ دیوار نیست.')
-    const s = await tokens.settings()
-    // Amin #4302: no price set in kss-pricing = the import is off (no fallback price)
-    if (!s || s.divarImportTokens == null) return fail(res, 403, 'import_off', 'ورود آگهی از دیوار هنوز فعال نشده است.')
-    if (tooMany(accountId)) return fail(res, 429, 'too_many', 'در این یک ساعت آگهیِ زیادی وارد کرده‌اید؛ کمی بعد دوباره تلاش کنید.')
-    const cost = s.divarImportTokens
-    tokens.ensureOpening(accountId, s, tokens.storeOf(accountId))
-    if (cost > 0 && tokens.balanceOf(accountId, s) < cost) {
-      return fail(res, 402, 'tokens_short', 'توکنِ کافی برای ورود این آگهی ندارید.')
-    }
-    let post
-    try {
-      post = await fetchPost(token)
-    } catch {
-      return fail(res, 502, 'divar_unreachable', 'دیوار الان جواب نمی‌دهد؛ چند دقیقهٔ دیگر دوباره تلاش کنید.')
-    }
-    if (!post || !post.title) return fail(res, 404, 'post_gone', 'این آگهی در دیوار پیدا نشد؛ شاید حذف یا منقضی شده است.')
-    // the same post again on the same day is not charged twice
-    const day = new Date().toISOString().slice(0, 10)
-    const charged = cost > 0 && tokens.post(accountId, 'divar_import', -cost, `divar:${token}:${day}`, token)
-    res.json({ post, charged: charged ? cost : 0 })
+    const r = await importFor(accountId, req.body?.link)
+    if (r.status) return fail(res, r.status, r.code, r.message)
+    res.json(r)
   } catch (error) {
     next(error)
   }
 })
 
-module.exports = { postToken, parsePost, number, fetchPost, consentOf, CONSENT_TEXT, router }
+module.exports = { postToken, parsePost, number, fetchPost, consentOf, setConsent, importFor, CONSENT_TEXT, router }
