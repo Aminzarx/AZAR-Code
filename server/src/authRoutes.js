@@ -135,12 +135,13 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     if (!fixed && sentInWindow >= OTP_MAX_PER_HOUR) {
       return fail(res, 429, 'too_many_codes', 'Too many codes for this number; try again later.')
     }
-    if (!fixed && !sms.ready()) {
+    if (!fixed && !sms.canSend()) {
       return fail(res, 503, 'sms_unavailable', 'Codes cannot be sent right now.')
     }
     const code = fixed || sms.newCode()
+    let channel = 'sms'
     if (!fixed) {
-      await sms.sendCode(mobile, code) // throws when Kavenegar refuses: nothing is stored then
+      channel = await sms.sendCode(mobile, code) // throws when nothing could send it: nothing is stored then
     }
     const at = new Date(now).toISOString()
     db.prepare(
@@ -150,6 +151,10 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
          code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = 0, sent_at = excluded.sent_at,
          sent_count = excluded.sent_count, window_start = excluded.window_start`
     ).run(phoneNumber, at, sms.hashCode(phoneNumber, code), new Date(now + OTP_TTL_MS).toISOString(), at, sentInWindow + 1, windowStart)
+    // Amin #6419: in emergency mode the code may come in Rubika; the answer says so (older apps read any 2xx as sent)
+    if (channel === 'rubika') {
+      return res.json({ channel, message_fa: 'کد در روبیکا برای شما فرستاده شد (از حساب «KSS»). اگر ندیدید، چند لحظه صبر کنید و دوباره بفرستید.' })
+    }
     res.status(204).end()
   } catch (err) {
     console.error('[send-otp]', err.message)
