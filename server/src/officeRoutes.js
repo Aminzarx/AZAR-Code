@@ -1292,8 +1292,10 @@ router.post('/link/poll', (req, res) => {
 
 // Amin #6346: sign in with the mobile number — the dashboard sends the number; that account's EYVAN app, open, shows a
 // sign-in screen at once (it asks /adviser/link/pending every few seconds while open) and the manager holds its button
-// for 3 seconds; the dashboard, polling as above, gets the session. The answer is the same for any number, so the page
-// never tells who has an office; a newer request for a number replaces its older one; the app can also refuse it.
+// for 3 seconds; the dashboard, polling as above, gets the session. A newer request for a number replaces its older one;
+// the app can also refuse it. Amin #6563 (his explicit choice for this sign-in only): a number with no active office
+// dashboard is told so right on the form, and nothing is sent to any phone.
+const NO_DASHBOARD = 'برای این شماره داشبورد دفتر املاک فعال نیست. ابتدا در اپ ایوان از تنظیمات › اتصال‌ها و API‌ها › دفتر املاک، «درخواست پنل املاک» بدهید.'
 for (const col of ['target_user_id TEXT', 'denied_at TEXT']) {
   if (!db.prepare('PRAGMA table_info(office_links)').all().some((c) => c.name === col.split(' ')[0])) db.exec(`ALTER TABLE office_links ADD COLUMN ${col}`)
 }
@@ -1304,7 +1306,8 @@ router.post('/link/phone', signInLimit, (req, res) => {
   db.prepare('DELETE FROM office_links WHERE expires_at < ?').run(new Date(Date.now() - 60 * 1000).toISOString())
   const user = db.prepare('SELECT id FROM users WHERE phone_number IN (?, ?) AND deleted_at IS NULL').get(mobile, '+98' + mobile.slice(1))
   const target = user && portalOn(user.id) ? user.id : null
-  if (target) db.prepare('DELETE FROM office_links WHERE target_user_id = ? AND confirmed_at IS NULL').run(target)
+  if (!target) return fail(res, 403, 'no_dashboard', NO_DASHBOARD)
+  db.prepare('DELETE FROM office_links WHERE target_user_id = ? AND confirmed_at IS NULL').run(target)
   let code
   do code = String(crypto.randomInt(10000000, 100000000))
   while (db.prepare('SELECT 1 FROM office_links WHERE code = ?').get(code))

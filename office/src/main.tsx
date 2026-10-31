@@ -55,9 +55,10 @@ function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
   const [error, setError] = useState<string | null>(null);
   const { busy, run } = useAction();
   const number = toLatin(phone).replace(/\D/g, '');
+  // Amin #6563: a number with no active dashboard is told so here, on the form
   const ask = () => run(async () => {
     setError(null);
-    setWait(await api.linkPhone(number));
+    try { setWait(await api.linkPhone(number)); } catch (e) { if ((e as ApiError).code === 'no_dashboard') setError((e as ApiError).message); else throw e; }
   });
   useEffect(() => {
     if (!wait) return;
@@ -841,7 +842,14 @@ function Settings({ o }: { o: Overview }) {
  */
 const PAGES = ['overview', 'files', 'applicants', 'matching', 'contracts', 'reminders', 'contacts', 'advisers', 'tokens', 'settings'] as const;
 type Page = (typeof PAGES)[number];
-const LEGACY: Record<string, Page> = { top: 'overview', files: 'files', tokens: 'tokens', advisers: 'advisers', sharing: 'advisers', contacts: 'contacts', settings: 'settings' };
+const LEGACY: Record<string, Page> = { top: 'overview', files: 'files', tokens: 'tokens', advisers: 'advisers', sharing: 'advisers', contacts: 'contacts', settings: 'settings', expiring: 'files' };
+/** an old card anchor (#expiring…) lands on its page, then scrolls to the card once it is drawn */
+const scrollToLegacy = () => {
+  const p = location.hash.replace(/^#\/?/, '');
+  if (!(p in LEGACY) || (PAGES as readonly string[]).includes(p)) return;
+  let n = 0;
+  const t = setInterval(() => { const el = document.getElementById(p); if (el || ++n > 20) { clearInterval(t); el?.scrollIntoView({ block: 'start' }); } }, 150);
+};
 function readRoute(): { page: Page; id: string | null } {
   let h = '';
   try { h = decodeURIComponent(location.hash.replace(/^#\/?/, '')); } catch { h = ''; }
@@ -852,7 +860,8 @@ function readRoute(): { page: Page; id: string | null } {
 function useRoute() {
   const [r, setR] = useState(readRoute);
   useEffect(() => {
-    const on = () => { setR(readRoute()); window.scrollTo({ top: 0 }); };
+    const on = () => { setR(readRoute()); window.scrollTo({ top: 0 }); scrollToLegacy(); };
+    scrollToLegacy();
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);

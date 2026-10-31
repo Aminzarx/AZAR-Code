@@ -287,6 +287,9 @@ function mount(manager, deps) {
     if (!fullName) errors.name = 'نام الزامی است.'
     if (!phone) errors.phone = 'شماره تماس الزامی است.'
     else if (!/^\+?\d{5,15}$/.test(phone)) errors.phone = 'شماره تماس را با رقم بنویسید.'
+    // canonical like every other phone in the copy (the app's canonicalizeIranPhoneNumber): a mobile → +989…, others as typed
+    const mobile = phone.replace(/^0098/, '+98').replace(/^(?:\+98|0)?(9\d{9})$/, '+98$1')
+    const phoneNumber = /^\+989\d{9}$/.test(mobile) ? mobile : phone
     if (!city) errors.city = 'شهر الزامی است.'
     const kinds = APPLICANT_KINDS.filter((k) => Array.isArray(b.kinds) && b.kinds.includes(k))
     const positive = (field) => {
@@ -318,7 +321,7 @@ function mount(manager, deps) {
     const rentMode = kinds.includes('رهن و اجاره')
     return {
       fields: {
-        full_name: fullName, phone_number: phone, email: null, applicant_type: null,
+        full_name: fullName, phone_number: phoneNumber, email: null, applicant_type: null,
         preferred_transaction_type: kinds.join('، ') || null, preferred_property_type: text(b.propertyType, 40) || null,
         city, region: text(b.region, 60) || null,
         barter_items: barterItems.length ? JSON.stringify(barterItems) : null,

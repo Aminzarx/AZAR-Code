@@ -130,6 +130,7 @@ test('applicants: the app form\'s rules, written into the app\'s copy, charged l
   const row = (await pull(owner)).find((x) => x.t === 'applicants' && x.k === id).row
   assert.equal(row.user_id, owner.userId)
   assert.equal(row.full_name, 'مریم احمدی')
+  assert.equal(row.phone_number, '+989123334455', 'stored canonical, like every other phone in the copy')
   assert.equal(row.preferred_transaction_type, 'خرید')
   assert.equal(row.status, 'active')
   assert.equal(row.is_convertible, 0)

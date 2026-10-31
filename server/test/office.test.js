@@ -566,13 +566,20 @@ test('Amin #6344: a share runs until a date or with no end; the office cancels e
   assert.equal((await post('/office/share/cancel', { fileId: file }, other.h)).status, 404)
 })
 
-test('Amin #6346: sign in with the mobile number — the app sees it at once, confirms or refuses; same answer for any number', async () => {
+test('Amin #6346/#6563: sign in with the mobile number — the app sees it at once, confirms or refuses; a number with no dashboard is told so', async () => {
   const { owner } = await office()
   const app = { sessionToken: owner.sessionToken }
   assert.equal((await post('/office/link/phone', { phone: '123' })).status, 422)
+  // #6563: no account, or an account with no approved panel → said on the form; no link is made for anyone's phone
+  const links = () => db.prepare('SELECT COUNT(*) n FROM office_links').get().n
+  const before = links()
   const nobody = await post('/office/link/phone', { phone: '09359990000' })
-  assert.equal(nobody.status, 201) // looks the same: the page never says who has an office
-  assert.deepEqual((await post('/office/link/poll', { poll: nobody.body.poll })).body, { pending: true })
+  assert.equal(nobody.status, 403)
+  assert.equal(nobody.body.error.code, 'no_dashboard')
+  assert.match(nobody.body.error.message, /داشبورد دفتر املاک فعال نیست/)
+  const plainUser = await account()
+  assert.equal((await post('/office/link/phone', { phone: local(plainUser.phoneNumber) })).body.error.code, 'no_dashboard')
+  assert.equal(links(), before)
 
   const persian = local(owner.phoneNumber).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.charAt(Number(d)))
   const first = await post('/office/link/phone', { phone: persian })
