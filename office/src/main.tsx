@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import qrcode from 'qrcode-generator';
 import './styles/tokens.css';
@@ -46,39 +46,22 @@ const PHONE = /^09\d{9}$/;
 const persianDate = (iso: string) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Tehran' }).format(new Date(iso));
 const faNum = (s: string) => s.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.charAt(Number(d)));
 const clock = (s: number) => faNum(`${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
-const APP_URL = 'https://kssx.ir/dl/eyvan.apk';
-const PANEL_PATH = 'تنظیمات ← اتصال‌ها و API‌ها ← دفتر املاک ← «درخواست پنل املاک»';
 /** a new request to the app is allowed this long after the last one (or at once when it ran out) */
 const RESEND_S = 30;
 
-/** Amin #6743: the EYVAN app's own logo, not a generic house icon */
+/** Amin #6743/#6759: the EYVAN app's own logo, nothing else around it */
 function Brand() {
-  return <div className="login-brand"><img src={eyvanLogo} alt="" width={44} height={44} /><div><b>ایوان</b><small>داشبورد دفتر املاک</small></div></div>;
-}
-
-function Steps({ at }: { at: 1 | 2 }) {
-  return (
-    <ol className="login-steps" aria-label="مراحل ورود">
-      {['شمارهٔ همراه', 'تأیید در برنامه'].map((t, i) => (
-        <li key={t} className={i + 1 < at ? 'done' : i + 1 === at ? 'on' : ''} aria-current={i + 1 === at ? 'step' : undefined}>
-          <span className="n">{i + 1 < at ? <Icon name="check" size={12} /> : faNum(String(i + 1))}</span>{t}
-        </li>
-      ))}
-    </ol>
-  );
+  return <img className="login-logo" src={eyvanLogo} alt="ایوان" width={56} height={56} />;
 }
 
 /**
- * Amin #6346 «ورود با ایوان», redesigned for #6743: (1) the manager writes the mobile number; (2) a sign-in screen
- * opens at once in that number's EYVAN app and holding its button for 3 seconds signs this page in — a ring counts the
- * request's time down, and it can be sent again. A number with no active dashboard (#6563) gets its own screen that
- * says where in the app the panel is requested.
+ * Amin #6346 «ورود با ایوان», minimal per #6759: the number, then the sign-in screen opens at once in that number's
+ * EYVAN app and holding its button for 3 seconds signs this page in; here only a countdown and «ارسال دوباره». A number
+ * with no active dashboard just reads «شماره یافت نشد» (#6758).
  */
 function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
   const [phone, setPhone] = useState('');
-  const [touched, setTouched] = useState(false);
-  const [wait, setWait] = useState<{ poll: string; expiresAt: string; total: number; sentAt: number } | null>(null);
-  const [inactive, setInactive] = useState(false);
+  const [wait, setWait] = useState<{ poll: string; expiresAt: string; sentAt: number } | null>(null);
   const [left, setLeft] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
@@ -87,13 +70,8 @@ function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
   const valid = PHONE.test(number);
   const ask = () => run(async () => {
     setError(null);
-    try {
-      const r = await api.linkPhone(number);
-      setInactive(false);
-      setWait({ ...r, total: Math.max(1, Math.round((Date.parse(r.expiresAt) - Date.now()) / 1000)), sentAt: Date.now() });
-    } catch (e) {
-      if ((e as ApiError).code === 'no_dashboard') { setWait(null); setInactive(true); } else throw e;
-    }
+    try { setWait({ ...(await api.linkPhone(number)), sentAt: Date.now() }); }
+    catch (e) { if ((e as ApiError).code === 'no_dashboard') { setWait(null); setError('شماره یافت نشد'); } else throw e; }
   });
   useEffect(() => {
     if (!wait) return;
@@ -112,68 +90,28 @@ function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
     }, 2000);
     return () => { alive = false; clearInterval(timer); clearInterval(poll); };
   }, [wait, onSession]);
-  const shown = <b dir="ltr" className="phone-num">{faNum(number)}</b>;
-  const back = () => { setWait(null); setInactive(false); setError(null); };
-
-  if (inactive) {
-    return (
-      <div className="eyvan-state" role="alert">
-        <div className="state-ico"><Icon name="store" size={22} /></div>
-        <h2>داشبورد این شماره هنوز فعال نیست</h2>
-        <p className="muted">برای {shown} پنل دفتر املاک درخواست یا تأیید نشده است. پنل را از خود برنامهٔ ایوان درخواست کنید؛ پس از تأیید، از همین صفحه وارد می‌شوید.</p>
-        <div className="app-path"><span className="muted small">در برنامهٔ ایوان</span><b>{PANEL_PATH}</b></div>
-        <a className="kss-btn kss-btn--secondary kss-btn--lg" href={APP_URL}><img src={eyvanLogo} alt="" width={20} height={20} />برنامهٔ ایوان را ندارید؟ دریافت</a>
-        <Btn variant="ghost" onClick={back}>ورود با شمارهٔ دیگر</Btn>
-      </div>
-    );
-  }
 
   if (wait) {
-    const expired = left === 0;
-    const cooldown = Math.max(0, RESEND_S - Math.floor((now - wait.sentAt) / 1000));
+    const cooldown = left === 0 ? 0 : Math.max(0, RESEND_S - Math.floor((now - wait.sentAt) / 1000));
     return (
-      <div className="eyvan-flow">
-        <Steps at={2} />
-        <div className="eyvan-wait">
-          <div className={'wait-ring' + (expired ? ' off' : '')} style={{ '--p': left / wait.total } as CSSProperties} aria-hidden="true">
-            <img src={eyvanLogo} alt="" width={52} height={52} />
-          </div>
-          <h2>{expired ? 'زمان این درخواست تمام شد' : 'ورود را در برنامهٔ ایوان تأیید کنید'}</h2>
-          {expired
-            ? <p className="muted">درخواست تازه‌ای به برنامهٔ ایوانِ {shown} بفرستید.</p>
-            : <p className="muted">در ایوانِ {shown} صفحهٔ «ورود به داشبورد دفتر» باز شده است. دکمهٔ «نگه دارید تا وارد شوید» را <b>۳ ثانیه</b> نگه دارید.</p>}
-          {!expired && (
-            <div className="wait-line" role="status"><span className="wait-dot" aria-hidden="true" />منتظر تأیید<span className="timer" aria-label={`${fa(left)} ثانیه مانده`}>{clock(left)}</span></div>
-          )}
-        </div>
-        {error && <Alert tone="bad">{error}</Alert>}
-        <Btn variant={expired ? 'primary' : undefined} size="lg" busy={busy} busyLabel="در حال ارسال…" disabled={!expired && cooldown > 0} onClick={() => void ask()}>
-          {!expired && cooldown > 0 ? `ارسال دوباره (${clock(cooldown)})` : 'ارسال دوباره به برنامه'}
+      <div className="login-body login-wait">
+        <p className="login-sub">ورود را در برنامهٔ ایوانِ <b dir="ltr" className="phone-num">{faNum(number)}</b> تأیید کنید.</p>
+        <div className="login-timer" role="timer" aria-live="off">{clock(left)}</div>
+        <Btn variant="primary" size="lg" busy={busy} disabled={cooldown > 0} onClick={() => void ask()}>
+          {cooldown > 0 ? `ارسال دوباره (${clock(cooldown)})` : 'ارسال دوباره'}
         </Btn>
-        <button type="button" className="kss-btn kss-btn--ghost" onClick={back}>تغییر شماره</button>
-        <details className="eyvan-help">
-          <summary>صفحه در برنامه باز نشد؟</summary>
-          <ul>
-            <li>برنامهٔ ایوان را کامل ببندید و دوباره باز کنید؛ صفحه هنگام باز شدن نشان داده می‌شود.</li>
-            <li>اینترنت گوشی روشن باشد و با همین شماره در ایوان وارد شده باشید.</li>
-            <li>اگر برنامه را ندارید، <a href={APP_URL}>ایوان را دریافت کنید</a>.</li>
-          </ul>
-        </details>
+        <button type="button" className="login-link" onClick={() => { setWait(null); setError(null); }}>تغییر شماره</button>
       </div>
     );
   }
-
-  const bad = touched && number.length > 0 && !valid ? 'شماره باید ۱۱ رقم باشد و با ۰۹ شروع شود.' : null;
   return (
-    <div className="eyvan-flow">
-      <Steps at={1} />
-      <Field label="شمارهٔ همراه" hint="همان شماره‌ای که با آن در برنامهٔ ایوان هستید." error={bad} required>
-        <input className="kss-input phone-input" dir="ltr" inputMode="numeric" autoComplete="tel" maxLength={14} placeholder="۰۹۱۲ ۱۲۳ ۴۵۶۷" value={phone}
-          onChange={(e) => setPhone(e.target.value)} onBlur={() => setTouched(true)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setTouched(true); if (valid) void ask(); } }} autoFocus />
+    <div className="login-body">
+      <Field label="شمارهٔ همراه" error={error}>
+        <input className="kss-input phone-input" dir="ltr" inputMode="numeric" autoComplete="tel" maxLength={14} placeholder="09121234567" value={phone}
+          onChange={(e) => { setPhone(e.target.value); setError(null); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (valid) void ask(); } }} autoFocus />
       </Field>
-      {error && <Alert tone="bad">{error}</Alert>}
-      <Btn type="button" variant="primary" size="lg" busy={busy} busyLabel="در حال ارسال به برنامه…" disabled={!valid} onClick={() => void ask()}>ادامه</Btn>
+      <Btn type="button" variant="primary" size="lg" busy={busy} disabled={!valid} onClick={() => void ask()}>ورود با ایوان</Btn>
     </div>
   );
 }
@@ -181,8 +119,8 @@ function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
 type SignIn = SignedIn | { ticket: string };
 
 /**
- * Amin #6033/#6034, redesigned for #6743: the office dashboard's sign-in — «ورود با ایوان» first (the app confirms),
- * the username and password chosen on the request as the second way. Only accounts whose office panel was approved get in.
+ * Amin #6033/#6034, minimal per #6759: one card — logo, title, the number, one button. The username and password
+ * chosen on the request stay as a quiet link under it. Only accounts whose office panel was approved get in.
  */
 function Login({ onIn }: { onIn: () => void }) {
   const [how, setHow] = useState<'eyvan' | 'password'>('eyvan');
@@ -213,30 +151,27 @@ function Login({ onIn }: { onIn: () => void }) {
         <Brand />
         {ticket ? (
           <>
-            <header className="login-head"><h1 className="login-title">دفتر تازه</h1><p className="muted">برای این حساب هنوز دفتری ساخته نشده؛ نام دفتر را بنویسید.</p></header>
-            <Field label="نام دفتر" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً دفتر املاک پارسه" autoFocus /></Field>
-            {error && <Alert tone="bad">{error}</Alert>}
-            <Btn type="submit" variant="primary" size="lg" busy={busy} disabled={!name.trim()}>ساخت دفتر و ورود</Btn>
+            <h1 className="login-title">دفتر تازه</h1>
+            <div className="login-body">
+              <Field label="نام دفتر" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً دفتر املاک پارسه" autoFocus /></Field>
+              {error && <Alert tone="bad">{error}</Alert>}
+              <Btn type="submit" variant="primary" size="lg" busy={busy} disabled={!name.trim()}>ساخت دفتر و ورود</Btn>
+            </div>
           </>
         ) : (
           <>
-            <header className="login-head">
-              <h1 className="login-title">ورود به داشبورد دفتر</h1>
-              <p className="muted">برای مدیر دفتر املاکی که با برنامهٔ ایوان کار می‌کند: فایل‌ها، مشاوران و قراردادهای دفتر در یک جا.</p>
-            </header>
+            <h1 className="login-title">ورود به داشبورد دفتر</h1>
             {how === 'eyvan' ? <WithEyvan onSession={onSession} /> : (
-              <div className="eyvan-flow">
-                <Field label="نام کاربری" required><input className="kss-input" dir="ltr" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus /></Field>
-                <Field label="رمز" hint="همان نام کاربری و رمزی که هنگام درخواست پنل در برنامه گذاشتید." required><input className="kss-input" dir="ltr" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+              <div className="login-body">
+                <Field label="نام کاربری"><input className="kss-input" dir="ltr" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus /></Field>
+                <Field label="رمز"><input className="kss-input" dir="ltr" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
                 {error && <Alert tone="bad">{error}</Alert>}
                 <Btn type="submit" variant="primary" size="lg" busy={busy} disabled={!username.trim() || !password}>ورود</Btn>
               </div>
             )}
-            <div className="login-or"><span>یا</span></div>
-            <button type="button" className="kss-btn kss-btn--secondary login-alt" onClick={() => setHow(how === 'eyvan' ? 'password' : 'eyvan')}>
-              {how === 'eyvan' ? <><Icon name="user" size={16} />ورود با نام کاربری و رمز</> : <><img src={eyvanLogo} alt="" width={18} height={18} />ورود با ایوان</>}
+            <button type="button" className="login-link" onClick={() => setHow(how === 'eyvan' ? 'password' : 'eyvan')}>
+              {how === 'eyvan' ? 'ورود با نام کاربری و رمز' : 'ورود با ایوان'}
             </button>
-            <p className="login-foot muted small">پنل دفتر ندارید؟ در برنامهٔ ایوان: {PANEL_PATH}.</p>
           </>
         )}
       </form>
