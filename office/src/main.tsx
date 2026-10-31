@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
+import qrcode from 'qrcode-generator';
 import './styles/tokens.css';
 import './styles/kss-kit.css';
 import './styles/base.css';
@@ -503,6 +504,25 @@ function FilesTable({ o, onNew, onSend, onShares }: { o: Overview; onNew: () => 
   );
 }
 
+/** a QR as SVG squares (no outside service; CSP keeps everything on our own address) */
+function Qr({ text, size = 176, label }: { text: string; size?: number; label: string }) {
+  const cells = useMemo(() => {
+    const q = qrcode(0, 'M');
+    q.addData(text, 'Byte');
+    q.make();
+    const n = q.getModuleCount();
+    const on: string[] = [];
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) on.push(`M${c + 2} ${r + 2}h1v1h-1z`);
+    return { n: n + 4, d: on.join('') };
+  }, [text]);
+  return (
+    <svg className="qr" viewBox={`0 0 ${cells.n} ${cells.n}`} width={size} height={size} role="img" aria-label={label} shapeRendering="crispEdges">
+      <rect width={cells.n} height={cells.n} fill="#fff" />
+      <path d={cells.d} fill="#000" />
+    </svg>
+  );
+}
+
 function CodeModal({ onClose }: { onClose: () => void }) {
   const [c, setC] = useState<{ code: string; word: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -511,9 +531,11 @@ function CodeModal({ onClose }: { onClose: () => void }) {
     <Modal title="کد اتصال مشاور" sub="یک‌بار مصرف، برای یک مشاور، ۷ روز اعتبار" onClose={onClose} size="sm" footer={<Btn variant="primary" onClick={onClose}>تمام</Btn>}>
       {err ? <Alert tone="bad">{err}</Alert> : !c ? <Skeleton rows={2} /> : (
         <div className="stack sm" style={{ textAlign: 'center' }}>
+          {/* Amin #6330: the adviser's EYVAN app scans this (eyvan://office-join?c=…&w=…), or types the code and word */}
+          <div className="qr-wrap"><Qr text={`eyvan://office-join?c=${c.code}&w=${encodeURIComponent(c.word)}`} label="کد QR اتصال مشاور" /></div>
           <div className="code-big num" dir="ltr">{c.code}</div>
           <div className="word-big">{c.word}</div>
-          <p className="muted">مشاور در برنامهٔ ایوان، «اتصال به دفتر املاک» را باز می‌کند و این کد و کلمه را وارد می‌کند.</p>
+          <p className="muted">مشاور در برنامهٔ ایوان، تنظیمات ← اتصال‌ها و API‌ها ← «اتصال به دفتر املاک» را باز می‌کند و این کد را اسکن می‌کند، یا کد و کلمه را می‌نویسد.</p>
         </div>
       )}
     </Modal>
