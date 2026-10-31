@@ -37,3 +37,42 @@
 /* Amin #6330: the adviser connection code's QR */
 .qr-wrap { display: flex; justify-content: center; }
 .qr-wrap .qr { border-radius: 8px; border: 1px solid var(--kss-color-border, #e5e7eb); padding: 6px; background: #fff; }
+
+/* Amin #6338: the connection page — QR beside three steps, code and word in their own boxes */
+.join-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s6); align-items: start; }
+.join-qr { display: flex; flex-direction: column; align-items: center; gap: var(--s2); text-align: center; }
+.join-qr .qr { border-radius: 12px; border: 1px solid var(--line, #e5e7eb); padding: 8px; background: #fff; }
+.join-steps { list-style-type: persian; margin: 0; padding-inline-start: 1.4em; display: flex; flex-direction: column; gap: var(--s3); line-height: 1.9; }
+.join-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
+.join-box { display: flex; flex-direction: column; align-items: center; gap: var(--s1); padding: var(--s3); border: 1px solid var(--line, #e5e7eb); border-radius: 12px; background: var(--bg-2, #f8fafc); }
+.join-box .code-big { font-size: 28px; letter-spacing: 4px; }
+@media (max-width: 640px) { .join-grid { grid-template-columns: minmax(0, 1fr); } .join-codes { grid-template-columns: minmax(0, 1fr); } }
+
+/* Amin #6336: a file row opens its record */
+.tbl tr.clickable { cursor: pointer; }
+.tbl tr.clickable:hover td { background: var(--bg-2, #f8fafc); }
+.file-kv { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); }
+.file-kv dd { overflow-wrap: anywhere; }
+.block { display: block; }
+.mt-xs { margin-block-start: var(--s1); }
+.row.wrap { flex-wrap: wrap; }
+.pick-list { display: flex; flex-direction: column; max-block-size: 50vh; overflow: auto; }
+.pick-row { display: flex; gap: var(--s3); align-items: center; padding: var(--s2) 0; border-block-end: 1px solid var(--line); cursor: pointer; }
+
+/* Amin #6342: phones — files as cards, a bottom bar with the quick ways in */
+.file-cards, .bottom-bar { display: none; }
+@media (max-width: 768px) {
+  .file-tbl { display: none; }
+  .file-cards { display: flex; flex-direction: column; }
+  .file-card { display: flex; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); border-block-end: 1px solid var(--line); cursor: pointer; }
+  .file-card .grow { min-inline-size: 0; }
+  .bottom-bar { display: flex; position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 40; justify-content: space-around; align-items: center;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: var(--bg, #fff); border-block-start: 1px solid var(--line, #e5e7eb); box-shadow: 0 -2px 12px rgb(0 0 0 / 6%); }
+  .bottom-bar a, .bottom-bar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-inline-size: 0; background: none; border: 0; padding: 4px 2px;
+    color: var(--fg-2, #475569); font: inherit; font-size: 11px; text-decoration: none; cursor: pointer; }
+  .bottom-bar span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-inline-size: 100%; }
+  .bottom-bar .bb-main { flex: 0 0 auto; inline-size: 52px; block-size: 52px; border-radius: 50%; justify-content: center; margin-block-start: -22px;
+    background: var(--accent, var(--kss-color-primary, #2563eb)); color: #fff; box-shadow: 0 4px 12px rgb(0 0 0 / 18%); }
+  .bottom-bar button:disabled { opacity: .5; }
+  .main { padding-block-end: calc(76px + env(safe-area-inset-bottom)); }
+}

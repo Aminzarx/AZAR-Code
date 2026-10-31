@@ -6,7 +6,7 @@ import './styles/kss-kit.css';
 import './styles/base.css';
 import './office.css';
 import { applyTheme } from './lib/theme';
-import { ago } from './lib/fmt';
+import { ago, digits } from './lib/fmt';
 import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, PageHeader, SearchBox, Segmented, Skeleton, ToastProvider, useAction, useConfirm, useToast } from './ui/kit';
 import { Icon } from './ui/icons';
 import { api, ApiError, IN_PANEL, session, type Adviser, type NewFile, type OfficeFile, type Overview, type Rules, type Quote, type SignedIn, type Tokens } from './api';
@@ -462,13 +462,15 @@ function SharesModal({ o, fileId, onClose, reload }: { o: Overview; fileId: stri
   );
 }
 
-function FilesTable({ o, onNew, onSend, onShares }: { o: Overview; onNew: () => void; onSend: (ids: string[]) => void; onShares: (id: string) => void }) {
+function FilesTable({ o, onNew, onSend, onShares, onOpen }: { o: Overview; onNew: () => void; onSend: (ids: string[]) => void; onShares: (id: string) => void; onOpen: (id: string) => void }) {
   const [kind, setKind] = useState<string>('all');
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const names = useMemo(() => new Map(o.advisers.map((a) => [a.id, a.name])), [o.advisers]);
   const rows = o.files.filter((f) => (kind === 'all' || f.kind === kind) && (!q || [f.title, f.region, f.city, f.ownerName].some((x) => x?.includes(q))));
   const toggle = (id: string) => setPicked((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  // a click on the row opens the file, except on its checkbox or its own buttons (Amin #6336)
+  const open = (e: { target: EventTarget }, id: string) => { if (!(e.target as HTMLElement).closest('input, button, a, label')) onOpen(id); };
   const sentTo = (f: OfficeFile) =>
     f.sentTo.includes('*') ? 'همهٔ مشاوران' : f.sentTo.length === 1 ? names.get(f.sentTo[0]!) ?? '۱ مشاور' : f.sentTo.length ? fa(f.sentTo.length) + ' مشاور' : null;
   if (!o.files.length) return <Empty title="دفتر هنوز فایلی ندارد" action={<Btn variant="primary" icon="plus" onClick={onNew}>فایل تازه</Btn>}>فایل‌هایی که اینجا ثبت می‌کنید به نام دفتر است و می‌توانید برای مشاوران بفرستید.</Empty>;
@@ -482,11 +484,26 @@ function FilesTable({ o, onNew, onSend, onShares }: { o: Overview; onNew: () => 
         <Btn size="sm" variant="primary" icon="upload" disabled={!picked.size} onClick={() => onSend([...picked])}>ارسال به مشاوران</Btn>
       </div>
       {!rows.length ? <Empty kind="filtered" title="فایلی با این جست‌وجو پیدا نشد">نوع معامله یا متن جست‌وجو را تغییر دهید.</Empty> : (
-        <div className="tbl-wrap"><table className="tbl">
+        <>
+        {/* Amin #6342: on a phone the table becomes cards */}
+        <ul className="plain file-cards">
+          {rows.map((f) => (
+            <li key={f.id} className="file-card" onClick={(e) => open(e, f.id)}>
+              <input type="checkbox" className="kss-check" checked={picked.has(f.id)} onChange={() => toggle(f.id)} aria-label={'انتخاب ' + f.title} />
+              <div className="grow">
+                <b>{f.title}</b>
+                <div className="faint xs">{f.kind} · {[f.city, f.region].filter(Boolean).join('، ')}{f.size != null ? ` · ${fa(f.size)} متر` : ''}</div>
+                <div className="row tight wrap mt-xs"><span className="num small">{priceOf(f)}</span>{sentTo(f) ? <Badge tone="info" icon={false}>{sentTo(f)}</Badge> : null}{daysLeft(f.expiresAt) <= 7 ? <Badge tone="warn">{fa(daysLeft(f.expiresAt))} روز مانده</Badge> : null}</div>
+              </div>
+              <Icon name="chevron" size={18} />
+            </li>
+          ))}
+        </ul>
+        <div className="tbl-wrap file-tbl"><table className="tbl">
           <thead><tr><th style={{ inlineSize: 40 }}><span className="sr-only">انتخاب</span></th><th>فایل</th><th>نوع</th><th className="num">قیمت</th><th className="num">متراژ</th><th>ثبت</th><th>فرستاده به</th><th>انقضا</th></tr></thead>
           <tbody>
             {rows.map((f) => (
-              <tr key={f.id}>
+              <tr key={f.id} className="clickable" onClick={(e) => open(e, f.id)} title="باز کردن پرونده">
                 <td><input type="checkbox" className="kss-check" checked={picked.has(f.id)} onChange={() => toggle(f.id)} aria-label={'انتخاب ' + f.title} /></td>
                 <td><b style={{ fontWeight: 500 }}>{f.title}</b><div className="faint xs">{f.city}، {f.region}</div></td>
                 <td><Badge tone={f.kind === 'فروش' ? 'info' : 'neutral'} icon={false}>{f.kind}</Badge></td>
@@ -499,6 +516,7 @@ function FilesTable({ o, onNew, onSend, onShares }: { o: Overview; onNew: () => 
             ))}
           </tbody>
         </table></div>
+        </>
       )}
     </>
   );
@@ -523,19 +541,118 @@ function Qr({ text, size = 176, label }: { text: string; size?: number; label: s
   );
 }
 
+/**
+ * Amin #6338: «افزودن مشاور» — the connection code laid out so a newcomer follows it: the QR big, three numbered steps
+ * that name the exact place in the app, the code and word each in its own box with «کپی», and «کپی پیام برای مشاور»
+ * (the steps + code + word ready to paste in a chat). One-time, one adviser, 7 days (the server's rule).
+ */
 function CodeModal({ onClose }: { onClose: () => void }) {
-  const [c, setC] = useState<{ code: string; word: string } | null>(null);
+  const [c, setC] = useState<{ code: string; word: string; expiresAt?: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const toast = useToast();
   useEffect(() => { api.newCode().then(setC, (e: Error) => setErr(e.message)); }, []);
+  const copy = (text: string, what: string) => {
+    navigator.clipboard?.writeText(text).then(() => toast(`${what} کپی شد`), () => toast('کپی نشد؛ دستی بنویسید'));
+  };
+  const message = c ? [
+    'برای اتصال به داشبورد دفتر در برنامهٔ ایوان:',
+    '۱. برنامهٔ ایوان را باز کنید (اگر ندارید: kssx.ir/dl/eyvan.apk)',
+    '۲. تنظیمات ← اتصال‌ها و API‌ها ← دفتر املاک ← اتصال به داشبورد دفتر',
+    `۳. کد اتصال ${digits(c.code)} و کلمهٔ «${c.word}» را بنویسید.`,
+    'این کد یک‌بار مصرف است و ۷ روز اعتبار دارد.',
+  ].join('\n') : '';
   return (
-    <Modal title="کد اتصال مشاور" sub="یک‌بار مصرف، برای یک مشاور، ۷ روز اعتبار" onClose={onClose} size="sm" footer={<Btn variant="primary" onClick={onClose}>تمام</Btn>}>
-      {err ? <Alert tone="bad">{err}</Alert> : !c ? <Skeleton rows={2} /> : (
-        <div className="stack sm" style={{ textAlign: 'center' }}>
-          {/* Amin #6330: the adviser's EYVAN app scans this (eyvan://office-join?c=…&w=…), or types the code and word */}
-          <div className="qr-wrap"><Qr text={`eyvan://office-join?c=${c.code}&w=${encodeURIComponent(c.word)}`} label="کد QR اتصال مشاور" /></div>
-          <div className="code-big num" dir="ltr">{c.code}</div>
-          <div className="word-big">{c.word}</div>
-          <p className="muted">مشاور در برنامهٔ ایوان، تنظیمات ← اتصال‌ها و API‌ها ← «اتصال به دفتر املاک» را باز می‌کند و این کد را اسکن می‌کند، یا کد و کلمه را می‌نویسد.</p>
+    <Modal title="افزودن مشاور به دفتر" sub={c?.expiresAt ? `کد یک‌بار مصرف، برای یک مشاور · تا ${persianDate(c.expiresAt)} معتبر` : 'کد یک‌بار مصرف، برای یک مشاور، ۷ روز اعتبار'}
+      onClose={onClose} size="wide"
+      footer={<>{c && <Btn icon="copy" onClick={() => copy(message, 'پیام')}>کپی پیام برای مشاور</Btn>}<Btn variant="primary" onClick={onClose}>تمام</Btn></>}>
+      {err ? <Alert tone="bad">{err}</Alert> : !c ? <Skeleton rows={4} /> : (
+        <div className="join-grid">
+          <div className="join-qr">
+            <Qr text={`eyvan://office-join?c=${c.code}&w=${encodeURIComponent(c.word)}`} size={208} label="بارکد اتصال مشاور" />
+            <span className="muted small">مشاور این بارکد را با برنامهٔ ایوان اسکن می‌کند</span>
+          </div>
+          <div className="stack">
+            <ol className="join-steps">
+              <li><b>برنامهٔ ایوان</b> را روی گوشی مشاور باز کنید. <span className="muted">اگر نصب نیست: kssx.ir/dl/eyvan.apk</span></li>
+              <li>در برنامه: <b>تنظیمات ← اتصال‌ها و API‌ها ← دفتر املاک ← اتصال به داشبورد دفتر</b></li>
+              <li><b>«اسکن بارکد کد اتصال»</b> را بزنید و همین بارکد را اسکن کنید؛ یا کد و کلمهٔ زیر را بنویسید.</li>
+            </ol>
+            <div className="join-codes">
+              <div className="join-box">
+                <span className="muted small">کد اتصال</span>
+                <b className="code-big num" dir="ltr">{digits(c.code)}</b>
+                <button type="button" className="kss-btn kss-btn--ghost kss-btn--sm" onClick={() => copy(c.code, 'کد')}><Icon name="copy" size={14} />کپی</button>
+              </div>
+              <div className="join-box">
+                <span className="muted small">کلمه</span>
+                <b className="word-big">{c.word}</b>
+                <button type="button" className="kss-btn kss-btn--ghost kss-btn--sm" onClick={() => copy(c.word, 'کلمه')}><Icon name="copy" size={14} />کپی</button>
+              </div>
+            </div>
+            <Alert tone="info">بعد از اتصال، نام مشاور در «مشاوران» دیده می‌شود و می‌توانید برایش فایل بفرستید.</Alert>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/** Amin #6336: a file's own record — everything on it, who has it, and what can be done with it */
+function FileModal({ o, f, onClose, onSend, onShares, reload }: { o: Overview; f: OfficeFile; onClose: () => void; onSend: () => void; onShares: () => void; reload: () => void }) {
+  const { busy, run } = useAction();
+  const names = new Map(o.advisers.map((a) => [a.id, a.name]));
+  const holders = (f.shares ?? []).map((s) => (s.adviserId === '*' ? 'همهٔ مشاوران' : names.get(s.adviserId) ?? 'مشاور') + (s.until ? ` (تا ${persianDate(s.until)})` : ''));
+  const left = daysLeft(f.expiresAt);
+  const row = (k: string, v: ReactNode) => (v === null || v === '' || v === undefined ? null : <><dt>{k}</dt><dd>{v}</dd></>);
+  return (
+    <Modal title={f.title} sub={[f.propertyType, [f.city, f.region].filter(Boolean).join('، ')].filter(Boolean).join(' · ')} onClose={onClose} dismissable
+      footer={<><Btn onClick={() => run(() => api.renew(f.id).then(reload), 'فایل ۳۰ روز تمدید شد')} disabled={busy}>تمدید ۳۰ روز</Btn><Btn variant="primary" icon="upload" onClick={onSend}>ارسال به مشاوران</Btn></>}>
+      <div className="stack">
+        <div className="row tight wrap">
+          <Badge tone={f.kind === 'فروش' ? 'info' : 'neutral'} icon={false}>{f.kind}</Badge>
+          {left <= 7 ? <Badge tone="warn">{left ? fa(left) + ' روز تا انقضا' : 'امروز منقضی می‌شود'}</Badge> : <Badge tone="neutral" icon={false}>{fa(left)} روز اعتبار</Badge>}
+        </div>
+        <dl className="kv file-kv">
+          {row('قیمت', f.kind === 'فروش' || f.kind === 'تهاتر' ? (f.price != null ? money(f.price) : null) : null)}
+          {row('ودیعه', f.deposit != null ? money(f.deposit) : null)}
+          {row('اجاره', f.rent != null ? money(f.rent) : null)}
+          {row('متراژ', f.size != null ? fa(f.size) + ' متر' : null)}
+          {row('اتاق', f.rooms != null ? fa(f.rooms) : null)}
+          {row('آدرس', f.address)}
+          {row('توضیح', f.description)}
+          {row('مالک', f.ownerName || f.ownerPhone ? <span className="row tight">{f.ownerName}{f.ownerPhone && <a href={`tel:${f.ownerPhone}`} className="num" dir="ltr">{digits(f.ownerPhone)}</a>}</span> : null)}
+          {row('ثبت', ago(f.createdAt))}
+          {row('توکن هر ارسال', f.tokens != null ? fa(Math.round(f.tokens * 100) / 100) : null)}
+        </dl>
+        <Card title="فرستاده به" sub={holders.length ? `${fa(holders.length)} مورد` : undefined}
+          end={holders.length ? <button type="button" className="kss-btn kss-btn--link kss-btn--sm" onClick={onShares}>دیدن و لغو</button> : undefined}>
+          {holders.length ? <ul className="plain stack sm">{holders.map((h, i) => <li key={i}>{h}</li>)}</ul> : <span className="faint">هنوز برای مشاوری فرستاده نشده است.</span>}
+        </Card>
+      </div>
+    </Modal>
+  );
+}
+
+/** Amin #6342 «اشتراک فایل‌ها» from the phone's bottom bar: pick files, then the usual send window */
+function PickFilesModal({ o, onClose, onNext }: { o: Overview; onClose: () => void; onNext: (ids: string[]) => void }) {
+  const [q, setQ] = useState('');
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const rows = o.files.filter((f) => !q || [f.title, f.region, f.city].some((x) => x?.includes(q)));
+  const toggle = (id: string) => setPicked((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  return (
+    <Modal title="اشتراک فایل‌ها" sub="فایل‌هایی را که می‌خواهید برای مشاوران بفرستید انتخاب کنید" onClose={onClose}
+      footer={<Btn variant="primary" icon="upload" disabled={!picked.size} onClick={() => onNext([...picked])}>{picked.size ? `ادامه با ${fa(picked.size)} فایل` : 'ادامه'}</Btn>}>
+      {!o.files.length ? <Empty compact title="دفتر هنوز فایلی ندارد">اول یک فایل تازه ثبت کنید.</Empty> : (
+        <div className="stack sm">
+          <SearchBox value={q} onChange={setQ} placeholder="جست‌وجو در عنوان یا منطقه" />
+          <ul className="plain pick-list">
+            {rows.map((f) => (
+              <li key={f.id}><label className="pick-row">
+                <input type="checkbox" className="kss-check" checked={picked.has(f.id)} onChange={() => toggle(f.id)} />
+                <span className="grow"><b>{f.title}</b><span className="faint xs block">{f.kind} · {f.region || f.city} · {priceOf(f)}</span></span>
+              </label></li>
+            ))}
+          </ul>
         </div>
       )}
     </Modal>
@@ -628,7 +745,7 @@ function Settings({ o }: { o: Overview }) {
 function Dashboard() {
   const [o, setO] = useState<Overview | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [layer, setLayer] = useState<null | { t: 'new' } | { t: 'code' } | { t: 'send'; ids: string[] } | { t: 'shares'; id: string }>(null);
+  const [layer, setLayer] = useState<null | { t: 'new' } | { t: 'code' } | { t: 'send'; ids: string[] } | { t: 'shares'; id: string } | { t: 'file'; id: string } | { t: 'pick' }>(null);
   const [nav, setNav] = useState(false);
   const toast = useToast();
   const load = useCallback(() => api.overview().then((x) => { setO(x); setErr(null); }, (e: Error) => setErr(e.message)), []);
@@ -696,7 +813,7 @@ function Dashboard() {
                 <Card id="sharing" title="قواعد ارسال به مشاوران" sub="پیش‌فرض هر ارسال؛ هنگام ارسال قابل تغییر است"><Sharing o={o} reload={() => void load()} /></Card>
               </div>
               <Card id="files" title="فایل‌های دفتر" sub={`${fa(o.files.length)} فایل · انتخاب تکی یا چندتایی برای ارسال`} end={<Btn size="sm" icon="plus" onClick={() => setLayer({ t: 'new' })}>فایل تازه</Btn>} flush>
-                <FilesTable o={o} onNew={() => setLayer({ t: 'new' })} onSend={(ids) => setLayer({ t: 'send', ids })} onShares={(id) => setLayer({ t: 'shares', id })} />
+                <FilesTable o={o} onNew={() => setLayer({ t: 'new' })} onSend={(ids) => setLayer({ t: 'send', ids })} onShares={(id) => setLayer({ t: 'shares', id })} onOpen={(id) => setLayer({ t: 'file', id })} />
               </Card>
               <TokensCard reloadKey={o.asOf} />
               <Card id="settings" title="تنظیمات دفتر"><Settings o={o} /></Card>
@@ -707,6 +824,19 @@ function Dashboard() {
       {layer?.t === 'new' && <NewFileModal onClose={() => setLayer(null)} onMade={(id, title) => { toast(`«${title}» ثبت شد`); void load(); setLayer({ t: 'send', ids: [id] }); }} />}
       {layer?.t === 'code' && <CodeModal onClose={() => { setLayer(null); void load(); }} />}
       {layer?.t === 'shares' && o && <SharesModal o={o} fileId={layer.id} onClose={() => setLayer(null)} reload={() => void load()} />}
+      {layer?.t === 'file' && o && (() => {
+        const f = o.files.find((x) => x.id === layer.id);
+        return f ? <FileModal o={o} f={f} onClose={() => setLayer(null)} onSend={() => setLayer({ t: 'send', ids: [f.id] })} onShares={() => setLayer({ t: 'shares', id: f.id })} reload={() => void load()} /> : null;
+      })()}
+      {layer?.t === 'pick' && o && <PickFilesModal o={o} onClose={() => setLayer(null)} onNext={(ids) => setLayer({ t: 'send', ids })} />}
+      {/* Amin #6342: the phone's bottom bar, quick ways in (Material icons) */}
+      <nav className="bottom-bar" aria-label="میانبرها">
+        <a href="#top"><Icon name="overview" size={22} /><span>نمای کلی</span></a>
+        <a href="#files"><Icon name="file" size={22} /><span>فایل‌ها</span></a>
+        <button type="button" className="bb-main" onClick={() => setLayer({ t: 'new' })} aria-label="فایل تازه"><Icon name="plus" size={26} /></button>
+        <button type="button" onClick={() => setLayer({ t: 'pick' })} disabled={!o}><Icon name="upload" size={22} /><span>اشتراک فایل‌ها</span></button>
+        <button type="button" onClick={() => setLayer({ t: 'code' })}><Icon name="users" size={22} /><span>افزودن مشاور</span></button>
+      </nav>
       {layer?.t === 'send' && o &&<SendModal o={o} ids={layer.ids} onClose={() => setLayer(null)} onSent={() => { setLayer(null); void load(); }} />}
     </div>
   );
