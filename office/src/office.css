@@ -1,17 +1,60 @@
 /* The office dashboard's few own pieces; everything else is the IRIS panel's base.css / kss-kit.css */
-.login { min-block-size: 100vh; display: grid; place-items: center; padding: var(--s6); background: var(--bg-2, var(--kss-color-bg-subtle)); }
-.login-card { inline-size: min(420px, 100%); padding: var(--s8); display: flex; flex-direction: column; gap: var(--s4); }
-.login-card .side-brand { padding: 0; border: 0; }
-.eyvan-link { display: flex; flex-direction: column; align-items: center; gap: var(--s3); text-align: center; }
-.eyvan-link .kss-field, .eyvan-link .kss-btn { align-self: stretch; }
-.eyvan-steps { list-style-type: persian; text-align: start; margin: 0; padding-inline-start: 1.25em; display: flex; flex-direction: column; gap: var(--s2); line-height: 1.8; }
+/* Amin #6743 login redesign: brand → what/who → steps → one field → one primary action; secondary way below «یا» */
+.login { min-block-size: 100vh; display: grid; place-items: center; padding: var(--s6); background:
+  radial-gradient(60rem 30rem at 50% -10%, var(--accent-soft, #eef4ff), transparent 70%), var(--bg-2, var(--kss-color-bg-subtle)); }
+.login-card { inline-size: min(440px, 100%); padding: var(--s8); display: flex; flex-direction: column; gap: var(--s5); box-shadow: 0 1px 2px rgb(15 23 42 / .04), 0 12px 32px -12px rgb(15 23 42 / .14); }
+.login-brand { display: flex; align-items: center; gap: var(--s3); }
+.login-brand img { border-radius: 12px; box-shadow: 0 0 0 1px var(--line, #e5e7eb); }
+.login-brand b { display: block; font-size: var(--fs-lg); line-height: 1.3; }
+.login-brand small { color: var(--text-2, var(--kss-color-text-secondary)); font-size: var(--fs-sm); }
+.login-head { display: flex; flex-direction: column; gap: var(--s2); }
+.login-head p { margin: 0; line-height: 1.8; }
+.login-title { font-size: var(--fs-2xl, 24px); line-height: 1.35; margin: 0; }
+.login-steps { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-sm); color: var(--text-3, #94a3b8); }
+.login-steps li { display: flex; align-items: center; gap: var(--s2); }
+.login-steps li + li::before { content: ''; inline-size: 24px; block-size: 1px; background: var(--line, #e5e7eb); }
+.login-steps .n { inline-size: 22px; block-size: 22px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line, #e5e7eb); font-size: 12px; font-weight: 600; }
+.login-steps .on { color: var(--text-1, inherit); font-weight: 600; }
+.login-steps .on .n { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.login-steps .done .n { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-text); }
+.eyvan-flow { display: flex; flex-direction: column; gap: var(--s4); }
+.phone-input { font-size: var(--fs-lg); letter-spacing: .06em; text-align: center; font-variant-numeric: tabular-nums; }
+.phone-num { font-variant-numeric: tabular-nums; unicode-bidi: isolate; }
+.eyvan-wait { display: flex; flex-direction: column; align-items: center; gap: var(--s3); text-align: center; }
+.eyvan-wait h2, .eyvan-state h2 { font-size: var(--fs-lg); margin: 0; }
+.eyvan-wait p, .eyvan-state p { margin: 0; line-height: 1.9; }
+.wait-ring { --p: 1; inline-size: 88px; block-size: 88px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--accent) calc(var(--p) * 360deg), var(--surface-3, #e5e7eb) 0); transition: background .9s linear; }
+.wait-ring img { inline-size: 76px; block-size: 76px; border-radius: 50%; background: var(--surface, #fff); padding: 12px; box-sizing: border-box; }
+.wait-ring.off { background: var(--surface-3, #e5e7eb); }
+.wait-ring.off img { filter: grayscale(1); opacity: .6; }
+.wait-line { display: inline-flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-full); background: var(--surface-2); font-size: var(--fs-sm); }
+.wait-line .timer { font-weight: 700; font-variant-numeric: tabular-nums; min-inline-size: 3.2em; }
+.eyvan-help { font-size: var(--fs-sm); color: var(--text-2, inherit); border-block-start: 1px solid var(--line); padding-block-start: var(--s3); }
+.eyvan-help summary { cursor: pointer; font-weight: 600; border-radius: var(--r-sm); }
+.eyvan-help summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyvan-help ul { margin: var(--s2) 0 0; padding-inline-start: 1.2em; line-height: 1.9; }
+.eyvan-state { display: flex; flex-direction: column; align-items: center; gap: var(--s3); text-align: center; }
+.eyvan-state .kss-btn { align-self: stretch; }
+.state-ico { inline-size: 52px; block-size: 52px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--warn-soft, var(--kss-color-status-warning-subtle, #fff7e6)); color: var(--warn-text, var(--kss-color-status-warning-text, #92400e)); }
+.app-path { align-self: stretch; display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); border-radius: var(--r); background: var(--surface-2); border: 1px dashed var(--line); line-height: 1.8; }
+.login-or { display: flex; align-items: center; gap: var(--s3); color: var(--text-3, #94a3b8); font-size: var(--fs-sm); }
+.login-or::before, .login-or::after { content: ''; flex: 1; block-size: 1px; background: var(--line, #e5e7eb); }
+.login-alt img, .eyvan-state .kss-btn img { border-radius: 5px; }
+.login-foot { margin: 0; text-align: center; line-height: 1.8; }
+.login-card .kss-btn:focus-visible, .login-card a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 480px) {
+  .login { padding: 0; place-items: stretch; background: var(--surface, #fff); }
+  .login-card { inline-size: 100%; min-block-size: 100vh; border: 0; border-radius: 0; box-shadow: none; padding: var(--s6) var(--s5); }
+  .login-title { font-size: var(--fs-xl, 22px); }
+}
 .wait-dot { inline-size: 14px; block-size: 14px; border-radius: 50%; border: 2px solid var(--kss-color-border, #e5e7eb); border-top-color: var(--kss-color-primary, #2563eb); animation: wait-spin 0.9s linear infinite; }
 @keyframes wait-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .wait-dot { animation: none; } }
 @media (max-width: 480px) { .hide-sm { display: none !important; } }
 .link-code { font-size: 28px; font-weight: 700; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
 .login-card .small { font-size: 12px; }
-.login-title { font-size: var(--fs-xl, 22px); margin: 0; }
 .plain { list-style: none; margin: 0; padding: 0; }
 .xs { font-size: var(--fs-xs); }
 .rule { justify-content: space-between; padding-block: var(--s2); border-block-end: 1px solid var(--line); }
@@ -159,3 +202,12 @@
   background: var(--surface, #fff); font: inherit; color: inherit; text-align: start; cursor: pointer; }
 .add-item:hover { border-color: var(--accent, var(--kss-color-primary, #2563eb)); }
 .add-ico { inline-size: 40px; block-size: 40px; border-radius: 10px; display: grid; place-items: center; flex: none; background: var(--accent-soft, #eff6ff); color: var(--accent, var(--kss-color-primary, #2563eb)); }
+/* while the app confirms (or the number is not active) only that step shows: no second way, no footer */
+.login-card:has(.eyvan-wait) .login-or,
+.login-card:has(.eyvan-wait) .login-alt,
+.login-card:has(.eyvan-wait) .login-foot,
+.login-card:has(.eyvan-wait) .login-head p,
+.login-card:has(.eyvan-state) .login-or,
+.login-card:has(.eyvan-state) .login-alt,
+.login-card:has(.eyvan-state) .login-foot,
+.login-card:has(.eyvan-state) .login-head p { display: none; }
