@@ -26,6 +26,8 @@ app.set('trust proxy', 'loopback')
 app.use(cors())
 // AZAR-SYNC-001: mounted before the small global body limit; it parses its own larger bodies
 app.use('/sync', sync.router)
+// Amin #6339/#6341/#6523: protected file sharing between two EYVAN apps (own body limit: photos come base64)
+app.use('/share', require('./shareRoutes').router)
 // Amin #5245: token purchases (before the JSON parser: billing's paid notice is checked on its raw, signed body)
 app.use('/tokens', purchases.router)
 app.use(purchases.bankReturn)
