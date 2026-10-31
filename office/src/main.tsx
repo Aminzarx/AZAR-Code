@@ -154,7 +154,7 @@ function Login({ onIn }: { onIn: () => void }) {
                 <Btn type="submit" variant="primary" busy={busy} disabled={!username.trim() || !password}>ورود</Btn>
               </>
             )}
-            <p className="muted small">پنل دفتر را از برنامهٔ ایوان، تنظیمات ← اتصال‌ها و API‌ها ← پنل دفتر املاک، درخواست می‌دهید.</p>
+            <p className="muted small">پنل دفتر را از برنامهٔ ایوان، تنظیمات ← اتصال‌ها و API‌ها ← دفتر املاک ← درخواست پنل املاک، درخواست می‌دهید.</p>
           </>
         )}
       </form>

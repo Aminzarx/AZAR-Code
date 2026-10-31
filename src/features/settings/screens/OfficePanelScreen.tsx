@@ -92,7 +92,7 @@ export function OfficePanelScreen({ navigation }: Props): React.JSX.Element {
   const showForm = status !== null && !pending && (request?.status !== 'approved' || ended)
 
   return (
-    <FormScreenContainer headerTitle="پنل دفتر املاک" onBack={() => navigation.goBack()}>
+    <FormScreenContainer headerTitle="درخواست پنل املاک" onBack={() => navigation.goBack()}>
       <Text style={[theme.typography('bodyMd'), styles.lead]}>
         با پنل دفتر املاک، فایل‌های دفتر و کار مشاوران را در وب، در پنل کاربری kssx.ir، مدیریت می‌کنید. پنل پس از بررسی
         درخواست شما فعال می‌شود.

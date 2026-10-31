@@ -26,6 +26,7 @@ import { PersonalizeScreen } from '@features/settings/screens/PersonalizeScreen'
 import { ConnectionsScreen } from '@features/settings/screens/ConnectionsScreen'
 import { OfficePanelScreen } from '@features/settings/screens/OfficePanelScreen'
 import { OfficeJoinScreen } from '@features/settings/screens/OfficeJoinScreen'
+import { OfficeHubScreen } from '@features/settings/screens/OfficeHubScreen'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
@@ -78,6 +79,8 @@ export type MainStackParamList = {
   OfficePanel: undefined
   /** Amin #6330: an adviser joins an office (code + word, or the dashboard's QR) and sees the files it sent */
   OfficeJoin: undefined
+  /** Amin #6330: «دفتر املاک» with its two sections (connect to an office dashboard / ask for the panel) */
+  OfficeHub: undefined
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -143,6 +146,7 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['Connections', ConnectionsScreen],
   ['OfficePanel', OfficePanelScreen],
   ['OfficeJoin', OfficeJoinScreen],
+  ['OfficeHub', OfficeHubScreen],
   ['CreateReminder', LockedCreateReminder],
   ['ReminderDetail', ReminderDetailScreen],
   ['ContractList', LockedContractList],
@@ -159,7 +163,8 @@ const SETTINGS_PAGES = new Set<string>([
   'Personalize',
   'Connections',
   'OfficePanel',
-  'OfficeJoin'
+  'OfficeJoin',
+  'OfficeHub'
 ])
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {

@@ -65,11 +65,11 @@ export function ConnectionsScreen({ navigation, route }: Props): React.JSX.Eleme
         </View>
         {error ? <Text style={[theme.typography('bodySm'), styles.error]}>{error}</Text> : null}
       </View>
-      {/* Amin #5970/#6032: the office panel is asked for here; sales management approves */}
+      {/* Amin #5970/#6330: «دفتر املاک» — connect to an office dashboard, or ask for the office panel */}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="پنل دفتر املاک"
-        onPress={() => navigation.navigate('OfficePanel')}
+        accessibilityLabel="دفتر املاک"
+        onPress={() => navigation.navigate('OfficeHub')}
         style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
       >
         <View style={styles.row}>
@@ -77,29 +77,9 @@ export function ConnectionsScreen({ navigation, route }: Props): React.JSX.Eleme
             <Icon name="building" size="sm" color={theme.colors.primary} />
           </View>
           <View style={styles.text}>
-            <Text style={[theme.typography('titleSm'), styles.title]}>پنل دفتر املاک</Text>
+            <Text style={[theme.typography('titleSm'), styles.title]}>دفتر املاک</Text>
             <Text style={[theme.typography('bodySm'), styles.note]}>
-              فایل‌های دفتر و کار مشاوران را در وب مدیریت کنید؛ با درخواست و پس از تأیید.
-            </Text>
-          </View>
-          <Icon name="chevron" size="sm" color={theme.colors.onSurfaceVariant} />
-        </View>
-      </Pressable>
-      {/* Amin #6330: an adviser joins an office with the dashboard's connection code (typed or scanned) */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="اتصال به دفتر املاک"
-        onPress={() => navigation.navigate('OfficeJoin')}
-        style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
-      >
-        <View style={styles.row}>
-          <View style={styles.iconWrap}>
-            <Icon name="people" size="sm" color={theme.colors.primary} />
-          </View>
-          <View style={styles.text}>
-            <Text style={[theme.typography('titleSm'), styles.title]}>اتصال به دفتر املاک</Text>
-            <Text style={[theme.typography('bodySm'), styles.note]}>
-              مشاور یک دفتر هستید؟ با کد اتصالی که مدیر دفتر می‌دهد وصل شوید و فایل‌هایی را که برایتان می‌فرستد ببینید.
+              اتصال به داشبورد یک دفتر، یا درخواست پنل دفتر املاک برای خودتان.
             </Text>
           </View>
           <Icon name="chevron" size="sm" color={theme.colors.onSurfaceVariant} />

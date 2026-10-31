@@ -454,7 +454,7 @@ export function SettingsScreen(props: Props): React.JSX.Element {
           <SettingsRow
             icon="download"
             label="اتصال‌ها و API‌ها"
-            value="ورود آگهی از دیوار · پنل دفتر املاک"
+            value="ورود آگهی از دیوار · دفتر املاک"
             onPress={() => props.navigation.navigate('Connections')}
           />
           <SettingsRow

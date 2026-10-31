@@ -15,7 +15,7 @@ const money = (n: number | null) => (n ? `${toPersianDigits(Math.round(n).toLoca
 const num = (n: number | null) => (n ? toPersianDigits(String(n)) : null)
 
 /**
- * Amin #6330: «اتصال به دفتر املاک» — an adviser joins a real-estate office with the one-time code + word the office
+ * Amin #6330: «اتصال به داشبورد دفتر» (under «دفتر املاک») — an adviser joins a real-estate office with the one-time code + word the office
  * dashboard makes («ساخت کد اتصال مشاور»): typed, or scanned from its QR. Once in, the files the office sent show here,
  * only with the fields the office allowed; «جدا شدن از دفتر» leaves (the office's sends to this adviser end).
  * One office at a time: joining another one leaves the previous office (the server's rule).
@@ -98,7 +98,7 @@ export function OfficeJoinScreen({ navigation }: Props): React.JSX.Element {
 
   const office = view?.office ?? null
   return (
-    <FormScreenContainer headerTitle="اتصال به دفتر املاک" onBack={() => navigation.goBack()}>
+    <FormScreenContainer headerTitle="اتصال به داشبورد دفتر" onBack={() => navigation.goBack()}>
       {!view ? (
         loadError ? (
           <View style={styles.card}>
