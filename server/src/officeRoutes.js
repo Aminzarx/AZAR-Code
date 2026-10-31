@@ -1333,4 +1333,4 @@ adviser.post('/link/confirm', signInLimit, (req, res) => {
 router.use('/adviser', adviser)
 router.use(manager)
 
-module.exports = { router, officeBalance, officeAccount, legacyAccount, __sealForTest: (f) => seal(f), mirrorIn, moveOfficeFiles, mergeOfficeTokens, giveDefault, giveMissingDefaults, OFFICE_DEFAULT_TOKENS, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity, withdrawOffice, demoOffice }
+module.exports = { router, officeBalance, officeAccount, legacyAccount, __sealForTest: (f) => seal(f), __openForTest: (b) => open(b), mirrorIn, moveOfficeFiles, mergeOfficeTokens, giveDefault, giveMissingDefaults, OFFICE_DEFAULT_TOKENS, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity, withdrawOffice, demoOffice }
