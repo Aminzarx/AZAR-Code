@@ -25,6 +25,7 @@ import { BuyTokensScreen } from '@features/settings/screens/BuyTokensScreen'
 import { PersonalizeScreen } from '@features/settings/screens/PersonalizeScreen'
 import { ConnectionsScreen } from '@features/settings/screens/ConnectionsScreen'
 import { OfficePanelScreen } from '@features/settings/screens/OfficePanelScreen'
+import { OfficeJoinScreen } from '@features/settings/screens/OfficeJoinScreen'
 import { StyleSheet, View } from 'react-native'
 import { useTheme, type Theme } from '@shared/theme'
 import { Icon, type IconName } from '@shared/components'
@@ -75,6 +76,8 @@ export type MainStackParamList = {
   Connections: { fromShare?: boolean } | undefined
   /** Amin #5970/#6034: asking for the office panel */
   OfficePanel: undefined
+  /** Amin #6330: an adviser joins an office (code + word, or the dashboard's QR) and sees the files it sent */
+  OfficeJoin: undefined
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>()
@@ -139,6 +142,7 @@ const SHARED_SCREENS: [keyof MainStackParamList, React.ComponentType<any>][] = [
   ['Personalize', PersonalizeScreen],
   ['Connections', ConnectionsScreen],
   ['OfficePanel', OfficePanelScreen],
+  ['OfficeJoin', OfficeJoinScreen],
   ['CreateReminder', LockedCreateReminder],
   ['ReminderDetail', ReminderDetailScreen],
   ['ContractList', LockedContractList],
@@ -154,7 +158,8 @@ const SETTINGS_PAGES = new Set<string>([
   'BuyTokens',
   'Personalize',
   'Connections',
-  'OfficePanel'
+  'OfficePanel',
+  'OfficeJoin'
 ])
 
 function makeStack(root: keyof MainStackParamList, RootScreen: React.ComponentType<any>) {

@@ -925,7 +925,7 @@ adviser.post('/leave', (req, res) => {
     db.prepare('UPDATE office_advisers SET ended_at = ? WHERE office_id = ? AND user_id = ?').run(now(), link.office_id, req.adviserId)
     db.prepare('DELETE FROM office_shares WHERE office_id = ? AND adviser_id = ?').run(link.office_id, req.adviserId)
   }
-  res.status(204).end()
+  res.json({ ok: true }) // the app reads every answer as JSON (Amin #6330)
 })
 
 

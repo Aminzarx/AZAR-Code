@@ -167,6 +167,27 @@ export function linkCodeOf(raw: string): string | null {
   return /^\d{8}$/.test(digits) ? digits : null
 }
 
+/**
+ * Amin #6330: the dashboard's adviser connection QR «eyvan://office-join?c=12345678&w=<word>» → { code, word }, or null
+ * when it is not one (a sign-in QR, a referral code…)
+ */
+export function joinEntryOf(raw: string): { code: string; word: string } | null {
+  const m = raw.trim().match(/^eyvan:\/\/office-join\?(.+)$/)
+  if (!m) return null
+  const params: Record<string, string> = {}
+  for (const part of m[1].split('&')) {
+    const [k, v = ''] = part.split('=')
+    try {
+      params[k] = decodeURIComponent(v.replace(/\+/g, ' '))
+    } catch {
+      return null
+    }
+  }
+  const code = linkCodeOf(params.c ?? '')
+  const word = (params.w ?? '').trim()
+  return code && word ? { code, word } : null
+}
+
 /** The server's own Persian sentence when it refused; otherwise the network line */
 export function officeErrorText(error: unknown): string {
   if (error instanceof OfficeRefusedError && error.message) return error.message

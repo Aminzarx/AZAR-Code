@@ -76,6 +76,25 @@ export type OfficeRequest = {
 export type OfficeStatus = { request: OfficeRequest | null; portal: boolean; demo?: boolean }
 /** Amin #6346: a dashboard sign-in waiting for this phone (the manager typed this number on the dashboard) */
 export type OfficeSignIn = { code: string; createdAt: string; expiresAt: string }
+/** Amin #6330: a file an office sent this adviser — only the fields the office allowed (null = not shared) */
+export type OfficeSentFile = {
+  id: string
+  title: string | null
+  kind: string | null
+  propertyType: string | null
+  city: string | null
+  region: string | null
+  size: number | null
+  rooms: number | null
+  price: number | null
+  deposit: number | null
+  rent: number | null
+  description: string | null
+  address: string | null
+  ownerName: string | null
+  ownerPhone: string | null
+}
+export type OfficeAdviserView = { office: { name: string } | null; files: OfficeSentFile[] }
 export type OfficeRequestInput = {
   address: string
   unionLicence: boolean
@@ -218,6 +237,17 @@ export class SyncApiClient {
   }
   officeCancel(sessionToken: string): Promise<OfficeStatus> {
     return this.post('/office/adviser/request/cancel', { sessionToken })
+  }
+  /** Amin #6330: an adviser joins an office with the dashboard's one-time code + word (typed or scanned) */
+  officeJoin(sessionToken: string, code: string, word: string): Promise<{ office: { name: string } }> {
+    return this.post('/office/adviser/join', { sessionToken, code, word })
+  }
+  /** the office this adviser is in and the files it sent (office null = in no office) */
+  officeAdviserFiles(sessionToken: string): Promise<OfficeAdviserView> {
+    return this.post('/office/adviser/files', { sessionToken })
+  }
+  officeLeave(sessionToken: string): Promise<{ ok: true }> {
+    return this.post('/office/adviser/leave', { sessionToken })
   }
   /** Amin #6033 «ورود با ایوان»: confirm the code the office dashboard shows */
   officeLinkConfirm(sessionToken: string, code: string): Promise<{ ok: true }> {

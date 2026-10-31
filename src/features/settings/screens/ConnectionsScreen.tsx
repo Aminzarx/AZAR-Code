@@ -85,6 +85,26 @@ export function ConnectionsScreen({ navigation, route }: Props): React.JSX.Eleme
           <Icon name="chevron" size="sm" color={theme.colors.onSurfaceVariant} />
         </View>
       </Pressable>
+      {/* Amin #6330: an adviser joins an office with the dashboard's connection code (typed or scanned) */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="اتصال به دفتر املاک"
+        onPress={() => navigation.navigate('OfficeJoin')}
+        style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
+      >
+        <View style={styles.row}>
+          <View style={styles.iconWrap}>
+            <Icon name="people" size="sm" color={theme.colors.primary} />
+          </View>
+          <View style={styles.text}>
+            <Text style={[theme.typography('titleSm'), styles.title]}>اتصال به دفتر املاک</Text>
+            <Text style={[theme.typography('bodySm'), styles.note]}>
+              مشاور یک دفتر هستید؟ با کد اتصالی که مدیر دفتر می‌دهد وصل شوید و فایل‌هایی را که برایتان می‌فرستد ببینید.
+            </Text>
+          </View>
+          <Icon name="chevron" size="sm" color={theme.colors.onSurfaceVariant} />
+        </View>
+      </Pressable>
       <ConfirmDialog
         visible={asking}
         title="ورود آگهی از دیوار"

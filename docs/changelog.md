@@ -6,6 +6,14 @@ entries exist even before any code ships.
 
 ---
 
+## 1.5.18 — advisers join an office in the app; «پر/آزاد کردن ظرفیت» in the token sheet (Amin #6330, #6497)
+
+- «اتصال به دفتر املاک» (#6330), Settings → «اتصال‌ها و API‌ها». Until now the dashboard told advisers to type its code in the app, but the app had no such screen.
+  - Not in an office: «اسکن بارکد کد اتصال» (the dashboard's code modal now draws a QR `eyvan://office-join?c=<8 digits>&w=<word>`, read by `joinEntryOf`), or type «کد اتصال» + «کلمه» → `POST /office/adviser/join`. The server's own sentence shows when the code is wrong, used or expired.
+  - In an office: its name, «فایل‌های دفتر» (`/office/adviser/files`: only the fields the office allowed; the owner's number can be called), «تازه کردن», and «جدا شدن از دفتر» (confirm → `/office/adviser/leave`, which now answers `{ok:true}` instead of 204). One office at a time, as the server already ruled.
+- Token sheet (#6400/#6497): «افزودن ظرفیت توسط پشتیبانی» stays with what was added. Support's «پر کردن ظرفیت» (+) and «آزاد کردن ظرفیت» (−) show as one used line «پر یا آزاد کردن ظرفیت توسط پشتیبانی» (`spentBy.adjusted`), so the used lines add up again.
+- Everything in 1.5.17 is included.
+
 ## 1.5.17 — office: «ورود با ایوان» by number, take the request back, dated shares, demo office (Amin #6343–#6346, #6349)
 
 - «ورود با ایوان» (#6346): the dashboard asks for the mobile number (no more QR or code). While the app is open and the account's office is on, it asks `POST /office/adviser/link/pending` every 3 s (`useOfficeSignIn`; no push service, so the dashboard's guide says «open the app first»). A waiting sign-in opens at once over whatever is on screen (`OfficeSignInPrompt`, mounted in `RootNavigator`): hold «نگه دارید تا وارد شوید» for 3 s (letting go starts over) → `link/confirm`; «این ورود من نیست» → `link/deny` and the dashboard says it was refused. The page's answer is the same for any number (it never says who has an office); a newer request for a number replaces the older one; another account's app can never confirm it. Dashboard sign-ins last 3 hours and live in the browser tab only (closing it = sign in again).
