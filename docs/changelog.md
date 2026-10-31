@@ -9,6 +9,7 @@ entries exist even before any code ships.
 ## 1.5.19 — protected file sharing between EYVAN apps (Amin #6339, #6341, #6523)
 
 - «اشتراک‌گذاری» on a file opens «تنظیمات اشتراک فایل»: hide the owner's number (default) or put the sender's in its place, and hide the owner's name, notes, exact address, photos, description, prices. Only what stays is sent (`POST /share/create`).
+- The title the other side sees (and the SMS text) is the file's own only when the address and the owner's name are both shared; otherwise a neutral one from type, area and region («آپارتمان ۱۲۰ متری – ونک»), since titles often hold the street or the owner (review S5-1).
 - «ساخت لینک یک‌بار مصرف»: barcode, 1-hour countdown, «کپی لینک», «ارسال پیامک» (the phone's own SMS app), «اشتراک». The link is `eyvan://share?c=…` and opens only in EYVAN (#6523).
 - Settings › «دریافت فایل»: scan or paste → `POST /share/receive` (once; not by the sender) → saved as a new file (key prefix `shared-`) with the «فایل اشتراکی» label; the receiver's normal file cost applies.
 - Everything in 1.5.18 is included.
