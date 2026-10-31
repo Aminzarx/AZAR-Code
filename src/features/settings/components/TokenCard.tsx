@@ -138,7 +138,7 @@ function TokenBreakdownSheet({
             <Line styles={styles} theme={theme} label="سهمیهٔ حساب" value={summary.allowance} />
             <Line styles={styles} theme={theme} label="هدیهٔ معرفی همکار" value={summary.earnedBy.referral} />
             <Line styles={styles} theme={theme} label="هدیهٔ تکمیل پروفایل" value={summary.earnedBy.profile} />
-            {/* Amin #6400: what support added (add, fill or release of capacity) */}
+            {/* Amin #6400: what support added to the total («افزودن ظرفیت») */}
             {summary.earnedBy.granted > 0 ? (
               <Line styles={styles} theme={theme} label="افزودن ظرفیت توسط پشتیبانی" value={summary.earnedBy.granted} />
             ) : null}
@@ -158,6 +158,10 @@ function TokenBreakdownSheet({
             ) : null}
             {summary.spentBy.deducted > 0 ? (
               <Line styles={styles} theme={theme} label="کسر ظرفیت توسط پشتیبانی" value={summary.spentBy.deducted} />
+            ) : null}
+            {/* Amin #6497: «پر کردن» adds to the used, «آزاد کردن» gives used back (net, may be below 0) */}
+            {summary.spentBy.adjusted ? (
+              <Line styles={styles} theme={theme} label="پر یا آزاد کردن ظرفیت توسط پشتیبانی" value={summary.spentBy.adjusted} />
             ) : null}
             <Line styles={styles} theme={theme} label="جمع" value={summary.spent} strong />
           </View>

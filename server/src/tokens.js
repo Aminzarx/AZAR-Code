@@ -37,8 +37,8 @@ const REASONS = [
   'office_file_hold', // Amin #6269: an office dashboard keeps a file (once, when the file is added)
   'office_file_share', // Amin #6269: an office sends a file to its advisers (the file's tokens × the new recipients)
   'office_default', // Amin #6289: the 2,500 tokens every office dashboard starts with (once per office)
-  'admin_release', // Amin #6400 «آزاد کردن ظرفیت»: KSS gave back what existing records held (per record, ref = the record)
-  'admin_fill' // Amin #6400 «پر کردن ظرفیت»: KSS topped the balance up to a level (default: the full starting amount)
+  'admin_release', // Amin #6400/#6497 «آزاد کردن ظرفیت»: KSS gave back N of the USED capacity (used −N, free +N; never below 0 used)
+  'admin_fill' // Amin #6400/#6497 «پر کردن ظرفیت»: KSS marked N of the capacity as used (used +N, free −N; never above the total)
 ]
 const BONUS_REASONS = ['referral_bonus', 'profile_bonus']
 /** the records that cost tokens, by the table the phone syncs them in */
@@ -51,9 +51,8 @@ const RECORD_KINDS = {
 }
 const RECORD_TABLES = Object.keys(RECORD_KINDS)
 const RECORD_REASONS = ['file', 'applicant', 'contract'].flatMap((k) => [`${k}_spend`, `${k}_refund`])
-// what a record counts as charged: its spends/refunds and a KSS release of it (#6400) — a released record holds nothing,
-// so deleting it gives nothing back and changing it charges its new size in full
-const CHARGE_REASONS = [...RECORD_REASONS, 'admin_release']
+// Amin #6497: «آزاد کردن» / «پر کردن ظرفیت» move the USED amount by a chosen number; «افزودن/کسر ظرفیت» (grant/deduct) move the total
+const ADJUST_REASONS = ['admin_fill', 'admin_release']
 /** photos.subject_type → the record table */
 const PHOTO_SUBJECTS = { property: 'properties', contract: 'contracts' }
 /** a file reaching the server = the colleague is active (owner or applicant file) */
@@ -129,9 +128,9 @@ function chargedFor(accountId, ref) {
   return db
     .prepare(
       `SELECT COALESCE(SUM(amount), 0) AS c FROM token_ledger
-       WHERE account_id = ? AND ref = ? AND reason IN (${CHARGE_REASONS.map(() => '?').join(', ')})`
+       WHERE account_id = ? AND ref = ? AND reason IN (${RECORD_REASONS.map(() => '?').join(', ')})`
     )
-    .get(accountId, ref, ...CHARGE_REASONS).c
+    .get(accountId, ref, ...RECORD_REASONS).c
 }
 
 /**
@@ -168,8 +167,8 @@ function ensureOpening(accountId, s, store) {
   const at = db.prepare('SELECT created_at FROM users WHERE id = ?').get(accountId)?.created_at ?? new Date().toISOString()
   db.transaction(() => {
     db.prepare(
-      `DELETE FROM token_ledger WHERE account_id = ? AND reason IN ('allowance', 'photo_spend', 'photo_refund', ${CHARGE_REASONS.map(() => '?').join(', ')})`
-    ).run(accountId, ...CHARGE_REASONS)
+      `DELETE FROM token_ledger WHERE account_id = ? AND reason IN ('allowance', 'photo_spend', 'photo_refund', ${RECORD_REASONS.map(() => '?').join(', ')})`
+    ).run(accountId, ...RECORD_REASONS)
     post(accountId, 'allowance', 0, `opening-v2:${accountId}`, null, at)
     if (store) {
       const subjects = db
@@ -184,21 +183,6 @@ function ensureOpening(accountId, s, store) {
       }
     }
   })()
-}
-
-/**
- * Amin #6400 «آزاد کردن ظرفیت»: every record the account holds now gives its capacity back (one admin_release line per
- * record, so the record then counts as holding nothing). The records stay. Returns { released, records }.
- */
-function releaseRecords(accountId, s, store, note, at = new Date().toISOString()) {
-  ensureOpening(accountId, s, store)
-  const held = db
-    .prepare(`SELECT ref, -SUM(amount) AS h FROM token_ledger WHERE account_id = ? AND ref IS NOT NULL AND reason IN (${CHARGE_REASONS.map(() => '?').join(', ')})
-       GROUP BY ref HAVING -SUM(amount) > 0.0005`)
-    .all(accountId, ...CHARGE_REASONS)
-  const batch = crypto.randomUUID()
-  for (const r of held) post(accountId, 'admin_release', r.h, `release:${accountId}:${r.ref}:${batch}`, r.ref, at)
-  return { released: round(held.reduce((t, r) => t + r.h, 0)), records: held.length, note }
 }
 
 /** Tehran day start (UTC+03:30) of `now`, as ISO. */
@@ -290,12 +274,14 @@ function summaryOf(accountId, s) {
     contracts: used('contract'),
     phoneChange: round(-sum(['phone_change'])),
     divarImport: round(-sum(['divar_import'])),
-    deducted: round(-sum(['admin_deduct']))
+    deducted: round(-sum(['admin_deduct'])),
+    // Amin #6497: KSS's «پر کردن» (+) and «آزاد کردن» (−) of the used capacity, net
+    adjusted: round(-sum(ADJUST_REASONS))
   }
   const spent = round(
-    spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange + spentBy.divarImport + spentBy.deducted
+    spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange + spentBy.divarImport + spentBy.deducted + spentBy.adjusted
   )
-  const granted = sum(['admin_grant', 'admin_fill', 'admin_release'])
+  const granted = sum(['admin_grant'])
   const earned = round(sum(BONUS_REASONS) + granted)
   const bought = sum(['pack_bought'])
   return {
@@ -309,6 +295,16 @@ function summaryOf(accountId, s) {
     spent,
     spentBy
   }
+}
+
+/**
+ * Amin #6497: the capacity an app account has USED (what its records, phone change, Divar import and KSS's fill/release
+ * took; «کسر ظرفیت» lowers the total, so it is not «used») and what is FREE (the balance). «آزاد کردن» N needs N <= used,
+ * «پر کردن» N needs N <= free.
+ */
+function usedAndFree(accountId, s) {
+  const t = summaryOf(accountId, s)
+  return { used: Math.max(0, round(t.spent - t.spentBy.deducted)), free: Math.max(0, balanceOf(accountId, s)) }
 }
 
 /** set by syncRoutes (it holds the key that opens the stored rows) */
@@ -349,7 +345,7 @@ module.exports = {
   settings,
   ensureOpening,
   chargeRecords,
-  releaseRecords,
+  usedAndFree,
   useStore,
   storeOf,
   summaryOf,

@@ -8,7 +8,7 @@ export type TokenSummary = {
   balance: number
   allowance: number
   earned: number
-  /** granted (Amin #6400): what support added — «افزودن ظرفیت», «پر کردن ظرفیت», «آزاد کردن ظرفیت» */
+  /** granted (Amin #6400): what support added to the total («افزودن ظرفیت») */
   earnedBy: { referral: number; profile: number; granted: number }
   bought: number
   spent: number
@@ -20,6 +20,7 @@ export type TokenSummary = {
     /** Navid 2026-10-27: Divar posts read into new files */
     divarImport: number
     deducted: number
+    adjusted: number
   }
   /** Amin #5351: what an invite earns (kss-pricing); null = no gift */
   referralBonus: number | null
@@ -48,7 +49,9 @@ export function normalizeSummary(summary: Partial<TokenSummary> | undefined): To
       phoneChange: summary.spentBy?.phoneChange ?? 0,
       divarImport: summary.spentBy?.divarImport ?? 0,
       // Amin #5243: taken off by support (billing «کسر ظرفیت», #6400), with the reason kept on the server
-      deducted: summary.spentBy?.deducted ?? 0
+      deducted: summary.spentBy?.deducted ?? 0,
+      // Amin #6497: support's «پر کردن ظرفیت» (+) and «آزاد کردن ظرفیت» (−), net
+      adjusted: summary.spentBy?.adjusted ?? 0
     }
   }
 }
