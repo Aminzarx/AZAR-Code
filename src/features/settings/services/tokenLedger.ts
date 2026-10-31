@@ -9,7 +9,8 @@ export type TokenSummary = {
   allowance: number
   earned: number
   /** granted (Amin #6400): what support added to the total («افزودن ظرفیت») */
-  earnedBy: { referral: number; profile: number; granted: number }
+  /** office (Amin #6330): the office dashboard's start tokens and what moved in from it — one pool */
+  earnedBy: { referral: number; profile: number; granted: number; office: number }
   bought: number
   spent: number
   spentBy: {
@@ -21,6 +22,8 @@ export type TokenSummary = {
     divarImport: number
     deducted: number
     adjusted: number
+    /** Amin #6330: the office dashboard's files and sends, from the same pool */
+    office: number
   }
   /** Amin #5351: what an invite earns (kss-pricing); null = no gift */
   referralBonus: number | null
@@ -38,7 +41,7 @@ export function normalizeSummary(summary: Partial<TokenSummary> | undefined): To
     balance: summary.balance,
     allowance: summary.allowance,
     earned: summary.earned ?? 0,
-    earnedBy: { referral: summary.earnedBy?.referral ?? 0, profile: summary.earnedBy?.profile ?? 0, granted: summary.earnedBy?.granted ?? 0 },
+    earnedBy: { referral: summary.earnedBy?.referral ?? 0, profile: summary.earnedBy?.profile ?? 0, granted: summary.earnedBy?.granted ?? 0, office: summary.earnedBy?.office ?? 0 },
     bought: summary.bought ?? 0,
     referralBonus: typeof summary.referralBonus === 'number' ? summary.referralBonus : null,
     spent: summary.spent ?? 0,
@@ -51,7 +54,8 @@ export function normalizeSummary(summary: Partial<TokenSummary> | undefined): To
       // Amin #5243: taken off by support (billing «کسر ظرفیت», #6400), with the reason kept on the server
       deducted: summary.spentBy?.deducted ?? 0,
       // Amin #6497: support's «پر کردن ظرفیت» (+) and «آزاد کردن ظرفیت» (−), net
-      adjusted: summary.spentBy?.adjusted ?? 0
+      adjusted: summary.spentBy?.adjusted ?? 0,
+      office: summary.spentBy?.office ?? 0
     }
   }
 }

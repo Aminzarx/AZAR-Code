@@ -55,6 +55,8 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_token_orders_account ON token_orders (account_id, created_at);
 `)
+// Amin #6330: an office dashboard's order (its account is the manager's own since the one pool): back to the dashboard
+if (!db.prepare('PRAGMA table_info(token_orders)').all().some((c) => c.name === 'via')) db.exec('ALTER TABLE token_orders ADD COLUMN via TEXT')
 
 function fail(res, status, code, message, extra = {}) {
   res.status(status).json({ error: { code, message }, ...extra })
@@ -222,7 +224,7 @@ router.post('/purchase', limited, express.json({ limit: '4kb' }), async (req, re
  * `closed()` (who may buy now); asks billing for the payment. Used by the app (/tokens/purchase) and by the office
  * dashboard (Amin #6269, account «office:<id>»). → { body } or { status, error, message }.
  */
-async function startOrder({ accountId, phone, count, idem, closed }) {
+async function startOrder({ accountId, phone, count, idem, closed, office = false }) {
   const idemKey = `${accountId}:${idem}`
   const existing = db.prepare('SELECT * FROM token_orders WHERE idem_key = ?').get(idemKey)
   if (existing) {
@@ -232,7 +234,8 @@ async function startOrder({ accountId, phone, count, idem, closed }) {
     return { body: { order: orderView(await reconcile(existing)), payUrl: null } }
   }
   const p = await appPrices()
-  const min = minOf(p)
+  // Amin #6330: an office dashboard's purchase has no smallest amount (any whole number of tokens)
+  const min = office ? 1 : minOf(p)
   if (min === null) return { status: 409, error: 'min_unset', message: 'Token sales are not open.' }
   if (!Number.isInteger(count) || count < min || count > MAX_TOKENS) {
     return { status: 422, error: 'invalid_tokens', message: `کمترین خرید ${min.toLocaleString('fa-IR')} توکن است.` }
@@ -248,9 +251,9 @@ async function startOrder({ accountId, phone, count, idem, closed }) {
     expires_at: new Date(now.getTime() + OPEN_MINUTES * 60 * 1000).toISOString()
   }
   db.prepare(
-    `INSERT INTO token_orders (id, account_id, idem_key, tokens, unit_toman, base_toman, vat_toman, total_toman, live, created_at, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(order.id, accountId, idemKey, count, price.unitToman, price.baseToman, price.vatToman, price.totalToman, LIVE ? 1 : 0, order.created_at, order.expires_at)
+    `INSERT INTO token_orders (id, account_id, idem_key, tokens, unit_toman, base_toman, vat_toman, total_toman, live, created_at, expires_at, via)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(order.id, accountId, idemKey, count, price.unitToman, price.baseToman, price.vatToman, price.totalToman, LIVE ? 1 : 0, order.created_at, order.expires_at, office ? 'office' : null)
   let r
   try {
     r = await billing('POST', '/internal/eyvan/token-payments', {
@@ -327,8 +330,8 @@ router.post('/purchase/paid', limited, express.raw({ type: '*/*', limit: '4kb' }
 router.get('/paid', (req, res) => {
   // Android opens the app itself (eyvan://paid); iPhone and other browsers go back to the web app (#5183)
   // Amin #6269: an office's purchase goes back to its dashboard, not the app
-  const orderRow = typeof req.query.order === 'string' ? db.prepare('SELECT account_id FROM token_orders WHERE id = ?').get(req.query.order) : null
-  const forOffice = String(orderRow?.account_id || '').startsWith('office:')
+  const orderRow = typeof req.query.order === 'string' ? db.prepare('SELECT account_id, via FROM token_orders WHERE id = ?').get(req.query.order) : null
+  const forOffice = orderRow?.via === 'office' || String(orderRow?.account_id || '').startsWith('office:')
   const backToApp = forOffice
     ? 'https://kssx.ir/app/office/'
     : /Android/i.test(String(req.get('user-agent') || ''))

@@ -142,6 +142,10 @@ function TokenBreakdownSheet({
             {summary.earnedBy.granted > 0 ? (
               <Line styles={styles} theme={theme} label="افزودن ظرفیت توسط پشتیبانی" value={summary.earnedBy.granted} />
             ) : null}
+            {/* Amin #6330: the office dashboard shares this pool */}
+            {summary.earnedBy.office > 0 ? (
+              <Line styles={styles} theme={theme} label="توکن‌های داشبورد دفتر" value={summary.earnedBy.office} />
+            ) : null}
             <Line styles={styles} theme={theme} label="خرید بستهٔ توکن" value={summary.bought} />
             <Line styles={styles} theme={theme} label="جمع" value={tokenTotal(summary)} strong />
           </View>
@@ -160,6 +164,9 @@ function TokenBreakdownSheet({
               <Line styles={styles} theme={theme} label="کسر ظرفیت توسط پشتیبانی" value={summary.spentBy.deducted} />
             ) : null}
             {/* Amin #6497: «پر کردن» adds to the used, «آزاد کردن» gives used back (net, may be below 0) */}
+            {summary.spentBy.office > 0 ? (
+              <Line styles={styles} theme={theme} label="فایل‌ها و ارسال‌های داشبورد دفتر" value={summary.spentBy.office} />
+            ) : null}
             {summary.spentBy.adjusted ? (
               <Line styles={styles} theme={theme} label="پر یا آزاد کردن ظرفیت توسط پشتیبانی" value={summary.spentBy.adjusted} />
             ) : null}

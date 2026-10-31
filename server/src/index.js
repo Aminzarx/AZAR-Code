@@ -71,6 +71,17 @@ try {
 } catch (error) {
   console.error('office default tokens:', error.message)
 }
+// Amin #6330: one pool and one set of files — each office's own tokens move once into its manager's account, and its
+// files not yet in the manager's copy are written there (both run once; a restart finds nothing new)
+try {
+  const merged = office.mergeOfficeTokens()
+  if (merged.length) console.log(`office tokens moved into the managers' pools: ${merged.length} office(s)`)
+  const moved = office.moveOfficeFiles()
+  if (moved.length) console.log(`office files written into the managers' copies: ${moved.reduce((n, o) => n + o.written, 0)} (+${moved.reduce((n, o) => n + o.marked, 0)} already there)`)
+} catch (error) {
+  console.error('office one pool / one set of files:', error.message)
+}
+require('./tokens').settings().catch(() => null) // the allowance for balances read without waiting
 
 app.listen(PORT, HOST, () => {
   console.log(`AZAR auth server listening on ${HOST}:${PORT}`)

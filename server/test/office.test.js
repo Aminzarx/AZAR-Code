@@ -40,6 +40,7 @@ before(async () => {
   app.use(express.json())
   app.use('/auth', require('../src/authRoutes'))
   app.use('/office', require('../src/officeRoutes').router)
+  app.use('/presence', require('../src/presence').router)
   app.use('/admin', require('../src/adminRoutes').router)
   await new Promise((r) => {
     server = app.listen(0, '127.0.0.1', r)
@@ -88,8 +89,9 @@ async function approved(owner) {
   assert.equal(require('../src/officeRoutes').approveRequest(id, 'test').ok, true)
 }
 /** tokens given to an office (as a KSS admin would); a negative amount takes some back */
+// #6330: one pool — an office's tokens are its manager's app tokens
 function grant(officeId, amount) {
-  require('../src/tokens').post(`office:${officeId}`, amount >= 0 ? 'admin_grant' : 'admin_deduct', amount, `test:${crypto.randomUUID()}`)
+  require('../src/tokens').post(require('../src/officeRoutes').officeAccount(officeId), amount >= 0 ? 'admin_grant' : 'admin_deduct', amount, `test:${crypto.randomUUID()}`)
 }
 async function office(name = 'دفتر املاک پارسه', startTokens = 100000) {
   const owner = await account()
@@ -99,7 +101,9 @@ async function office(name = 'دفتر املاک پارسه', startTokens = 100
   const res = await post('/office/login', { phoneNumber: owner.phoneNumber, officeName: name })
   assert.equal(res.status, 200, JSON.stringify(res.body))
   const officeId = db.prepare('SELECT id FROM offices WHERE owner_user_id = ?').get(owner.userId).id
-  if (startTokens !== 2500) grant(officeId, startTokens - 2500) // every office starts with 2,500 (#6289)
+  // every office starts with 2,500 (#6289) on top of its manager's app allowance (one pool, #6330): set it to startTokens
+  const have = require('../src/officeRoutes').officeBalance(officeId)
+  if (startTokens !== have) grant(officeId, startTokens - have)
   return { owner, h: { 'x-office-token': res.body.token }, officeId }
 }
 const sample = { title: 'آپارتمان ۱۲۰ متری ونک', kind: 'فروش', region: 'ونک', address: 'خیابان ملاصدرا، پلاک ۱۲', size: 120, rooms: 2, price: 9500000000, description: 'نوساز', ownerName: 'آقای رضایی', ownerPhone: '09121112233' }
@@ -363,15 +367,16 @@ test('Amin #6269: adding a file takes its tokens once; sending takes them per ne
   grant(officeId, 5000)
   const made = await post('/office/files', sample, h)
   assert.equal(made.status, 201, JSON.stringify(made.body))
-  const cost = made.body.tokens
-  assert.ok(Number.isInteger(cost) && cost >= 1)
-  assert.equal(made.body.balance, 5000 - cost)
+  const held = made.body.tokens // #6330: charged the way the app charges a record of that size (one pool)
+  assert.ok(held > 0)
+  assert.equal(made.body.balance, Math.round((5000 - held) * 1000) / 1000)
   const o = (await call('GET', '/office/overview', undefined, h)).body
-  assert.equal(o.tokens.balance, 5000 - cost)
-  assert.equal(o.files[0].tokens, cost, 'the overview shows what one recipient costs')
+  assert.equal(o.tokens.balance, made.body.balance)
+  const cost = o.files[0].tokens // what one recipient costs (whole tokens)
+  assert.ok(Number.isInteger(cost) && cost >= 1)
   // renewing is free (the holding cost is charged once, #6274 a)
   assert.equal((await post(`/office/files/${made.body.id}/renew`, {}, h)).status, 204)
-  assert.equal(require('../src/officeRoutes').officeBalance(officeId), 5000 - cost)
+  assert.equal(require('../src/officeRoutes').officeBalance(officeId), made.body.balance)
 
   // four advisers join; their own tokens never move
   const advisers = []
@@ -386,7 +391,7 @@ test('Amin #6269: adding a file takes its tokens once; sending takes them per ne
   const sent = await post('/office/share', { fileIds: [made.body.id], to: 'all', fields: {} }, h)
   assert.equal(sent.status, 200, JSON.stringify(sent.body))
   assert.equal(sent.body.tokens, cost * 4)
-  assert.equal(sent.body.balance, 5000 - cost * 5)
+  assert.equal(sent.body.balance, Math.round((made.body.balance - cost * 4) * 1000) / 1000)
   assert.deepEqual(advisers.map((a) => ledgerOf(a.userId)), before, 'the advisers pay nothing')
   // the same people again: no new charge
   assert.equal((await post('/office/share', { fileIds: [made.body.id], to: 'all', fields: { description: true } }, h)).body.tokens, 0)
@@ -394,17 +399,18 @@ test('Amin #6269: adding a file takes its tokens once; sending takes them per ne
 
   // a send the office cannot pay for is refused, and nobody gets the file
   const second = (await post('/office/files', { ...sample, title: 'مغازه' }, h)).body
-  grant(officeId, -(require('../src/officeRoutes').officeBalance(officeId) - (second.tokens * 4 - 1)))
+  const per2 = (await call('GET', '/office/overview', undefined, h)).body.files.find((f) => f.id === second.id).tokens
+  grant(officeId, -(require('../src/officeRoutes').officeBalance(officeId) - (per2 * 4 - 1)))
   const short = await post('/office/share', { fileIds: [second.id], to: 'all', fields: {} }, h)
   assert.equal(short.status, 402)
-  assert.equal(short.body.needed, second.tokens * 4)
+  assert.equal(short.body.needed, per2 * 4)
   assert.equal((await post('/office/adviser/files', { sessionToken: advisers[0].sessionToken })).body.files.length, 1)
 
   // the usage page: every line, newest first, in words
   const t = (await call('GET', '/office/tokens', undefined, h)).body
-  assert.equal(t.balance, second.tokens * 4 - 1)
+  assert.equal(t.balance, per2 * 4 - 1)
   assert.ok(t.lines.some((l) => l.kind === 'office_file_share' && l.amount === -cost * 4 && /برای ۴ مشاور/.test(l.what)))
-  assert.ok(t.lines.some((l) => l.kind === 'office_file_hold' && /افزودن فایل/.test(l.what)))
+  assert.ok(t.lines.some((l) => l.kind === 'file_spend' && /افزودن یا تغییر فایل/.test(l.what)))
   assert.equal(typeof t.buy.open, 'boolean')
   void owner
 })
@@ -430,7 +436,7 @@ test('Amin #6289: a new office starts with 2,500 tokens, one ledger line, given 
   const { h, officeId } = await office('دفتر شروع', 2500)
   const t = (await call('GET', '/office/tokens', undefined, h)).body
   assert.equal(t.balance, 2500)
-  assert.deepEqual(t.lines.map((l) => [l.kind, l.amount, l.what]), [['office_default', 2500, 'توکن هدیهٔ شروع دفتر']])
+  assert.deepEqual(t.lines.filter((l) => l.kind === 'office_default').map((l) => [l.kind, l.amount, l.what]), [['office_default', 2500, 'توکن هدیهٔ شروع دفتر']])
   const o = require('../src/officeRoutes')
   assert.equal(o.giveDefault(officeId), false, 'a second time gives nothing')
   assert.deepEqual(o.giveMissingDefaults(), [])
@@ -468,12 +474,12 @@ test('Amin #6289: sales management adds and deducts an office\'s tokens like an 
   assert.equal((await admin('POST', `/offices/${officeId}/tokens/deduct`, { amount: 200, reason: 'توکن اشتباهی' }, 'k-d2')).body.tokens.balance, 2800)
   const led = (await admin('GET', `/offices/${officeId}/tokens`)).body
   assert.equal(led.balance, 2800)
-  assert.deepEqual(led.lines.map((l) => [l.reason, l.amount]).sort(), [['admin_deduct', -200], ['admin_grant', 500], ['office_default', 2500]].sort())
+  assert.deepEqual(led.lines.map((l) => [l.reason, l.amount]).sort(), [['admin_deduct', -100], ['admin_deduct', -200], ['admin_grant', 500], ['office_default', 2500]].sort()) // −100: the test sets the pool to 2,500 (allowance 100)
   assert.ok(led.lines.some((l) => l.reason === 'admin_deduct' && l.ref === 'توکن اشتباهی'))
   // the dashboard shows the same lines in words; the manager's own app tokens never move
   const t = (await call('GET', '/office/tokens', undefined, h)).body
   assert.ok(t.lines.some((l) => l.what === 'افزودن ظرفیت توسط KSS' && l.amount === 500))
-  assert.equal(appLines(), appBefore)
+  assert.equal(appLines(), appBefore + 2, "one pool (#6330): the grant and the deduct land in the manager's own account")
   assert.equal((await admin('GET', '/offices/nope/tokens')).status, 404)
 })
 
@@ -505,19 +511,22 @@ test('Amin #6343: the office takes its request back — files go home to the app
   assert.equal((await post('/office/withdraw', {}, h)).body.error.code, 'confirm_required')
   const out = await post('/office/withdraw', { confirm: 'withdraw' }, h)
   assert.equal(out.status, 200, JSON.stringify(out.body))
-  assert.deepEqual(out.body, { returned: 1, files: 2 }) // the imported one is still on the phone
+  assert.deepEqual(out.body, { returned: 0, files: 2 }) // #6330: both are already the manager's app files
   assert.equal((await call('GET', '/office/overview', undefined, h)).status, 401)
   assert.equal((await post('/office/adviser/files', { sessionToken: adviser.sessionToken })).body.office, null)
   assert.equal((await post('/office/adviser/join', { sessionToken: (await account()).sessionToken, code: code.code, word: code.word })).status, 422)
   assert.equal((await post('/office/adviser/request/status', { sessionToken: owner.sessionToken })).body.portal, false)
-  const props = (await post('/sync/pull', { sessionToken: owner.sessionToken })).body.rows.filter((r) => r.t === 'properties')
+  const rows = (await post('/sync/pull', { sessionToken: owner.sessionToken })).body.rows
+  const props = rows.filter((r) => r.t === 'properties')
   assert.equal(props.length, 2)
   const home = props.find((r) => r.k === `office-${made}`).row
   assert.equal(home.owner_id, owner.userId)
   assert.equal(home.title, sample.title)
   assert.equal(home.transaction_type, 'sale')
   assert.equal(home.area, 120)
-  assert.match(home.description, /مالک: آقای رضایی، 09121112233/)
+  const ownerContact = rows.find((r) => r.t === 'contacts' && r.k === home.owner_contact_id).row
+  assert.deepEqual([ownerContact.full_name, ownerContact.phone_number], ['آقای رضایی', '09121112233'])
+  assert.ok(rows.some((r) => r.t === 'contact_roles' && r.row?.contact_id === home.owner_contact_id && r.row.role === 'owner'))
   // a new request can follow
   assert.equal((await post('/office/adviser/request', { sessionToken: owner.sessionToken, address: 'ونک', ...login() })).status, 201)
 })
@@ -673,4 +682,62 @@ test('Amin #6400/#6497: an office\'s «آزاد کردن» / «پر کردن ظ�
   await admin('POST', `/offices/${officeId}/tokens/deduct`, { amount: 400, reason: 'آزمایش' }, 'oded-1')
   const words = (await call('GET', '/office/tokens', undefined, h)).body.lines.map((l) => l.what)
   for (const w of ['آزاد کردن ظرفیت توسط KSS', 'پر کردن ظرفیت توسط KSS', 'کسر ظرفیت توسط KSS']) assert.ok(words.includes(w), w)
+})
+
+test('Amin #6330: one set of files — a phone file shows in the dashboard, a dashboard file reaches the phone (and is told so), edits and deletes follow; the app keeps working', async () => {
+  const { owner, h } = await office('دفتر یکی', 5000)
+  const at = new Date().toISOString()
+  const push = (k, row) => post('/sync/push', { sessionToken: owner.sessionToken, changes: [{ t: 'properties', k, row }] })
+  assert.equal((await post('/office/adviser/request/status', { sessionToken: owner.sessionToken })).body.keepApp, true)
+  // phone → dashboard
+  assert.equal((await push('ph1', { id: 'ph1', owner_id: owner.userId, title: 'فایل گوشی', city: 'تهران', address: '', transaction_type: 'rent', deposit_amount: 5e8, status: 'active', created_at: at, updated_at: at })).status, 200)
+  let files = (await call('GET', '/office/overview', undefined, h)).body.files
+  const ph = files.find((f) => f.title === 'فایل گوشی')
+  assert.ok(ph, 'the phone file is an office file')
+  assert.equal(ph.kind, 'رهن و اجاره')
+  // dashboard → phone, and /presence says the server wrote
+  const seenBefore = (await post('/presence', { sessionToken: owner.sessionToken })).body.serverWriteAt
+  const made = (await post('/office/files', sample, h)).body
+  const pulled = (await post('/sync/pull', { sessionToken: owner.sessionToken })).body.rows
+  assert.ok(pulled.some((r) => r.t === 'properties' && r.k === `office-${made.id}` && r.row.title === sample.title))
+  const seenAfter = (await post('/presence', { sessionToken: owner.sessionToken })).body.serverWriteAt
+  assert.ok(seenAfter && (!seenBefore || seenAfter > seenBefore))
+  // the phone edits the dashboard's file → the dashboard shows the edit; the phone deletes its own → gone from the office
+  const later = new Date(Date.now() + 1000).toISOString()
+  const home = pulled.find((r) => r.k === `office-${made.id}`).row
+  await push(`office-${made.id}`, { ...home, title: 'عنوان تازه از گوشی', updated_at: later })
+  await push('ph1', null)
+  files = (await call('GET', '/office/overview', undefined, h)).body.files
+  assert.equal(files.find((f) => f.id === made.id)?.title, 'عنوان تازه از گوشی')
+  assert.equal(files.some((f) => f.title === 'فایل گوشی'), false)
+  // archiving in the dashboard archives it in the app
+  assert.equal((await post(`/office/files/${made.id}/archive`, {}, h)).status, 204)
+  const after = (await post('/sync/pull', { sessionToken: owner.sessionToken })).body.rows.find((r) => r.k === `office-${made.id}`).row
+  assert.equal(after.status, 'archived')
+  // the dashboard's purchases have no smallest amount
+  assert.equal((await call('GET', '/office/tokens', undefined, h)).body.buy.minTokens, 1)
+})
+
+test('Amin #6330: the one-time move — office files not in the manager\'s copy are written there; the office\'s own tokens move into the pool; dry runs change nothing; a second run finds nothing', async () => {
+  const { owner, officeId } = await office('دفتر قبل از یکی', 2500)
+  const o = require('../src/officeRoutes')
+  const t = require('../src/tokens')
+  // as before #6330: a file only in office_files, and tokens on the office's own ledger
+  const at = new Date().toISOString()
+  db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .run('old1', officeId, o.__sealForTest({ title: 'فایل قدیمی دفتر', kind: 'فروش', city: 'تهران', region: 'ونک', ownerName: '', ownerPhone: '' }), at, at, at)
+  t.post(o.legacyAccount(officeId), 'pack_bought', 700, `test-legacy:${officeId}`)
+  const before = o.officeBalance(officeId)
+  const mine = (list) => list.find((r) => r.officeId === officeId)
+  assert.deepEqual(mine(o.moveOfficeFiles(true)), { officeId, office: mine(o.moveOfficeFiles(true)).office, files: 1, written: 1, marked: 0 })
+  assert.equal(mine(o.mergeOfficeTokens(true)).balance, 700)
+  assert.equal(o.officeBalance(officeId), before, 'a dry run moves nothing')
+  o.moveOfficeFiles()
+  o.mergeOfficeTokens()
+  assert.equal(o.officeBalance(officeId), before + 700)
+  const rows = (await post('/sync/pull', { sessionToken: owner.sessionToken })).body.rows
+  assert.ok(rows.some((r) => r.t === 'properties' && r.k === 'office-old1' && r.row.title === 'فایل قدیمی دفتر'))
+  assert.equal(mine(o.moveOfficeFiles()), undefined)
+  assert.equal(mine(o.mergeOfficeTokens()), undefined)
+  assert.equal(db.prepare('SELECT COALESCE(SUM(amount), 0) b FROM token_ledger WHERE account_id = ?').get(o.legacyAccount(officeId)).b, 0)
 })

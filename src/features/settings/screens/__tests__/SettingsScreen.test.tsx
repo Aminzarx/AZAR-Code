@@ -78,7 +78,7 @@ function summaryOf({ spent }: { spent: number }) {
         balance: 2640 - spent,
         allowance: 2540,
         earned: 100,
-        earnedBy: { referral: 100, profile: 0, granted: 0 },
+        earnedBy: { referral: 100, profile: 0, granted: 0, office: 0 },
         bought: 0,
         spent,
         spentBy: { files: spent, applicants: 0, contracts: 0, phoneChange: 0 }

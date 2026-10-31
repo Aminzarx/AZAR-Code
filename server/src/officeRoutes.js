@@ -74,10 +74,16 @@ function fail(res, status, code, message, extra = {}) {
 // size (pricing's tokens per KB, rounded up to whole tokens). Adding a file takes its tokens once (holding cost, #6274 a);
 // sending it takes its tokens once per new recipient (123 × 4 advisers = 492); the advisers' own tokens are never
 // touched. Not enough tokens = the add or the send is refused with the shortfall and the buy link (#6274 b).
-const officeAccount = (officeId) => `office:${officeId}`
+// Amin #6330: ONE pool — the office's tokens are its manager's app tokens (account = the manager's user id; balance =
+// pricing's allowance + every line, as the app shows it). «office:<id>» is the old separate ledger, emptied once into
+// the pool by mergeOfficeTokens.
+const legacyAccount = (officeId) => `office:${officeId}`
+const ownerOfOffice = (officeId) => db.prepare('SELECT owner_user_id FROM offices WHERE id = ?').get(officeId)?.owner_user_id ?? legacyAccount(officeId)
+const officeAccount = (officeId) => ownerOfOffice(officeId)
 const roundT = (n) => Math.round(n * 1000) / 1000
 function officeBalance(officeId) {
-  return roundT(db.prepare('SELECT COALESCE(SUM(amount), 0) AS b FROM token_ledger WHERE account_id = ?').get(officeAccount(officeId)).b)
+  const acc = officeAccount(officeId)
+  return roundT(tokens.allowanceNow() + db.prepare('SELECT COALESCE(SUM(amount), 0) AS b FROM token_ledger WHERE account_id = ?').get(acc).b)
 }
 // Amin #6289: every office dashboard starts with 2,500 tokens: one ledger line per office, ever (the idem key), given when
 // the office is made; an office made before this gets it once at start-up (giveMissingDefaults)
@@ -369,9 +375,10 @@ function approveRequest(id, actor) {
       office = { id: generateId(), name: String(settings.agency_name || settings.display_name || 'دفتر املاک').slice(0, 80) }
       db.prepare('INSERT INTO offices (id, owner_user_id, name, rules, created_at) VALUES (?, ?, ?, NULL, ?)').run(office.id, r.user_id, office.name, now())
     }
-    giveDefault(office.id) // #6289: once per office; a re-approval gives nothing new
-    imported = importFiles(r.user_id, office.id)
+    giveDefault(office.id) // #6289: once per office (into the manager's pool since #6330); a re-approval gives nothing new
   })()
+  const o = db.prepare('SELECT * FROM offices WHERE owner_user_id = ?').get(r.user_id)
+  imported = o ? mirrorIn(o).added : 0 // #6330: the manager's app files ARE the office's files
   return { ok: true, imported }
 }
 /** sales management: turn an approved panel off → the account's app works again; the office's files stay for a later approval */
@@ -404,6 +411,140 @@ function propertyRowOf(id, userId, f, createdAt) {
     status: 'active', created_at: createdAt, updated_at: now()
   }
 }
+// ------------------------------------------------- one set of files with the manager's app (Amin #6330) ----
+// The office's files are its manager's own app files. office_files stays the office's working list (shares, advisers,
+// counts read it), mirrored both ways with the manager's copy on the server:
+// - in: every dashboard read takes the copy's properties (new ones, changed ones; archived or deleted = archived here,
+//   only for files that were mirrored before, so nothing made before #6330 is lost);
+// - out: a file made or archived in the dashboard is written into the copy (key «office-<id>»; the owner becomes a
+//   contact with the owner role), and the app loads it when it next says it is open (serverWrites).
+// Mapping: office id «p:<owner>:<key>» ↔ key, anything else ↔ «office-<id>».
+if (!db.prepare('PRAGMA table_info(office_files)').all().some((c) => c.name === 'mirrored_at')) db.exec('ALTER TABLE office_files ADD COLUMN mirrored_at TEXT')
+const keyOfFile = (ownerId, id) => (id.startsWith(`p:${ownerId}:`) ? id.slice(`p:${ownerId}:`.length) : `office-${id}`)
+const fileOfKey = (ownerId, key) => (key.startsWith('office-') ? key.slice('office-'.length) : `p:${ownerId}:${key}`)
+const NO_END = '9999-12-31T00:00:00.000Z' // Amin #6330 (choice A): one set of files, and app files never expire
+
+/** a copy's property row (+ its owner contact) → the office's file fields */
+function fileOfRow(row, contacts) {
+  const owner = row.owner_contact_id ? contacts.get(row.owner_contact_id) : null
+  return {
+    title: String(row.title || 'فایل'), kind: KIND_OF[row.transaction_type] || 'فروش', propertyType: row.property_type || '',
+    city: row.city || 'تهران', region: row.region || '', address: row.address || '', size: row.area ?? null, rooms: row.rooms ?? null,
+    price: row.price ?? null, deposit: row.deposit_amount ?? null, rent: row.rent_amount ?? null, description: row.description || '',
+    ownerName: owner?.full_name || '', ownerPhone: owner?.phone_number || ''
+  }
+}
+
+/** the office's files ← the manager's copy (call before reading office_files) → { added, changed, archived } */
+function mirrorIn(office) {
+  const sync = require('./syncRoutes')
+  const ownerId = office.owner_user_id
+  const rows = sync.rowsOf(ownerId)
+  const contacts = new Map(rows.filter((r) => r.table === 'contacts' && r.row).map((r) => [r.key, r.row]))
+  const props = new Map(rows.filter((r) => r.table === 'properties').map((r) => [r.key, r.row]))
+  const mine = new Map(db.prepare('SELECT id, updated_at, archived_at, mirrored_at FROM office_files WHERE office_id = ?').all(office.id).map((f) => [f.id, f]))
+  const out = { added: 0, changed: 0, archived: 0 }
+  const at = now()
+  db.transaction(() => {
+    for (const [key, row] of props) {
+      const id = fileOfKey(ownerId, key)
+      const have = mine.get(id)
+      const live = row && row.status !== 'archived'
+      if (!have) {
+        if (!live) continue
+        db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at, mirrored_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+          .run(id, office.id, seal(fileOfRow(row, contacts)), row.created_at || at, row.updated_at || at, NO_END, at)
+        out.added++
+      } else if (!live) {
+        if (!have.archived_at && have.mirrored_at) {
+          db.prepare('UPDATE office_files SET archived_at = ? WHERE id = ?').run(at, id)
+          db.prepare('DELETE FROM office_shares WHERE file_id = ?').run(id)
+          out.archived++
+        }
+      } else if (!have.archived_at && (row.updated_at || '') > have.updated_at) {
+        db.prepare('UPDATE office_files SET data = ?, updated_at = ?, expires_at = ?, mirrored_at = ? WHERE id = ?')
+          .run(seal(fileOfRow(row, contacts)), row.updated_at, NO_END, at, id)
+        out.changed++
+      } else if (!have.mirrored_at) {
+        db.prepare('UPDATE office_files SET mirrored_at = ?, expires_at = ? WHERE id = ?').run(at, NO_END, id)
+      }
+    }
+    // a mirrored file whose row is gone from the copy (deleted on the phone) leaves the office too
+    for (const [id, f] of mine) {
+      if (f.archived_at || !f.mirrored_at || props.has(keyOfFile(ownerId, id))) continue
+      db.prepare('UPDATE office_files SET archived_at = ? WHERE id = ?').run(at, id)
+      db.prepare('DELETE FROM office_shares WHERE file_id = ?').run(id)
+      out.archived++
+    }
+  })()
+  return out
+}
+
+/** the office's file → the manager's copy (its property row, and the owner as a contact), dated `at` */
+function mirrorOut(office, id, file, createdAt, { archived = false, at = now() } = {}) {
+  const sync = require('./syncRoutes')
+  const ownerId = office.owner_user_id
+  const key = keyOfFile(ownerId, id)
+  const row = propertyRowOf(key, ownerId, { ...file, ownerName: '', ownerPhone: '' }, createdAt)
+  row.updated_at = at
+  if (archived) row.status = 'archived'
+  if (file.ownerName || file.ownerPhone) {
+    const cid = `owner-${key}`
+    sync.putRow(ownerId, 'contacts', cid, { id: cid, user_id: ownerId, full_name: file.ownerName || 'مالک', phone_number: file.ownerPhone || '', email: null, notes: null, is_archived: 0, created_at: createdAt, updated_at: at }, at)
+    sync.putRow(ownerId, 'contact_roles', `${cid}-owner`, { id: `${cid}-owner`, contact_id: cid, role: 'owner', created_at: createdAt }, at)
+    row.owner_contact_id = cid
+  }
+  sync.putRow(ownerId, 'properties', key, row, at)
+  db.prepare('UPDATE office_files SET mirrored_at = ?, updated_at = ? WHERE id = ?').run(at, at, id)
+  return key
+}
+
+/**
+ * The one-time move (#6330): every office file not mirrored yet goes into its manager's copy (an imported one that is
+ * still there is only marked). dry = only count. Run again = nothing new. → [{ office, files, written, marked }]
+ */
+function moveOfficeFiles(dry = false) {
+  const sync = require('./syncRoutes')
+  const report = []
+  for (const office of db.prepare('SELECT * FROM offices').all()) {
+    const files = db.prepare('SELECT * FROM office_files WHERE office_id = ? AND archived_at IS NULL AND mirrored_at IS NULL').all(office.id)
+    if (!files.length) continue
+    const have = new Set(sync.rowsOf(office.owner_user_id).filter((x) => x.table === 'properties' && x.row).map((x) => x.key))
+    let written = 0, marked = 0
+    for (const f of files) {
+      if (have.has(keyOfFile(office.owner_user_id, f.id))) {
+        if (!dry) db.prepare('UPDATE office_files SET mirrored_at = ?, expires_at = ? WHERE id = ?').run(now(), NO_END, f.id)
+        marked++
+      } else {
+        if (!dry) db.transaction(() => { mirrorOut(office, f.id, open(f.data), f.created_at); db.prepare('UPDATE office_files SET expires_at = ? WHERE id = ?').run(NO_END, f.id) })()
+        written++
+      }
+    }
+    report.push({ officeId: office.id, office: office.name, files: files.length, written, marked })
+  }
+  return report
+}
+
+/**
+ * One token pool (#6330): what each office's own ledger (account «office:<id>») still holds moves once into its
+ * manager's app account («office_merge»), and the office account reads 0 for good. dry = only list.
+ */
+function mergeOfficeTokens(dry = false) {
+  const report = []
+  for (const office of db.prepare('SELECT * FROM offices').all()) {
+    if (db.prepare('SELECT 1 FROM token_ledger WHERE idem_key = ?').get(`office-merge:${office.id}`)) continue
+    const legacy = legacyAccount(office.id)
+    const balance = roundT(db.prepare('SELECT COALESCE(SUM(amount), 0) AS b FROM token_ledger WHERE account_id = ?').get(legacy).b)
+    report.push({ officeId: office.id, office: office.name, balance })
+    if (dry) continue
+    db.transaction(() => {
+      tokens.post(office.owner_user_id, 'office_merge', balance, `office-merge:${office.id}`, office.id)
+      tokens.post(legacy, 'office_merge', -balance, `office-merge-out:${office.id}`, office.id)
+    })()
+  }
+  return report
+}
+
 function withdrawOffice(officeId, actor) {
   const office = db.prepare('SELECT * FROM offices WHERE id = ?').get(officeId)
   if (!office) return { error: 'not_found' }
@@ -637,6 +778,7 @@ manager.get('/overview', async (req, res, next) => {
   try {
     // Amin #6269: each file's tokens at today's price (what one more recipient costs) and the office's balance
     const s = await tokens.settings()
+    mirrorIn(req.office) // #6330: what the manager's app changed shows here at once
     const o = overviewOf(req.office)
     const cost = (f) => (s ? fileTokens(Object.fromEntries(Object.entries(f).filter(([k]) => !['id', 'createdAt', 'expiresAt', 'sentTo'].includes(k))), s) : null)
     res.json({ ...o, files: o.files.map((f) => ({ ...f, tokens: cost(f) })), tokens: { balance: officeBalance(req.office.id), priced: !!s } })
@@ -653,17 +795,29 @@ manager.post('/files', async (req, res, next) => {
     if (cost === null) return fail(res, 503, 'tokens_unavailable', 'الان توکن‌ها خوانده نمی‌شوند؛ کمی بعد دوباره امتحان کنید.')
     const id = generateId()
     const at = now()
-    const short = db.transaction(() => {
-      const balance = officeBalance(req.office.id)
-      if (balance < cost) return { balance }
-      db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-        id, req.office.id, seal(file), at, at, new Date(Date.now() + FILE_DAYS * DAY).toISOString()
-      )
-      tokens.post(officeAccount(req.office.id), 'office_file_hold', -cost, `office-hold:${id}`, id, at)
-      return null
-    })()
+    const s = await tokens.settings()
+    // #6330: the file is the manager's app file too — written into the copy and charged the way the app charges a
+    // record (so a later edit on the phone pays only the difference), from the one pool
+    let held = 0
+    let short = null
+    try {
+      short = db.transaction(() => {
+        const balance = officeBalance(req.office.id)
+        if (balance < cost) return { balance }
+        db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)').run(
+          id, req.office.id, seal(file), at, at, NO_END
+        )
+        const key = mirrorOut(req.office, id, file, at, { at })
+        const owner = req.office.owner_user_id
+        held = -tokens.chargeRecords(owner, [{ table: 'properties', key }], s, tokens.storeOf(owner), at).reduce((t, r) => t + r.amount, 0)
+        return null
+      })()
+    } catch (e) {
+      if (!(e instanceof tokens.TokensShortError)) throw e
+      short = { balance: officeBalance(req.office.id) } // the record cost more than was left: nothing stored
+    }
     if (short) return tokensShort(res, short.balance, cost)
-    res.status(201).json({ id, tokens: cost, balance: officeBalance(req.office.id) })
+    res.status(201).json({ id, tokens: roundT(held), balance: officeBalance(req.office.id) })
   } catch (e) {
     next(e)
   }
@@ -678,8 +832,10 @@ manager.post('/files/:id/renew', (req, res) => {
 })
 
 manager.post('/files/:id/archive', (req, res) => {
-  if (!fileRow(req)) return fail(res, 404, 'not_found', 'فایل پیدا نشد.')
+  const f = fileRow(req)
+  if (!f) return fail(res, 404, 'not_found', 'فایل پیدا نشد.')
   db.transaction(() => {
+    mirrorOut(req.office, f.id, open(f.data), f.created_at, { archived: true }) // #6330: archived in the app too
     db.prepare('UPDATE office_files SET archived_at = ? WHERE id = ?').run(now(), req.params.id)
     db.prepare('DELETE FROM office_shares WHERE file_id = ?').run(req.params.id) // advisers stop seeing it at once
   })()
@@ -760,18 +916,29 @@ manager.get('/tokens', async (req, res, next) => {
     const titles = Object.fromEntries(
       db.prepare('SELECT id, data FROM office_files WHERE office_id = ?').all(req.office.id).map((r) => [r.id, open(r.data).title || 'بی‌نام'])
     )
+    // #6330: one pool — the manager's app lines show here too, in words (a file's line names the file)
+    const ownerId = req.office.owner_user_id
+    const titleOfRef = (ref) => {
+      const key = String(ref || '').replace(/^properties:/, '')
+      return titles[fileOfKey(ownerId, key)] ?? null
+    }
+    const APP = { applicant_spend: 'ثبت متقاضی در برنامه', applicant_refund: 'بازگشت توکن متقاضی', contract_spend: 'ثبت قرارداد در برنامه',
+      contract_refund: 'بازگشت توکن قرارداد', phone_change: 'تغییر شماره', divar_import: 'ورود آگهی از دیوار', referral_bonus: 'پاداش معرفی همکار',
+      profile_bonus: 'پاداش تکمیل پروفایل', office_merge: 'انتقال توکن‌های دفتر به حساب مشترک برنامه و داشبورد' }
     const lines = db
-      .prepare('SELECT at, reason, amount, ref FROM token_ledger WHERE account_id = ? ORDER BY at DESC LIMIT 300')
+      .prepare('SELECT at, reason, amount, ref FROM token_ledger WHERE account_id = ? AND amount != 0 ORDER BY at DESC LIMIT 300')
       .all(officeAccount(req.office.id))
       .map((l) => {
         const [fileId, n] = String(l.ref || '').split('|')
         const what = l.reason === 'office_file_hold' ? `افزودن فایل «${titles[fileId] ?? 'حذف‌شده'}»`
           : l.reason === 'office_file_share' ? `فرستادن «${titles[fileId] ?? 'حذف‌شده'}» برای ${Number(n || 0).toLocaleString('fa-IR')} مشاور`
-            : l.reason === 'pack_bought' ? 'خرید توکن'
-              // Amin #6400: «افزودن/کسر ظرفیت», and the new «آزاد کردن» / «پر کردن ظرفیت»
-              : l.reason === 'admin_grant' ? 'افزودن ظرفیت توسط KSS' : l.reason === 'admin_deduct' ? 'کسر ظرفیت توسط KSS'
-                : l.reason === 'admin_release' ? 'آزاد کردن ظرفیت توسط KSS' : l.reason === 'admin_fill' ? 'پر کردن ظرفیت توسط KSS'
-                : l.reason === 'office_default' ? 'توکن هدیهٔ شروع دفتر' : l.reason
+            : l.reason === 'file_spend' ? (titleOfRef(l.ref) ? `افزودن یا تغییر فایل «${titleOfRef(l.ref)}»` : 'ثبت فایل در برنامه')
+              : l.reason === 'file_refund' ? (titleOfRef(l.ref) ? `بازگشت توکن فایل «${titleOfRef(l.ref)}»` : 'بازگشت توکن فایل')
+                : l.reason === 'pack_bought' ? 'خرید توکن'
+                  // Amin #6400: «افزودن/کسر ظرفیت», and the new «آزاد کردن» / «پر کردن ظرفیت»
+                  : l.reason === 'admin_grant' ? 'افزودن ظرفیت توسط KSS' : l.reason === 'admin_deduct' ? 'کسر ظرفیت توسط KSS'
+                    : l.reason === 'admin_release' ? 'آزاد کردن ظرفیت توسط KSS' : l.reason === 'admin_fill' ? 'پر کردن ظرفیت توسط KSS'
+                      : l.reason === 'office_default' ? 'توکن هدیهٔ شروع دفتر' : APP[l.reason] ?? l.reason
         return { at: l.at, kind: l.reason, what, amount: l.amount }
       })
     const owner = db.prepare('SELECT phone_number FROM users WHERE id = ?').get(req.office.owner_user_id)
@@ -785,7 +952,8 @@ manager.get('/tokens', async (req, res, next) => {
     res.json({
       balance: officeBalance(req.office.id),
       lines,
-      buy: { open: closed === null, reason: closed, unitToman: price.off ? null : price.unitToman, minTokens: purchases.minOf(p) },
+      // #6330: an office buys any whole number of tokens (no smallest purchase)
+      buy: { open: closed === null, reason: closed, unitToman: price.off ? null : price.unitToman, minTokens: purchases.minOf(p) === null ? null : 1 },
       orders
     })
   } catch (e) {
@@ -813,7 +981,7 @@ manager.post('/tokens/buy', async (req, res, next) => {
     const idem = String(req.get('idempotency-key') || '').slice(0, 100)
     if (!idem) return fail(res, 422, 'idempotency_key_required', 'Send an Idempotency-Key.')
     const owner = db.prepare('SELECT phone_number FROM users WHERE id = ?').get(req.office.owner_user_id)
-    const r = await purchases.startOrder({ accountId: officeAccount(req.office.id), phone: owner?.phone_number || '', count: Number(req.body?.tokens), idem,
+    const r = await purchases.startOrder({ office: true, accountId: officeAccount(req.office.id), phone: owner?.phone_number || '', count: Number(req.body?.tokens), idem,
       closed: () => purchases.officeClosed(owner?.phone_number || '') })
     if (r.error) return fail(res, r.status, r.error, /[؀-ۿ]/.test(r.message) ? r.message : 'فروش توکن فعلاً بسته است.')
     res.json(r.body)
@@ -897,6 +1065,7 @@ adviser.post('/join', (req, res) => {
 adviser.post('/files', (req, res) => {
   const link = db.prepare('SELECT office_id FROM office_advisers WHERE user_id = ? AND ended_at IS NULL').get(req.adviserId)
   if (!link) return res.json({ office: null, files: [] })
+  mirrorIn(db.prepare('SELECT * FROM offices WHERE id = ?').get(link.office_id)) // #6330: the manager's latest
   const office = db.prepare('SELECT name FROM offices WHERE id = ?').get(link.office_id)
   const shares = db
     .prepare(`SELECT file_id, fields FROM office_shares WHERE office_id = ? AND adviser_id IN (?, '*') AND ${LIVE_SHARE}`)
@@ -1085,4 +1254,4 @@ adviser.post('/link/confirm', signInLimit, (req, res) => {
 router.use('/adviser', adviser)
 router.use(manager)
 
-module.exports = { router, officeBalance, officeAccount, giveDefault, giveMissingDefaults, OFFICE_DEFAULT_TOKENS, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity, withdrawOffice, demoOffice }
+module.exports = { router, officeBalance, officeAccount, legacyAccount, __sealForTest: (f) => seal(f), mirrorIn, moveOfficeFiles, mergeOfficeTokens, giveDefault, giveMissingDefaults, OFFICE_DEFAULT_TOKENS, portalOn, usernameOf, usernameTaken, listRequests, approveRequest, rejectRequest, endPortal, officeActivity, withdrawOffice, demoOffice }

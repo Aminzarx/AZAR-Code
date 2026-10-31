@@ -38,6 +38,7 @@ const REASONS = [
   'office_file_share', // Amin #6269: an office sends a file to its advisers (the file's tokens × the new recipients)
   'office_default', // Amin #6289: the 2,500 tokens every office dashboard starts with (once per office)
   'admin_release', // Amin #6400/#6497 «آزاد کردن ظرفیت»: KSS gave back N of the USED capacity (used −N, free +N; never below 0 used)
+  'office_merge', // Amin #6330: an office's own tokens moved once into its manager's pool (one pool for app + dashboard)
   'admin_fill' // Amin #6400/#6497 «پر کردن ظرفیت»: KSS marked N of the capacity as used (used +N, free −N; never above the total)
 ]
 const BONUS_REASONS = ['referral_bonus', 'profile_bonus']
@@ -108,8 +109,12 @@ function bytesToTokens(bytes, settings) {
 async function settings() {
   const p = await appPrices()
   if (!p || p.tokenAllowance == null || p.tokensPerKb == null) return null
+  lastAllowance = p.tokenAllowance
   return p
 }
+/** Amin #6330: the allowance as pricing last said it (0 until the first read), for balances read without waiting */
+let lastAllowance = 0
+const allowanceNow = () => lastAllowance
 
 /**
  * What the server holds of an account's records, read through the sync store (rows are sealed there).
@@ -276,13 +281,16 @@ function summaryOf(accountId, s) {
     divarImport: round(-sum(['divar_import'])),
     deducted: round(-sum(['admin_deduct'])),
     // Amin #6497: KSS's «پر کردن» (+) and «آزاد کردن» (−) of the used capacity, net
-    adjusted: round(-sum(ADJUST_REASONS))
+    adjusted: round(-sum(ADJUST_REASONS)),
+    // Amin #6330: the office dashboard's files and sends, from the same pool
+    office: round(-sum(['office_file_hold', 'office_file_share']))
   }
   const spent = round(
-    spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange + spentBy.divarImport + spentBy.deducted + spentBy.adjusted
+    spentBy.files + spentBy.applicants + spentBy.contracts + spentBy.phoneChange + spentBy.divarImport + spentBy.deducted + spentBy.adjusted + spentBy.office
   )
   const granted = sum(['admin_grant'])
-  const earned = round(sum(BONUS_REASONS) + granted)
+  const office = sum(['office_default', 'office_merge']) // Amin #6330: the office's start tokens / what moved in
+  const earned = round(sum(BONUS_REASONS) + granted + office)
   const bought = sum(['pack_bought'])
   return {
     balance: Math.max(0, balanceOf(accountId, s)),
@@ -290,7 +298,7 @@ function summaryOf(accountId, s) {
     referralBonus: s.referralBonus ?? null,
     allowance: s.tokenAllowance,
     earned,
-    earnedBy: { referral: sum(['referral_bonus']), profile: sum(['profile_bonus']), granted },
+    earnedBy: { referral: sum(['referral_bonus']), profile: sum(['profile_bonus']), granted, office },
     bought,
     spent,
     spentBy
@@ -351,6 +359,7 @@ module.exports = {
   summaryOf,
   post,
   balanceOf,
+  allowanceNow,
   accountOf,
   bytesToTokens,
   checkBonuses,

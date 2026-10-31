@@ -790,11 +790,9 @@ router.post('/offices/:id/tokens/:kind(grant|deduct)', (req, res) => {
   res.json({ tokens: { balance: office.officeBalance(o.id) }, office: officeView(o) })
 })
 
-// Amin #6400/#6497 for an office: the same two, on what its files and sends USED (plus earlier fills/releases)
-const roundUsed = (n) => Math.max(0, Math.round(n * 1000) / 1000)
+// Amin #6400/#6497 for an office: the same two; since the one pool (#6330) an office's used/free are its manager's
 const officeRoom = (o) => ({
-  used: roundUsed(db.prepare(`SELECT COALESCE(-SUM(amount), 0) AS u FROM token_ledger WHERE account_id = ?
-    AND reason IN ('office_file_hold', 'office_file_share', 'admin_fill', 'admin_release')`).get(office.officeAccount(o.id)).u),
+  used: tokens.usedAndFree(o.owner_user_id, { tokenAllowance: tokens.allowanceNow() }).used,
   free: Math.max(0, office.officeBalance(o.id))
 })
 router.post('/offices/:id/tokens/:kind(release|fill)', (req, res) => {

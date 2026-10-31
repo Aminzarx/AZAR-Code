@@ -290,24 +290,6 @@ function Advisers({ o, reload, onCode }: { o: Overview; reload: () => void; onCo
   );
 }
 
-function Expiring({ o, reload }: { o: Overview; reload: () => void }) {
-  const { run } = useAction();
-  if (!o.expiring.length) return <Empty compact title="هفتهٔ آینده فایلی منقضی نمی‌شود">هر فایل ۳۰ روز اعتبار دارد و در ۷ روز آخر اینجا می‌آید.</Empty>;
-  return (
-    <ul className="stack sm plain">
-      {o.expiring.map((f) => (
-        <li key={f.id} className="row" style={{ justifyContent: 'space-between' }}>
-          <span><span>{f.title}</span><div className="faint xs">{f.city}، {f.region}</div></span>
-          <span className="row tight nowrap">
-            <Badge tone="warn">{daysLeft(f.expiresAt) ? fa(daysLeft(f.expiresAt)) + ' روز مانده' : 'امروز'}</Badge>
-            <button className="kss-btn kss-btn--ghost kss-btn--sm" onClick={() => run(() => api.renew(f.id).then(reload), 'فایل ۳۰ روز تمدید شد')}>تمدید</button>
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function Rule({ label, hint, on, onChange, fixed }: { label: string; hint?: string; on: boolean; onChange?: (v: boolean) => void; fixed?: boolean }) {
   return (
     <label className="row nowrap rule">
@@ -386,7 +368,7 @@ function NewFileModal({ onClose, onMade }: { onClose: () => void; onMade: (id: s
         <Field label="نام مالک"><input className="kss-input" value={f.ownerName ?? ''} onChange={set('ownerName')} /></Field>
         <Field label="شمارهٔ مالک" hint="به‌طور پیش‌فرض برای مشاوران فرستاده نمی‌شود"><input className="kss-input" dir="ltr" inputMode="tel" value={f.ownerPhone ?? ''} onChange={set('ownerPhone')} placeholder="09xxxxxxxxx" /></Field>
       </div>
-      <p className="muted small">ثبت فایل یک بار، به اندازهٔ حجم فایل، از توکن‌های دفتر کم می‌کند؛ تمدید رایگان است.</p>
+      <p className="muted small">ثبت فایل یک بار، به اندازهٔ حجم فایل، از توکن‌ها کم می‌کند و فایل در برنامهٔ ایوان شما هم دیده می‌شود.</p>
       {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
     </Modal>
   );
@@ -493,14 +475,14 @@ function FilesTable({ o, onNew, onSend, onShares, onOpen }: { o: Overview; onNew
               <div className="grow">
                 <b>{f.title}</b>
                 <div className="faint xs">{f.kind} · {[f.city, f.region].filter(Boolean).join('، ')}{f.size != null ? ` · ${fa(f.size)} متر` : ''}</div>
-                <div className="row tight wrap mt-xs"><span className="num small">{priceOf(f)}</span>{sentTo(f) ? <Badge tone="info" icon={false}>{sentTo(f)}</Badge> : null}{daysLeft(f.expiresAt) <= 7 ? <Badge tone="warn">{fa(daysLeft(f.expiresAt))} روز مانده</Badge> : null}</div>
+                <div className="row tight wrap mt-xs"><span className="num small">{priceOf(f)}</span>{sentTo(f) ? <Badge tone="info" icon={false}>{sentTo(f)}</Badge> : null}</div>
               </div>
               <Icon name="chevron" size={18} />
             </li>
           ))}
         </ul>
         <div className="tbl-wrap file-tbl"><table className="tbl">
-          <thead><tr><th style={{ inlineSize: 40 }}><span className="sr-only">انتخاب</span></th><th>فایل</th><th>نوع</th><th className="num">قیمت</th><th className="num">متراژ</th><th>ثبت</th><th>فرستاده به</th><th>انقضا</th></tr></thead>
+          <thead><tr><th style={{ inlineSize: 40 }}><span className="sr-only">انتخاب</span></th><th>فایل</th><th>نوع</th><th className="num">قیمت</th><th className="num">متراژ</th><th>ثبت</th><th>فرستاده به</th></tr></thead>
           <tbody>
             {rows.map((f) => (
               <tr key={f.id} className="clickable" onClick={(e) => open(e, f.id)} title="باز کردن پرونده">
@@ -511,7 +493,6 @@ function FilesTable({ o, onNew, onSend, onShares, onOpen }: { o: Overview; onNew
                 <td className="num">{f.size != null ? fa(f.size) + ' متر' : '—'}</td>
                 <td className="muted nowrap">{ago(f.createdAt)}</td>
                 <td>{sentTo(f) ? <button type="button" className="kss-btn kss-btn--link kss-btn--sm" onClick={() => onShares(f.id)} title="دیدن و لغو اشتراک">{sentTo(f)}</button> : <span className="faint">فرستاده نشده</span>}</td>
-                <td>{daysLeft(f.expiresAt) <= 7 ? <Badge tone="warn">{fa(daysLeft(f.expiresAt))} روز مانده</Badge> : <span className="faint">{fa(daysLeft(f.expiresAt))} روز</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -598,19 +579,17 @@ function CodeModal({ onClose }: { onClose: () => void }) {
 }
 
 /** Amin #6336: a file's own record — everything on it, who has it, and what can be done with it */
-function FileModal({ o, f, onClose, onSend, onShares, reload }: { o: Overview; f: OfficeFile; onClose: () => void; onSend: () => void; onShares: () => void; reload: () => void }) {
-  const { busy, run } = useAction();
+function FileModal({ o, f, onClose, onSend, onShares }: { o: Overview; f: OfficeFile; onClose: () => void; onSend: () => void; onShares: () => void }) {
   const names = new Map(o.advisers.map((a) => [a.id, a.name]));
   const holders = (f.shares ?? []).map((s) => (s.adviserId === '*' ? 'همهٔ مشاوران' : names.get(s.adviserId) ?? 'مشاور') + (s.until ? ` (تا ${persianDate(s.until)})` : ''));
-  const left = daysLeft(f.expiresAt);
   const row = (k: string, v: ReactNode) => (v === null || v === '' || v === undefined ? null : <><dt>{k}</dt><dd>{v}</dd></>);
   return (
     <Modal title={f.title} sub={[f.propertyType, [f.city, f.region].filter(Boolean).join('، ')].filter(Boolean).join(' · ')} onClose={onClose} dismissable
-      footer={<><Btn onClick={() => run(() => api.renew(f.id).then(reload), 'فایل ۳۰ روز تمدید شد')} disabled={busy}>تمدید ۳۰ روز</Btn><Btn variant="primary" icon="upload" onClick={onSend}>ارسال به مشاوران</Btn></>}>
+      footer={<Btn variant="primary" icon="upload" onClick={onSend}>ارسال به مشاوران</Btn>}>
       <div className="stack">
         <div className="row tight wrap">
           <Badge tone={f.kind === 'فروش' ? 'info' : 'neutral'} icon={false}>{f.kind}</Badge>
-          {left <= 7 ? <Badge tone="warn">{left ? fa(left) + ' روز تا انقضا' : 'امروز منقضی می‌شود'}</Badge> : <Badge tone="neutral" icon={false}>{fa(left)} روز اعتبار</Badge>}
+          <Badge tone="neutral" icon="mobile">در برنامهٔ ایوان هم هست</Badge>
         </div>
         <dl className="kv file-kv">
           {row('قیمت', f.kind === 'فروش' || f.kind === 'تهاتر' ? (f.price != null ? money(f.price) : null) : null)}
@@ -687,7 +666,7 @@ function TokensCard({ reloadKey }: { reloadKey: string }) {
     vat_unset: 'مالیات قیمت توکن هنوز تعیین نشده است.', min_unset: 'کمترین خرید توکن هنوز تعیین نشده است.',
   };
   return (
-    <Card id="tokens" title="توکن‌های دفتر" sub="ثبت هر فایل یک بار به اندازهٔ حجمش، و ارسال آن برای هر مشاوری که فایل را ندارد، از این موجودی کم می‌شود">
+    <Card id="tokens" title="توکن‌های مشترک برنامه و داشبورد" sub="برنامهٔ ایوان و این داشبورد یک موجودی دارند: هر فایل یک بار به اندازهٔ حجمش، و ارسال آن برای هر مشاوری که فایل را ندارد، از همین موجودی کم می‌شود">
       {err && !t ? <Alert tone="bad">{err}</Alert> : !t ? <Skeleton rows={3} /> : (
         <div className="stack">
           <div className="grid g4 card-grid">
@@ -731,7 +710,7 @@ function Settings({ o }: { o: Overview }) {
     <div className="stack sm">
       {confirmNode}
       <b>پس‌گرفتن درخواست پنل دفتر</b>
-      <p className="muted">با پس‌گرفتن درخواست، همهٔ فایل‌های دفتر ({fa(o.files.length)} فایل) به برنامهٔ ایوان شما برمی‌گردد، همهٔ اشتراک‌ها لغو می‌شود، دسترسی همهٔ مشاوران ({fa(o.advisers.length)} نفر) قطع می‌شود و این داشبورد بسته می‌شود. برنامهٔ ایوان دوباره مثل قبل کار می‌کند. هر وقت بخواهید می‌توانید دوباره درخواست بدهید؛ توکن‌های دفتر سر جایش می‌ماند.</p>
+      <p className="muted">با پس‌گرفتن درخواست، فایل‌ها ({fa(o.files.length)} فایل) که همان فایل‌های برنامهٔ ایوان شماست سر جایشان می‌مانند، همهٔ اشتراک‌ها لغو می‌شود، دسترسی همهٔ مشاوران ({fa(o.advisers.length)} نفر) قطع می‌شود و این داشبورد بسته می‌شود. برنامهٔ ایوان دوباره مثل قبل کار می‌کند. هر وقت بخواهید می‌توانید دوباره درخواست بدهید؛ توکن‌ها هم در برنامه می‌ماند.</p>
       <div><Btn variant="danger" icon="logout" onClick={() => confirm({
         title: 'پس‌گرفتن درخواست پنل دفتر', object: o.office.name,
         consequence: 'فایل‌ها به برنامهٔ ایوان شما برمی‌گردد؛ همهٔ اشتراک‌ها لغو و دسترسی همهٔ مشاوران قطع می‌شود؛ این داشبورد بسته می‌شود.',
@@ -767,7 +746,7 @@ function Dashboard() {
         <nav>
           <a href="#top" className="item on" aria-current="page"><Icon name="overview" size={20} /><span>نمای کلی</span></a>
           <a href="#files" className="item"><Icon name="file" size={20} /><span>فایل‌ها</span>{!!o?.files.length && <span className="count num">{fa(o.files.length)}</span>}</a>
-          <a href="#tokens" className="item"><Icon name="chart" size={20} /><span>توکن‌های دفتر</span>{o?.tokens && <span className="count num">{fa(Math.floor(o.tokens.balance))}</span>}</a>
+          <a href="#tokens" className="item"><Icon name="chart" size={20} /><span>توکن‌ها</span>{o?.tokens && <span className="count num">{fa(Math.floor(o.tokens.balance))}</span>}</a>
         </nav>
         <div className="side-group">مشاوران</div>
         <nav>
@@ -799,7 +778,7 @@ function Dashboard() {
                 <Kpi icon="file" k="فایل‌های تازه امروز" v={fa(o.newToday)} d={`فایل‌های ثبت‌شدهٔ دفتر از ساعت ۰۰:۰۰ · ${fa(o.newWeek)} فایل در ۷ روز`} href="#files" />
                 <Kpi icon="users" k="مشاوران وصل" v={fa(o.advisers.length)} d={o.advisers.length ? `${fa(o.advisers.filter((a) => a.newFiles || a.contacts || a.closedToday).length)} نفر امروز فعال بوده‌اند` : 'با کد اتصال مشاور اضافه کنید'} href="#advisers" />
                 <Kpi icon="upload" k="فایل‌های فرستاده" v={fa(sentAll)} d={`از ${fa(o.files.length)} فایل فعال دفتر · برای مشاوران`} href="#files" />
-                <Kpi icon="clock" k="فایل‌های رو به انقضا" v={fa(o.expiring.length)} tone={o.expiring.length ? 'warn' : undefined} d="۷ روز آینده · تمدید یا بایگانی کنید" href="#expiring" />
+                <Kpi icon="chart" k="توکن‌های مشترک" v={o.tokens ? fa(Math.floor(o.tokens.balance)) : '—'} d="یک موجودی برای برنامهٔ ایوان و این داشبورد" href="#tokens" />
               </div>
               <div className="grid g-main">
                 <Card title="فایل‌های تازه در ۱۴ روز اخیر" sub="تعداد فایل ثبت‌شدهٔ دفتر در هر روز، به وقت تهران"><NewFilesChart days={o.perDay} /></Card>
@@ -808,7 +787,6 @@ function Dashboard() {
               <div className="grid g-main">
                 <div className="stack">
                   <Card id="advisers" title="فعالیت مشاوران امروز" sub="از ساعت ۰۰:۰۰ تا الان · مرتب بر اساس معاملهٔ بسته و فایل تازه" flush><Advisers o={o} reload={() => void load()} onCode={() => setLayer({ t: 'code' })} /></Card>
-                  <Card id="expiring" title="رو به انقضا" sub="۷ روز آینده"><Expiring o={o} reload={() => void load()} /></Card>
                 </div>
                 <Card id="sharing" title="قواعد ارسال به مشاوران" sub="پیش‌فرض هر ارسال؛ هنگام ارسال قابل تغییر است"><Sharing o={o} reload={() => void load()} /></Card>
               </div>
@@ -826,7 +804,7 @@ function Dashboard() {
       {layer?.t === 'shares' && o && <SharesModal o={o} fileId={layer.id} onClose={() => setLayer(null)} reload={() => void load()} />}
       {layer?.t === 'file' && o && (() => {
         const f = o.files.find((x) => x.id === layer.id);
-        return f ? <FileModal o={o} f={f} onClose={() => setLayer(null)} onSend={() => setLayer({ t: 'send', ids: [f.id] })} onShares={() => setLayer({ t: 'shares', id: f.id })} reload={() => void load()} /> : null;
+        return f ? <FileModal o={o} f={f} onClose={() => setLayer(null)} onSend={() => setLayer({ t: 'send', ids: [f.id] })} onShares={() => setLayer({ t: 'shares', id: f.id })} /> : null;
       })()}
       {layer?.t === 'pick' && o && <PickFilesModal o={o} onClose={() => setLayer(null)} onNext={(ids) => setLayer({ t: 'send', ids })} />}
       {/* Amin #6342: the phone's bottom bar, quick ways in (Material icons) */}
