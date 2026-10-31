@@ -34,6 +34,8 @@ const priceOf = (f: OfficeFile) =>
     ? [f.deposit != null && 'ودیعه ' + money(f.deposit), f.rent != null && 'اجاره ' + money(f.rent)].filter(Boolean).join(' · ') || '—'
     : money(f.price);
 const daysLeft = (iso: string) => Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 86400000));
+/** Amin #6531: only a file sent to advisers has an end; the manager's own unsent files never expire */
+const dated = (f: OfficeFile) => !f.expiresAt.startsWith('9999');
 const dayNum = (d: string) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { day: 'numeric', timeZone: 'Asia/Tehran' }).format(new Date(d + 'T12:00:00Z'));
 const today = () => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Tehran' }).format(new Date());
 
@@ -290,6 +292,24 @@ function Advisers({ o, reload, onCode }: { o: Overview; reload: () => void; onCo
   );
 }
 
+function Expiring({ o, reload }: { o: Overview; reload: () => void }) {
+  const { run } = useAction();
+  if (!o.expiring.length) return <Empty compact title="هفتهٔ آینده فایلی منقضی نمی‌شود">فایلی که برای مشاوران می‌فرستید ۳۰ روز اعتبار دارد و در ۷ روز آخر این‌جا می‌آید؛ فایل‌های خودتان که فرستاده نشده‌اند انقضا ندارند.</Empty>;
+  return (
+    <ul className="stack sm plain">
+      {o.expiring.map((f) => (
+        <li key={f.id} className="row" style={{ justifyContent: 'space-between' }}>
+          <span><span>{f.title}</span><div className="faint xs">{f.city}، {f.region}</div></span>
+          <span className="row tight nowrap">
+            <Badge tone="warn">{daysLeft(f.expiresAt) ? fa(daysLeft(f.expiresAt)) + ' روز مانده' : 'امروز'}</Badge>
+            <button className="kss-btn kss-btn--ghost kss-btn--sm" onClick={() => run(() => api.renew(f.id).then(reload), 'فایل ۳۰ روز تمدید شد')}>تمدید</button>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Rule({ label, hint, on, onChange, fixed }: { label: string; hint?: string; on: boolean; onChange?: (v: boolean) => void; fixed?: boolean }) {
   return (
     <label className="row nowrap rule">
@@ -475,14 +495,14 @@ function FilesTable({ o, onNew, onSend, onShares, onOpen }: { o: Overview; onNew
               <div className="grow">
                 <b>{f.title}</b>
                 <div className="faint xs">{f.kind} · {[f.city, f.region].filter(Boolean).join('، ')}{f.size != null ? ` · ${fa(f.size)} متر` : ''}</div>
-                <div className="row tight wrap mt-xs"><span className="num small">{priceOf(f)}</span>{sentTo(f) ? <Badge tone="info" icon={false}>{sentTo(f)}</Badge> : null}</div>
+                <div className="row tight wrap mt-xs"><span className="num small">{priceOf(f)}</span>{sentTo(f) ? <Badge tone="info" icon={false}>{sentTo(f)}</Badge> : null}{dated(f) && daysLeft(f.expiresAt) <= 7 ? <Badge tone="warn">{fa(daysLeft(f.expiresAt))} روز مانده</Badge> : null}</div>
               </div>
               <Icon name="chevron" size={18} />
             </li>
           ))}
         </ul>
         <div className="tbl-wrap file-tbl"><table className="tbl">
-          <thead><tr><th style={{ inlineSize: 40 }}><span className="sr-only">انتخاب</span></th><th>فایل</th><th>نوع</th><th className="num">قیمت</th><th className="num">متراژ</th><th>ثبت</th><th>فرستاده به</th></tr></thead>
+          <thead><tr><th style={{ inlineSize: 40 }}><span className="sr-only">انتخاب</span></th><th>فایل</th><th>نوع</th><th className="num">قیمت</th><th className="num">متراژ</th><th>ثبت</th><th>فرستاده به</th><th>انقضا</th></tr></thead>
           <tbody>
             {rows.map((f) => (
               <tr key={f.id} className="clickable" onClick={(e) => open(e, f.id)} title="باز کردن پرونده">
@@ -493,6 +513,7 @@ function FilesTable({ o, onNew, onSend, onShares, onOpen }: { o: Overview; onNew
                 <td className="num">{f.size != null ? fa(f.size) + ' متر' : '—'}</td>
                 <td className="muted nowrap">{ago(f.createdAt)}</td>
                 <td>{sentTo(f) ? <button type="button" className="kss-btn kss-btn--link kss-btn--sm" onClick={() => onShares(f.id)} title="دیدن و لغو اشتراک">{sentTo(f)}</button> : <span className="faint">فرستاده نشده</span>}</td>
+                <td>{!dated(f) ? <span className="faint">بدون انقضا</span> : daysLeft(f.expiresAt) <= 7 ? <Badge tone="warn">{fa(daysLeft(f.expiresAt))} روز مانده</Badge> : <span className="faint">{fa(daysLeft(f.expiresAt))} روز</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -579,17 +600,20 @@ function CodeModal({ onClose }: { onClose: () => void }) {
 }
 
 /** Amin #6336: a file's own record — everything on it, who has it, and what can be done with it */
-function FileModal({ o, f, onClose, onSend, onShares }: { o: Overview; f: OfficeFile; onClose: () => void; onSend: () => void; onShares: () => void }) {
+function FileModal({ o, f, onClose, onSend, onShares, reload }: { o: Overview; f: OfficeFile; onClose: () => void; onSend: () => void; onShares: () => void; reload: () => void }) {
+  const { busy, run } = useAction();
+  const left = daysLeft(f.expiresAt);
   const names = new Map(o.advisers.map((a) => [a.id, a.name]));
   const holders = (f.shares ?? []).map((s) => (s.adviserId === '*' ? 'همهٔ مشاوران' : names.get(s.adviserId) ?? 'مشاور') + (s.until ? ` (تا ${persianDate(s.until)})` : ''));
   const row = (k: string, v: ReactNode) => (v === null || v === '' || v === undefined ? null : <><dt>{k}</dt><dd>{v}</dd></>);
   return (
     <Modal title={f.title} sub={[f.propertyType, [f.city, f.region].filter(Boolean).join('، ')].filter(Boolean).join(' · ')} onClose={onClose} dismissable
-      footer={<Btn variant="primary" icon="upload" onClick={onSend}>ارسال به مشاوران</Btn>}>
+      footer={<>{dated(f) && <Btn onClick={() => run(() => api.renew(f.id).then(reload), 'فایل ۳۰ روز تمدید شد')} disabled={busy}>تمدید ۳۰ روز</Btn>}<Btn variant="primary" icon="upload" onClick={onSend}>ارسال به مشاوران</Btn></>}>
       <div className="stack">
         <div className="row tight wrap">
           <Badge tone={f.kind === 'فروش' ? 'info' : 'neutral'} icon={false}>{f.kind}</Badge>
           <Badge tone="neutral" icon="mobile">در برنامهٔ ایوان هم هست</Badge>
+          {dated(f) ? (left <= 7 ? <Badge tone="warn">{left ? fa(left) + ' روز تا انقضا' : 'امروز منقضی می‌شود'}</Badge> : <Badge tone="neutral" icon={false}>{fa(left)} روز اعتبار</Badge>) : <Badge tone="neutral" icon={false}>بدون انقضا</Badge>}
         </div>
         <dl className="kv file-kv">
           {row('قیمت', f.kind === 'فروش' || f.kind === 'تهاتر' ? (f.price != null ? money(f.price) : null) : null)}
@@ -869,6 +893,7 @@ function Dashboard() {
               <div className="grid g-main">
                 <div className="stack">
                   <Card id="advisers" title="فعالیت مشاوران امروز" sub="از ساعت ۰۰:۰۰ تا الان · مرتب بر اساس معاملهٔ بسته و فایل تازه" flush><Advisers o={o} reload={() => void load()} onCode={() => setLayer({ t: 'code' })} /></Card>
+                  <Card id="expiring" title="رو به انقضا" sub="فایل‌های فرستاده برای مشاوران · ۷ روز آینده"><Expiring o={o} reload={() => void load()} /></Card>
                 </div>
                 <Card id="sharing" title="قواعد ارسال به مشاوران" sub="پیش‌فرض هر ارسال؛ هنگام ارسال قابل تغییر است"><Sharing o={o} reload={() => void load()} /></Card>
               </div>
@@ -887,7 +912,7 @@ function Dashboard() {
       {layer?.t === 'shares' && o && <SharesModal o={o} fileId={layer.id} onClose={() => setLayer(null)} reload={() => void load()} />}
       {layer?.t === 'file' && o && (() => {
         const f = o.files.find((x) => x.id === layer.id);
-        return f ? <FileModal o={o} f={f} onClose={() => setLayer(null)} onSend={() => setLayer({ t: 'send', ids: [f.id] })} onShares={() => setLayer({ t: 'shares', id: f.id })} /> : null;
+        return f ? <FileModal o={o} f={f} onClose={() => setLayer(null)} onSend={() => setLayer({ t: 'send', ids: [f.id] })} onShares={() => setLayer({ t: 'shares', id: f.id })} reload={() => void load()} /> : null;
       })()}
       {layer?.t === 'pick' && o && <PickFilesModal o={o} onClose={() => setLayer(null)} onNext={(ids) => setLayer({ t: 'send', ids })} />}
       {/* Amin #6342: the phone's bottom bar, quick ways in (Material icons) */}

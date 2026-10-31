@@ -432,27 +432,32 @@ async function admin(method, route, body, key) {
   return { status: res.status, body: text ? JSON.parse(text) : null }
 }
 
-test('Amin #6289: a new office starts with 2,500 tokens, one ledger line, given once', async () => {
-  const { h, officeId } = await office('دفتر شروع', 2500)
-  const t = (await call('GET', '/office/tokens', undefined, h)).body
-  assert.equal(t.balance, 2500)
-  assert.deepEqual(t.lines.filter((l) => l.kind === 'office_default').map((l) => [l.kind, l.amount, l.what]), [['office_default', 2500, 'توکن هدیهٔ شروع دفتر']])
+test("Amin #6533: a newly approved office gets no tokens of its own (no 2,500 start gift); it spends from its manager's app pool", async () => {
+  const { h, officeId } = await office('دفتر شروع', 0)
   const o = require('../src/officeRoutes')
-  assert.equal(o.giveDefault(officeId), false, 'a second time gives nothing')
+  const t = (await call('GET', '/office/tokens', undefined, h)).body
+  assert.equal(t.lines.some((l) => l.kind === 'office_default'), false)
+  assert.equal(o.giveDefault(officeId), false)
   assert.deepEqual(o.giveMissingDefaults(), [])
-  assert.equal(o.officeBalance(officeId), 2500)
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM token_ledger WHERE idem_key = ?').get(`office-default:${officeId}`).n, 0)
+  assert.equal(o.officeBalance(officeId), 0)
 })
 
-test('Amin #6289: an office made before the default gets it once at start-up (listed first in a dry run)', async () => {
-  const { officeId } = await office('دفتر قدیمی', 2500)
-  db.prepare("DELETE FROM token_ledger WHERE idem_key = ?").run(`office-default:${officeId}`) // as if made before #6289
-  const o = require('../src/officeRoutes')
-  const dry = o.giveMissingDefaults(true)
-  assert.deepEqual(dry.map((x) => [x.officeId, x.balance, x.gets]), [[officeId, 0, 2500]])
-  assert.equal(o.officeBalance(officeId), 0, 'a dry run gives nothing')
-  assert.equal(o.giveMissingDefaults().length, 1)
-  assert.equal(o.officeBalance(officeId), 2500)
-  assert.equal(o.giveMissingDefaults().length, 0)
+test("Amin #6531: the manager's own unsent file has no end; sending it gives the office's 30 days, «رو به انقضا» and «تمدید»", async () => {
+  const { h } = await office('دفتر انقضا', 5000)
+  const made = (await post('/office/files', sample, h)).body
+  const fileOf = async () => (await call('GET', '/office/overview', undefined, h)).body.files.find((f) => f.id === made.id)
+  assert.equal((await fileOf()).expiresAt, '9999-12-31T00:00:00.000Z')
+  assert.equal((await post(`/office/files/${made.id}/renew`, {}, h)).status, 204)
+  assert.equal((await fileOf()).expiresAt, '9999-12-31T00:00:00.000Z', 'nothing to renew')
+  await linkedAdviser(h)
+  assert.equal((await post('/office/share', { fileIds: [made.id], to: 'all' }, h)).status, 200)
+  const days = (Date.parse((await fileOf()).expiresAt) - Date.now()) / 864e5
+  assert.ok(days > 29 && days <= 30, `30 days from the send (${days})`)
+  db.prepare('UPDATE office_files SET expires_at = ? WHERE id = ?').run(new Date(Date.now() + 2 * 864e5).toISOString(), made.id)
+  assert.ok((await call('GET', '/office/overview', undefined, h)).body.expiring.some((f) => f.id === made.id))
+  assert.equal((await post(`/office/files/${made.id}/renew`, {}, h)).status, 204)
+  assert.ok((Date.parse((await fileOf()).expiresAt) - Date.now()) / 864e5 > 29)
 })
 
 test('Amin #6289: sales management adds and deducts an office\'s tokens like an app user\'s (reason, ledger, never below 0, once per key)', async () => {
@@ -474,7 +479,7 @@ test('Amin #6289: sales management adds and deducts an office\'s tokens like an 
   assert.equal((await admin('POST', `/offices/${officeId}/tokens/deduct`, { amount: 200, reason: 'توکن اشتباهی' }, 'k-d2')).body.tokens.balance, 2800)
   const led = (await admin('GET', `/offices/${officeId}/tokens`)).body
   assert.equal(led.balance, 2800)
-  assert.deepEqual(led.lines.map((l) => [l.reason, l.amount]).sort(), [['admin_deduct', -100], ['admin_deduct', -200], ['admin_grant', 500], ['office_default', 2500]].sort()) // −100: the test sets the pool to 2,500 (allowance 100)
+  assert.deepEqual(led.lines.map((l) => [l.reason, l.amount]).sort(), [['admin_grant', 2400], ['admin_deduct', -200], ['admin_grant', 500]].sort()) // 2,400: the test sets the pool to 2,500 (allowance 100); no start gift (#6533)
   assert.ok(led.lines.some((l) => l.reason === 'admin_deduct' && l.ref === 'توکن اشتباهی'))
   // the dashboard shows the same lines in words; the manager's own app tokens never move
   const t = (await call('GET', '/office/tokens', undefined, h)).body

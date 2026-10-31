@@ -88,11 +88,16 @@ function officeBalance(officeId) {
 // Amin #6289: every office dashboard starts with 2,500 tokens: one ledger line per office, ever (the idem key), given when
 // the office is made; an office made before this gets it once at start-up (giveMissingDefaults)
 const OFFICE_DEFAULT_TOKENS = 2500
+// Amin #6533 (replaces #6289's 2,500 start gift): a newly approved office gets NO tokens of its own — it shares its
+// manager's app pool and every activity, in the app or the dashboard, spends from it. Kept as a switch.
+const OFFICE_START_GIFT = false
 function giveDefault(officeId) {
+  if (!OFFICE_START_GIFT) return false
   return tokens.post(officeAccount(officeId), 'office_default', OFFICE_DEFAULT_TOKENS, `office-default:${officeId}`)
 }
 /** offices that never got the default → [{ officeId, name, balance }] (dry = only list them) */
 function giveMissingDefaults(dry = false) {
+  if (!OFFICE_START_GIFT) return [] // #6533: nothing to give
   const missing = db.prepare(`SELECT id, name FROM offices o WHERE NOT EXISTS
     (SELECT 1 FROM token_ledger t WHERE t.idem_key = 'office-default:' || o.id)`).all()
   const out = missing.map((o) => ({ officeId: o.id, name: o.name, balance: officeBalance(o.id), gets: OFFICE_DEFAULT_TOKENS }))
@@ -422,7 +427,14 @@ function propertyRowOf(id, userId, f, createdAt) {
 if (!db.prepare('PRAGMA table_info(office_files)').all().some((c) => c.name === 'mirrored_at')) db.exec('ALTER TABLE office_files ADD COLUMN mirrored_at TEXT')
 const keyOfFile = (ownerId, id) => (id.startsWith(`p:${ownerId}:`) ? id.slice(`p:${ownerId}:`.length) : `office-${id}`)
 const fileOfKey = (ownerId, key) => (key.startsWith('office-') ? key.slice('office-'.length) : `p:${ownerId}:${key}`)
-const NO_END = '9999-12-31T00:00:00.000Z' // Amin #6330 (choice A): one set of files, and app files never expire
+// Amin #6531: the manager's own files never expire while they are only his; a file SENT to advisers keeps the office's
+// rules — 30 days from the send, «رو به انقضا» in its last 7, «تمدید». OWN_FILES_EXPIRE = true brings back the old rule
+// (every office file 30 days) in one line.
+const OWN_FILES_EXPIRE = false
+const NO_END = '9999-12-31T00:00:00.000Z'
+const endFor = () => (OWN_FILES_EXPIRE ? new Date(Date.now() + FILE_DAYS * DAY).toISOString() : NO_END)
+/** a file now being sent: from no end to the office's 30 days (a dated one keeps its date) */
+const sentEnd = (current) => (current === NO_END ? new Date(Date.now() + FILE_DAYS * DAY).toISOString() : current)
 
 /** a copy's property row (+ its owner contact) → the office's file fields */
 function fileOfRow(row, contacts) {
@@ -453,7 +465,7 @@ function mirrorIn(office) {
       if (!have) {
         if (!live) continue
         db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at, mirrored_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-          .run(id, office.id, seal(fileOfRow(row, contacts)), row.created_at || at, row.updated_at || at, NO_END, at)
+          .run(id, office.id, seal(fileOfRow(row, contacts)), row.created_at || at, row.updated_at || at, endFor(), at)
         out.added++
       } else if (!live) {
         if (!have.archived_at && have.mirrored_at) {
@@ -462,11 +474,11 @@ function mirrorIn(office) {
           out.archived++
         }
       } else if (!have.archived_at && (row.updated_at || '') > have.updated_at) {
-        db.prepare('UPDATE office_files SET data = ?, updated_at = ?, expires_at = ?, mirrored_at = ? WHERE id = ?')
-          .run(seal(fileOfRow(row, contacts)), row.updated_at, NO_END, at, id)
+        db.prepare('UPDATE office_files SET data = ?, updated_at = ?, mirrored_at = ? WHERE id = ?')
+          .run(seal(fileOfRow(row, contacts)), row.updated_at, at, id)
         out.changed++
       } else if (!have.mirrored_at) {
-        db.prepare('UPDATE office_files SET mirrored_at = ?, expires_at = ? WHERE id = ?').run(at, NO_END, id)
+        db.prepare('UPDATE office_files SET mirrored_at = ? WHERE id = ?').run(at, id)
       }
     }
     // a mirrored file whose row is gone from the copy (deleted on the phone) leaves the office too
@@ -503,6 +515,7 @@ function mirrorOut(office, id, file, createdAt, { archived = false, at = now() }
  * The one-time move (#6330): every office file not mirrored yet goes into its manager's copy (an imported one that is
  * still there is only marked). dry = only count. Run again = nothing new. → [{ office, files, written, marked }]
  */
+const isSent = (fileId) => !!db.prepare(`SELECT 1 FROM office_shares WHERE file_id = ? AND ${LIVE_SHARE}`).get(fileId, now())
 function moveOfficeFiles(dry = false) {
   const sync = require('./syncRoutes')
   const report = []
@@ -513,10 +526,11 @@ function moveOfficeFiles(dry = false) {
     let written = 0, marked = 0
     for (const f of files) {
       if (have.has(keyOfFile(office.owner_user_id, f.id))) {
-        if (!dry) db.prepare('UPDATE office_files SET mirrored_at = ?, expires_at = ? WHERE id = ?').run(now(), NO_END, f.id)
+        if (!dry) db.prepare('UPDATE office_files SET mirrored_at = ? WHERE id = ?').run(now(), f.id)
+        if (!dry && !isSent(f.id)) db.prepare('UPDATE office_files SET expires_at = ? WHERE id = ?').run(endFor(), f.id)
         marked++
       } else {
-        if (!dry) db.transaction(() => { mirrorOut(office, f.id, open(f.data), f.created_at); db.prepare('UPDATE office_files SET expires_at = ? WHERE id = ?').run(NO_END, f.id) })()
+        if (!dry) db.transaction(() => { mirrorOut(office, f.id, open(f.data), f.created_at); if (!isSent(f.id)) db.prepare('UPDATE office_files SET expires_at = ? WHERE id = ?').run(endFor(), f.id) })()
         written++
       }
     }
@@ -805,7 +819,7 @@ manager.post('/files', async (req, res, next) => {
         const balance = officeBalance(req.office.id)
         if (balance < cost) return { balance }
         db.prepare('INSERT INTO office_files (id, office_id, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-          id, req.office.id, seal(file), at, at, NO_END
+          id, req.office.id, seal(file), at, at, endFor()
         )
         const key = mirrorOut(req.office, id, file, at, { at })
         const owner = req.office.owner_user_id
@@ -826,7 +840,9 @@ manager.post('/files', async (req, res, next) => {
 const fileRow = (req) => db.prepare('SELECT * FROM office_files WHERE id = ? AND office_id = ? AND archived_at IS NULL').get(req.params.id, req.office.id)
 
 manager.post('/files/:id/renew', (req, res) => {
-  if (!fileRow(req)) return fail(res, 404, 'not_found', 'فایل پیدا نشد.')
+  const f = fileRow(req)
+  if (!f) return fail(res, 404, 'not_found', 'فایل پیدا نشد.')
+  if (f.expires_at === NO_END) return res.status(204).end() // #6531: the manager's own unsent file has no end to renew
   db.prepare('UPDATE office_files SET expires_at = ?, updated_at = ? WHERE id = ?').run(new Date(Date.now() + FILE_DAYS * DAY).toISOString(), now(), req.params.id)
   res.status(204).end()
 })
@@ -881,7 +897,9 @@ manager.post('/share', async (req, res, next) => {
       const balance = officeBalance(req.office.id)
       if (balance < needed) return { short: { balance, needed } }
       const at = now()
+      const dated = db.prepare('UPDATE office_files SET expires_at = ? WHERE id = ?')
       for (const p of plan) {
+        dated.run(sentEnd(rows[p.id].expires_at), p.id) // #6531: a sent file keeps the office's 30-day rule
         to.forEach((a) => put.run(req.office.id, p.id, a, JSON.stringify(fields), at, until))
         if (p.fresh.length) {
           tokens.post(officeAccount(req.office.id), 'office_file_share', -p.cost,
