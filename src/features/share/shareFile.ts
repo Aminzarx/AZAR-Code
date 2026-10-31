@@ -91,8 +91,22 @@ const amount = (v: number | null | undefined): number | undefined => (typeof v =
  * The file + the switches → the snapshot to send. Nothing hidden is in it at all (not blanked: left out).
  * `photos` are the file's photos with their bytes, already read by the caller (ignored when hidden).
  */
+/**
+ * The title the other side sees (also in the SMS). A file's own title often holds the street or the owner's name, so once
+ * the address or the real owner's name is not shared, a neutral one is built from type, area and region instead
+ * («آپارتمان ۱۲۰ متری – ونک»).
+ */
+export function sharedTitleOf(property: Property, options: ShareOptions): string {
+  const ownerNameShared = !options.hideOwnerPhone && !options.ownerAsMe && !options.hideOwnerName
+  if (!options.hideAddress && ownerNameShared) return property.title
+  const area = amount(property.area)
+  const head = [text(property.propertyType)?.trim() ?? 'ملک', area ? `${toPersianDigits(String(area))} متری` : null].filter(Boolean).join(' ')
+  const place = text(property.region)?.trim() ?? text(property.city)?.trim()
+  return place ? `${head} – ${place}` : head
+}
+
 export function buildSharedFile(property: Property, options: ShareOptions, sender: ShareSender, photos: readonly SharedPhoto[] = []): SharedFile {
-  const file: SharedFile = { title: property.title }
+  const file: SharedFile = { title: sharedTitleOf(property, options) }
   const put = <K extends keyof SharedFile>(k: K, v: SharedFile[K] | undefined): void => {
     if (v !== undefined) file[k] = v
   }

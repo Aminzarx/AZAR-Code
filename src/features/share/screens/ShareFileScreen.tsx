@@ -16,6 +16,7 @@ import {
   buildSharedFile,
   hiddenSummary,
   shareMessage,
+  sharedTitleOf,
   timeLeft,
   toggleOption,
   type ShareOptions,
@@ -113,7 +114,7 @@ export function ShareFileScreen({ navigation, route }: Props): React.JSX.Element
       ) : made ? (
         <ShareLink
           made={made}
-          title={property.title}
+          title={sharedTitleOf(property, options)}
           styles={styles}
           theme={theme}
           onAgain={() => setMade(null)}

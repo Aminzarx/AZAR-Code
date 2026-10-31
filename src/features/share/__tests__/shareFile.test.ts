@@ -6,6 +6,7 @@ import {
   shareCodeOf,
   shareLinkOf,
   shareMessage,
+  sharedTitleOf,
   timeLeft,
   toggleOption,
   type ShareOptions
@@ -107,6 +108,17 @@ describe('snapshot filter (Amin #6339)', () => {
   it('the real owner only when nothing hides it; name and notes can still be hidden', () => {
     expect(buildSharedFile(property, none, me).owner).toEqual({ name: 'رضا مالکی', phone: '+989121111111', notes: 'فقط عصرها' })
     expect(buildSharedFile(property, opts({ hideOwnerPhone: false, hideOwnerName: true }), me).owner).toEqual({ name: 'مالک', phone: '+989121111111' })
+  })
+
+  it('the title (and so the SMS) is neutral once the address or the owner name is not shared (review S5-1)', () => {
+    const neutral = 'آپارتمان ۱۲۰ متری – ونک'
+    expect(buildSharedFile(property, none, me).title).toBe(property.title)
+    expect(buildSharedFile(property, opts({ hideOwnerPhone: false, hideOwnerNotes: false, hideAddress: true }), me).title).toBe(neutral)
+    expect(buildSharedFile(property, opts({ hideOwnerPhone: false, hideOwnerName: true }), me).title).toBe(neutral)
+    expect(buildSharedFile(property, DEFAULT_SHARE_OPTIONS, me).title).toBe(neutral)
+    expect(buildSharedFile(property, opts({ hideOwnerPhone: false, ownerAsMe: true }), me).title).toBe(neutral)
+    expect(sharedTitleOf({ ...property, propertyType: '', area: null, region: '' }, DEFAULT_SHARE_OPTIONS)).toBe('ملک – تهران')
+    expect(shareMessage(shareLinkOf(CODE), sharedTitleOf(property, DEFAULT_SHARE_OPTIONS))).not.toContain(property.title)
   })
 
   it('address, photos, description and prices are left out (not blanked) when hidden', () => {
