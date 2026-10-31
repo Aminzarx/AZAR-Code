@@ -457,6 +457,13 @@ export function SettingsScreen(props: Props): React.JSX.Element {
             value="ورود آگهی از دیوار · دفتر املاک"
             onPress={() => props.navigation.navigate('Connections')}
           />
+          {/* Amin #6339: a file a colleague shared from their EYVAN (scan its barcode or paste its link) */}
+          <SettingsRow
+            icon="scan"
+            label="دریافت فایل"
+            value="اسکن بارکد فایلی که همکارتان فرستاده"
+            onPress={() => props.navigation.navigate('ReceiveFile')}
+          />
           <SettingsRow
             icon="bell"
             label="یادآوری‌ها و اعلان‌ها"

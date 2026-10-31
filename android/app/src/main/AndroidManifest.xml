@@ -53,6 +53,13 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="eyvan" android:host="office-link" />
         </intent-filter>
+        <!-- Amin #6339/#6523: a shared file's one-time link (eyvan://share?c=…) opens «دریافت فایل»; it opens only in EYVAN -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="eyvan" android:host="share" />
+        </intent-filter>
         <!-- Navid 2026-10-27 «ورود آگهی از دیوار»: Divar → اشتراک‌گذاری → ایوان (AzarShareModule) -->
         <intent-filter android:label="ورود به ایوان">
             <action android:name="android.intent.action.SEND" />
