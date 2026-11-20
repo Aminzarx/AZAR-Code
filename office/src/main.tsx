@@ -7,7 +7,7 @@ import './styles/base.css';
 import './office.css';
 import { applyTheme } from './lib/theme';
 import { ago, digits } from './lib/fmt';
-import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, PageHeader, SearchBox, Segmented, Skeleton, ToastProvider, useAction, useConfirm, useToast } from './ui/kit';
+import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Kpi, Modal, NeedTokens, PageHeader, SearchBox, Segmented, Skeleton, toast, useAction, useConfirm } from './ui/kit';
 import { Icon } from './ui/icons';
 import eyvanLogo from './assets/eyvan-logo.webp';
 import { api, ApiError, IN_PANEL, session, type Adviser, type Contact, type NewFile, type OfficeFile, type Overview, type Rules, type Quote, type SignedIn, type Tokens } from './api';
@@ -72,7 +72,7 @@ function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
     setError(null);
     try { setWait({ ...(await api.linkPhone(number)), sentAt: Date.now() }); }
     catch (e) { if ((e as ApiError).code === 'no_dashboard') { setWait(null); setError('شماره یافت نشد'); } else throw e; }
-  });
+  }, undefined, 'ورود');
   useEffect(() => {
     if (!wait) return;
     let alive = true;
@@ -85,7 +85,7 @@ function WithEyvan({ onSession }: { onSession: (r: SignIn) => void }) {
       }, (e: ApiError & { ticket?: string }) => {
         if (!alive) return;
         if (e.code === 'no_office' && e.ticket) { alive = false; onSession({ ticket: e.ticket }); }
-        else if (e.status !== 0 && e.status !== 429) { alive = false; setWait(null); setError(e.message); }
+        else if (e.status !== 0 && e.status !== 429) { alive = false; setWait(null); toast(e.message, 'bad', 'ورود انجام نشد'); }
       });
     }, 2000);
     return () => { alive = false; clearInterval(timer); clearInterval(poll); };
@@ -128,7 +128,7 @@ function Login({ onIn }: { onIn: () => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const { busy, run, error } = useAction();
+  const { busy, run } = useAction();
   const onSession = useCallback((r: SignIn) => {
     if ('ticket' in r) { setTicket(r.ticket); return; }
     session.set(r.token, r.expiresAt);
@@ -144,7 +144,7 @@ function Login({ onIn }: { onIn: () => void }) {
         if (t.code === 'no_office' && t.ticket) setTicket(t.ticket);
         else throw e;
       }
-    });
+    }, undefined, ticket ? 'ساخت دفتر' : 'ورود');
   return (
     <main className="login">
       <form className="kss-card login-card" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
@@ -154,7 +154,6 @@ function Login({ onIn }: { onIn: () => void }) {
             <h1 className="login-title">دفتر تازه</h1>
             <div className="login-body">
               <Field label="نام دفتر" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً دفتر املاک پارسه" autoFocus /></Field>
-              {error && <Alert tone="bad">{error}</Alert>}
               <Btn type="submit" variant="primary" size="lg" busy={busy} disabled={!name.trim()}>ساخت دفتر و ورود</Btn>
             </div>
           </>
@@ -165,7 +164,6 @@ function Login({ onIn }: { onIn: () => void }) {
               <div className="login-body">
                 <Field label="نام کاربری"><input className="kss-input" dir="ltr" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus /></Field>
                 <Field label="رمز"><input className="kss-input" dir="ltr" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-                {error && <Alert tone="bad">{error}</Alert>}
                 <Btn type="submit" variant="primary" size="lg" busy={busy} disabled={!username.trim() || !password}>ورود</Btn>
               </div>
             )}
@@ -184,7 +182,7 @@ function Login({ onIn }: { onIn: () => void }) {
 function FromPanel({ onIn }: { onIn: () => void }) {
   const [state, setState] = useState<{ t: 'wait' } | { t: 'name'; ticket: string } | { t: 'fail'; m: string }>({ t: 'wait' });
   const [name, setName] = useState('');
-  const { busy, run, error } = useAction();
+  const { busy, run } = useAction();
   useEffect(() => {
     const h = new URLSearchParams(location.search).get('h');
     history.replaceState(null, '', location.pathname);
@@ -197,7 +195,7 @@ function FromPanel({ onIn }: { onIn: () => void }) {
     const r = await api.ssoOpen(state.ticket, name.trim());
     session.set(r.token, r.expiresAt);
     onIn();
-  });
+  }, undefined, 'ساخت دفتر');
   return (
     <main className="login">
       <form className="kss-card login-card" onSubmit={(e) => { e.preventDefault(); void open(); }}>
@@ -212,7 +210,6 @@ function FromPanel({ onIn }: { onIn: () => void }) {
             <h1 className="login-title">دفتر تازه</h1>
             <p className="muted">برای این حساب هنوز دفتری ساخته نشده؛ نام دفتر را بنویسید.</p>
             <Field label="نام دفتر" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً دفتر املاک پارسه" autoFocus /></Field>
-            {error && <Alert tone="bad">{error}</Alert>}
             <Btn type="submit" variant="primary" busy={busy} disabled={!name.trim()}>ساخت دفتر</Btn>
           </>
         )}
@@ -346,8 +343,7 @@ function RuleSwitches({ rules, set }: { rules: Rules; set: (r: Rules) => void })
 }
 
 function Sharing({ o, reload }: { o: Overview; reload: () => void }) {
-  const toast = useToast();
-  const save = (r: Rules) => api.rules(r).then(() => { reload(); toast('قواعد ارسال ذخیره شد'); }, (e: Error) => toast(e.message, 'bad'));
+  const save = (r: Rules) => api.rules(r).then(() => { reload(); toast('قواعد ارسال ذخیره شد'); }, (e: Error) => toast(e.message, 'bad', 'قواعد ارسال ذخیره نشد'));
   return (
     <div className="stack sm">
       <RuleSwitches rules={o.office.rules} set={save} />
@@ -373,7 +369,7 @@ function NewFileModal({ onClose, onMade, divarOn }: { onClose: () => void; onMad
     };
     const r = await api.createFile(body);
     onMade(r.id, f.title ?? '');
-  });
+  }, undefined, 'ثبت فایل');
   const money = (k: string, label: string) => (
     <Field label={label + ' (تومان)'}><input className="kss-input num" inputMode="numeric" dir="ltr" value={f[k] ?? ''} onChange={set(k)} /></Field>
   );
@@ -407,7 +403,7 @@ function NewFileModal({ onClose, onMade, divarOn }: { onClose: () => void; onMad
         <Field label="شمارهٔ مالک" hint="به‌طور پیش‌فرض برای مشاوران فرستاده نمی‌شود"><input className="kss-input" dir="ltr" inputMode="tel" value={f.ownerPhone ?? ''} onChange={set('ownerPhone')} placeholder="09xxxxxxxxx" /></Field>
       </div>
       <p className="muted small">ثبت فایل یک بار، به اندازهٔ حجم فایل، از توکن‌ها کم می‌کند و فایل در برنامهٔ ایوان شما هم دیده می‌شود.</p>
-      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#/tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
+      <NeedTokens error={error} onClose={onClose} />
     </Modal>
   );
 }
@@ -420,7 +416,7 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
   const [span, setSpan] = useState<'none' | '7' | '30' | '90'>('none');
   const until = span === 'none' ? null : new Date(Date.now() + Number(span) * 86400000).toISOString();
   const { busy, run, error } = useAction();
-  const send = () => run(() => api.share(ids, all ? 'all' : [...who], rules, until).then(onSent), `${fa(ids.length)} فایل فرستاده شد`);
+  const send = () => run(() => api.share(ids, all ? 'all' : [...who], rules, until).then(onSent), `${fa(ids.length)} فایل فرستاده شد`, 'ارسال');
   // Amin #6269: each file's tokens × each recipient who does not have it yet; the server charges the same sum
   const people = all ? o.advisers.map((a) => a.id) : [...who];
   const picked = o.files.filter((f) => ids.includes(f.id));
@@ -452,7 +448,7 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
           )}
         </div>
       )}
-      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#/tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
+      <NeedTokens error={error} onClose={onClose} />
     </Modal>
   );
 }
@@ -461,8 +457,8 @@ function SendModal({ o, ids, onClose, onSent }: { o: Overview; ids: string[]; on
 function SharesModal({ o, fileId, onClose, reload }: { o: Overview; fileId: string; onClose: () => void; reload: () => void }) {
   const f = o.files.find((x) => x.id === fileId);
   const names = new Map(o.advisers.map((a) => [a.id, a.name]));
-  const { busy, run, error } = useAction();
-  const cancel = (adviserId?: string) => run(() => api.shareCancel(fileId, adviserId).then(reload), adviserId ? 'اشتراک لغو شد' : 'همهٔ اشتراک‌های این فایل لغو شد');
+  const { busy, run } = useAction();
+  const cancel = (adviserId?: string) => run(() => api.shareCancel(fileId, adviserId).then(reload), adviserId ? 'اشتراک لغو شد' : 'همهٔ اشتراک‌های این فایل لغو شد', 'لغو اشتراک');
   const shares = f?.shares ?? [];
   return (
     <Modal title="اشتراک‌های فایل" sub={f?.title} onClose={onClose} size="sm" locked={busy}
@@ -477,7 +473,6 @@ function SharesModal({ o, fileId, onClose, reload }: { o: Overview; fileId: stri
           ))}
         </div>
       )}
-      {error && <Alert tone="bad">{error}</Alert>}
     </Modal>
   );
 }
@@ -569,10 +564,9 @@ function Qr({ text, size = 176, label }: { text: string; size?: number; label: s
 function CodeModal({ onClose }: { onClose: () => void }) {
   const [c, setC] = useState<{ code: string; word: string; expiresAt?: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const toast = useToast();
   useEffect(() => { api.newCode().then(setC, (e: Error) => setErr(e.message)); }, []);
   const copy = (text: string, what: string) => {
-    navigator.clipboard?.writeText(text).then(() => toast(`${what} کپی شد`), () => toast('کپی نشد؛ دستی بنویسید'));
+    navigator.clipboard?.writeText(text).then(() => toast(`${what} کپی شد`), () => toast('کپی نشد؛ دستی بنویسید', 'warn'));
   };
   const message = c ? [
     'برای اتصال به داشبورد دفتر در برنامهٔ ایوان:',
@@ -694,7 +688,6 @@ function PhoneBook({ addKey }: { addKey: number }) {
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
-  const toast = useToast();
   const load = useCallback(() => api.contacts().then((x) => { setList(x); setErr(null); }, (e: Error) => setErr(e.message)), []);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (addKey) setAdding(true); }, [addKey]);
@@ -706,7 +699,7 @@ function PhoneBook({ addKey }: { addKey: number }) {
       a.download = 'دفترچه-تلفن.csv';
       a.click();
       window.setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    } catch (e) { toast((e as Error).message, 'bad'); }
+    } catch (e) { toast((e as Error).message, 'bad', 'خروجی ساخته نشد'); }
   };
   const rows = (list?.contacts ?? []).filter((c) => !q || [c.name, c.phone, c.notes].some((x) => x.includes(q) || toLatinDigits(x).includes(toLatinDigits(q))));
   return (
@@ -744,13 +737,12 @@ function ContactModal({ roles, onClose, onMade }: { roles: Record<string, string
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('');
   const [notes, setNotes] = useState('');
-  const { busy, run, error } = useAction();
-  const submit = () => run(async () => { await api.addContact({ name: name.trim(), phone: toLatinDigits(phone), role: role || undefined, notes: notes.trim() || undefined }); onMade(name.trim()); });
+  const { busy, run } = useAction();
+  const submit = () => run(async () => { await api.addContact({ name: name.trim(), phone: toLatinDigits(phone), role: role || undefined, notes: notes.trim() || undefined }); onMade(name.trim()); }, undefined, 'افزودن مخاطب');
   return (
     <Modal title="مخاطب تازه" sub="در برنامهٔ ایوان شما هم اضافه می‌شود" onClose={onClose} size="sm" locked={busy}
       footer={<Btn variant="primary" busy={busy} disabled={!name.trim() || !phone.trim()} onClick={() => void submit()}>افزودن</Btn>}>
       <form className="stack sm" onSubmit={(e) => { e.preventDefault(); if (name.trim() && phone.trim()) void submit(); }}>
-        {error && <Alert tone="bad">{error}</Alert>}
         <Field label="نام" required><input className="kss-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoFocus /></Field>
         <Field label="شماره" required hint="همراه مثل ۰۹۱۲۱۲۳۴۵۶۷ یا ثابت با پیش‌شماره"><input className="kss-input num" dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={16} /></Field>
         <Field label="نقش">
@@ -775,7 +767,7 @@ function TokensCard({ reloadKey }: { reloadKey: string }) {
   const [err, setErr] = useState<string | null>(null);
   const [count, setCount] = useState('');
   const [quote, setQuote] = useState<Quote | null>(null);
-  const { busy, run, error } = useAction();
+  const { busy, run } = useAction();
   useEffect(() => { api.tokens().then((x) => { setT(x); setErr(null); }, (e: Error) => setErr(e.message)); }, [reloadKey]);
   const n = count ? Number(toLatin(count).replace(/\D/g, '')) : 0;
   useEffect(() => {
@@ -787,7 +779,7 @@ function TokensCard({ reloadKey }: { reloadKey: string }) {
   const buy = () => run(async () => {
     const r = await api.tokenBuy(n, `office-${Date.now()}-${n}`);
     if (r.payUrl) location.href = r.payUrl;
-  });
+  }, undefined, 'خرید توکن');
   const closedWhy: Record<string, string> = {
     sales_off: 'خرید توکن برای این دفتر هنوز باز نشده است.', price_unset: 'قیمت توکن هنوز تعیین نشده است.',
     vat_unset: 'مالیات قیمت توکن هنوز تعیین نشده است.', min_unset: 'کمترین خرید توکن هنوز تعیین نشده است.',
@@ -806,7 +798,6 @@ function TokensCard({ reloadKey }: { reloadKey: string }) {
               </Field>
               {quote && <p className="small">مبلغ: <b>{fa(quote.totalToman)} تومان</b>{quote.vatToman ? ` (با ${fa(quote.vatToman)} تومان مالیات)` : ''}</p>}
               <div><Btn variant="primary" icon="upload" busy={busy} disabled={!quote} onClick={() => void buy()}>پرداخت و خرید توکن</Btn></div>
-              {error && <Alert tone="bad">{error}</Alert>}
             </div>
           ) : <Alert tone="info">{closedWhy[t.buy.reason ?? ''] ?? 'خرید توکن الان باز نیست.'}</Alert>}
           {t.lines.length ? (
@@ -938,7 +929,6 @@ function Dashboard() {
   const [addContact, setAddContact] = useState(0); // Amin #6342: «مخاطبین» in the bottom bar opens the phone book
   const [work, setWork] = useState(0); // bumped after anything is added or changed: pages and the sidebar's numbers reload
   const { page, id: routeId } = useRoute();
-  const toast = useToast();
   const load = useCallback(() => api.overview().then((x) => { setO(x); setErr(null); }, (e: Error) => setErr(e.message)), []);
   useEffect(() => { void load(); const t = window.setInterval(() => { void load(); setWork((w) => w + 1); }, 60000); return () => window.clearInterval(t); }, [load]);
   const desk = useDesk(work);
@@ -1110,7 +1100,7 @@ function Dashboard() {
       {layer?.t === 'add' && <AddSheet onClose={() => setLayer(null)} pick={(t) => setLayer(t === 'file' ? { t: 'new' } : t === 'applicant' ? { t: 'newApplicant' } : t === 'reminder' ? { t: 'reminder', preset: {} } : { t: 'contract', preset: {} })} />}
       {layer?.t === 'newApplicant' && <ApplicantModal onClose={() => setLayer(null)} onMade={(a) => { toast(`«${a.name}» ثبت شد`); changed(); setLayer({ t: 'applicant', id: a.id }); }} />}
       {layer?.t === 'applicant' && <ApplicantRecord id={layer.id} onClose={closeLayer} openFile={openFile} onContract={onContract} onReminder={onReminder} onChanged={changed} reloadKey={work} />}
-      {layer?.t === 'contract' && <ContractModal files={o?.files ?? []} preset={layer.preset} onClose={() => setLayer(null)} onMade={(c) => { toast('قرارداد ثبت شد'); changed(); setLayer(null); if (page !== 'contracts') toast(`«${c.fileTitle}» دیگر در پیشنهادها نمی‌آید`); }} />}
+      {layer?.t === 'contract' && <ContractModal files={o?.files ?? []} preset={layer.preset} onClose={() => setLayer(null)} onMade={(c) => { toast('قرارداد ثبت شد'); changed(); setLayer(null); if (page !== 'contracts') toast(`«${c.fileTitle}» دیگر در پیشنهادها نمی‌آید`, 'info'); }} />}
       {layer?.t === 'reminder' && <ReminderModal files={o?.files ?? []} preset={layer.preset} onClose={() => setLayer(null)} onMade={() => { toast('یادآور ثبت شد'); changed(); setLayer(null); }} />}
       {/* Amin #6342: the phone's bottom bar, quick ways in (Material icons) */}
       <nav className="bottom-bar" aria-label="میانبرها">
@@ -1129,7 +1119,7 @@ function App() {
   const handed = new URLSearchParams(location.search).has('h');
   const [inside, setInside] = useState(!handed && !!session.get());
   const onIn = useCallback(() => setInside(true), []);
-  return <ToastProvider>{inside ? <Dashboard /> : handed ? <FromPanel onIn={onIn} /> : <Login onIn={onIn} />}</ToastProvider>;
+  return inside ? <Dashboard /> : handed ? <FromPanel onIn={onIn} /> : <Login onIn={onIn} />;
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

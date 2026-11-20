@@ -4,7 +4,7 @@
  * header and actions; wide tables become cards on a phone.
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Modal, PageHeader, SearchBox, Segmented, Skeleton, useAction, useToast } from './ui/kit';
+import { Alert, Badge, Btn, Card, Empty, ErrorBox, Field, Modal, NeedTokens, PageHeader, SearchBox, Segmented, Skeleton, toast, useAction } from './ui/kit';
 import { Icon } from './ui/icons';
 import { ago, digits } from './lib/fmt';
 import { api, ApiError, type Applicant, type Contract, type Divar, type MatchFile, type MatchList, type NewFile, type OfficeFile, type Reminder } from './api';
@@ -41,15 +41,16 @@ export function jalaliToday(addDays = 0): string {
 }
 const daysUntil = (d: string) => Math.ceil((Date.parse(d + 'T00:00:00Z') - Date.now()) / 86400000);
 
-/** the error of a form: the message, and field → message when the server named the fields */
+/** the error of a form: the message, and field → message when the server named the fields; the failure also shows
+ *  as one error toast (TOAST-9571), the field messages stay beside their fields */
 function useForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
-  const submit = async (fn: () => Promise<unknown>) => {
+  const submit = async (fn: () => Promise<unknown>, fail?: string) => {
     setBusy(true); setError(null); setFields({});
     try { await fn(); return true; }
-    catch (e) { setError((e as Error).message); setFields((e as ApiError).fields ?? {}); return false; }
+    catch (e) { const m = (e as Error).message; setError(m); setFields((e as ApiError).fields ?? {}); toast(m, 'bad', fail); return false; }
     finally { setBusy(false); }
   };
   return { busy, error, fields, submit };
@@ -125,7 +126,7 @@ export function ApplicantModal({ onClose, onMade }: { onClose: () => void; onMad
       minArea: latin(val('minArea')), maxArea: latin(val('maxArea')), rooms: latin(val('rooms')), description: val('description').trim(),
     });
     onMade(r.applicant);
-  });
+  }, 'متقاضی ثبت نشد');
   return (
     <Modal title="متقاضی تازه" sub="مثل برنامهٔ ایوان؛ در برنامهٔ شما هم ثبت می‌شود و فایل‌های مناسب خودکار پیشنهاد می‌شوند" onClose={onClose} size="wide" locked={busy}
       footer={<><Btn onClick={onClose} disabled={busy}>انصراف</Btn><Btn variant="primary" busy={busy} disabled={!val('name').trim() || !val('phone').trim() || !val('city').trim()} onClick={() => void save()}>ثبت متقاضی</Btn></>}>
@@ -168,7 +169,7 @@ export function ApplicantModal({ onClose, onMade }: { onClose: () => void; onMad
         <div className="span2"><Field label="توضیحات"><textarea className="kss-input" rows={3} value={val('description')} onChange={set('description')} placeholder="مثلاً محله‌های دلخواه، طبقه، پارکینگ" maxLength={2000} /></Field></div>
       </form>
       <p className="muted small">ثبت متقاضی مثل برنامه، یک بار به اندازهٔ حجمش از توکن‌های مشترک کم می‌کند.</p>
-      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#/tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
+      <NeedTokens error={error} onClose={onClose} />
     </Modal>
   );
 }
@@ -433,7 +434,7 @@ export function ContractModal({ files, preset, onClose, onMade }: {
   const save = () => submit(async () => {
     const r = await api.addContract({ fileId: val('fileId'), applicantId: val('applicantId'), type: val('type'), amount: latin(val('amount')), startDate: val('startDate'), endDate: val('endDate'), trackingCode: val('trackingCode').trim(), notes: val('notes').trim() });
     onMade(r.contract);
-  });
+  }, 'قرارداد ثبت نشد');
   return (
     <Modal title="ثبت قرارداد" sub="مثل برنامهٔ ایوان؛ در برنامهٔ شما هم ثبت می‌شود و فایل از پیشنهادها بیرون می‌رود" onClose={onClose} size="wide" locked={busy}
       footer={<><Btn onClick={onClose} disabled={busy}>انصراف</Btn><Btn variant="primary" busy={busy} disabled={!val('fileId') || !val('applicantId') || !val('startDate') || !val('endDate')} onClick={() => void save()}>ذخیرهٔ قرارداد</Btn></>}>
@@ -460,7 +461,7 @@ export function ContractModal({ files, preset, onClose, onMade }: {
         <div className="span2"><Field label="یادداشت"><textarea className="kss-input" rows={2} value={val('notes')} onChange={set('notes')} placeholder="توضیحات تکمیلی (اختیاری)" maxLength={2000} /></Field></div>
       </form>
       <p className="muted small">ثبت قرارداد مثل برنامه، یک بار به اندازهٔ حجمش از توکن‌های مشترک کم می‌کند.</p>
-      {error && <Alert tone="bad" action={/توکن/.test(error) ? <a className="kss-btn kss-btn--sm" href="#/tokens" onClick={onClose}>خرید توکن</a> : undefined}>{error}</Alert>}
+      <NeedTokens error={error} onClose={onClose} />
     </Modal>
   );
 }
@@ -572,12 +573,11 @@ function ReminderRow({ r, onToggle, openFile, openApplicant }: { r: Reminder; on
 function useReminders(reloadKey: number) {
   const [d, setD] = useState<Reminder[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const toast = useToast();
   const load = useCallback(() => api.reminders().then((x) => { setD(x.reminders); setErr(null); }, (e: Error) => setErr(e.message)), []);
   useEffect(() => { void load(); }, [load, reloadKey]);
   const toggle = (r: Reminder) => {
     setD((list) => list?.map((x) => (x.id === r.id ? { ...x, done: !r.done } : x)) ?? null);
-    api.reminderDone(r.id, !r.done).then(() => { toast(r.done ? 'یادآور دوباره باز شد' : 'انجام شد'); void load(); }, (e: Error) => { toast(e.message, 'bad'); void load(); });
+    api.reminderDone(r.id, !r.done).then(() => { toast(r.done ? 'یادآور دوباره باز شد' : 'انجام شد'); void load(); }, (e: Error) => { toast(e.message, 'bad', 'یادآور به‌روز نشد'); void load(); });
   };
   return { d, err, load, toggle };
 }
@@ -596,7 +596,7 @@ export function ReminderModal({ files, preset, onClose, onMade }: {
   const save = () => submit(async () => {
     const r = await api.addReminder({ title: val('title').trim(), description: val('description').trim(), date: val('date'), time: latin(val('time')), type: val('type'), fileId: val('fileId') || undefined, applicantId: val('applicantId') || undefined });
     onMade(r.reminder);
-  });
+  }, 'یادآور ثبت نشد');
   return (
     <Modal title="یادآور تازه" sub="در برنامهٔ ایوان شما هم دیده می‌شود" onClose={onClose} locked={busy}
       footer={<><Btn onClick={onClose} disabled={busy}>انصراف</Btn><Btn variant="primary" busy={busy} disabled={!val('title').trim()} onClick={() => void save()}>ذخیرهٔ یادآور</Btn></>}>
@@ -624,7 +624,6 @@ export function ReminderModal({ files, preset, onClose, onMade }: {
         </Field>
         <Field label="توضیح"><textarea className="kss-input" rows={2} value={val('description')} onChange={set('description')} maxLength={1000} /></Field>
       </form>
-      {error && <Alert tone="bad">{error}</Alert>}
     </Modal>
   );
 }
@@ -684,7 +683,7 @@ export function DivarCard({ onChange }: { onChange: (on: boolean) => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [agree, setAgree] = useState(false);
-  const { busy, run, error } = useAction();
+  const { busy, run } = useAction();
   const load = useCallback(() => api.divar().then((x) => { setD(x); setErr(null); }, (e: Error) => setErr(e.message)), []);
   useEffect(() => { void load(); }, [load]);
   const turn = (on: boolean, agreed?: boolean) => run(async () => {
@@ -692,7 +691,7 @@ export function DivarCard({ onChange }: { onChange: (on: boolean) => void }) {
     setD((x) => (x ? { ...x, on: r.on, at: r.at } : x));
     setAsking(false); setAgree(false);
     onChange(r.on);
-  }, on ? 'ورود آگهی از دیوار روشن شد' : 'ورود آگهی از دیوار خاموش شد');
+  }, on ? 'ورود آگهی از دیوار روشن شد' : 'ورود آگهی از دیوار خاموش شد', 'تغییر اتصال دیوار');
   return (
     <Card title="اتصال به دیوار" sub="آگهی خودتان در دیوار را با یک لینک به فایل تازه تبدیل کنید؛ همان کلید برنامهٔ ایوان">
       {err && !d ? <ErrorBox what="تنظیم دیوار" error={err} retry={() => void load()} /> : !d ? <Skeleton rows={2} /> : (
@@ -702,7 +701,6 @@ export function DivarCard({ onChange }: { onChange: (on: boolean) => void }) {
             <input type="checkbox" role="switch" className="switch" checked={d.on} disabled={busy} onChange={(e) => (e.target.checked ? setAsking(true) : void turn(false))} />
           </label>
           <p className="muted small">روشن یا خاموش کردن این‌جا، در برنامهٔ ایوان شما هم همان‌طور می‌شود.</p>
-          {error && <Alert tone="bad">{error}</Alert>}
         </div>
       )}
       {asking && d && (
@@ -719,21 +717,18 @@ export function DivarCard({ onChange }: { onChange: (on: boolean) => void }) {
 /** the new-file window's «از لینک دیوار»: reads the manager's own post and fills the form for checking */
 export function DivarImport({ onFill }: { onFill: (f: NewFile) => void }) {
   const [link, setLink] = useState('');
-  const [note, setNote] = useState<string | null>(null);
-  const { busy, run, error } = useAction();
+  const { busy, run } = useAction();
   const go = () => run(async () => {
     const r = await api.divarImport(link.trim());
     onFill(r.file);
-    setNote(`اطلاعات آگهی وارد شد${r.charged ? ` (${fa(r.charged)} توکن)` : ''}؛ بررسی کنید و «ثبت فایل» را بزنید.${r.photos ? ' عکس‌ها را از برنامهٔ ایوان اضافه کنید.' : ''}`);
-  });
+    toast(`اطلاعات آگهی وارد شد${r.charged ? ` (${fa(r.charged)} توکن)` : ''}؛ بررسی کنید و «ثبت فایل» را بزنید.${r.photos ? ' عکس‌ها را از برنامهٔ ایوان اضافه کنید.' : ''}`);
+  }, undefined, 'خواندن آگهی');
   return (
     <div className="divar-box">
       <div className="divar-row">
         <Field label="از لینک آگهی دیوار" hint="فقط آگهی‌های خودتان"><input className="kss-input" dir="ltr" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://divar.ir/v/…" onKeyDown={(e) => { if (e.key === 'Enter' && link.trim()) { e.preventDefault(); void go(); } }} /></Field>
         <Btn icon="download" busy={busy} disabled={!link.trim()} onClick={() => void go()}>خواندن آگهی</Btn>
       </div>
-      {note && !error && <Alert tone="ok">{note}</Alert>}
-      {error && <Alert tone="bad">{error}</Alert>}
     </div>
   );
 }

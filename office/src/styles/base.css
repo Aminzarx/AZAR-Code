@@ -182,12 +182,10 @@ table.tbl { inline-size: 100%; border-collapse: collapse; font-size: var(--fs-md
 .toolbar { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; padding: var(--s3) var(--s4); border-block-end: 1px solid var(--line); }
 .toolbar .count { color: var(--fg-2); font-size: var(--fs-sm); }
 
-/* ---------------------------------------------------------------- empty, loading, toast (STATE-001 §24-27, §44, §49-54) */
+/* ---------------------------------------------------------------- empty, loading (STATE-001 §24-27, §44, §49-54) */
 .skel { background: var(--surface-2); border-radius: var(--r-sm); block-size: 14px; animation: skel 1.4s ease-in-out infinite; }
 @keyframes skel { 50% { opacity: 0.55; } }
-/* NOTIFICATION-001 §23-25: bottom inline-end corner, 32px in, at most 420px; one at a time; errors stay until closed */
-.toast { position: fixed; inset-block-end: var(--s8); inset-inline-end: var(--s8); z-index: var(--z-toast); background: var(--kss-neutral-800); color: #fff; inline-size: max-content; max-inline-size: min(var(--kss-toast-max-width), calc(100vw - 2 * var(--s4)));
-  padding: var(--s3) var(--s5); border-radius: var(--r); box-shadow: var(--shadow-pop); font-size: var(--fs-md); display: flex; gap: var(--s2); align-items: center; }
+/* toasts: the shared KSS glass toast (ui/toast/toast.css, TOAST-9571, CHG-022 item 13) */
 .kv { display: grid; grid-template-columns: minmax(0, max-content) minmax(max-content, auto); gap: var(--s2) var(--s5); align-items: baseline; margin: 0; }   /* UI polish 2398: a long label wraps, the value never leaves its card */
 .kv dt { color: var(--fg-2); font-size: var(--fs-md); }
 .kv dd { margin: 0; }
@@ -201,11 +199,6 @@ table.tbl { inline-size: 100%; border-collapse: collapse; font-size: var(--fs-md
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 
-/* toasts on mobile: full width minus 16px each side (NOTIFICATION-001 §24); the close button for errors */
-@media (max-width: 767px) { .toast { inset-inline: var(--s4); inset-block-end: var(--s4); inline-size: auto; max-inline-size: none; } }
-.toast.bad { background: var(--bad-text); }
-.toast .t-x { all: unset; cursor: pointer; display: inline-grid; place-items: center; inline-size: 24px; block-size: 24px; border-radius: var(--r-sm); margin-inline-start: var(--s2); }
-.toast .t-x:focus-visible { outline: 2px solid #fff; }
 
 
 /* touch: every control is at least 44 x 44 below 768px (VISUAL-001 §82, FORM-001 §57, DEC-005). The closed exception list

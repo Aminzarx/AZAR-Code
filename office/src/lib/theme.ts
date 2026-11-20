@@ -10,7 +10,7 @@ export function storedTheme(): Theme {
 }
 
 export function applyTheme(t: Theme = storedTheme()) {
-  if (t === 'dark') document.documentElement.dataset.theme = 'dark';
-  else delete document.documentElement.dataset.theme;
+  // light is set by name too, so the shared toast (TOAST-9571) stays light on a light page when the OS is dark
+  document.documentElement.dataset.theme = t;
   try { localStorage.setItem(KEY, t); } catch { /* private mode: this page only */ }
 }

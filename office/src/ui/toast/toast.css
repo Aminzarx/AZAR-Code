@@ -1,0 +1,55 @@
+/* KSS toast (Amin #9553 + #9571): light frosted glass. Pairs with toast.js. Override the --kt-* variables to match an app's tokens; every one has a fallback. */
+.kt-stack {
+  position: fixed; z-index: var(--kt-z, 2147483000); inset-block-start: 16px; inset-inline-end: 16px;
+  width: min(380px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.kt {
+  --kt-c: var(--kt-info, #2563eb); --kt-soft: color-mix(in srgb, var(--kt-c) 12%, transparent);
+  position: relative; overflow: hidden; pointer-events: auto; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 12px;
+  padding: 12px 12px 15px; line-height: 1.5; color: var(--kt-ink, #0f172a);
+  background: var(--kt-bg, #fff);                                   /* solid fallback: no backdrop-filter support */
+  border: 1px solid var(--kt-border, rgba(15, 23, 42, .1)); border-radius: var(--kt-radius, 14px);
+  box-shadow: var(--kt-shadow, 0 8px 24px rgba(15, 23, 42, .12), 0 1px 3px rgba(15, 23, 42, .06));
+  animation: kt-in .28s cubic-bezier(.2, .8, .2, 1) both;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .kt { background: var(--kt-glass, rgba(255, 255, 255, .68)); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
+        border-color: var(--kt-glass-border, rgba(255, 255, 255, .7)); box-shadow: var(--kt-shadow, 0 8px 24px rgba(15, 23, 42, .14), 0 0 0 1px rgba(15, 23, 42, .06)); }
+}
+.kt.kt-out { animation: kt-out .2s ease-in both; pointer-events: none; }
+.kt-success { --kt-c: var(--kt-ok, #16a34a); }
+.kt-error { --kt-c: var(--kt-bad, #dc2626); }
+.kt-warning { --kt-c: var(--kt-warn, #d97706); }
+.kt-ic { width: 32px; height: 32px; border-radius: 999px; background: var(--kt-soft); display: grid; place-items: center; }
+.kt-ic svg { width: 20px; height: 20px; fill: none; stroke: var(--kt-c); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.kt-info .kt-ic svg, .kt-warning .kt-ic svg { stroke-width: 2.4; }
+.kt-tx { min-width: 0; padding-block: 2px; }
+.kt-tx b { display: block; font-size: 14px; font-weight: 600; }
+.kt-tx p { margin: 2px 0 0; font-size: 13px; color: var(--kt-muted, #475569); overflow-wrap: anywhere; }
+.kt-x { width: 28px; height: 28px; margin: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--kt-muted, #64748b); display: grid; place-items: center; cursor: pointer; }
+.kt-x:hover { background: rgba(15, 23, 42, .07); color: var(--kt-ink, #0f172a); }
+.kt-x:focus-visible { outline: 2px solid var(--kt-c); outline-offset: 1px; }
+.kt-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.kt-bar { position: absolute; inset-inline: 0; inset-block-end: 0; height: 3px; background: var(--kt-c); opacity: .85; transform-origin: right; animation: kt-bar var(--kt-ms, 4s) linear forwards; }
+[dir=ltr] .kt-bar, :root:not([dir=rtl]) .kt-bar { transform-origin: left; }
+.kt-hold .kt-bar { animation-play-state: paused; }
+@keyframes kt-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes kt-out { to { opacity: 0; transform: translateY(-6px) scale(.98); } }
+@keyframes kt-bar { to { transform: scaleX(0); } }
+
+/* dark: translucent dark glass. Follows the OS, or the app's own switch (.dark / [data-theme=dark]) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=light]):not(.light) .kt { --kt-ink: #f8fafc; --kt-muted: #cbd5e1; --kt-bg: #1e293b; --kt-border: rgba(255, 255, 255, .12); --kt-info: #60a5fa; --kt-ok: #4ade80; --kt-bad: #f87171; --kt-warn: #fbbf24; --kt-soft: color-mix(in srgb, var(--kt-c) 22%, transparent); }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root:not([data-theme=light]):not(.light) .kt { background: rgba(30, 41, 59, .62); border-color: rgba(255, 255, 255, .14); box-shadow: 0 8px 24px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255, 255, 255, .04); }
+  }
+  :root:not([data-theme=light]):not(.light) .kt-x:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+}
+:root.dark .kt, :root[data-theme=dark] .kt { --kt-ink: #f8fafc; --kt-muted: #cbd5e1; --kt-bg: #1e293b; --kt-border: rgba(255, 255, 255, .12); --kt-info: #60a5fa; --kt-ok: #4ade80; --kt-bad: #f87171; --kt-warn: #fbbf24; --kt-soft: color-mix(in srgb, var(--kt-c) 22%, transparent); }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root.dark .kt, :root[data-theme=dark] .kt { background: rgba(30, 41, 59, .62); border-color: rgba(255, 255, 255, .14); box-shadow: 0 8px 24px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255, 255, 255, .04); }
+}
+:root.dark .kt-x:hover, :root[data-theme=dark] .kt-x:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+
+@media (max-width: 600px) { .kt-stack { inset-inline: 8px; width: auto; inset-block-start: calc(8px + env(safe-area-inset-top)); } }
+@media (prefers-reduced-motion: reduce) { .kt, .kt.kt-out { animation: none; } .kt-bar { animation-duration: var(--kt-ms, 4s); } }

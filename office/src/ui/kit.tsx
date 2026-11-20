@@ -5,12 +5,13 @@
  * UI polish 2398: the pieces render WEB's shared kit (kss-system/ui-kit-2398, styles/kss-kit.css, never edited here):
  * kss-btn, kss-card, kss-stat (#2357 states), kss-chip, kss-notice, kss-empty, kss-field. AVA keeps only its layout.
  */
-import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useMemo, useRef, useState,
+import { cloneElement, isValidElement, useCallback, useEffect, useId, useMemo, useRef, useState,
   type ButtonHTMLAttributes, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './icons';
 import { ago, dateTime, digits, num } from '../lib/fmt';
 import { Select } from './select';
+import { KssToast } from './toast';
 
 // ------------------------------------------------------------ page header ----
 /** Breadcrumb -> title + primary actions on one row -> short description -> context line (LAYOUT-001 §26). */
@@ -304,41 +305,35 @@ export function usePager<T>(rows: T[], reset: unknown) {
 }
 
 // ------------------------------------------------------------ toast ----
-// Short confirmations: 4 s, or 8 s for a longer message. Errors never disappear by themselves (they have a close
-// button) and are also shown in place by the form that failed. One toast at a time: a newer one replaces it.
-// KSS UI v1.1, NOTIFICATION-001 §22-25 (DEC-017).
-const ToastCtx = createContext<(msg: string, tone?: 'ok' | 'bad') => void>(() => {});
-export const useToast = () => useContext(ToastCtx);
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [msg, setMsg] = useState<{ m: string; tone: 'ok' | 'bad'; id: number } | null>(null);
-  const show = useCallback((m: string, tone: 'ok' | 'bad' = 'ok') => {
-    const id = Date.now() + Math.random();
-    setMsg({ m, tone, id });
-    if (tone === 'ok') window.setTimeout(() => setMsg((x) => (x?.id === id ? null : x)), m.length > 60 ? 8000 : 4000);
-  }, []);
-  return <ToastCtx.Provider value={show}>{children}
-    {msg && <div className={'toast' + (msg.tone === 'bad' ? ' bad' : '')} role={msg.tone === 'bad' ? 'alert' : 'status'}>
-      <Icon name={msg.tone === 'bad' ? 'error' : 'ok'} />{msg.m}
-      {msg.tone === 'bad' && <button type="button" className="t-x" onClick={() => setMsg(null)} aria-label="بستن پیام"><Icon name="x" size={14} /></button>}
-    </div>}
-  </ToastCtx.Provider>;
-}
+// Every notice is the shared KSS glass toast (CHG-022 item 13, Amin #9553/#9571): ui/toast/ (copied, never edited). Kind =
+// meaning: ok = saved/done, bad = a request failed, warn = nothing changed / look at this, info = a neutral note.
+// The old one-at-a-time bottom toast (NOTIFICATION-001 §22-25) is gone; times, stacking and roles come from the module.
+export type ToastTone = 'ok' | 'bad' | 'warn' | 'info';
+const TOAST_KIND = { ok: 'success', bad: 'error', warn: 'warning', info: 'info' } as const;
+export const toast = (msg: string, tone: ToastTone = 'ok', title?: string) => { KssToast[TOAST_KIND[tone]](msg, title); };
+export const useToast = () => toast;
 
 /**
- * Wrap an async handler: one at a time (no double submit), success as a short toast, and the error
- * kept in `error` so a form can show it in place and keep what was typed (FORM-001 §61).
+ * Wrap an async handler: one at a time (no double submit), success as a short toast, a failure as an error toast (title
+ * «<what> انجام نشد» when given). `error` is kept so a form stays open with what was typed (FORM-001 §61) and can offer a
+ * next step (e.g. «خرید توکن»); it is not drawn again as a red line.
  */
 export function useAction() {
-  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const run = useCallback(async (fn: () => Promise<unknown>, ok?: string, what?: string) => {
     setBusy(true); setError(null);
     try { await fn(); if (ok) toast(ok); return true; }
-    catch (e) { const m = (e as Error).message; setError(m); toast((what ? what + ' انجام نشد: ' : 'انجام نشد: ') + m, 'bad'); return false; }
+    catch (e) { const m = (e as Error).message; setError(m); toast(m, 'bad', what ? what + ' انجام نشد' : undefined); return false; }
     finally { setBusy(false); }
-  }, [toast]);
+  }, []);
   return { busy, run, error, clearError: () => setError(null) };
+}
+
+/** A failure that a purchase fixes: the token-shortage line with «خرید توکن» stays in the form as the next step. */
+export function NeedTokens({ error, onClose }: { error: string | null; onClose?: () => void }) {
+  if (!error || !/توکن/.test(error)) return null;
+  return <Alert tone="warn" action={<a className="kss-btn kss-btn--sm" href="#/tokens" onClick={onClose}>خرید توکن</a>}>{error}</Alert>;
 }
 
 // ------------------------------------------------------------------ modal ----
@@ -413,19 +408,17 @@ export function Confirm({ title, object, consequence, irreversible, confirmLabel
   onConfirm: () => Promise<unknown>; onClose: () => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
   return (
     <Modal title={title} size="sm" onClose={onClose} locked={busy} footer={<>
       <button className="kss-btn kss-btn--secondary" onClick={onClose} disabled={busy}>انصراف</button>
       <Btn variant={danger ? 'danger solid' : 'primary'} busy={busy} busyLabel="در حال انجام…" onClick={async () => {
-        setBusy(true); setErr(null);
-        try { await onConfirm(); onClose(); } catch (e) { setErr((e as Error).message); setBusy(false); }
+        setBusy(true);
+        try { await onConfirm(); onClose(); } catch (e) { toast((e as Error).message, 'bad', title + ' انجام نشد'); setBusy(false); }
       }}>{confirmLabel}</Btn>
     </>}>
       {object && <div><span className="faint small">مورد: </span><b>{object}</b></div>}
       <div className="wrap">{consequence}</div>
       {irreversible && <div className="row tight small" style={{ color: 'var(--bad-text)' }}><Icon name="warn" />این کار برگشت‌پذیر نیست.</div>}
-      {err && <div className="kss-notice kss-notice--error" role="alert"><span className="kss-ico kss-ico--error" aria-hidden="true" /><div className="kss-notice__body"><span className="kss-notice__title">انجام نشد.</span><span className="small">{err}</span></div></div>}
     </Modal>
   );
 }
